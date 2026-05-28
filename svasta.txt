@@ -1,0 +1,13 @@
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk
+
+
+
+
+https://wzxkcomeurogvfisticq.supabase.co
+
+
+
+UPDATE radnici SET uloga = 'admin' WHERE ime = 'admin';
+
+
+npm run dev

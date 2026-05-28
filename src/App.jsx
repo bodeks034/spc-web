@@ -3,7 +3,7 @@
 // pravim crtanjem linija, zoom, pan
 // npm install @supabase/supabase-js recharts jspdf html2canvas
 // ============================================================
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis,
@@ -17,16 +17,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── TEMA ────────────────────────────────────────────────────
 const TEME = {
-  tamna:  { bg:"#0d1117", panel:"#161b22", border:"#30363d",
+  tamna:  { bg:"#1c2333", panel:"#242e42", border:"#3d4f6a",
     plava:"#58a6ff", zelena:"#3fb950", crvena:"#f85149",
-    zuta:"#d29922", narandzasta:"#f0883e", tekst:"#f0f6fc",
-    sivi:"#8b949e", ljubicasta:"#bc8cff", ok:"#0c2010", nok:"#1a0505",
-    input:"#0d1117", hover:"#21262d", naziv:"tamna" },
-  svetla: { bg:"#f6f8fa", panel:"#ffffff", border:"#d0d7de",
+    zuta:"#d29922", narandzasta:"#f0883e", tekst:"#eaf0fb",
+    sivi:"#9aa8bc", ljubicasta:"#bc8cff", ok:"#0f2d1a", nok:"#2d1010",
+    input:"#1c2333", hover:"#2d3a50", naziv:"tamna" },
+  svetla: { bg:"#dde2e8", panel:"#eaeef2", border:"#a8b4c4",
     plava:"#0969da", zelena:"#1a7f37", crvena:"#cf222e",
-    zuta:"#9a6700", narandzasta:"#bc4c00", tekst:"#1f2328",
-    sivi:"#656d76", ljubicasta:"#6639ba", ok:"#dafbe1", nok:"#ffebe9",
-    input:"#ffffff", hover:"#f3f4f6", naziv:"svetla" },
+    zuta:"#9a6700", narandzasta:"#bc4c00", tekst:"#18202e",
+    sivi:"#485666", ljubicasta:"#6639ba", ok:"#baeeca", nok:"#f5cccc",
+    input:"#d8dde4", hover:"#cdd2da", naziv:"svetla" },
 };
 
 function dISO()    { return new Date().toISOString().split("T")[0]; }
@@ -315,105 +315,196 @@ function SPCKarte({ sviDelovi, C, addToast }) {
   const [datumDo,setDatumDo] = useState("");
   const [smena,setSmena]     = useState("");
   const [loading,setLoading] = useState(false);
-  const [pD,setPD] = useState([]); const [cD,setCD]=useState([]); const [uD,setUD]=useState([]);
+  const [rawData,setRawData] = useState([]);
   const kartaRef = useRef(null);
 
+  // ── Učitaj sirove podatke ─────────────────────────────────
   const ucitaj = useCallback(async()=>{
     if(!idDeo)return; setLoading(true);
     try{
       let q=supabase.from("kontrolni_log")
-        .select("datum,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv")
-        .eq("id_deo",idDeo).order("datum",{ascending:true});
-      if(datumOd)q=q.gte("datum",datumOd); if(datumDo)q=q.lte("datum",datumDo);
-      if(smena)q=q.eq("smena",Number(smena));
+        .select("datum,smena,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,podkategorija,masine(naziv),kontrolor:radnici!kontrolni_log_kontrolor_id_fkey(ime)")
+        .eq("id_deo",idDeo).order("datum",{ascending:true}).order("created_at",{ascending:true});
+      if(datumOd)q=q.gte("datum",datumOd);
+      if(datumDo)q=q.lte("datum",datumDo);
+      if(smena)  q=q.eq("smena",Number(smena));
       const{data,error}=await q; if(error)throw error;
-      if(!data?.length){setPD([]);setCD([]);setUD([]);return;}
-
-      const gr={};
-      data.forEach(r=>{const k=r.datum; if(!gr[k])gr[k]={datum:k,nok:0,n:0,c:0};
-        gr[k].nok+=r.nok_kolicina||0; gr[k].n+=r.ukupno_merenja||0; gr[k].c+=r.kom_nok||0;});
-      const sg=Object.values(gr).sort((a,b)=>a.datum.localeCompare(b.datum));
-      const ukNOK=sg.reduce((s,g)=>s+g.nok,0), ukN=sg.reduce((s,g)=>s+g.n,0);
-      const pBar=ukN>0?ukNOK/ukN:0, cBar=sg.length>0?sg.reduce((s,g)=>s+g.c,0)/sg.length:0;
-      const uBar=ukN>0?sg.reduce((s,g)=>s+g.c,0)/ukN:0;
-
-      const pPodaci=sg.map(g=>({datum:g.datum,p:g.n>0?g.nok/g.n:0,p_bar:pBar,
-        nok_total:g.nok,n_total:g.n,
-        ucl:pBar+3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1)),
-        lcl:Math.max(0,pBar-3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1))),}));
-      setPD(pPodaci);
-      if(pPodaci.some(p=>p.p>p.ucl)) addToast(`⚠ p-karta: tačke van UCL za ${idDeo}`,"greska");
-
-      const cgr={};
-      data.forEach(r=>{const k=`${r.datum}|${r.greska_naziv||""}`;
-        if(!cgr[k])cgr[k]={datum:r.datum,naziv:r.greska_naziv||"sve",c:0}; cgr[k].c+=r.kom_nok||0;});
-      setCD(Object.values(cgr).sort((a,b)=>a.datum.localeCompare(b.datum)).map(g=>({
-        ...g,c_bar:cBar,ucl:cBar+3*Math.sqrt(Math.max(cBar,0.001)),
-        lcl:Math.max(0,cBar-3*Math.sqrt(Math.max(cBar,0.001))),})));
-
-      setUD(sg.map(g=>({datum:g.datum,u:g.n>0?g.c/g.n:0,u_bar:uBar,n:g.n,
-        ucl:uBar+3*Math.sqrt(uBar/Math.max(g.n,1)),
-        lcl:Math.max(0,uBar-3*Math.sqrt(uBar/Math.max(g.n,1))),})));
-    }catch(e){addToast(e.message,"greska");}
+      setRawData(data||[]);
+    }catch(e){addToast(e.message,"greska"); setRawData([]);}
     finally{setLoading(false);}
   },[idDeo,datumOd,datumDo,smena]);
 
   useEffect(()=>{ucitaj();},[ucitaj]);
 
-  // Eksport PDF
-  const exportPDF = async () => {
-    if (!kartaRef.current) return;
-    const { default: jsPDF } = await import("jspdf");
-    const { default: html2canvas } = await import("html2canvas");
-    const canvas = await html2canvas(kartaRef.current,{scale:2,useCORS:true});
-    const pdf = new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  // ── Kalkulacije po danu ───────────────────────────────────
+  const grupe = useMemo(()=>{
+    const g={};
+    rawData.forEach(r=>{
+      const k=r.datum;
+      if(!g[k])g[k]={datum:k,nok:0,n:0,c:0};
+      g[k].nok+=r.nok_kolicina||0;
+      g[k].n  +=r.ukupno_merenja||0;
+      g[k].c  +=r.kom_nok||0;
+    });
+    return Object.values(g).sort((a,b)=>a.datum.localeCompare(b.datum));
+  },[rawData]);
+
+  const ukNOK = grupe.reduce((s,g)=>s+g.nok,0);
+  const ukN   = grupe.reduce((s,g)=>s+g.n,0);
+  const pBar  = ukN>0?ukNOK/ukN:0;
+  const cBar  = grupe.length>0?grupe.reduce((s,g)=>s+g.c,0)/grupe.length:0;
+  const uBar  = ukN>0?grupe.reduce((s,g)=>s+g.c,0)/ukN:0;
+  const nBar  = grupe.length>0?ukN/grupe.length:1; // prosečna veličina podgrupe za np/nC
+
+  // ── 5 KARATA ─────────────────────────────────────────────
+  const karte = useMemo(()=>[
+    {
+      id:"p", naziv:"p-Karta", opis:"Proporcija neispravnih · varijabilno n",
+      boja:C.plava, sufiks:"%",
+      podaci: grupe.map(g=>({
+        datum:g.datum,
+        val:+(g.n>0?(g.nok/g.n)*100:0).toFixed(3),
+        cl: +(pBar*100).toFixed(3),
+        ucl:+((pBar+3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1)))*100).toFixed(3),
+        lcl:+(Math.max(0,pBar-3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1)))*100).toFixed(3),
+        n:g.n, nok:g.nok,
+      })),
+    },
+    {
+      id:"np", naziv:"np-Karta", opis:"Broj neispravnih · konstantno n",
+      boja:"#22d3ee", sufiks:"",
+      podaci: grupe.map(g=>({
+        datum:g.datum,
+        val:+g.nok.toFixed(0),
+        cl: +(pBar*nBar).toFixed(2),
+        ucl:+(pBar*nBar+3*Math.sqrt(pBar*(1-pBar)*nBar)).toFixed(2),
+        lcl:+(Math.max(0,pBar*nBar-3*Math.sqrt(pBar*(1-pBar)*nBar))).toFixed(2),
+        n:g.n, nok:g.nok,
+      })),
+    },
+    {
+      id:"c", naziv:"C-Karta", opis:"Ukupan broj grešaka · konstantno n",
+      boja:C.narandzasta, sufiks:"",
+      podaci: (()=>{
+        const cgr={};
+        rawData.forEach(r=>{
+          const k=`${r.datum}|${r.greska_naziv||"sve"}`;
+          if(!cgr[k])cgr[k]={datum:r.datum,naziv:r.greska_naziv||"sve",c:0};
+          cgr[k].c+=r.kom_nok||0;
+        });
+        return Object.values(cgr).sort((a,b)=>a.datum.localeCompare(b.datum)).map(g=>({
+          datum:g.datum, naziv:g.naziv,
+          val:+g.c.toFixed(0),
+          cl: +cBar.toFixed(2),
+          ucl:+(cBar+3*Math.sqrt(Math.max(cBar,0.001))).toFixed(2),
+          lcl:+(Math.max(0,cBar-3*Math.sqrt(Math.max(cBar,0.001)))).toFixed(2),
+        }));
+      })(),
+    },
+    {
+      id:"nc", naziv:"nC-Karta", opis:"Ukupan broj grešaka po periodu · konstantno n",
+      boja:"#f472b6", sufiks:"",
+      podaci: grupe.map(g=>({
+        datum:g.datum,
+        val:+g.c.toFixed(0),
+        cl: +cBar.toFixed(2),
+        ucl:+(cBar+3*Math.sqrt(Math.max(cBar,0.001))).toFixed(2),
+        lcl:+(Math.max(0,cBar-3*Math.sqrt(Math.max(cBar,0.001)))).toFixed(2),
+      })),
+    },
+    {
+      id:"u", naziv:"u-Karta", opis:"Grešaka po komadu · varijabilno n",
+      boja:C.ljubicasta, sufiks:"",
+      podaci: grupe.map(g=>({
+        datum:g.datum,
+        val:+(g.n>0?g.c/g.n:0).toFixed(4),
+        cl: +uBar.toFixed(4),
+        ucl:+(uBar+3*Math.sqrt(uBar/Math.max(g.n,1))).toFixed(4),
+        lcl:+(Math.max(0,uBar-3*Math.sqrt(uBar/Math.max(g.n,1)))).toFixed(4),
+        n:g.n,
+      })),
+    },
+  ],[grupe,rawData,pBar,cBar,uBar,nBar,C]);
+
+  const akt = karte.find(k=>k.id===tip)||karte[0];
+
+  // ── Chart data sa Western Electric ───────────────────────
+  const cd = useMemo(()=>{
+    if(!akt?.podaci?.length) return [];
+    const niz=akt.podaci.map(d=>d.val);
+    const first=akt.podaci[0];
+    const upoz=new Set(westernElectric(niz,first.cl,first.ucl,first.lcl));
+    return akt.podaci.map((d,i)=>({
+      ...d,
+      label: d.datum?.substring(5)||(d.naziv?.substring(0,8))||"",
+      upoz: upoz.has(i),
+    }));
+  },[akt]);
+
+  const upozoreni = cd.filter(d=>d.upoz);
+  const cl=cd[0]?.cl??0, ucl=cd[0]?.ucl??0, lcl=cd[0]?.lcl??0;
+
+  // ── Analiza po smeni ──────────────────────────────────────
+  const poSmeni = useMemo(()=>{
+    const sm={1:{s:"Smena 1",ok:0,nok:0,n:0},2:{s:"Smena 2",ok:0,nok:0,n:0},3:{s:"Smena 3",ok:0,nok:0,n:0}};
+    rawData.forEach(r=>{
+      const s=sm[r.smena]; if(!s)return;
+      s.ok +=r.ok_kolicina||0;
+      s.nok+=r.nok_kolicina||0;
+      s.n  +=r.ukupno_merenja||0;
+    });
+    return Object.values(sm).map(s=>({
+      ...s,
+      rty: s.n>0?+((s.ok/s.n)*100).toFixed(1):0,
+      p:   s.n>0?+((s.nok/s.n)*100).toFixed(2):0,
+    }));
+  },[rawData]);
+
+  // ── Analiza po grešci (Pareto) ────────────────────────────
+  const paretoData = useMemo(()=>{
+    const g={};
+    rawData.forEach(r=>{
+      if(r.greska_naziv&&r.greska_naziv!=="OK")
+        g[r.greska_naziv]=(g[r.greska_naziv]||0)+(r.kom_nok||0);
+    });
+    const sor=Object.entries(g).map(([naziv,count])=>({naziv,count}))
+      .sort((a,b)=>b.count-a.count).slice(0,8);
+    const uk=sor.reduce((s,d)=>s+d.count,0); let kum=0;
+    return sor.map(d=>{kum+=d.count; return{...d,kum:+((kum/uk)*100).toFixed(1)};});
+  },[rawData]);
+
+  // ── RTY trend ────────────────────────────────────────────
+  const rtyTrend = useMemo(()=>grupe.map(g=>({
+    datum: g.datum?.substring(5)||"",
+    rty:   g.n>0?+((g.ok||g.n-g.nok)/g.n*100).toFixed(1):0,
+    p:     g.n>0?+(g.nok/g.n*100).toFixed(2):0,
+  })),[grupe]);
+
+  // ── Eksport PDF ───────────────────────────────────────────
+  const exportPDF = async()=>{
+    if(!kartaRef.current)return;
+    const{default:jsPDF}=await import("jspdf");
+    const{default:h2c}=await import("html2canvas");
+    const canvas=await h2c(kartaRef.current,{scale:2,useCORS:true});
+    const pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
     const w=pdf.internal.pageSize.getWidth();
     pdf.addImage(canvas.toDataURL("image/png"),"PNG",0,0,w,canvas.height*w/canvas.width);
     pdf.save(`SPC_${idDeo}_${tip}_${dISO()}.pdf`);
   };
 
-  const karte=[
-    {id:"p",naziv:"p-Karta",opis:"Proporcija neispravnih (NOK/n)",boja:C.plava,
-     podaci:pD,dKey:"p",clKey:"p_bar",fmt:v=>+(v*100).toFixed(3),sufiks:"%"},
-    {id:"c",naziv:"C-Karta",opis:"Broj grešaka po podgrupi",boja:C.narandzasta,
-     podaci:cD,dKey:"c",clKey:"c_bar",fmt:v=>+v.toFixed(2),sufiks:""},
-    {id:"u",naziv:"u-Karta",opis:"Grešaka po komadu (c/n)",boja:C.ljubicasta,
-     podaci:uD,dKey:"u",clKey:"u_bar",fmt:v=>+v.toFixed(4),sufiks:""},
-  ];
-  const akt=karte.find(k=>k.id===tip);
-
-  // Pripremi chart data
-  const cd = (akt?.podaci||[]).map((d,i,arr)=>{
-    const niz=arr.map(x=>x[akt.dKey]);
-    const up=new Set(westernElectric(niz,d[akt.clKey],d.ucl,Math.max(d.lcl||0,0)));
-    return{
-      ...d,
-      label: d.datum||(d.naziv?.substring(0,10))||"",
-      val:   akt.fmt(d[akt.dKey]),
-      cl:    akt.fmt(d[akt.clKey]),
-      ucl:   akt.fmt(d.ucl),
-      lcl:   akt.fmt(Math.max(d.lcl||0,0)),
-      upoz:  up.has(i),
-    };
-  });
-  const upozoreni=cd.filter(d=>d.upoz);
-  const cl=cd[0]?.cl??0, ucl=cd[0]?.ucl??0, lcl=cd[0]?.lcl??0;
-
-  // Custom dot sa bojom za upozorenje
   const Dot=(props)=>{
-    const{cx,cy,index}=props;
-    const u=cd[index]?.upoz;
+    const{cx,cy,index}=props; const u=cd[index]?.upoz;
     return<circle key={index} cx={cx} cy={cy} r={u?7:4}
-      fill={u?C.crvena:akt?.boja} stroke={u?"#fff":"none"}
-      strokeWidth={u?2:0} opacity={0.9}/>;
+      fill={u?C.crvena:akt.boja} stroke={u?"#fff":"none"} strokeWidth={u?2:0} opacity={0.9}/>;
   };
-
   const INP_S={background:C.input,border:`1px solid ${C.border}`,borderRadius:6,
     color:C.tekst,fontSize:11,padding:"7px 10px",outline:"none",fontFamily:"inherit"};
+  const BOJE_P=[C.crvena,C.narandzasta,C.zuta,C.plava,C.ljubicasta,"#22d3ee","#f472b6","#a3e635"];
 
   return(
-    <div style={{padding:18}} ref={kartaRef}>
-      {/* Filteri */}
+    <div style={{padding:18,overflowY:"auto"}} ref={kartaRef}>
+
+      {/* ── FILTERI ── */}
       <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"flex-end"}}>
         <div>
           <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4}}>ID DELA</div>
@@ -425,15 +516,15 @@ function SPCKarte({ sviDelovi, C, addToast }) {
         </div>
         {[["OD","date",datumOd,setDatumOd],["DO","date",datumDo,setDatumDo]].map(([l,t,v,s])=>(
           <div key={l}>
-            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4}}>{l} DATUM</div>
+            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4}}>{l}</div>
             <input type={t} value={v} onChange={e=>s(e.target.value)} style={INP_S}/>
           </div>
         ))}
         <div>
           <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4}}>SMENA</div>
           <select value={smena} onChange={e=>setSmena(e.target.value)} style={{...INP_S,cursor:"pointer"}}>
-            <option value="">Sve</option><option value="1">1</option>
-            <option value="2">2</option><option value="3">3</option>
+            <option value="">Sve</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
           </select>
         </div>
         <button onClick={ucitaj} disabled={!idDeo||loading}
@@ -449,153 +540,612 @@ function SPCKarte({ sviDelovi, C, addToast }) {
           📄 PDF
         </button>
         <div style={{flex:1}}/>
-        {cd.length>0&&<span style={{color:C.sivi,fontSize:10,alignSelf:"center"}}>
-          {cd.length} tač. · <span style={{color:upozoreni.length>0?C.crvena:C.zelena,fontWeight:700}}>
-            {upozoreni.length} van kontrole</span>
+        {rawData.length>0&&<span style={{color:C.sivi,fontSize:10,alignSelf:"center"}}>
+          {rawData.length} unosa · {grupe.length} dana ·{" "}
+          <span style={{color:upozoreni.length>0?C.crvena:C.zelena,fontWeight:700}}>
+            {upozoreni.length} van kontrole
+          </span>
         </span>}
       </div>
 
-      {/* Karta tabs */}
-      <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:16}}>
+      {/* ── TABOVI KARATA ── */}
+      <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:16,flexWrap:"wrap"}}>
         {karte.map(k=>(
           <button key={k.id} onClick={()=>setTip(k.id)} style={{
             background:"none",border:"none",
             borderBottom:tip===k.id?`2px solid ${k.boja}`:"2px solid transparent",
-            color:tip===k.id?k.boja:C.sivi,fontSize:11,fontWeight:700,
-            padding:"8px 18px",cursor:"pointer",letterSpacing:1}}>
+            color:tip===k.id?k.boja:C.sivi,
+            fontSize:11,fontWeight:700,padding:"8px 14px",cursor:"pointer",letterSpacing:0.5}}>
             {k.naziv}
-            <span style={{color:C.border,fontSize:9,marginLeft:6,fontWeight:400}}>({k.opis.split(" ")[0]})</span>
+          </button>
+        ))}
+        {[
+          ["pareto",   "Pareto",      C.zelena],
+          ["smena",    "Po smeni",    C.zuta],
+          ["masina",   "Po mašini",   C.narandzasta],
+          ["operater", "Po operateru",C.ljubicasta],
+          ["rty",      "RTY/DPMO",    "#22d3ee"],
+          ["heatmap",  "Heat mapa",   "#f472b6"],
+          ["sigma",    "Sigma nivo",  "#a3e635"],
+        ].map(([id,naziv,boja])=>(
+          <button key={id} onClick={()=>setTip(id)} style={{
+            background:"none",border:"none",
+            borderBottom:tip===id?`2px solid ${boja}`:"2px solid transparent",
+            color:tip===id?boja:C.sivi,
+            fontSize:11,fontWeight:700,padding:"8px 14px",cursor:"pointer",letterSpacing:0.5}}>
+            {naziv}
           </button>
         ))}
       </div>
 
       {!idDeo?(
-        <div style={{height:380,display:"flex",alignItems:"center",justifyContent:"center",
+        <div style={{height:350,display:"flex",alignItems:"center",justifyContent:"center",
           flexDirection:"column",gap:10,color:C.border}}>
           <span style={{fontSize:36}}>📊</span>
-          <span style={{fontSize:12}}>Izaberi ID dela za prikaz karte</span>
+          <span style={{fontSize:12}}>Izaberi ID dela</span>
         </div>
       ):loading?(
-        <div style={{height:380,display:"flex",alignItems:"center",justifyContent:"center",color:C.sivi,fontSize:12}}>
-          Učitavanje podataka...
-        </div>
-      ):cd.length===0?(
-        <div style={{height:380,display:"flex",alignItems:"center",justifyContent:"center",color:C.border,fontSize:12}}>
-          Nema podataka za izabrane filtere
-        </div>
+        <div style={{height:350,display:"flex",alignItems:"center",justifyContent:"center",
+          color:C.sivi,fontSize:12}}>Učitavanje...</div>
+      ):rawData.length===0?(
+        <div style={{height:350,display:"flex",alignItems:"center",justifyContent:"center",
+          color:C.border,fontSize:12}}>Nema podataka</div>
       ):(
         <>
-          {/* KPI */}
-          <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
-            {[
-              ["CL",`${cl}${akt.sufiks}`,C.zuta,"Centralna linija"],
-              ["UCL",`${ucl}${akt.sufiks}`,C.crvena,"+3σ"],
-              ["LCL",`${lcl}${akt.sufiks}`,C.zelena,"-3σ"],
-              ["TAČAKA",cd.length,C.plava,""],
-              ["VAN KONTROLE",upozoreni.length,upozoreni.length>0?C.crvena:C.zelena,
-               upozoreni.length>0?"⚠ Istražiti":"✓ OK"],
-            ].map(([n,v,b,o])=>(
-              <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:8,
-                padding:"10px 14px",textAlign:"center",minWidth:90}}>
-                <div style={{color:C.sivi,fontSize:8,letterSpacing:1.5,marginBottom:3}}>{n}</div>
-                <div style={{color:b,fontSize:18,fontWeight:700}}>{v}</div>
-                {o&&<div style={{color:C.sivi,fontSize:9,marginTop:2}}>{o}</div>}
-              </div>
-            ))}
-          </div>
-
-          {/* Opis karte */}
-          <div style={{color:C.sivi,fontSize:10,marginBottom:10,letterSpacing:0.5}}>
-            <strong style={{color:akt.boja}}>{akt.naziv}</strong> — {akt.opis}
-            {tip==="p"&&<> · n̄ = {cd.length>0?Math.round(cd.reduce((s,d)=>s+(d.n_total||0),0)/cd.length):"-"}</>}
-          </div>
-
-          {/* GRAF */}
-          <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={cd} margin={{top:10,right:90,bottom:45,left:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-              <XAxis dataKey="label" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
-                angle={-40} textAnchor="end" height={55}
-                interval={Math.max(0,Math.floor(cd.length/12)-1)}/>
-              <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}
-                domain={['auto','auto']} tickFormatter={v=>v+akt.sufiks}/>
-              <Tooltip
-                contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                  borderRadius:8,fontSize:11,fontFamily:"'IBM Plex Mono',monospace"}}
-                labelStyle={{color:C.sivi,marginBottom:4}}
-                formatter={(v,name)=>[v+akt.sufiks,name]}/>
-
-              {/* Zona između UCL i LCL */}
-              <ReferenceLine y={ucl} stroke={C.crvena} strokeWidth={1.5}
-                strokeDasharray="8 4"
-                label={{value:`UCL = ${ucl}${akt.sufiks}`,fill:C.crvena,
-                  fontSize:10,position:"right",fontFamily:"monospace"}}/>
-              <ReferenceLine y={cl} stroke={C.zuta} strokeWidth={1.5}
-                strokeDasharray="4 3"
-                label={{value:`CL = ${cl}${akt.sufiks}`,fill:C.zuta,
-                  fontSize:10,position:"right",fontFamily:"monospace"}}/>
-              {lcl>0&&<ReferenceLine y={lcl} stroke={C.zelena} strokeWidth={1.5}
-                strokeDasharray="8 4"
-                label={{value:`LCL = ${lcl}${akt.sufiks}`,fill:C.zelena,
-                  fontSize:10,position:"right",fontFamily:"monospace"}}/>}
-
-              {/* 1σ i 2σ zone (svetlije) */}
-              <ReferenceLine y={+(cl+(ucl-cl)*2/3).toFixed(4)}
-                stroke={C.crvena} strokeWidth={0.5} strokeDasharray="3 6" opacity={0.4}
-                label={{value:"2σ",fill:C.crvena,fontSize:8,position:"right",opacity:0.5}}/>
-              <ReferenceLine y={+(cl+(ucl-cl)/3).toFixed(4)}
-                stroke={C.zuta} strokeWidth={0.5} strokeDasharray="3 6" opacity={0.4}
-                label={{value:"1σ",fill:C.zuta,fontSize:8,position:"right",opacity:0.5}}/>
-              {lcl>0&&<>
-                <ReferenceLine y={+(cl-(cl-lcl)*2/3).toFixed(4)}
-                  stroke={C.zelena} strokeWidth={0.5} strokeDasharray="3 6" opacity={0.4}/>
-                <ReferenceLine y={+(cl-(cl-lcl)/3).toFixed(4)}
-                  stroke={C.zelena} strokeWidth={0.5} strokeDasharray="3 6" opacity={0.4}/>
-              </>}
-
-              {/* Glavna linija */}
-              <Line type="monotone" dataKey="val" stroke={akt.boja} strokeWidth={2}
-                dot={<Dot/>} name={akt.naziv} connectNulls activeDot={{r:6}}/>
-            </ComposedChart>
-          </ResponsiveContainer>
-
-          {/* Upozorenja */}
-          {upozoreni.length>0&&(
-            <div style={{marginTop:12,background:C.nok,border:`1px solid ${C.crvena}30`,
-              borderRadius:8,padding:"10px 14px"}}>
-              <div style={{color:C.crvena,fontSize:11,fontWeight:700,marginBottom:5}}>
-                ⚠ WESTERN ELECTRIC — {upozoreni.length} tačaka van statističke kontrole
-              </div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {upozoreni.map((d,i)=>(
-                  <span key={i} style={{background:C.crvena+"20",border:`1px solid ${C.crvena}40`,
-                    borderRadius:4,padding:"2px 8px",fontSize:10,color:C.crvena}}>
-                    {d.label}: {d.val}{akt.sufiks}
-                  </span>
+          {/* ── SPC KARTE (p, np, C, nC, u) ── */}
+          {["p","np","c","nc","u"].includes(tip)&&(
+            <>
+              {/* KPI row */}
+              <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+                {[
+                  ["CL",`${cl}${akt.sufiks}`,C.zuta,"Centralna linija"],
+                  ["UCL",`${ucl}${akt.sufiks}`,C.crvena,"+3σ"],
+                  ["LCL",`${lcl}${akt.sufiks}`,C.zelena,"-3σ"],
+                  ["TAČAKA",cd.length,C.plava,""],
+                  ["VAN K.",upozoreni.length,upozoreni.length>0?C.crvena:C.zelena,
+                   upozoreni.length>0?"⚠":"✓ OK"],
+                  ["RTY",ukN>0?((ukN-ukNOK)/ukN*100).toFixed(1)+"%":"-",C.ljubicasta,""],
+                  ["DPMO",ukN>0?Math.round(ukNOK/ukN*1e6).toLocaleString():"-","#f472b6",""],
+                ].map(([n,v,b,o])=>(
+                  <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:8,
+                    padding:"9px 12px",textAlign:"center",minWidth:80}}>
+                    <div style={{color:C.sivi,fontSize:8,letterSpacing:1.2,marginBottom:2}}>{n}</div>
+                    <div style={{color:b,fontSize:16,fontWeight:700}}>{v}</div>
+                    {o&&<div style={{color:C.sivi,fontSize:8,marginTop:1}}>{o}</div>}
+                  </div>
                 ))}
               </div>
+
+              {/* Opis */}
+              <div style={{color:C.sivi,fontSize:10,marginBottom:10}}>
+                <strong style={{color:akt.boja}}>{akt.naziv}</strong> — {akt.opis}
+                {(tip==="p"||tip==="np")&&<> · n̄ = {Math.round(nBar)}</>}
+              </div>
+
+              {/* Graf */}
+              <ResponsiveContainer width="100%" height={310}>
+                <ComposedChart data={cd} margin={{top:8,right:90,bottom:44,left:10}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
+                  <XAxis dataKey="label" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
+                    angle={-40} textAnchor="end" height={52}
+                    interval={Math.max(0,Math.floor(cd.length/12)-1)}/>
+                  <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}
+                    domain={['auto','auto']} tickFormatter={v=>v+akt.sufiks}/>
+                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
+                    borderRadius:8,fontSize:11,fontFamily:"'IBM Plex Mono',monospace"}}
+                    labelStyle={{color:C.sivi}} formatter={(v)=>[v+akt.sufiks]}/>
+                  <ReferenceLine y={ucl} stroke={C.crvena} strokeWidth={1.5} strokeDasharray="8 4"
+                    label={{value:`UCL=${ucl}${akt.sufiks}`,fill:C.crvena,fontSize:9,position:"right"}}/>
+                  <ReferenceLine y={cl} stroke={C.zuta} strokeWidth={1.5} strokeDasharray="4 3"
+                    label={{value:`CL=${cl}${akt.sufiks}`,fill:C.zuta,fontSize:9,position:"right"}}/>
+                  {lcl>0&&<ReferenceLine y={lcl} stroke={C.zelena} strokeWidth={1.5} strokeDasharray="8 4"
+                    label={{value:`LCL=${lcl}${akt.sufiks}`,fill:C.zelena,fontSize:9,position:"right"}}/>}
+                  <ReferenceLine y={+(cl+(ucl-cl)*2/3).toFixed(4)}
+                    stroke={C.crvena} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}
+                    label={{value:"2σ",fill:C.crvena,fontSize:8,position:"right",opacity:0.5}}/>
+                  <ReferenceLine y={+(cl+(ucl-cl)/3).toFixed(4)}
+                    stroke={C.zuta} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}
+                    label={{value:"1σ",fill:C.zuta,fontSize:8,position:"right",opacity:0.5}}/>
+                  {lcl>0&&<>
+                    <ReferenceLine y={+(cl-(cl-lcl)*2/3).toFixed(4)}
+                      stroke={C.zelena} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}/>
+                    <ReferenceLine y={+(cl-(cl-lcl)/3).toFixed(4)}
+                      stroke={C.zelena} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}/>
+                  </>}
+                  <Line type="monotone" dataKey="val" stroke={akt.boja} strokeWidth={2}
+                    dot={<Dot/>} name={akt.naziv} connectNulls activeDot={{r:6}}/>
+                </ComposedChart>
+              </ResponsiveContainer>
+
+              {/* Upozorenja */}
+              {upozoreni.length>0&&(
+                <div style={{marginTop:12,background:C.nok,border:`1px solid ${C.crvena}30`,
+                  borderRadius:8,padding:"10px 14px"}}>
+                  <div style={{color:C.crvena,fontSize:11,fontWeight:700,marginBottom:5}}>
+                    ⚠ WESTERN ELECTRIC — {upozoreni.length} tačaka van statističke kontrole
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {upozoreni.map((d,i)=>(
+                      <span key={i} style={{background:C.crvena+"20",border:`1px solid ${C.crvena}40`,
+                        borderRadius:4,padding:"2px 8px",fontSize:10,color:C.crvena}}>
+                        {d.label}: {d.val}{akt.sufiks}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* WE pravila */}
+              <div style={{marginTop:14,background:C.panel,border:`1px solid ${C.border}`,
+                borderRadius:8,padding:"10px 14px"}}>
+                <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:8}}>
+                  WESTERN ELECTRIC PRAVILA (ISO 8258)
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
+                  {[["P1","1 tačka van UCL/LCL (3σ)"],["P2","9 uzastopnih na istoj strani CL"],
+                    ["P3","6 uzastopnih u trendu"],["P4","2/3 uzastopnih van 2σ iste strane"]
+                  ].map(([p,o])=>(
+                    <div key={p} style={{display:"flex",gap:6,fontSize:10}}>
+                      <span style={{color:C.crvena,fontWeight:700,minWidth:22}}>{p}:</span>
+                      <span style={{color:C.sivi}}>{o}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── PARETO ── */}
+          {tip==="pareto"&&(
+            <div>
+              <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+                PARETO DIJAGRAM — TOP GREŠKE (80/20 pravilo)
+              </div>
+              {!paretoData.length?(
+                <div style={{height:200,display:"flex",alignItems:"center",justifyContent:"center",
+                  color:C.border,fontSize:12}}>Nema NOK podataka</div>
+              ):(
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ComposedChart data={paretoData} margin={{top:8,right:60,bottom:60,left:10}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
+                      <XAxis dataKey="naziv" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
+                        angle={-40} textAnchor="end" height={65}/>
+                      <YAxis yAxisId="l" tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
+                      <YAxis yAxisId="r" orientation="right" tick={{fill:C.sivi,fontSize:9}}
+                        tickLine={false} domain={[0,100]} tickFormatter={v=>v+"%"} axisLine={false}/>
+                      <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
+                        borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
+                      <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
+                      <Bar yAxisId="l" dataKey="count" name="Broj grešaka" radius={[4,4,0,0]}>
+                        {paretoData.map((_,i)=><Cell key={i} fill={BOJE_P[i%BOJE_P.length]}/>)}
+                      </Bar>
+                      <Line yAxisId="r" type="monotone" dataKey="kum" stroke={C.zuta}
+                        strokeWidth={2} dot={{fill:C.zuta,r:4}} name="Kumulativ %"/>
+                      <ReferenceLine yAxisId="r" y={80} stroke={C.sivi} strokeDasharray="4 2"
+                        label={{value:"80%",fill:C.sivi,fontSize:9,position:"right"}}/>
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                  {/* Tabela */}
+                  <div style={{marginTop:14,border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",
+                      background:C.hover,padding:"8px 14px",fontSize:9,color:C.sivi,gap:8}}>
+                      <span>GREŠKA</span><span>BROJ</span><span>%</span><span>KUMULATIV</span>
+                    </div>
+                    {paretoData.map((p,i)=>{
+                      const uk=paretoData.reduce((s,d)=>s+d.count,0);
+                      return(
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",
+                          padding:"8px 14px",borderTop:`1px solid ${C.border}`,fontSize:11,gap:8}}>
+                          <span style={{color:BOJE_P[i%BOJE_P.length],fontWeight:700}}>{p.naziv}</span>
+                          <span style={{color:C.tekst}}>{p.count}</span>
+                          <span style={{color:C.sivi}}>{uk>0?((p.count/uk)*100).toFixed(1):0}%</span>
+                          <span style={{color:C.zuta}}>{p.kum}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {/* WE pravila */}
-          <div style={{marginTop:14,background:C.panel,border:`1px solid ${C.border}`,
-            borderRadius:8,padding:"10px 14px"}}>
-            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:8}}>
-              WESTERN ELECTRIC PRAVILA (ISO 8258)
+          {/* ── PO SMENI ── */}
+          {tip==="smena"&&(
+            <div>
+              <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+                ANALIZA PO SMENI
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+                {poSmeni.map(s=>(
+                  <div key={s.s} style={{background:C.panel,border:`1px solid ${C.border}`,
+                    borderRadius:10,padding:16,textAlign:"center"}}>
+                    <div style={{color:C.plava,fontSize:14,fontWeight:700,marginBottom:10}}>{s.s}</div>
+                    {[["OK",s.ok,C.zelena],["NOK",s.nok,C.crvena],
+                      ["RTY",s.rty+"%",C.zuta],["p",s.p+"%",C.narandzasta]].map(([l,v,b])=>(
+                      <div key={l} style={{display:"flex",justifyContent:"space-between",
+                        fontSize:11,marginBottom:5}}>
+                        <span style={{color:C.sivi}}>{l}</span>
+                        <span style={{color:b,fontWeight:700}}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={poSmeni} margin={{top:8,right:10,bottom:10,left:10}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
+                  <XAxis dataKey="s" tick={{fill:C.sivi,fontSize:11}} tickLine={false}/>
+                  <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}/>
+                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
+                    borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
+                  <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
+                  <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[4,4,0,0]}/>
+                  <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[4,4,0,0]}/>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
-              {[["P1","1 tačka van UCL ili LCL (3σ)"],
-                ["P2","9 uzastopnih na istoj strani CL"],
-                ["P3","6 uzastopnih u trendu (monoton rast/pad)"],
-                ["P4","2 od 3 uzastopnih van 2σ iste strane"]
-              ].map(([p,o])=>(
-                <div key={p} style={{display:"flex",gap:6,fontSize:10}}>
-                  <span style={{color:C.crvena,fontWeight:700,minWidth:22}}>{p}:</span>
-                  <span style={{color:C.sivi}}>{o}</span>
+          )}
+
+          {/* ── RTY TREND ── */}
+          {tip==="rty"&&(
+            <div>
+              <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+                RTY % I DPMO TREND PO DANU
+              </div>
+              <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+                {[
+                  ["RTY %",ukN>0?((ukN-ukNOK)/ukN*100).toFixed(2)+"%":"-",C.zelena],
+                  ["DPMO",ukN>0?Math.round(ukNOK/ukN*1e6).toLocaleString():"-",C.ljubicasta],
+                  ["Sigma nivo",ukN>0?(()=>{const p=ukNOK/ukN; const z=p>0?(-2.326*Math.log(p/(1-p))+1.5).toFixed(2):"6.00"; return z+"σ";})():"-","#a3e635"],
+                  ["Uk. mereno",ukN,C.plava],
+                  ["Uk. NOK",ukNOK,C.crvena],
+                ].map(([n,v,b])=>(
+                  <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:8,
+                    padding:"10px 14px",textAlign:"center",minWidth:100}}>
+                    <div style={{color:C.sivi,fontSize:8,letterSpacing:1.2,marginBottom:3}}>{n}</div>
+                    <div style={{color:b,fontSize:16,fontWeight:700}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={rtyTrend} margin={{top:8,right:70,bottom:44,left:10}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
+                  <XAxis dataKey="datum" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
+                    angle={-40} textAnchor="end" height={52}
+                    interval={Math.max(0,Math.floor(rtyTrend.length/12)-1)}/>
+                  <YAxis yAxisId="l" tick={{fill:C.sivi,fontSize:10}} tickLine={false}
+                    axisLine={false} domain={[0,100]} tickFormatter={v=>v+"%"} width={42}/>
+                  <YAxis yAxisId="r" orientation="right" tick={{fill:C.sivi,fontSize:10}}
+                    tickLine={false} axisLine={false} tickFormatter={v=>v+"%"} width={42}/>
+                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
+                    borderRadius:8,fontSize:11,fontFamily:"monospace"}} labelStyle={{color:C.sivi}}/>
+                  <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
+                  <ReferenceLine yAxisId="l" y={99.38} stroke="#a3e635" strokeDasharray="3 5" opacity={0.6}
+                    label={{value:"4σ 99.38%",fill:"#a3e635",fontSize:8,position:"right"}}/>
+                  <ReferenceLine yAxisId="l" y={95} stroke={C.zelena} strokeDasharray="4 2"
+                    label={{value:"95%",fill:C.zelena,fontSize:8,position:"right"}}/>
+                  <ReferenceLine yAxisId="l" y={80} stroke={C.zuta} strokeDasharray="4 2"
+                    label={{value:"80%",fill:C.zuta,fontSize:8,position:"right"}}/>
+                  <Line yAxisId="l" type="monotone" dataKey="rty" stroke={C.zelena}
+                    strokeWidth={2.5} dot={{fill:C.zelena,r:4}} name="RTY %" connectNulls
+                    activeDot={{r:7,stroke:C.zelena,strokeWidth:2,fill:C.panel}}/>
+                  <Line yAxisId="r" type="monotone" dataKey="p" stroke={C.crvena}
+                    strokeWidth={1.5} dot={{fill:C.crvena,r:3}} name="p % NOK" connectNulls
+                    strokeDasharray="5 3" activeDot={{r:6}}/>
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* ── PO MAŠINI ── */}
+          {tip==="masina"&&(()=>{
+            const poMas={};
+            rawData.forEach(r=>{
+              const k=r.masine?.naziv||"Nepoznata";
+              if(!poMas[k])poMas[k]={naziv:k,ok:0,nok:0,n:0,c:0};
+              poMas[k].ok +=r.ok_kolicina||0;
+              poMas[k].nok+=r.nok_kolicina||0;
+              poMas[k].n  +=r.ukupno_merenja||0;
+              poMas[k].c  +=r.kom_nok||0;
+            });
+            const arr=Object.values(poMas).map(m=>({
+              ...m,
+              rty:m.n>0?+((m.ok/m.n)*100).toFixed(1):0,
+              p:  m.n>0?+((m.nok/m.n)*100).toFixed(2):0,
+              dpmo:m.n>0?Math.round((m.nok/m.n)*1e6):0,
+            })).sort((a,b)=>b.nok-a.nok);
+            const BOJE=[C.plava,C.zelena,C.narandzasta,C.ljubicasta,"#22d3ee","#f472b6"];
+            return(
+              <div>
+                <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+                  ANALIZA PO MAŠINI
                 </div>
-              ))}
-            </div>
-          </div>
+                {!arr.length?<div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
+                  Nema podataka — mašine nisu dodeljene delovima
+                </div>:(
+                  <>
+                    <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(arr.length,4)},1fr)`,gap:10,marginBottom:20}}>
+                      {arr.map((m,i)=>(
+                        <div key={m.naziv} style={{background:C.panel,border:`1px solid ${BOJE[i%BOJE.length]}30`,borderRadius:10,padding:14}}>
+                          <div style={{color:BOJE[i%BOJE.length],fontWeight:700,fontSize:14,marginBottom:8}}>{m.naziv}</div>
+                          {[["OK",m.ok,C.zelena],["NOK",m.nok,C.crvena],
+                            ["RTY",m.rty+"%",C.zuta],["DPMO",m.dpmo.toLocaleString(),C.ljubicasta]
+                          ].map(([l,v,b])=>(
+                            <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                              <span style={{color:C.sivi}}>{l}</span>
+                              <span style={{color:b,fontWeight:700}}>{v}</span>
+                            </div>
+                          ))}
+                          <div style={{marginTop:8,background:C.hover,borderRadius:3,height:5}}>
+                            <div style={{background:m.rty>95?C.zelena:m.rty>80?C.zuta:C.crvena,
+                              width:`${m.rty}%`,height:5,borderRadius:3}}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={arr} margin={{top:8,right:10,bottom:30,left:10}} barGap={4}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
+                        <XAxis dataKey="naziv" tick={{fill:C.sivi,fontSize:10}} tickLine={false}/>
+                        <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
+                        <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
+                        <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
+                        <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[4,4,0,0]} stackId="a"/>
+                        <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[4,4,0,0]} stackId="a"/>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── PO OPERATERU ── */}
+          {tip==="operater"&&(()=>{
+            const poOp={};
+            rawData.forEach(r=>{
+              const k=r.kontrolor?.ime||"Nepoznat";
+              if(!poOp[k])poOp[k]={ime:k,ok:0,nok:0,n:0,c:0};
+              poOp[k].ok +=r.ok_kolicina||0;
+              poOp[k].nok+=r.nok_kolicina||0;
+              poOp[k].n  +=r.ukupno_merenja||0;
+              poOp[k].c  +=r.kom_nok||0;
+            });
+            const arr=Object.values(poOp).map(o=>({
+              ...o,
+              rty:o.n>0?+((o.ok/o.n)*100).toFixed(1):0,
+              p:  o.n>0?+((o.nok/o.n)*100).toFixed(2):0,
+            })).sort((a,b)=>b.nok-a.nok);
+            const BOJE=[C.plava,C.narandzasta,C.ljubicasta,C.zelena,"#22d3ee","#f472b6"];
+            return(
+              <div>
+                <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+                  ANALIZA PO OPERATERU / KONTROLORU
+                </div>
+                {!arr.length?<div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
+                  Nema podataka
+                </div>:(
+                  <>
+                    <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",marginBottom:20}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 70px 80px 80px",
+                        background:C.hover,padding:"9px 14px",fontSize:9,color:C.sivi,gap:8,letterSpacing:1}}>
+                        <span>IME</span><span>OK</span><span>NOK</span>
+                        <span>MERENJA</span><span>RTY %</span><span>DPMO</span>
+                      </div>
+                      {arr.map((o,i)=>(
+                        <div key={o.ime} style={{display:"grid",
+                          gridTemplateColumns:"1fr 70px 70px 70px 80px 80px",
+                          padding:"10px 14px",borderTop:`1px solid ${C.border}`,
+                          fontSize:12,gap:8,alignItems:"center"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <div style={{width:8,height:8,borderRadius:"50%",background:BOJE[i%BOJE.length],flexShrink:0}}/>
+                            <span style={{color:C.tekst,fontWeight:700}}>{o.ime}</span>
+                          </div>
+                          <span style={{color:C.zelena}}>{o.ok}</span>
+                          <span style={{color:C.crvena,fontWeight:o.nok>0?700:400}}>{o.nok}</span>
+                          <span style={{color:C.sivi}}>{o.n}</span>
+                          <div>
+                            <span style={{color:o.rty>95?C.zelena:o.rty>80?C.zuta:C.crvena,fontWeight:700}}>
+                              {o.rty}%
+                            </span>
+                            <div style={{background:C.hover,borderRadius:2,height:3,marginTop:3}}>
+                              <div style={{background:o.rty>95?C.zelena:o.rty>80?C.zuta:C.crvena,
+                                width:`${o.rty}%`,height:3,borderRadius:2}}/>
+                            </div>
+                          </div>
+                          <span style={{color:C.ljubicasta,fontSize:11}}>
+                            {o.n>0?Math.round((o.nok/o.n)*1e6).toLocaleString():"-"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={arr} margin={{top:8,right:10,bottom:40,left:10}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
+                        <XAxis dataKey="ime" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
+                          angle={-30} textAnchor="end" height={50}/>
+                        <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
+                        <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
+                        <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
+                        <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[3,3,0,0]} stackId="s"/>
+                        <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[3,3,0,0]} stackId="s"/>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── HEAT MAPA ── */}
+          {tip==="heatmap"&&(()=>{
+            // NOK po dan/smena matrica
+            const matrix={};
+            const dani=[];
+            rawData.forEach(r=>{
+              if(!matrix[r.datum]){ matrix[r.datum]={};dani.push(r.datum); }
+              const s=`Smena ${r.smena||1}`;
+              matrix[r.datum][s]=(matrix[r.datum][s]||0)+(r.nok_kolicina||0);
+            });
+            const unikDani=[...new Set(dani)].sort().slice(-30); // poslednih 30 dana
+            const smene=["Smena 1","Smena 2","Smena 3"];
+            const maxVal=unikDani.reduce((mx,d)=>
+              Math.max(mx,...smene.map(s=>matrix[d]?.[s]||0)),0);
+            const getColor=(v)=>{
+              if(v===0)return C.hover;
+              const int=Math.min(v/Math.max(maxVal,1),1);
+              if(int<0.33)return C.zelena+"80";
+              if(int<0.66)return C.zuta+"90";
+              return C.crvena+(Math.round(128+int*127).toString(16).padStart(2,"0"));
+            };
+            return(
+              <div>
+                <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+                  HEAT MAPA NOK — PO DANU I SMENI (poslednih 30 dana)
+                </div>
+                <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
+                  <span style={{color:C.sivi,fontSize:10}}>0</span>
+                  {[C.hover,C.zelena+"80",C.zuta+"90",C.crvena+"aa",C.crvena].map((c,i)=>(
+                    <div key={i} style={{width:20,height:14,background:c,borderRadius:2}}/>
+                  ))}
+                  <span style={{color:C.sivi,fontSize:10}}>max ({maxVal})</span>
+                </div>
+                <div style={{overflowX:"auto"}}>
+                  <div style={{display:"grid",
+                    gridTemplateColumns:`80px repeat(${unikDani.length},1fr)`,
+                    gap:2,minWidth:400}}>
+                    <div/>{unikDani.map(d=>(
+                      <div key={d} style={{color:C.sivi,fontSize:8,textAlign:"center",
+                        transform:"rotate(-60deg)",transformOrigin:"bottom center",
+                        height:40,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+                        {d.substring(5)}
+                      </div>
+                    ))}
+                    {smene.map(s=>(
+                      <>
+                        <div key={s} style={{color:C.sivi,fontSize:10,display:"flex",
+                          alignItems:"center",paddingRight:8}}>{s}</div>
+                        {unikDani.map(d=>{
+                          const v=matrix[d]?.[s]||0;
+                          return(
+                            <div key={d+s} title={`${d} ${s}: ${v} NOK`}
+                              style={{background:getColor(v),borderRadius:3,height:22,
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:v>0?8:0,color:"#fff",fontWeight:700,cursor:"default"}}>
+                              {v>0?v:""}
+                            </div>
+                          );
+                        })}
+                      </>
+                    ))}
+                  </div>
+                </div>
+                <div style={{marginTop:16,color:C.sivi,fontSize:10}}>
+                  Tamnije = više NOK. Hover na ćeliju za detalje.
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── SIGMA NIVO ── */}
+          {tip==="sigma"&&(()=>{
+            const dpmo=ukN>0?ukNOK/ukN*1e6:0;
+            // Aproksimacija sigma nivoa iz DPMO
+            const sigmaIzDPMO=(d)=>{
+              if(d<=0)return 6.0;
+              const tbl=[[3.4,6],[233,5],[6210,4],[66807,3],[308538,2],[691462,1]];
+              for(const [lim,s] of tbl) if(d<=lim)return s;
+              return 1;
+            };
+            const sigma=sigmaIzDPMO(dpmo);
+            const rty=ukN>0?((ukN-ukNOK)/ukN*100):0;
+
+            // Benchmark tabela
+            const bench=[
+              {nivo:"6σ",dpmo:"3.4",rty:"99.9997%",opis:"World class"},
+              {nivo:"5σ",dpmo:"233",rty:"99.977%",opis:"Odlično"},
+              {nivo:"4σ",dpmo:"6,210",rty:"99.38%",opis:"Dobro"},
+              {nivo:"3σ",dpmo:"66,807",rty:"93.32%",opis:"Prosečno"},
+              {nivo:"2σ",dpmo:"308,538",rty:"69.15%",opis:"Loše"},
+              {nivo:"1σ",dpmo:"691,462",rty:"30.85%",opis:"Kritično"},
+            ];
+            const trenutniIdx=Math.max(0,6-Math.ceil(sigma));
+
+            return(
+              <div>
+                <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:16}}>
+                  SIGMA NIVO PROCESA
+                </div>
+                {/* Gauge */}
+                <div style={{display:"flex",gap:16,marginBottom:24,flexWrap:"wrap",alignItems:"center"}}>
+                  <div style={{background:C.panel,border:`2px solid ${
+                    sigma>=5?C.zelena:sigma>=4?C.zuta:sigma>=3?C.narandzasta:C.crvena}`,
+                    borderRadius:16,padding:"24px 32px",textAlign:"center",minWidth:160}}>
+                    <div style={{color:C.sivi,fontSize:10,letterSpacing:1.5,marginBottom:6}}>SIGMA NIVO</div>
+                    <div style={{color:sigma>=5?C.zelena:sigma>=4?C.zuta:sigma>=3?C.narandzasta:C.crvena,
+                      fontSize:52,fontWeight:700,lineHeight:1}}>{sigma.toFixed(1)}σ</div>
+                    <div style={{color:C.sivi,fontSize:11,marginTop:6}}>
+                      {sigma>=5?"World class":sigma>=4?"Odlično":sigma>=3?"Dobro":sigma>=2?"Ispod proseka":"Kritično"}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:10,flex:1,minWidth:200}}>
+                    {[
+                      ["DPMO",Math.round(dpmo).toLocaleString(),C.ljubicasta],
+                      ["RTY %",rty.toFixed(3)+"%",C.zelena],
+                      ["Uk. NOK",ukNOK,C.crvena],
+                      ["Uk. mereno",ukN,C.plava],
+                    ].map(([n,v,b])=>(
+                      <div key={n} style={{display:"flex",justifyContent:"space-between",
+                        background:C.panel,borderRadius:8,padding:"10px 14px"}}>
+                        <span style={{color:C.sivi,fontSize:11}}>{n}</span>
+                        <span style={{color:b,fontWeight:700,fontSize:13}}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sigma skala vizualna */}
+                <div style={{background:C.panel,borderRadius:10,padding:16,marginBottom:16}}>
+                  <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:10}}>SIGMA SKALA</div>
+                  <div style={{display:"flex",height:20,borderRadius:6,overflow:"hidden",marginBottom:8}}>
+                    {[C.crvena,C.narandzasta,C.zuta,"#84cc16",C.zelena,"#06b6d4"].map((c,i)=>(
+                      <div key={i} style={{flex:1,background:c,
+                        opacity:i+1<=Math.floor(sigma)?1:0.2,
+                        borderRight:i<5?`1px solid ${C.bg}`:""}}/>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.sivi}}>
+                    {["1σ","2σ","3σ","4σ","5σ","6σ"].map(s=><span key={s}>{s}</span>)}
+                  </div>
+                </div>
+
+                {/* Benchmark tabela */}
+                <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"60px 100px 100px 1fr",
+                    background:C.hover,padding:"8px 14px",fontSize:9,color:C.sivi,gap:8,letterSpacing:1}}>
+                    <span>NIVO</span><span>DPMO</span><span>RTY</span><span>OCENA</span>
+                  </div>
+                  {bench.map((b,i)=>(
+                    <div key={b.nivo} style={{display:"grid",
+                      gridTemplateColumns:"60px 100px 100px 1fr",
+                      padding:"9px 14px",borderTop:`1px solid ${C.border}`,
+                      background:i===trenutniIdx?C.plava+"15":"transparent",
+                      fontSize:12,gap:8,alignItems:"center"}}>
+                      <span style={{color:i===trenutniIdx?C.plava:C.tekst,fontWeight:700}}>{b.nivo}</span>
+                      <span style={{color:C.sivi}}>{b.dpmo}</span>
+                      <span style={{color:C.sivi}}>{b.rty}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{color:C.sivi,fontSize:11}}>{b.opis}</span>
+                        {i===trenutniIdx&&<span style={{background:C.plava,color:"#fff",
+                          fontSize:9,padding:"1px 6px",borderRadius:10}}>← Vi ste ovde</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
     </div>
@@ -812,7 +1362,7 @@ function Login({onLogin,C}) {
 }
 
 // ─── GLAVNA FORMA ─────────────────────────────────────────────
-function GlavnaForma({korisnik,onOdjava,C,setC}) {
+function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   const ekran = useEkran();
   const [sviDelovi,setSviDelovi] = useState([]);
   const [greskeKat,setGreskeKat] = useState({});
@@ -1000,6 +1550,8 @@ function GlavnaForma({korisnik,onOdjava,C,setC}) {
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
         padding:"0 18px",display:"flex",alignItems:"center",justifyContent:"space-between",height:48,gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {onNazad&&<button onClick={onNazad} style={{background:"none",border:"none",
+            color:C.sivi,fontSize:13,cursor:"pointer",padding:"0 8px 0 0"}}>←</button>}
           <span style={{color:C.plava,fontWeight:700,fontSize:13,letterSpacing:2}}>⚙ SPC</span>
           <span style={{color:C.border}}>|</span>
           <span style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.sivi}}>
@@ -2095,9 +2647,84 @@ function MobilniDashboard({ C, addToast }) {
 // ════════════════════════════════════════════════════════════
 
 // ─── ROOT ─────────────────────────────────────────────────────
+
+// ============================================================
+// VARIJABILNE VELIČINE — placeholder, biće implementirano
+// sa upload drugog Excel fajla
+// ============================================================
+function VarijabilneForma({ korisnik, onOdjava, onNazad, C, setC }) {
+  const ekran = useEkran();
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace",color:C.tekst}}>
+      {/* Header */}
+      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
+        padding:"0 20px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={onNazad} style={{background:"none",border:"none",
+            color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>←</button>
+          <span style={{color:C.border}}>|</span>
+          <span style={{color:C.zelena,fontWeight:700,fontSize:13,letterSpacing:2}}>± VARIJABILNE</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={()=>setC(p=>p.naziv==="tamna"?TEME.svetla:TEME.tamna)}
+            style={{background:C.hover,border:`1px solid ${C.border}`,borderRadius:5,
+              color:C.sivi,fontSize:11,padding:"4px 10px",cursor:"pointer"}}>
+            {C.naziv==="tamna"?"☀️":"🌙"}
+          </button>
+          <span style={{color:C.sivi,fontSize:11}}>{korisnik.ime}</span>
+          <button onClick={onOdjava} style={{background:"none",border:`1px solid ${C.border}`,
+            borderRadius:5,color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>Odjava</button>
+        </div>
+      </div>
+
+      {/* Sadržaj */}
+      <div style={{
+        display:"flex",flexDirection:"column",alignItems:"center",
+        justifyContent:"center",minHeight:"calc(100vh - 52px)",
+        padding:24,gap:24,textAlign:"center",
+      }}>
+        <div style={{fontSize:64}}>±</div>
+        <div style={{color:C.tekst,fontSize:22,fontWeight:700,letterSpacing:1}}>
+          Varijabilne veličine
+        </div>
+        <div style={{color:C.sivi,fontSize:13,maxWidth:400,lineHeight:1.7}}>
+          Modul za merljive veličine je u pripremi.
+          Uključivaće X̄/R karte, X̄/S karte, Cp/Cpk/Pp/Ppk indekse,
+          histogram normalnosti i Gage R&R analizu.
+        </div>
+        <div style={{display:"grid",gridTemplateColumns: ekran.mob?"1fr 1fr":"repeat(4,1fr)",
+          gap:12,marginTop:8}}>
+          {[
+            ["X̄/R karte","Srednja vrednost i raspon",C.zelena],
+            ["Cp / Cpk","Sposobnost procesa",C.plava],
+            ["Histogram","Raspodela merenja",C.narandzasta],
+            ["Gage R&R","Merenje sistema",C.ljubicasta],
+          ].map(([n,o,b])=>(
+            <div key={n} style={{background:C.panel,border:`1px solid ${b}30`,
+              borderRadius:10,padding:"16px 12px",textAlign:"center"}}>
+              <div style={{color:b,fontSize:16,fontWeight:700,marginBottom:4}}>{n}</div>
+              <div style={{color:C.sivi,fontSize:10}}>{o}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{background:C.zuta+"20",border:`1px solid ${C.zuta}40`,
+          borderRadius:8,padding:"10px 20px",color:C.zuta,fontSize:11}}>
+          Uploadujte Excel fajl sa varijabilnim veličinama za aktivaciju
+        </div>
+        <button onClick={onNazad}
+          style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,
+            color:C.sivi,fontSize:13,padding:"12px 28px",cursor:"pointer"}}>
+          ← Nazad na početni ekran
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [korisnik,setKorisnik] = useState(null);
   const [checking,setChecking] = useState(true);
+  const [modul,setModul]       = useState(null); // null=pocetni, "atributivne","varijabilne","admin"
   const [C,setC]               = useState(()=>{
     const saved=localStorage.getItem("spc_tema");
     return saved==="svetla"?TEME.svetla:TEME.tamna;
@@ -2117,9 +2744,17 @@ export default function App() {
       }
       setChecking(false);
     });
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{if(!session)setKorisnik(null);});
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{
+      if(!session){setKorisnik(null);setModul(null);}
+    });
     return()=>subscription.unsubscribe();
   },[]);
+
+  const odjava = async () => {
+    await supabase.auth.signOut();
+    setKorisnik(null);
+    setModul(null);
+  };
 
   if(checking)return(
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",
@@ -2127,7 +2762,392 @@ export default function App() {
       Provera sesije...
     </div>
   );
-  return korisnik
-    ?<GlavnaForma korisnik={korisnik} onOdjava={()=>setKorisnik(null)} C={C} setC={setC}/>
-    :<Login onLogin={setKorisnik} C={C}/>;
+
+  if(!korisnik) return <Login onLogin={setKorisnik} C={C}/>;
+
+  if(!modul) return (
+    <PocetniEkran
+      korisnik={korisnik}
+      onIzbor={setModul}
+      onOdjava={odjava}
+      C={C} setC={setC}
+    />
+  );
+
+  if(modul==="admin") return (
+    <AdminPanel
+      korisnik={korisnik}
+      onNazad={()=>setModul(null)}
+      C={C}
+    />
+  );
+
+  if(modul==="atributivne") return (
+    <GlavnaForma
+      korisnik={korisnik}
+      onOdjava={odjava}
+      onNazad={()=>setModul(null)}
+      C={C} setC={setC}
+    />
+  );
+
+  if(modul==="varijabilne") return (
+    <VarijabilneForma
+      korisnik={korisnik}
+      onOdjava={odjava}
+      onNazad={()=>setModul(null)}
+      C={C} setC={setC}
+    />
+  );
+
+  return null;
+}
+
+// ============================================================
+// POČETNI EKRAN — izbor modula nakon logovanja
+// ============================================================
+function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
+  const ekran = useEkran();
+
+  const MODULI = [
+    {
+      id: "atributivne",
+      ikon: "✗✓",
+      naziv: "Atributivne kontrole",
+      opis: "OK/NOK unos · p, C, u, np, nC karte · Pareto · DPMO",
+      boja: C.plava,
+      dostupan: true,
+    },
+    {
+      id: "varijabilne",
+      ikon: "±",
+      naziv: "Varijabilne veličine",
+      opis: "Merljive vrednosti · X̄/R karte · Cp/Cpk · Histogram",
+      boja: C.zelena,
+      dostupan: true,
+    },
+  ];
+
+  return (
+    <div style={{
+      minHeight:"100vh", background:C.bg,
+      fontFamily:"'IBM Plex Mono',monospace", color:C.tekst,
+      display:"flex", flexDirection:"column",
+    }}>
+      {/* Header */}
+      <div style={{
+        background:C.panel, borderBottom:`1px solid ${C.border}`,
+        padding:"0 20px", height:52,
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+      }}>
+        <div style={{display:"flex", alignItems:"center", gap:10}}>
+          <span style={{color:C.plava, fontWeight:700, fontSize:14, letterSpacing:2}}>⚙ SPC</span>
+          <span style={{color:C.border}}>|</span>
+          <span style={{color:C.sivi, fontSize:10}}>KONTROLA KVALITETA</span>
+        </div>
+        <div style={{display:"flex", alignItems:"center", gap:10}}>
+          <button onClick={()=>setC(p=>p.naziv==="tamna"?TEME.svetla:TEME.tamna)}
+            style={{background:C.hover,border:`1px solid ${C.border}`,borderRadius:5,
+              color:C.sivi,fontSize:11,padding:"4px 10px",cursor:"pointer"}}>
+            {C.naziv==="tamna"?"☀️":"🌙"}
+          </button>
+          <span style={{
+            background:korisnik.uloga==="admin"?"#3d2c00":"#0c2d48",
+            color:korisnik.uloga==="admin"?C.zuta:C.plava,
+            fontSize:9,padding:"2px 8px",borderRadius:20,letterSpacing:1,
+          }}>{korisnik.uloga.toUpperCase()}</span>
+          <span style={{color:C.sivi,fontSize:11}}>{korisnik.ime}</span>
+          <button onClick={onOdjava} style={{background:"none",border:`1px solid ${C.border}`,
+            borderRadius:5,color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>
+            Odjava
+          </button>
+        </div>
+      </div>
+
+      {/* Sadržaj */}
+      <div style={{
+        flex:1, display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        padding: ekran.mob ? "24px 16px" : "40px 24px",
+        gap:32,
+      }}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize: ekran.mob?32:48, marginBottom:8}}>⚙️</div>
+          <div style={{color:C.tekst, fontSize: ekran.mob?20:28, fontWeight:700, letterSpacing:2, marginBottom:6}}>
+            SPC KONTROLA
+          </div>
+          <div style={{color:C.sivi, fontSize:12, letterSpacing:1}}>
+            Dobrodošli, {korisnik.ime}
+          </div>
+        </div>
+
+        {/* Moduli */}
+        <div style={{
+          display:"grid",
+          gridTemplateColumns: ekran.mob ? "1fr" : "1fr 1fr",
+          gap:16, width:"100%", maxWidth:640,
+        }}>
+          {MODULI.map(m => (
+            <button key={m.id} onClick={()=>m.dostupan&&onIzbor(m.id)}
+              style={{
+                background:C.panel,
+                border:`2px solid ${m.dostupan?m.boja+"50":C.border}`,
+                borderRadius:16,
+                padding: ekran.mob?"24px 20px":"32px 28px",
+                cursor:m.dostupan?"pointer":"not-allowed",
+                textAlign:"left",
+                transition:"all 0.2s",
+                opacity:m.dostupan?1:0.5,
+                position:"relative",
+                overflow:"hidden",
+              }}
+              onMouseEnter={e=>{if(m.dostupan)e.currentTarget.style.borderColor=m.boja;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=m.dostupan?m.boja+"50":C.border;}}
+            >
+              {/* Pozadinska dekoracija */}
+              <div style={{
+                position:"absolute", top:-20, right:-20,
+                fontSize:80, opacity:0.05, lineHeight:1,
+              }}>{m.ikon}</div>
+
+              <div style={{
+                color:m.boja, fontSize: ekran.mob?28:36,
+                fontWeight:700, marginBottom:12, letterSpacing:-1,
+              }}>{m.ikon}</div>
+
+              <div style={{color:C.tekst, fontSize: ekran.mob?15:17,
+                fontWeight:700, marginBottom:8, letterSpacing:0.5}}>
+                {m.naziv}
+              </div>
+
+              <div style={{color:C.sivi, fontSize: ekran.mob?11:12, lineHeight:1.6}}>
+                {m.opis}
+              </div>
+
+              {!m.dostupan && (
+                <div style={{
+                  marginTop:12, background:C.zuta+"20",
+                  border:`1px solid ${C.zuta}40`,
+                  borderRadius:6, padding:"4px 10px",
+                  color:C.zuta, fontSize:10, display:"inline-block",
+                }}>Uskoro</div>
+              )}
+
+              {m.dostupan && (
+                <div style={{
+                  marginTop:14, color:m.boja,
+                  fontSize:12, fontWeight:700, letterSpacing:1,
+                }}>Otvori →</div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Admin panel dugme */}
+        {korisnik.uloga==="admin" && (
+          <button onClick={()=>onIzbor("admin")}
+            style={{
+              background:"none", border:`1px solid ${C.zuta}40`,
+              borderRadius:10, padding:"12px 28px",
+              color:C.zuta, fontSize:12, fontWeight:700,
+              cursor:"pointer", letterSpacing:1,
+            }}>
+            🔧 Admin Panel
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ADMIN PANEL
+// ============================================================
+function AdminPanel({ korisnik, onNazad, C }) {
+  const [radnici,setRadnici]   = useState([]);
+  const [loading,setLoading]   = useState(true);
+  const [modal,setModal]       = useState(null);
+  const [novoIme,setNovoIme]   = useState("");
+  const [novaUloga,setNovaUloga] = useState("kontrolor");
+  const ekran = useEkran();
+
+  useEffect(()=>{
+    supabase.from("radnici").select("id,ime,uloga,user_id").order("ime")
+      .then(({data})=>{ setRadnici(data||[]); setLoading(false); });
+  },[]);
+
+  const resetSmenu = async () => {
+    sessionStorage.removeItem("spc_stat");
+    sessionStorage.removeItem("spc_smena");
+    setModal({poruka:"✓ Statistika smene nulirana za sve korisnike.",tip:"uspeh"});
+  };
+
+  const promeniUlogu = async (id, uloga) => {
+    await supabase.from("radnici").update({uloga}).eq("id",id);
+    setRadnici(p=>p.map(r=>r.id===id?{...r,uloga}:r));
+  };
+
+  const dodajRadnika = async () => {
+    if (!novoIme.trim()) return;
+    const {data,error} = await supabase.from("radnici")
+      .insert({ime:novoIme.toUpperCase(),uloga:novaUloga})
+      .select().single();
+    if (!error) {
+      setRadnici(p=>[...p,data]);
+      setNovoIme("");
+      setModal({poruka:`✓ Radnik ${novoIme.toUpperCase()} dodat.`,tip:"uspeh"});
+    }
+  };
+
+  const INP = {
+    background:C.input, border:`1px solid ${C.border}`, borderRadius:8,
+    color:C.tekst, fontSize:13, padding:"10px 12px",
+    outline:"none", fontFamily:"inherit",
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace",color:C.tekst}}>
+      {modal&&<Modal poruka={modal.poruka} tip={modal.tip} onOK={()=>setModal(null)} C={C}/>}
+
+      {/* Header */}
+      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
+        padding:"0 20px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button onClick={onNazad} style={{background:"none",border:"none",
+            color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>← Nazad</button>
+          <span style={{color:C.border}}>|</span>
+          <span style={{color:C.zuta,fontWeight:700,fontSize:13,letterSpacing:1}}>🔧 ADMIN PANEL</span>
+        </div>
+        <span style={{color:C.sivi,fontSize:10}}>{korisnik.ime}</span>
+      </div>
+
+      <div style={{padding: ekran.mob?"16px":"24px", display:"flex", flexDirection:"column", gap:20, maxWidth:800, margin:"0 auto"}}>
+
+        {/* Reset smene */}
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+          <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:6,letterSpacing:1}}>
+            RESET SMENE
+          </div>
+          <div style={{color:C.sivi,fontSize:11,marginBottom:14,lineHeight:1.6}}>
+            Nulira statistiku smene (OK/NOK/Merenja) za sve korisnike.
+            Koristiti na početku nove smene.
+          </div>
+          <button onClick={resetSmenu} style={{
+            background:"#3d2c00",border:`1px solid ${C.zuta}40`,borderRadius:8,
+            color:C.zuta,fontSize:12,fontWeight:700,padding:"10px 20px",cursor:"pointer",
+          }}>⚠ Reset smene</button>
+        </div>
+
+        {/* Dodaj radnika */}
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+          <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:14,letterSpacing:1}}>
+            DODAJ RADNIKA
+          </div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            <input value={novoIme} onChange={e=>setNovoIme(e.target.value)}
+              placeholder="Ime i prezime"
+              style={{...INP,flex:1,minWidth:180}}/>
+            <select value={novaUloga} onChange={e=>setNovaUloga(e.target.value)}
+              style={{...INP,cursor:"pointer"}}>
+              <option value="operator">Operator</option>
+              <option value="kontrolor">Kontrolor</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button onClick={dodajRadnika}
+              style={{background:C.zelena,border:"none",borderRadius:8,
+                color:"#fff",fontSize:12,fontWeight:700,padding:"10px 20px",cursor:"pointer"}}>
+              + Dodaj
+            </button>
+          </div>
+          <div style={{color:C.sivi,fontSize:10,marginTop:8}}>
+            Napomena: korisnik mora biti kreiran i u Supabase Auth (Authentication → Users)
+          </div>
+        </div>
+
+        {/* Lista radnika */}
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+          <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:14,letterSpacing:1}}>
+            RADNICI ({radnici.length})
+          </div>
+          {loading ? (
+            <div style={{color:C.sivi,fontSize:12}}>Učitavanje...</div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {radnici.map(r=>(
+                <div key={r.id} style={{
+                  display:"flex",alignItems:"center",justifyContent:"space-between",
+                  padding:"10px 14px",background:C.bg,borderRadius:8,
+                  border:`1px solid ${C.border}`,flexWrap:"wrap",gap:8,
+                }}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{color:C.tekst,fontSize:13,fontWeight:700}}>{r.ime}</span>
+                    <span style={{
+                      background:r.uloga==="admin"?"#3d2c00":r.uloga==="kontrolor"?"#0c2d48":"#0c2010",
+                      color:r.uloga==="admin"?C.zuta:r.uloga==="kontrolor"?C.plava:C.zelena,
+                      fontSize:9,padding:"2px 8px",borderRadius:20,letterSpacing:1,
+                    }}>{r.uloga.toUpperCase()}</span>
+                    {!r.user_id&&<span style={{color:C.crvena,fontSize:9}}>⚠ Nije u Auth</span>}
+                  </div>
+                  <select value={r.uloga} onChange={e=>promeniUlogu(r.id,e.target.value)}
+                    style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:6,
+                      color:C.tekst,fontSize:11,padding:"4px 8px",cursor:"pointer",fontFamily:"inherit"}}>
+                    <option value="operator">Operator</option>
+                    <option value="kontrolor">Kontrolor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Statistike sistema */}
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+          <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:14,letterSpacing:1}}>
+            STATISTIKE SISTEMA
+          </div>
+          <AdminStatistike C={C}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminStatistike({C}) {
+  const [stat,setStat] = useState(null);
+  useEffect(()=>{
+    Promise.all([
+      supabase.from("kontrolni_log").select("id",{count:"exact",head:true}),
+      supabase.from("delovi").select("id",{count:"exact",head:true}),
+      supabase.from("radnici").select("id",{count:"exact",head:true}),
+      supabase.from("kontrolni_log").select("id",{count:"exact",head:true})
+        .gte("datum",new Date().toISOString().split("T")[0]),
+    ]).then(([log,del,rad,danas])=>{
+      setStat({
+        ukupnoUnosa: log.count||0,
+        ukupnoDelova: del.count||0,
+        ukupnoRadnika: rad.count||0,
+        unosaDanas: danas.count||0,
+      });
+    });
+  },[]);
+
+  if(!stat) return <div style={{color:C.sivi,fontSize:12}}>Učitavanje...</div>;
+
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
+      {[
+        ["UNOSA DANAS",  stat.unosaDanas,  C.zelena],
+        ["UK. UNOSA",    stat.ukupnoUnosa, C.plava],
+        ["DELOVA",       stat.ukupnoDelova,C.narandzasta],
+        ["RADNIKA",      stat.ukupnoRadnika,C.ljubicasta],
+      ].map(([n,v,b])=>(
+        <div key={n} style={{background:C.bg,border:`1px solid ${b}25`,
+          borderRadius:10,padding:"14px",textAlign:"center"}}>
+          <div style={{color:b,fontSize:24,fontWeight:700}}>{v}</div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.2,marginTop:4}}>{n}</div>
+        </div>
+      ))}
+    </div>
+  );
 }
