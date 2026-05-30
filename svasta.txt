@@ -11,3 +11,13 @@ UPDATE radnici SET uloga = 'admin' WHERE ime = 'admin';
 
 
 npm run dev
+
+
+
+Važan korak pre slanja na GitHub (Za Vite projekte)Svaki put kada promenite kod u aplikaciji, pre nego što ukucate git add, morate da napravite svežu produkcionu verziju u terminalu:
+Kreirajte novi build lokalno:bash npm run build
+Zatim pošaljite te izmene na GitHub
+git add .
+git commit -m "Azurirane komponente"
+git push origin main
+Nakon što se slanje završi, Vercel će automatski preuzeti osveženi dist folder i vaš sajt će kroz minut biti ažuriran najnovijim kodom

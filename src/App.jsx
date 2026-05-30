@@ -565,8 +565,11 @@ function SPCKarte({ sviDelovi, C, addToast }) {
           ["masina",   "Po mašini",   C.narandzasta],
           ["operater", "Po operateru",C.ljubicasta],
           ["rty",      "RTY/DPMO",    "#22d3ee"],
-          ["heatmap",  "Heat mapa",   "#f472b6"],
-          ["sigma",    "Sigma nivo",  "#a3e635"],
+          ["heatmap",    "Heat mapa",   "#f472b6"],
+          ["sigma",      "Sigma nivo",  "#a3e635"],
+          ["korelacija", "Korelacija",  "#22d3ee"],
+          ["poredi",     "Poređenje",   "#a78bfa"],
+          ["foto_spc",   "Foto arhiva", "#fb923c"],
         ].map(([id,naziv,boja])=>(
           <button key={id} onClick={()=>setTip(id)} style={{
             background:"none",border:"none",
@@ -615,6 +618,9 @@ function SPCKarte({ sviDelovi, C, addToast }) {
                   </div>
                 ))}
               </div>
+
+              {/* Trend upozorenje */}
+              <TrendUpozorenje podaci={cd} C={C}/>
 
               {/* Opis */}
               <div style={{color:C.sivi,fontSize:10,marginBottom:10}}>
@@ -1146,6 +1152,16 @@ function SPCKarte({ sviDelovi, C, addToast }) {
               </div>
             );
           })()}
+          {tip==="korelacija"&&(
+            <KorelacijaGreskaMasina rawData={rawData} C={C}/>
+          )}
+
+          {tip==="poredi"&&(
+            <PoredjenjePerioda idDeo={idDeo} C={C} addToast={addToast}/>
+          )}
+          {tip==="foto_spc"&&(
+            <FotoArhiva C={C} addToast={addToast}/>
+          )}
         </>
       )}
     </div>
@@ -1303,6 +1319,8 @@ function Dashboard({C, addToast}) {
             </ResponsiveContainer>
           </div>
         </>
+          {/* Prioritizacija delova */}
+          <PrioritizacijaDelova C={C} addToast={addToast}/>
       )}
     </div>
   );
@@ -1390,6 +1408,8 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   const [loadLog,setLoadLog]       = useState(false);
   const [toasts,setToasts]         = useState([]);
   const [foto,setFoto]             = useState(null);
+  const [pokaziZahtev,setPokaziZahtev] = useState(false);
+  const [komentar,setKomentar]     = useState("");
   const fotoRef = useRef(null);
   const idRef   = useRef(null);
   const {online,queue,addToQueue,flushQueue} = useOfflineQueue();
@@ -1460,8 +1480,8 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     if(!status) {setModal({poruka:"Izaberi STATUS!",tip:"greska"});return;}
     if(status==="NOK"&&(!kategorija||!podkat)){setModal({poruka:"Popuni NOK detalje!",tip:"greska"});return;}
     setListaG(p=>[...p,{kat:status==="OK"?"OK":kategorija,pod:status==="OK"?"-":podkat,
-      status,kolicina,foto:status==="NOK"?foto:null}]);
-    setStatus("");setKategorija("");setPodkat("");setKolicina(1);setFoto(null);
+      status,kolicina,foto:status==="NOK"?foto:null,komentar:komentar||""}]);
+    setStatus("");setKategorija("");setPodkat("");setKolicina(1);setFoto(null);setKomentar("");
   };
 
   const snimiDeo=()=>{
@@ -1474,6 +1494,8 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     setSmenaOK(p=>p+ok);setSmenaNOK(p=>p+nok);setSmenaTotal(p=>p+1);
     setPreostalo(p=>Math.max(0,p-1));setListaG([]);
     addToast(`✓ Sačuvano (OK:${ok} NOK:${nok})`,"uspeh");
+    if(nok>0) window._vibrirajNOK?.();
+    else window._vibrirajOK?.();
   };
 
   const zapisi=async()=>{
@@ -1487,7 +1509,8 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       kontrolor_id:korisnik.radnikId||null,status:s.status,
       greska_naziv:s.kat,podkategorija:s.pod,
       kom_nok:j?0:s.kolicina,ok_kolicina:j?s.kolicina:0,
-      nok_kolicina:j?0:s.kolicina,ukupno_merenja:s.kolicina,potreban_broj:cilj,};});
+      nok_kolicina:j?0:s.kolicina,ukupno_merenja:s.kolicina,potreban_broj:cilj,
+      komentar:s.komentar||null,};});
     try{
       if(!online){addToQueue(redovi);addToast(`📶 Offline: ${redovi.length} u redu`,"info");
         setListaP([]);setListaG([]);noviNalog();return;}
@@ -1531,7 +1554,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     color:dis?C.sivi:"#fff",fontSize:12,fontWeight:700,padding:"10px 0",
     cursor:dis?"not-allowed":"pointer",letterSpacing:1,width:"100%",opacity:dis?0.5:1,transition:"all 0.15s"});
 
-  const TABOVI=[["unos","UNOS"],["crtez","CRTEŽ"],["log","LOG"],["smena","SMENA"],["karte","SPC KARTE"],["dashboard","DASHBOARD"]];
+  const TABOVI=[["unos","UNOS"],["crtez","CRTEŽ"],["log","LOG"],["smena","SMENA"],["karte","SPC KARTE"],["dashboard","DASHBOARD"],["eskalacije","ESKALACIJE"],["8d","8D"],["aql","AQL"],["foto","FOTO"]];
 
   if(loadInit)return(
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",
@@ -1545,6 +1568,12 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       {modal&&<Modal poruka={modal.poruka} tip={modal.tip} onOK={modal.onOK||(()=>setModal(null))} onOtkazati={modal.onOtkazati} C={C}/>}
       {alarm&&<AlarmBanner poruka={alarm} onClose={()=>setAlarm(null)} C={C}/>}
       <Toast poruke={toasts} C={C}/>
+      {pokaziZahtev&&<ZahtevPrekid
+        korisnik={korisnik} idDeo={idDeo} nazivDela={deoInfo?.naziv_dela||""}
+        preostalo={preostalo} cilj={cilj}
+        onUspeh={()=>{setPokaziZahtev(false);addToast("✓ Zahtev poslat adminu — čeka odobrenje","uspeh");}}
+        onOtkazati={()=>setPokaziZahtev(false)} C={C}
+      />}
 
       {/* HEADER */}
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
@@ -1727,6 +1756,15 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
               </select>
             </div>
 
+            <div>
+              <label style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4,display:"block"}}>
+                KOMENTAR (opciono)
+              </label>
+              <input value={komentar} onChange={e=>setKomentar(e.target.value)}
+                placeholder="Npr: alat istrošen..."
+                style={{...INP, fontSize:12}}/>
+            </div>
+
             <button onClick={dodajGresku} disabled={!deoInfo}
               style={{...BTN(C.plava,!deoInfo),fontSize:11,padding:"10px"}}>
               + DODAJ U LISTU
@@ -1796,6 +1834,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
                   </div>
                   <div style={{color:C.tekst}}>{s.kat}</div>
                   <div style={{color:C.sivi,fontSize:9}}>{s.pod} · {s.vreme}</div>
+                  {s.komentar&&<div style={{color:C.zuta,fontSize:9,marginTop:2}}>💬 {s.komentar}</div>}
                 </div>
               ))}
             </div>
@@ -1871,6 +1910,12 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
               <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginTop:5}}>{l}</div>
             </div>
           ))}
+          <button onClick={()=>generisiIzvestajSmene(korisnik,smena,C)}
+            style={{background:"#7c3aed",border:"none",borderRadius:8,
+              color:"#fff",fontSize:10,fontWeight:700,padding:"9px 15px",cursor:"pointer",marginTop:4}}>
+            📄 Izveštaj smene PDF
+          </button>
+
           {korisnik.uloga==="admin"&&(
             <button onClick={()=>{setSmenaOK(0);setSmenaNOK(0);setSmenaTotal(0);
               sessionStorage.removeItem("spc_stat");addToast("Statistika smene nulirana.","uspeh");}}
@@ -1888,6 +1933,12 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       {tab==="dashboard" && (ekran.mob
         ? <MobilniDashboard C={C} addToast={addToast}/>
         : <Dashboard C={C} addToast={addToast}/>)}
+      {tab==="eskalacije" && <EskalacijePanel korisnik={korisnik} C={C}
+        addToast={addToast} sviDelovi={sviDelovi}/>}
+      {tab==="8d" && <OsmDIzvestaj korisnik={korisnik} C={C}
+        addToast={addToast} sviDelovi={sviDelovi}/>}
+      {tab==="aql" && <AQLTabela C={C}/>}
+      {tab==="foto" && <FotoArhiva C={C} addToast={addToast}/>}
       {ekran.mob && (
         <MobilnaNavigacija tab={tab} setTab={setTab}
           listaP={listaP} queue={queue} C={C}/>
@@ -1927,7 +1978,7 @@ function MobilnaNavigacija({ tab, setTab, listaP, queue, C }) {
     { id:"unos",      ikon:"⌨",  naziv:"Unos"    },
     { id:"karte",     ikon:"📊", naziv:"Karte"   },
     { id:"dashboard", ikon:"📈", naziv:"Dash"    },
-    { id:"log",       ikon:"📋", naziv:"Log"     },
+    { id:"eskalacije",ikon:"🚨", naziv:"Eskl."   },
     { id:"smena",     ikon:"🕐", naziv:"Smena"   },
   ];
   return (
@@ -2732,6 +2783,8 @@ export default function App() {
 
   useEffect(()=>{localStorage.setItem("spc_tema",C.naziv);},[C]);
 
+  useEffect(()=>{ registrujPWA(); },[]);
+
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
       if(session){
@@ -2772,6 +2825,23 @@ export default function App() {
       onOdjava={odjava}
       C={C} setC={setC}
     />
+  );
+
+  // Kontrolna lista pre atributivnog unosa
+  const [listaOk,setListaOk] = useState(()=>!!sessionStorage.getItem("spc_lista_ok"));
+  if(modul==="atributivne"&&!listaOk) return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
+      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
+        height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>
+        <button onClick={()=>setModul(null)} style={{background:"none",border:"none",
+          color:C.sivi,fontSize:14,cursor:"pointer"}}>←</button>
+        <span style={{color:C.plava,fontWeight:700,fontSize:13,letterSpacing:2}}>⚙ SPC</span>
+      </div>
+      <KontrolnaLista korisnik={korisnik}
+        smena={Number(sessionStorage.getItem("spc_smena")||1)}
+        onZavrsena={()=>{sessionStorage.setItem("spc_lista_ok","1");setListaOk(true);}}
+        C={C}/>
+    </div>
   );
 
   if(modul==="admin") return (
@@ -3101,6 +3171,12 @@ function AdminPanel({ korisnik, onNazad, C }) {
           )}
         </div>
 
+        {/* Zahtevi za prekid */}
+        <AdminPrekidiPanel korisnik={korisnik} C={C} addToast={(t,tip)=>{
+          // mini toast u admin panelu
+          alert(t);
+        }}/>
+
         {/* Statistike sistema */}
         <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
           <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:14,letterSpacing:1}}>
@@ -3148,6 +3224,1494 @@ function AdminStatistike({C}) {
           <div style={{color:C.sivi,fontSize:9,letterSpacing:1.2,marginTop:4}}>{n}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============================================================
+// v8 DODACI — sve nove funkcionalnosti
+// ============================================================
+
+// ─── HOOK: Offline cache za karte ────────────────────────────
+function useOfflineCache(key, ttlMin=30) {
+  const get = () => {
+    try {
+      const raw = localStorage.getItem(`spc_cache_${key}`);
+      if (!raw) return null;
+      const { data, ts } = JSON.parse(raw);
+      if (Date.now() - ts > ttlMin * 60000) return null;
+      return data;
+    } catch { return null; }
+  };
+  const set = (data) => {
+    try { localStorage.setItem(`spc_cache_${key}`, JSON.stringify({ data, ts: Date.now() })); }
+    catch {}
+  };
+  const clear = () => localStorage.removeItem(`spc_cache_${key}`);
+  return { get, set, clear };
+}
+
+// ─── ZAHTEV ZA PREKID ────────────────────────────────────────
+function ZahtevPrekid({ korisnik, idDeo, nazivDela, preostalo, cilj, onUspeh, onOtkazati, C }) {
+  const [razlog, setRazlog] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const posalji = async () => {
+    if (!razlog.trim()) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("prekidi_zahtevi").insert({
+        operater_id: korisnik.radnikId,
+        id_deo:      idDeo,
+        naziv_dela:  nazivDela,
+        preostalo,
+        cilj,
+        razlog:      razlog.trim(),
+        status:      "ceka",
+      });
+      if (error) throw error;
+      onUspeh();
+    } catch(e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",
+      display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
+      <div style={{background:C.panel,border:`1px solid ${C.zuta}`,borderRadius:12,
+        padding:"28px 32px",maxWidth:420,width:"90%"}}>
+        <div style={{color:C.zuta,fontSize:20,marginBottom:10}}>⚠</div>
+        <div style={{color:C.tekst,fontSize:15,fontWeight:700,marginBottom:6}}>
+          Zahtev za prekid merenja
+        </div>
+        <div style={{color:C.sivi,fontSize:12,marginBottom:16,lineHeight:1.6}}>
+          Deo: <strong style={{color:C.tekst}}>{idDeo} — {nazivDela}</strong><br/>
+          Preostalo: <strong style={{color:C.crvena}}>{preostalo} / {cilj}</strong>
+        </div>
+        <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:6}}>RAZLOG PREKIDA</div>
+        <textarea value={razlog} onChange={e=>setRazlog(e.target.value)}
+          placeholder="Npr: alat istrošen, materijal loš, vanredna situacija..."
+          rows={3}
+          style={{width:"100%",background:C.input,border:`1px solid ${C.border}`,borderRadius:8,
+            color:C.tekst,fontSize:13,padding:"10px 12px",boxSizing:"border-box",
+            outline:"none",fontFamily:"inherit",resize:"none"}}/>
+        <div style={{display:"flex",gap:10,marginTop:16}}>
+          <button onClick={posalji} disabled={!razlog.trim()||loading}
+            style={{flex:1,background:razlog.trim()&&!loading?C.zuta:C.hover,border:"none",
+              borderRadius:8,color:razlog.trim()?"#000":"#666",fontSize:13,fontWeight:700,
+              padding:"12px",cursor:razlog.trim()?"pointer":"not-allowed"}}>
+            {loading?"Šalje se...":"📤 Pošalji zahtev adminu"}
+          </button>
+          <button onClick={onOtkazati}
+            style={{background:"none",border:`1px solid ${C.border}`,borderRadius:8,
+              color:C.sivi,fontSize:13,padding:"12px 16px",cursor:"pointer"}}>
+            Otkaži
+          </button>
+        </div>
+        <div style={{color:C.sivi,fontSize:10,marginTop:10,textAlign:"center"}}>
+          Admin će dobiti notifikaciju i odobriti ili odbiti zahtev
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADMIN: Panel za odobrenje prekida ───────────────────────
+function AdminPrekidiPanel({ korisnik, C, addToast }) {
+  const [zahtevi, setZahtevi] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const ucitaj = async () => {
+    const { data } = await supabase.from("prekidi_zahtevi")
+      .select("*,operater:radnici!prekidi_zahtevi_operater_id_fkey(ime)")
+      .eq("status","ceka")
+      .order("created_at",{ascending:false});
+    setZahtevi(data||[]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{ ucitaj(); },[]);
+
+  // Real-time — novi zahtevi
+  useEffect(()=>{
+    const ch = supabase.channel("prekidi_admin")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"prekidi_zahtevi"},
+        payload => {
+          addToast(`📤 Novi zahtev: ${payload.new.id_deo} — ${payload.new.razlog?.substring(0,30)}...`,"greska");
+          ucitaj();
+        });
+    ch.subscribe();
+    return () => supabase.removeChannel(ch);
+  },[]);
+
+  const odluci = async (id, odluka, napomena="") => {
+    await supabase.from("prekidi_zahtevi").update({
+      status:   odluka,
+      admin_id: korisnik.radnikId,
+      napomena,
+      updated_at: new Date().toISOString(),
+    }).eq("id",id);
+    addToast(odluka==="odobreno"?"✓ Prekid odobren":"✗ Zahtev odbijen",
+      odluka==="odobreno"?"uspeh":"greska");
+    ucitaj();
+  };
+
+  return (
+    <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{color:C.tekst,fontSize:13,fontWeight:700,letterSpacing:1}}>
+          ZAHTEVI ZA PREKID
+          {zahtevi.length>0&&<span style={{background:C.crvena,color:"#fff",fontSize:10,
+            borderRadius:10,padding:"1px 7px",marginLeft:8}}>{zahtevi.length}</span>}
+        </div>
+        <button onClick={ucitaj} style={{background:"none",border:`1px solid ${C.border}`,
+          borderRadius:5,color:C.sivi,fontSize:10,padding:"4px 10px",cursor:"pointer"}}>
+          ↻ Osveži
+        </button>
+      </div>
+      {loading?<div style={{color:C.sivi,fontSize:12}}>Učitavanje...</div>
+       :zahtevi.length===0?(
+        <div style={{color:C.border,fontSize:12,textAlign:"center",padding:"20px 0"}}>
+          Nema aktivnih zahteva ✓
+        </div>
+      ):zahtevi.map(z=>(
+        <div key={z.id} style={{background:C.bg,border:`1px solid ${C.zuta}40`,
+          borderRadius:10,padding:14,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <div>
+              <span style={{color:C.tekst,fontWeight:700,fontSize:13}}>{z.id_deo}</span>
+              <span style={{color:C.sivi,fontSize:11,marginLeft:8}}>{z.naziv_dela}</span>
+            </div>
+            <span style={{color:C.sivi,fontSize:10}}>
+              {new Date(z.created_at).toLocaleTimeString("sr-RS",{hour:"2-digit",minute:"2-digit"})}
+            </span>
+          </div>
+          <div style={{color:C.sivi,fontSize:11,marginBottom:4}}>
+            Operater: <strong style={{color:C.tekst}}>{z.operater?.ime||"?"}</strong>
+            {" · "}Preostalo: <strong style={{color:C.crvena}}>{z.preostalo}/{z.cilj}</strong>
+          </div>
+          <div style={{color:C.zuta,fontSize:12,marginBottom:12,
+            background:C.zuta+"15",padding:"6px 10px",borderRadius:6}}>
+            "{z.razlog}"
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>odluci(z.id,"odobreno")}
+              style={{flex:1,background:C.zelena,border:"none",borderRadius:8,
+                color:"#fff",fontSize:12,fontWeight:700,padding:"9px",cursor:"pointer"}}>
+              ✓ Odobri prekid
+            </button>
+            <button onClick={()=>odluci(z.id,"odbijeno","Nastavi merenje")}
+              style={{flex:1,background:C.crvena,border:"none",borderRadius:8,
+                color:"#fff",fontSize:12,fontWeight:700,padding:"9px",cursor:"pointer"}}>
+              ✗ Odbij
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── POREĐENJE PERIODA ────────────────────────────────────────
+function PoredjenjePerioda({ idDeo, C, addToast }) {
+  const [podaci, setPodaci] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [period, setPeriod]   = useState("7");
+
+  const ucitaj = useCallback(async () => {
+    if (!idDeo) return;
+    setLoading(true);
+    try {
+      const danas = new Date();
+      const od1 = new Date(danas); od1.setDate(od1.getDate()-Number(period));
+      const od2 = new Date(od1);   od2.setDate(od2.getDate()-Number(period));
+
+      const fmt = d => d.toISOString().split("T")[0];
+
+      const [r1, r2] = await Promise.all([
+        supabase.from("kontrolni_log").select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok")
+          .eq("id_deo",idDeo).gte("datum",fmt(od1)).lte("datum",fmt(danas)),
+        supabase.from("kontrolni_log").select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok")
+          .eq("id_deo",idDeo).gte("datum",fmt(od2)).lt("datum",fmt(od1)),
+      ]);
+
+      const calc = (rows) => {
+        const n   = rows.reduce((s,r)=>s+(r.ukupno_merenja||0),0);
+        const nok = rows.reduce((s,r)=>s+(r.nok_kolicina||0),0);
+        const ok  = rows.reduce((s,r)=>s+(r.ok_kolicina||0),0);
+        return {
+          n, nok, ok,
+          rty:  n>0?((ok/n)*100).toFixed(2):0,
+          p:    n>0?((nok/n)*100).toFixed(3):0,
+          dpmo: n>0?Math.round((nok/n)*1e6):0,
+        };
+      };
+
+      setPodaci({ tek: calc(r1.data||[]), prev: calc(r2.data||[]),
+        label1: `Poslednjih ${period} dana`, label2: `Prethodnih ${period} dana` });
+    } catch(e) { addToast(e.message,"greska"); }
+    finally { setLoading(false); }
+  },[idDeo, period]);
+
+  useEffect(()=>{ ucitaj(); },[ucitaj]);
+
+  const arrow = (tek, prev, veci_je_losi=true) => {
+    if (!prev || prev==0) return "";
+    const diff = tek - prev;
+    if (Math.abs(diff) < 0.01) return <span style={{color:"#888"}}> =</span>;
+    const gore = diff > 0;
+    const losi = veci_je_losi ? gore : !gore;
+    return <span style={{color:losi?C.crvena:C.zelena,fontSize:12}}>
+      {" "}{gore?"↑":"↓"} {Math.abs(diff).toFixed(1)}
+    </span>;
+  };
+
+  if (!idDeo) return null;
+
+  return (
+    <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2}}>POREĐENJE PERIODA</div>
+        <select value={period} onChange={e=>setPeriod(e.target.value)}
+          style={{background:C.input,border:`1px solid ${C.border}`,borderRadius:6,
+            color:C.tekst,fontSize:11,padding:"4px 8px",cursor:"pointer",fontFamily:"inherit"}}>
+          <option value="7">7 dana</option>
+          <option value="14">14 dana</option>
+          <option value="30">30 dana</option>
+        </select>
+      </div>
+      {loading ? <div style={{color:C.sivi,fontSize:12,textAlign:"center",padding:16}}>Učitavanje...</div>
+       : !podaci ? null : (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {[
+            ["RTY %", podaci.tek.rty, podaci.prev.rty, false, "%"],
+            ["NOK",   podaci.tek.nok, podaci.prev.nok, true,  ""],
+            ["DPMO",  podaci.tek.dpmo,podaci.prev.dpmo,true,  ""],
+            ["Mereno",podaci.tek.n,   podaci.prev.n,   false, ""],
+          ].map(([naziv,tek,prev,veciLosi,suf])=>(
+            <div key={naziv} style={{background:C.bg,borderRadius:8,padding:"10px 12px"}}>
+              <div style={{color:C.sivi,fontSize:9,letterSpacing:1,marginBottom:4}}>{naziv}</div>
+              <div style={{fontSize:18,fontWeight:700,color:C.tekst}}>
+                {tek}{suf} {arrow(Number(tek),Number(prev),veciLosi)}
+              </div>
+              <div style={{color:C.border,fontSize:10,marginTop:2}}>
+                prev: {prev}{suf}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TREND UPOZORENJE ─────────────────────────────────────────
+function TrendUpozorenje({ podaci, C }) {
+  // Detektuje negativan trend pre nego što se probije UCL
+  if (!podaci?.length || podaci.length < 5) return null;
+
+  const posl5 = podaci.slice(-5).map(d=>d.val||d.p||0);
+  const rastuci = posl5.every((v,i) => i===0||v>=posl5[i-1]);
+  const prosek5 = posl5.reduce((s,v)=>s+v,0)/5;
+  const prosekSvi = podaci.reduce((s,d)=>s+(d.val||d.p||0),0)/podaci.length;
+  const porast = prosek5 > prosekSvi * 1.15;
+
+  if (!rastuci && !porast) return null;
+
+  return (
+    <div style={{background:C.zuta+"18",border:`1px solid ${C.zuta}50`,
+      borderRadius:8,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"center"}}>
+      <span style={{fontSize:18}}>📈</span>
+      <div>
+        <div style={{color:C.zuta,fontSize:12,fontWeight:700,marginBottom:2}}>
+          TREND UPOZORENJE — proces se pogoršava
+        </div>
+        <div style={{color:C.sivi,fontSize:11}}>
+          {rastuci&&"Poslednjih 5 tačaka uzastopno raste. "}
+          {porast&&`Prosek posled. 5 dana (${prosek5.toFixed(2)}) je >15% iznad ukupnog proseka (${prosekSvi.toFixed(2)}).`}
+          {" Preduzeti korektivnu akciju pre nego što se probije UCL."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── KORELACIJA GREŠKA-MAŠINA ────────────────────────────────
+function KorelacijaGreskaMasina({ rawData, C }) {
+  if (!rawData?.length) return (
+    <div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>Nema podataka</div>
+  );
+
+  // Pivot: greška x mašina
+  const masine  = [...new Set(rawData.map(r=>r.masine?.naziv||"?"))].filter(Boolean);
+  const greske  = [...new Set(rawData.filter(r=>r.greska_naziv&&r.greska_naziv!=="OK")
+    .map(r=>r.greska_naziv))].slice(0,8);
+  
+  const pivot = {};
+  greske.forEach(g=>{ pivot[g]={}; masine.forEach(m=>{ pivot[g][m]=0; }); });
+  rawData.forEach(r=>{
+    if(r.greska_naziv&&r.greska_naziv!=="OK"&&pivot[r.greska_naziv]){
+      const m=r.masine?.naziv||"?";
+      pivot[r.greska_naziv][m]=(pivot[r.greska_naziv][m]||0)+(r.kom_nok||0);
+    }
+  });
+
+  const maxVal = Math.max(...greske.flatMap(g=>masine.map(m=>pivot[g]?.[m]||0)));
+
+  const getCellBg = (v) => {
+    if (v===0) return C.hover;
+    const i = v/Math.max(maxVal,1);
+    if (i<0.25) return C.zelena+"50";
+    if (i<0.5)  return C.zuta+"70";
+    if (i<0.75) return C.narandzasta+"80";
+    return C.crvena+"90";
+  };
+
+  return (
+    <div>
+      <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+        KORELACIJA GREŠKA × MAŠINA
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{borderCollapse:"collapse",width:"100%",fontSize:11}}>
+          <thead>
+            <tr>
+              <th style={{color:C.sivi,padding:"8px 12px",textAlign:"left",
+                borderBottom:`1px solid ${C.border}`,fontWeight:400}}>Greška</th>
+              {masine.map(m=>(
+                <th key={m} style={{color:C.sivi,padding:"8px 10px",fontWeight:400,
+                  borderBottom:`1px solid ${C.border}`,textAlign:"center",minWidth:70}}>{m}</th>
+              ))}
+              <th style={{color:C.sivi,padding:"8px 10px",fontWeight:400,
+                borderBottom:`1px solid ${C.border}`,textAlign:"center"}}>Ukupno</th>
+            </tr>
+          </thead>
+          <tbody>
+            {greske.map(g=>{
+              const uk=masine.reduce((s,m)=>s+(pivot[g]?.[m]||0),0);
+              return(
+                <tr key={g}>
+                  <td style={{color:C.tekst,padding:"8px 12px",
+                    borderBottom:`1px solid ${C.border}`,fontWeight:500}}>{g}</td>
+                  {masine.map(m=>{
+                    const v=pivot[g]?.[m]||0;
+                    return(
+                      <td key={m} style={{padding:"6px 10px",textAlign:"center",
+                        background:getCellBg(v),borderBottom:`1px solid ${C.border}`,
+                        color:v>0?C.tekst:C.border,fontWeight:v>0?700:400,
+                        border:`1px solid ${C.bg}`}}>
+                        {v>0?v:"—"}
+                      </td>
+                    );
+                  })}
+                  <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,
+                    color:C.tekst,borderBottom:`1px solid ${C.border}`}}>{uk}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{color:C.sivi,fontSize:10,marginTop:8}}>
+        Tamnije = više grešaka. Identifikuje koji mašina pravi koje greške.
+      </div>
+    </div>
+  );
+}
+
+// ─── PRIORITIZACIJA DELOVA ───────────────────────────────────
+function PrioritizacijaDelova({ C, addToast }) {
+  const [podaci, setPodaci] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const cache = useOfflineCache("prioritizacija", 15);
+
+  useEffect(()=>{
+    const cached = cache.get();
+    if (cached) { setPodaci(cached); setLoading(false); return; }
+
+    (async()=>{
+      try {
+        const od = new Date(); od.setDate(od.getDate()-7);
+        const { data } = await supabase.from("kontrolni_log")
+          .select("id_deo,naziv_dela,ok_kolicina,nok_kolicina,ukupno_merenja,datum")
+          .gte("datum", od.toISOString().split("T")[0]);
+
+        const mapa = {};
+        (data||[]).forEach(r=>{
+          if(!mapa[r.id_deo]) mapa[r.id_deo]={id_deo:r.id_deo,naziv:r.naziv_dela,
+            ok:0,nok:0,n:0,dani:new Set()};
+          mapa[r.id_deo].ok  +=r.ok_kolicina||0;
+          mapa[r.id_deo].nok +=r.nok_kolicina||0;
+          mapa[r.id_deo].n   +=r.ukupno_merenja||0;
+          mapa[r.id_deo].dani.add(r.datum);
+        });
+
+        const arr = Object.values(mapa).map(d=>{
+          const rty = d.n>0?(d.ok/d.n)*100:100;
+          const p   = d.n>0?(d.nok/d.n)*100:0;
+          const dpmo= d.n>0?Math.round((d.nok/d.n)*1e6):0;
+          // Skor prioriteta: viši = hitnije (0-100)
+          const skor = Math.min(100, p*5 + (dpmo/10000)*2 + (rty<80?30:rty<90?15:0));
+          return { ...d, rty:rty.toFixed(1), p:p.toFixed(2), dpmo, skor:Math.round(skor),
+            dani_aktivni: d.dani.size };
+        }).sort((a,b)=>b.skor-a.skor);
+
+        cache.set(arr);
+        setPodaci(arr);
+      } catch(e) { addToast(e.message,"greska"); }
+      finally { setLoading(false); }
+    })();
+  },[]);
+
+  const getHitnost = (skor) => {
+    if (skor>=70) return ["KRITIČNO",  C.crvena];
+    if (skor>=40) return ["VISOKO",    C.narandzasta];
+    if (skor>=20) return ["SREDNJE",   C.zuta];
+    return             ["NISKO",      C.zelena];
+  };
+
+  return (
+    <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
+      <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:4,letterSpacing:1}}>
+        PRIORITIZACIJA — koji deo zahteva pažnju
+      </div>
+      <div style={{color:C.sivi,fontSize:10,marginBottom:14}}>
+        Bazirano na poslednjih 7 dana · kešira se 15 min
+      </div>
+      {loading ? <div style={{color:C.sivi,fontSize:12}}>Učitavanje...</div>
+       : !podaci.length ? <div style={{color:C.border,fontSize:12}}>Nema podataka za 7 dana</div>
+       : podaci.map((d,i)=>{
+        const [label,boja] = getHitnost(d.skor);
+        return(
+          <div key={d.id_deo} style={{display:"flex",alignItems:"center",gap:12,
+            padding:"10px 0",borderBottom:i<podaci.length-1?`1px solid ${C.border}`:"none"}}>
+            <div style={{width:36,height:36,borderRadius:8,background:`${boja}20`,
+              border:`1px solid ${boja}50`,display:"flex",alignItems:"center",
+              justifyContent:"center",fontSize:13,fontWeight:700,color:boja,flexShrink:0}}>
+              {d.skor}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                <span style={{color:C.tekst,fontWeight:700,fontSize:12}}>{d.id_deo}</span>
+                <span style={{color:C.sivi,fontSize:11,overflow:"hidden",
+                  textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.naziv}</span>
+                <span style={{background:`${boja}20`,color:boja,fontSize:9,fontWeight:700,
+                  padding:"1px 7px",borderRadius:10,letterSpacing:0.5,flexShrink:0}}>
+                  {label}
+                </span>
+              </div>
+              <div style={{display:"flex",gap:12,fontSize:10}}>
+                <span style={{color:C.sivi}}>RTY: <strong style={{color:
+                  d.rty>=95?C.zelena:d.rty>=80?C.zuta:C.crvena}}>{d.rty}%</strong></span>
+                <span style={{color:C.sivi}}>p: <strong style={{color:C.tekst}}>{d.p}%</strong></span>
+                <span style={{color:C.sivi}}>DPMO: <strong style={{color:C.tekst}}>
+                  {d.dpmo.toLocaleString()}</strong></span>
+                <span style={{color:C.border}}>{d.dani_aktivni} dana aktivno</span>
+              </div>
+              <div style={{background:C.hover,borderRadius:2,height:3,marginTop:5}}>
+                <div style={{background:boja,width:`${d.skor}%`,height:3,
+                  borderRadius:2,transition:"width 0.5s"}}/>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── IZVEŠTAJ SMENE PDF ───────────────────────────────────────
+async function generisiIzvestajSmene(korisnik, smena, C) {
+  const danas = new Date().toISOString().split("T")[0];
+  
+  // Učitaj podatke smene
+  const { data } = await supabase.from("kontrolni_log")
+    .select("*").eq("datum",danas).eq("smena",smena)
+    .order("created_at",{ascending:true});
+
+  if (!data?.length) { alert("Nema podataka za ovu smenu danas."); return; }
+
+  const n   = data.reduce((s,r)=>s+(r.ukupno_merenja||0),0);
+  const nok = data.reduce((s,r)=>s+(r.nok_kolicina||0),0);
+  const ok  = data.reduce((s,r)=>s+(r.ok_kolicina||0),0);
+  const rty = n>0?((ok/n)*100).toFixed(2):0;
+  const dpmo= n>0?Math.round((nok/n)*1e6):0;
+
+  // Pareto
+  const gB={};
+  data.forEach(r=>{if(r.greska_naziv&&r.greska_naziv!=="OK")
+    gB[r.greska_naziv]=(gB[r.greska_naziv]||0)+(r.nok_kolicina||0);});
+  const topGreske=Object.entries(gB).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const { default: jsPDF } = await import("jspdf");
+  const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  const W = pdf.internal.pageSize.getWidth();
+
+  // Header
+  pdf.setFillColor(28,35,51);
+  pdf.rect(0,0,W,40,`F`);
+  pdf.setTextColor(88,166,255);
+  pdf.setFontSize(18); pdf.setFont("helvetica","bold");
+  pdf.text("SPC KONTROLA KVALITETA", 14,15);
+  pdf.setTextColor(200,210,230);
+  pdf.setFontSize(11); pdf.setFont("helvetica","normal");
+  pdf.text(`IZVEŠTAJ SMENE ${smena} · ${danas}`, 14,25);
+  pdf.text(`Generisao: ${korisnik.ime}`, 14,33);
+
+  // KPI
+  pdf.setTextColor(30,32,36);
+  let y=55;
+  pdf.setFontSize(13); pdf.setFont("helvetica","bold");
+  pdf.text("STATISTIKE SMENE",14,y); y+=8;
+
+  const kpi=[
+    ["Ukupno mereno",n,""],
+    ["OK komada",ok,""],
+    ["NOK komada",nok,""],
+    ["RTY %",rty,"%"],
+    ["DPMO",dpmo.toLocaleString(),""],
+  ];
+
+  kpi.forEach(([naziv,vrednost,suf],i)=>{
+    const x = 14 + (i%3)*62;
+    const yy = y + Math.floor(i/3)*22;
+    pdf.setFillColor(240,244,248);
+    pdf.rect(x,yy,58,18,`F`);
+    pdf.setFontSize(8); pdf.setFont("helvetica","normal");
+    pdf.setTextColor(100,110,120);
+    pdf.text(naziv,x+4,yy+7);
+    pdf.setFontSize(14); pdf.setFont("helvetica","bold");
+    pdf.setTextColor(30,32,36);
+    pdf.text(`${vrednost}${suf}`,x+4,yy+15);
+  });
+  y+=50;
+
+  // Top greške
+  if (topGreske.length) {
+    pdf.setFontSize(13); pdf.setFont("helvetica","bold");
+    pdf.setTextColor(30,32,36);
+    pdf.text("TOP GREŠKE",14,y); y+=8;
+    topGreske.forEach(([naziv,count],i)=>{
+      pdf.setFontSize(10); pdf.setFont("helvetica","normal");
+      pdf.setTextColor(60,70,80);
+      pdf.text(`${i+1}. ${naziv}`,14,y);
+      pdf.text(`${count} kom`,150,y);
+      const maxW = 80;
+      const bar = Math.min((count/topGreske[0][1])*maxW, maxW);
+      pdf.setFillColor(88,166,255);
+      pdf.rect(80,y-4,bar,5,`F`);
+      y+=8;
+    });
+  }
+
+  // Tabela unosa
+  y+=5;
+  pdf.setFontSize(13); pdf.setFont("helvetica","bold");
+  pdf.setTextColor(30,32,36);
+  pdf.text("UNOSI SMENE",14,y); y+=8;
+
+  pdf.setFontSize(8); pdf.setFont("helvetica","bold");
+  pdf.setTextColor(100,110,120);
+  ["ID DELA","NAZIV","GREŠKA","STATUS","NOK"].forEach((h,i)=>{
+    pdf.text(h, [14,40,90,140,170][i], y);
+  });
+  y+=5;
+  pdf.setDrawColor(200,210,220);
+  pdf.line(14,y,195,y); y+=3;
+
+  pdf.setFont("helvetica","normal"); pdf.setTextColor(30,32,36);
+  data.slice(0,25).forEach(r=>{
+    if (y>270) { pdf.addPage(); y=20; }
+    pdf.text((r.id_deo||"").substring(0,10),14,y);
+    pdf.text((r.naziv_dela||"").substring(0,18),40,y);
+    pdf.text((r.greska_naziv||"").substring(0,18),90,y);
+    r.status==="NOK"
+      ? pdf.setTextColor(207,34,46)
+      : pdf.setTextColor(26,127,55);
+    pdf.text(r.status||"",140,y);
+    pdf.setTextColor(30,32,36);
+    pdf.text(String(r.nok_kolicina||0),170,y);
+    y+=6;
+  });
+
+  pdf.save(`Izvestaj_Smena${smena}_${danas}.pdf`);
+}
+
+// ============================================================
+// v9 FINALNA VERZIJA — sve funkcionalnosti atributivnih
+// ============================================================
+
+// ─── PWA SERVICE WORKER REGISTRACIJA ─────────────────────────
+// Pozovi jednom u App() useEffect
+function registrujPWA() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  }
+  // Vibration API za NOK feedback
+  if ('vibrate' in navigator) {
+    window._vibrirajNOK = () => navigator.vibrate([100,50,100]);
+    window._vibrirajOK  = () => navigator.vibrate([50]);
+  }
+}
+
+// ─── AQL ACCEPTANCE SAMPLING ────────────────────────────────
+function AQLTabela({ C }) {
+  const [velicina, setVelicina] = useState(500);
+  const [nivo,     setNivo]     = useState("II");
+  const [aql,      setAql]      = useState("1.0");
+
+  // ISO 2859-1 slovne oznake po veličini lota i nivou inspekcije
+  const getSlovnaOznaka = (n, nivo) => {
+    const tab = {
+      "I":  [[2,"A"],[8,"B"],[15,"C"],[25,"D"],[50,"E"],[90,"F"],[150,"G"],
+             [280,"H"],[500,"J"],[1200,"K"],[3200,"L"],[10000,"M"],[35000,"N"],[150000,"P"],[500001,"Q"]],
+      "II": [[2,"A"],[8,"B"],[15,"C"],[25,"D"],[50,"E"],[90,"F"],[150,"G"],
+             [280,"H"],[500,"J"],[1200,"K"],[3200,"L"],[10000,"M"],[35000,"N"],[150000,"P"],[500001,"Q"]],
+      "III":[[2,"B"],[8,"C"],[15,"D"],[25,"E"],[50,"F"],[90,"G"],[150,"H"],
+             [280,"J"],[500,"K"],[1200,"L"],[3200,"M"],[10000,"N"],[35000,"P"],[150000,"Q"],[500001,"R"]],
+    };
+    const rows = tab[nivo] || tab["II"];
+    for (const [lim, slovo] of rows) if (n <= lim) return slovo;
+    return "Q";
+  };
+
+  // Veličina uzorka i kriterijumi (norma)
+  const getUzorak = (slovo) => {
+    const tab = {
+      A:2, B:3, C:5, D:8, E:13, F:20, G:32,
+      H:50, J:80, K:125, L:200, M:315, N:500, P:800, Q:1250, R:2000,
+    };
+    return tab[slovo] || 0;
+  };
+
+  // Ac/Re po AQL nivou i slovnoj oznaci (pojednostavljena tabela)
+  const getAcRe = (slovo, aql) => {
+    const tab = {
+      "0.065": {A:[0,1],B:[0,1],C:[0,1],D:[0,1],E:[0,1],F:[0,1],G:[1,2],H:[1,2],J:[1,2],K:[2,3],L:[3,4],M:[5,6],N:[7,8],P:[10,11],Q:[14,15]},
+      "0.1":   {A:[0,1],B:[0,1],C:[0,1],D:[0,1],E:[0,1],F:[1,2],G:[1,2],H:[1,2],J:[2,3],K:[3,4],L:[5,6],M:[7,8],N:[10,11],P:[14,15],Q:[21,22]},
+      "0.25":  {A:[0,1],B:[0,1],C:[0,1],D:[0,1],E:[1,2],F:[1,2],G:[2,3],H:[3,4],J:[5,6],K:[7,8],L:[10,11],M:[14,15],N:[21,22],P:[21,22],Q:[21,22]},
+      "0.4":   {A:[0,1],B:[0,1],C:[0,1],D:[1,2],E:[1,2],F:[2,3],G:[3,4],H:[5,6],J:[7,8],K:[10,11],L:[14,15],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+      "0.65":  {A:[0,1],B:[0,1],C:[1,2],D:[1,2],E:[2,3],F:[3,4],G:[5,6],H:[7,8],J:[10,11],K:[14,15],L:[21,22],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+      "1.0":   {A:[0,1],B:[1,2],C:[1,2],D:[2,3],E:[3,4],F:[5,6],G:[7,8],H:[10,11],J:[14,15],K:[21,22],L:[21,22],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+      "1.5":   {A:[0,1],B:[1,2],C:[2,3],D:[3,4],E:[5,6],F:[7,8],G:[10,11],H:[14,15],J:[21,22],K:[21,22],L:[21,22],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+      "2.5":   {A:[1,2],B:[2,3],C:[3,4],D:[5,6],E:[7,8],F:[10,11],G:[14,15],H:[21,22],J:[21,22],K:[21,22],L:[21,22],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+      "4.0":   {A:[1,2],B:[3,4],C:[5,6],D:[7,8],E:[10,11],F:[14,15],G:[21,22],H:[21,22],J:[21,22],K:[21,22],L:[21,22],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+      "6.5":   {A:[2,3],B:[5,6],C:[7,8],D:[10,11],E:[14,15],F:[21,22],G:[21,22],H:[21,22],J:[21,22],K:[21,22],L:[21,22],M:[21,22],N:[21,22],P:[21,22],Q:[21,22]},
+    };
+    return tab[aql]?.[slovo] || [null,null];
+  };
+
+  const slovo    = getSlovnaOznaka(velicina, nivo);
+  const n        = getUzorak(slovo);
+  const [ac, re] = getAcRe(slovo, aql);
+
+  const AQL_NIVOI  = ["0.065","0.1","0.25","0.4","0.65","1.0","1.5","2.5","4.0","6.5"];
+  const INP_S = {background:C.input,border:`1px solid ${C.border}`,borderRadius:8,
+    color:C.tekst,fontSize:13,padding:"10px 12px",outline:"none",fontFamily:"inherit"};
+
+  return (
+    <div style={{padding:18}}>
+      <div style={{color:C.sivi,fontSize:10,letterSpacing:1.5,marginBottom:16}}>
+        AQL ACCEPTANCE SAMPLING — ISO 2859-1
+      </div>
+
+      {/* Unos */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20}}>
+        <div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:6}}>VELIČINA LOTA</div>
+          <input type="number" value={velicina} onChange={e=>setVelicina(Number(e.target.value))}
+            min={2} style={{...INP_S,width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:6}}>NIVO INSPEKCIJE</div>
+          <select value={nivo} onChange={e=>setNivo(e.target.value)}
+            style={{...INP_S,width:"100%",boxSizing:"border-box",cursor:"pointer"}}>
+            <option value="I">I — Smanjena</option>
+            <option value="II">II — Normalna</option>
+            <option value="III">III — Pojačana</option>
+          </select>
+        </div>
+        <div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:6}}>AQL %</div>
+          <select value={aql} onChange={e=>setAql(e.target.value)}
+            style={{...INP_S,width:"100%",boxSizing:"border-box",cursor:"pointer"}}>
+            {AQL_NIVOI.map(a=><option key={a} value={a}>{a}%</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Rezultat */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        {[
+          ["SLOVNA OZNAKA",   slovo,           C.plava],
+          ["VELIČINA UZORKA", n,               C.zelena],
+          ["Ac (prihvati ≤)", ac ?? "—",       C.zelena],
+          ["Re (odbaci ≥)",   re ?? "—",       C.crvena],
+        ].map(([naziv,vrednost,boja])=>(
+          <div key={naziv} style={{background:C.panel,border:`1px solid ${boja}30`,
+            borderRadius:10,padding:"14px",textAlign:"center"}}>
+            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.2,marginBottom:5}}>{naziv}</div>
+            <div style={{color:boja,fontSize:28,fontWeight:700}}>{vrednost}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tumačenje */}
+      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:16,marginBottom:16}}>
+        <div style={{color:C.tekst,fontSize:12,fontWeight:700,marginBottom:8}}>TUMAČENJE</div>
+        <div style={{color:C.sivi,fontSize:12,lineHeight:1.8}}>
+          Za lot od <strong style={{color:C.tekst}}>{velicina.toLocaleString()}</strong> komada,
+          nivo inspekcije <strong style={{color:C.tekst}}>{nivo}</strong>,
+          AQL <strong style={{color:C.tekst}}>{aql}%</strong>:<br/>
+          → Uzmi <strong style={{color:C.zelena,fontSize:14}}>{n}</strong> komada na kontrolu<br/>
+          → Ako je NOK ≤ <strong style={{color:C.zelena}}>{ac ?? "—"}</strong> → <span style={{color:C.zelena,fontWeight:700}}>PRIHVATI lot</span><br/>
+          → Ako je NOK ≥ <strong style={{color:C.crvena}}>{re ?? "—"}</strong> → <span style={{color:C.crvena,fontWeight:700}}>ODBACI lot</span>
+        </div>
+      </div>
+
+      {/* Tabela svih AQL nivoa za ovu veličinu */}
+      <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:10}}>
+        PREGLED ZA LOT {velicina.toLocaleString()} — NIVO {nivo} — SVE AQL VREDNOSTI
+      </div>
+      <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"80px 80px 80px 80px",
+          background:C.hover,padding:"9px 14px",fontSize:9,color:C.sivi,gap:8,letterSpacing:1}}>
+          <span>AQL %</span><span>UZORAK</span><span>Ac</span><span>Re</span>
+        </div>
+        {AQL_NIVOI.map(a=>{
+          const sl2 = getSlovnaOznaka(velicina, nivo);
+          const n2  = getUzorak(sl2);
+          const [a2,r2] = getAcRe(sl2, a);
+          const aktivan = a===aql;
+          return(
+            <div key={a} onClick={()=>setAql(a)} style={{display:"grid",
+              gridTemplateColumns:"80px 80px 80px 80px",
+              padding:"9px 14px",borderTop:`1px solid ${C.border}`,
+              fontSize:12,gap:8,cursor:"pointer",
+              background:aktivan?`${C.plava}15`:C.bg}}>
+              <span style={{color:aktivan?C.plava:C.tekst,fontWeight:aktivan?700:400}}>{a}%</span>
+              <span style={{color:C.tekst}}>{n2}</span>
+              <span style={{color:C.zelena,fontWeight:700}}>{a2??"-"}</span>
+              <span style={{color:C.crvena,fontWeight:700}}>{r2??"-"}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{color:C.border,fontSize:10,marginTop:8}}>
+        ISO 2859-1 · Jednokratno uzorkovanje · Normalna inspekcija
+      </div>
+    </div>
+  );
+}
+
+// ─── KONTROLNA LISTA PRE SMENE ───────────────────────────────
+function KontrolnaLista({ korisnik, smena, onZavrsena, C }) {
+  const [stavke,    setStavke]    = useState([]);
+  const [checklist, setChecklist] = useState({});
+  const [napomena,  setNapomena]  = useState("");
+  const [loading,   setLoading]   = useState(true);
+  const [saving,    setSaving]    = useState(false);
+  const [vec_uradjena, setVecUradjena] = useState(false);
+
+  useEffect(()=>{
+    (async()=>{
+      // Provjeri da li je već uradjena za ovu smenu danas
+      const danas = new Date().toISOString().split("T")[0];
+      const { data: log } = await supabase.from("kontrolna_lista_log")
+        .select("id,zavrsena").eq("radnik_id",korisnik.radnikId)
+        .eq("smena",smena).eq("datum",danas).eq("zavrsena",true).maybeSingle();
+
+      if (log) { setVecUradjena(true); setLoading(false); return; }
+
+      const { data } = await supabase.from("kontrolna_lista_stavke")
+        .select("*").eq("aktivna",true).order("redosled");
+      setStavke(data||[]);
+      setLoading(false);
+    })();
+  },[]);
+
+  const toggle = (id) => setChecklist(p=>({...p,[id]:!p[id]}));
+
+  const ukupno    = stavke.length;
+  const potvrdjeno = Object.values(checklist).filter(Boolean).length;
+  const procenat  = ukupno>0?Math.round(potvrdjeno/ukupno*100):0;
+
+  const snimi = async () => {
+    if (potvrdjeno < ukupno) return;
+    setSaving(true);
+    const { error } = await supabase.from("kontrolna_lista_log").insert({
+      radnik_id:   korisnik.radnikId,
+      smena,
+      stavke_json: checklist,
+      napomena:    napomena||null,
+      zavrsena:    true,
+    });
+    setSaving(false);
+    if (!error) onZavrsena();
+  };
+
+  const kategorije = [...new Set(stavke.map(s=>s.kategorija))];
+
+  if (loading) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",
+      minHeight:"60vh",color:C.sivi,fontSize:13}}>Učitavanje...</div>
+  );
+
+  if (vec_uradjena) return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+      justifyContent:"center",minHeight:"60vh",gap:16,padding:24}}>
+      <div style={{fontSize:60}}>✅</div>
+      <div style={{color:C.zelena,fontSize:20,fontWeight:700}}>Lista potvrđena</div>
+      <div style={{color:C.sivi,fontSize:13}}>Kontrolna lista za Smenu {smena} je već popunjena danas.</div>
+      <button onClick={onZavrsena} style={{background:C.plava,border:"none",borderRadius:10,
+        color:"#fff",fontSize:14,fontWeight:700,padding:"12px 28px",cursor:"pointer"}}>
+        Nastavi →
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{padding:"16px 16px 100px",display:"flex",flexDirection:"column",gap:16,
+      maxWidth:600,margin:"0 auto"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{color:C.tekst,fontSize:18,fontWeight:700,marginBottom:4}}>
+          📋 Kontrolna lista pre smene
+        </div>
+        <div style={{color:C.sivi,fontSize:12}}>Smena {smena} · {new Date().toLocaleDateString("sr-RS")}</div>
+      </div>
+
+      {/* Progres */}
+      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:8}}>
+          <span style={{color:C.sivi}}>Potvrđeno</span>
+          <span style={{color:procenat===100?C.zelena:C.zuta,fontWeight:700}}>
+            {potvrdjeno} / {ukupno}
+          </span>
+        </div>
+        <div style={{background:C.hover,borderRadius:4,height:8}}>
+          <div style={{background:procenat===100?C.zelena:C.plava,
+            width:`${procenat}%`,height:8,borderRadius:4,transition:"width 0.3s"}}/>
+        </div>
+      </div>
+
+      {/* Stavke po kategorijama */}
+      {kategorije.map(kat=>(
+        <div key={kat} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+          <div style={{background:C.hover,padding:"10px 16px",
+            color:C.sivi,fontSize:10,fontWeight:700,letterSpacing:1.5}}>
+            {kat}
+          </div>
+          {stavke.filter(s=>s.kategorija===kat).map(s=>(
+            <div key={s.id} onClick={()=>toggle(s.id)}
+              style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",
+                borderTop:`1px solid ${C.border}`,cursor:"pointer",
+                background:checklist[s.id]?`${C.zelena}10`:"transparent",
+                transition:"background 0.2s"}}>
+              <div style={{width:24,height:24,borderRadius:6,flexShrink:0,
+                border:`2px solid ${checklist[s.id]?C.zelena:C.border}`,
+                background:checklist[s.id]?C.zelena:"transparent",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                transition:"all 0.2s"}}>
+                {checklist[s.id]&&<span style={{color:"#fff",fontSize:14,fontWeight:700}}>✓</span>}
+              </div>
+              <span style={{color:checklist[s.id]?C.sivi:C.tekst,fontSize:13,
+                textDecoration:checklist[s.id]?"line-through":"none"}}>
+                {s.stavka}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {/* Napomena */}
+      <div>
+        <div style={{color:C.sivi,fontSize:10,letterSpacing:1.5,marginBottom:6}}>
+          NAPOMENA (opciono)
+        </div>
+        <textarea value={napomena} onChange={e=>setNapomena(e.target.value)}
+          placeholder="Posebni uslovi, problemi uočeni..."
+          rows={3}
+          style={{width:"100%",background:C.input,border:`1px solid ${C.border}`,
+            borderRadius:10,color:C.tekst,fontSize:13,padding:"12px",
+            boxSizing:"border-box",outline:"none",fontFamily:"inherit",resize:"none"}}/>
+      </div>
+
+      {/* Potvrdi */}
+      <button onClick={snimi} disabled={potvrdjeno<ukupno||saving}
+        style={{background:potvrdjeno===ukupno?C.zelena:C.hover,border:"none",borderRadius:12,
+          color:potvrdjeno===ukupno?"#fff":C.sivi,fontSize:16,fontWeight:700,
+          padding:"18px",cursor:potvrdjeno<ukupno?"not-allowed":"pointer",
+          boxShadow:potvrdjeno===ukupno?`0 0 20px ${C.zelena}40`:"none",
+          transition:"all 0.3s"}}>
+        {saving?"Snimanje..."
+         :potvrdjeno===ukupno?"✓ Potvrdi i nastavi sa radom"
+         :`Potvrdi još ${ukupno-potvrdjeno} stavki`}
+      </button>
+    </div>
+  );
+}
+
+// ─── ESKALACIJE ───────────────────────────────────────────────
+function EskalacijePanel({ korisnik, C, addToast, sviDelovi }) {
+  const [eskalacije, setEskalacije] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [forma,      setForma]      = useState(null); // null | 'nova' | {id}
+  const [radnici,    setRadnici]    = useState([]);
+  const [filter,     setFilter]     = useState("sve");
+
+  useEffect(()=>{
+    Promise.all([
+      supabase.from("eskalacije")
+        .select("*,kreirao:radnici!eskalacije_kreirao_id_fkey(ime),dodeljen:radnici!eskalacije_dodeljen_id_fkey(ime)")
+        .order("created_at",{ascending:false}),
+      supabase.from("radnici").select("id,ime,uloga"),
+    ]).then(([e,r])=>{
+      setEskalacije(e.data||[]);
+      setRadnici(r.data||[]);
+      setLoading(false);
+    });
+  },[]);
+
+  const novaEskalacija = async (form) => {
+    const { data, error } = await supabase.from("eskalacije").insert({
+      ...form, kreirao_id: korisnik.radnikId,
+    }).select("*,kreirao:radnici!eskalacije_kreirao_id_fkey(ime),dodeljen:radnici!eskalacije_dodeljen_id_fkey(ime)").single();
+    if (!error) {
+      setEskalacije(p=>[data,...p]);
+      setForma(null);
+      addToast("✓ Eskalacija kreirana","uspeh");
+    } else addToast(error.message,"greska");
+  };
+
+  const azuriraj = async (id, izmene) => {
+    const { data, error } = await supabase.from("eskalacije").update({
+      ...izmene,
+      ...(izmene.status==="zatvoren"?{zatvoreno_at:new Date().toISOString()}:{}),
+    }).eq("id",id)
+      .select("*,kreirao:radnici!eskalacije_kreirao_id_fkey(ime),dodeljen:radnici!eskalacije_dodeljen_id_fkey(ime)")
+      .single();
+    if (!error) {
+      setEskalacije(p=>p.map(e=>e.id===id?data:e));
+      addToast("✓ Ažurirano","uspeh");
+    }
+  };
+
+  const filtrirane = eskalacije.filter(e=>filter==="sve"||e.status===filter);
+
+  const PRIORITET_BOJA = {kriticno:C.crvena,visok:C.narandzasta,srednji:C.zuta,nizak:C.zelena};
+  const STATUS_BOJA    = {otvoren:C.crvena,u_toku:C.zuta,zatvoren:C.zelena};
+
+  if (forma==="nova") return (
+    <NovaEskalacija korisnik={korisnik} sviDelovi={sviDelovi} radnici={radnici}
+      onSnimi={novaEskalacija} onOtkazati={()=>setForma(null)} C={C}/>
+  );
+
+  return (
+    <div style={{padding:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>ESKALACIJE</div>
+        <button onClick={()=>setForma("nova")}
+          style={{background:C.crvena,border:"none",borderRadius:8,color:"#fff",
+            fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
+          + Nova eskalacija
+        </button>
+      </div>
+
+      {/* Filter */}
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        {[["sve","Sve"],["otvoren","Otvorene"],["u_toku","U toku"],["zatvoren","Zatvorene"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setFilter(v)} style={{
+            background:filter===v?C.plava:"none",border:`1px solid ${filter===v?C.plava:C.border}`,
+            borderRadius:8,color:filter===v?"#fff":C.sivi,fontSize:11,
+            padding:"6px 14px",cursor:"pointer"}}>
+            {l}
+            {v!=="sve"&&<span style={{marginLeft:4,color:filter===v?"rgba(255,255,255,0.7)":C.border}}>
+              ({eskalacije.filter(e=>e.status===v).length})
+            </span>}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <div style={{color:C.sivi,fontSize:12,padding:20}}>Učitavanje...</div>
+       : !filtrirane.length ? (
+        <div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
+          Nema eskalacija
+        </div>
+      ) : filtrirane.map(e=>(
+        <div key={e.id} style={{background:C.panel,border:`1px solid ${PRIORITET_BOJA[e.prioritet]}30`,
+          borderRadius:12,padding:16,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4,flexWrap:"wrap"}}>
+                <span style={{color:C.tekst,fontWeight:700,fontSize:13}}>{e.id_deo}</span>
+                <span style={{background:`${PRIORITET_BOJA[e.prioritet]}20`,
+                  color:PRIORITET_BOJA[e.prioritet],fontSize:9,fontWeight:700,
+                  padding:"2px 8px",borderRadius:10,letterSpacing:0.5}}>
+                  {e.prioritet.toUpperCase()}
+                </span>
+                <span style={{background:`${STATUS_BOJA[e.status]}20`,
+                  color:STATUS_BOJA[e.status],fontSize:9,fontWeight:700,
+                  padding:"2px 8px",borderRadius:10,letterSpacing:0.5}}>
+                  {e.status.replace("_"," ").toUpperCase()}
+                </span>
+                {e.rok&&new Date(e.rok)<new Date()&&e.status!=="zatvoren"&&(
+                  <span style={{color:C.crvena,fontSize:9}}>⚠ PREKORAČEN ROK</span>
+                )}
+              </div>
+              <div style={{color:C.sivi,fontSize:12,marginBottom:4}}>{e.opis}</div>
+              <div style={{display:"flex",gap:12,fontSize:10,color:C.border}}>
+                <span>Kreirao: {e.kreirao?.ime||"?"}</span>
+                {e.dodeljen&&<span>Dodeljen: {e.dodeljen.ime}</span>}
+                {e.rok&&<span>Rok: {e.rok}</span>}
+              </div>
+            </div>
+          </div>
+
+          {e.korektivna_akcija&&(
+            <div style={{background:C.zelena+"15",border:`1px solid ${C.zelena}30`,
+              borderRadius:6,padding:"8px 12px",marginBottom:10,fontSize:11,color:C.sivi}}>
+              <strong style={{color:C.zelena}}>Korektivna akcija:</strong> {e.korektivna_akcija}
+            </div>
+          )}
+
+          {e.status!=="zatvoren"&&(
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
+              {e.status==="otvoren"&&(
+                <button onClick={()=>azuriraj(e.id,{status:"u_toku"})}
+                  style={{background:C.zuta+"20",border:`1px solid ${C.zuta}40`,borderRadius:7,
+                    color:C.zuta,fontSize:11,fontWeight:700,padding:"6px 14px",cursor:"pointer"}}>
+                  → Preuzmi
+                </button>
+              )}
+              <button onClick={()=>{
+                const akcija = prompt("Unesi korektivnu akciju:");
+                if (akcija) azuriraj(e.id,{status:"zatvoren",korektivna_akcija:akcija});
+              }} style={{background:C.zelena+"20",border:`1px solid ${C.zelena}40`,borderRadius:7,
+                color:C.zelena,fontSize:11,fontWeight:700,padding:"6px 14px",cursor:"pointer"}}>
+                ✓ Zatvori
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NovaEskalacija({ korisnik, sviDelovi, radnici, onSnimi, onOtkazati, C }) {
+  const [form, setForm] = useState({
+    id_deo:"", naziv_dela:"", tip:"ucl_probijen",
+    opis:"", prioritet:"visok", dodeljen_id:"", rok:"",
+  });
+  const upd = (k,v) => setForm(p=>({...p,[k]:v}));
+  const INP = {width:"100%",background:C.input,border:`1px solid ${C.border}`,borderRadius:8,
+    color:C.tekst,fontSize:13,padding:"10px 12px",boxSizing:"border-box",
+    outline:"none",fontFamily:"inherit"};
+  return (
+    <div style={{padding:18,maxWidth:560}}>
+      <div style={{color:C.tekst,fontSize:14,fontWeight:700,marginBottom:16}}>
+        Nova eskalacija
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div>
+            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>ID DELA</div>
+            <select value={form.id_deo} onChange={e=>{
+              const d=sviDelovi.find(d=>d.id_deo===e.target.value);
+              upd("id_deo",e.target.value); upd("naziv_dela",d?.naziv_dela||"");
+            }} style={{...INP,cursor:"pointer"}}>
+              <option value="">-- Izaberi --</option>
+              {sviDelovi.map(d=><option key={d.id_deo} value={d.id_deo}>{d.id_deo}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>PRIORITET</div>
+            <select value={form.prioritet} onChange={e=>upd("prioritet",e.target.value)}
+              style={{...INP,cursor:"pointer"}}>
+              <option value="kriticno">🔴 Kritično</option>
+              <option value="visok">🟠 Visok</option>
+              <option value="srednji">🟡 Srednji</option>
+              <option value="nizak">🟢 Nizak</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>OPIS PROBLEMA</div>
+          <textarea value={form.opis} onChange={e=>upd("opis",e.target.value)}
+            placeholder="Detaljno opiši problem..." rows={3}
+            style={{...INP,resize:"none"}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div>
+            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>DODELI</div>
+            <select value={form.dodeljen_id} onChange={e=>upd("dodeljen_id",e.target.value)}
+              style={{...INP,cursor:"pointer"}}>
+              <option value="">-- Izaberi --</option>
+              {radnici.map(r=><option key={r.id} value={r.id}>{r.ime}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>ROK</div>
+            <input type="date" value={form.rok} onChange={e=>upd("rok",e.target.value)}
+              style={INP}/>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:4}}>
+          <button onClick={()=>onSnimi(form)} disabled={!form.id_deo||!form.opis}
+            style={{flex:1,background:!form.id_deo||!form.opis?C.hover:C.crvena,border:"none",
+              borderRadius:8,color:!form.id_deo||!form.opis?C.sivi:"#fff",
+              fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
+            Kreiraj eskalaciju
+          </button>
+          <button onClick={onOtkazati}
+            style={{background:"none",border:`1px solid ${C.border}`,borderRadius:8,
+              color:C.sivi,fontSize:13,padding:"12px 16px",cursor:"pointer"}}>Otkaži</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 8D IZVEŠTAJ ─────────────────────────────────────────────
+function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi }) {
+  const [izvestaji, setIzvestaji] = useState([]);
+  const [aktivni,   setAktivni]   = useState(null);
+  const [loading,   setLoading]   = useState(true);
+
+  useEffect(()=>{
+    supabase.from("osmD_izvestaji")
+      .select("*,kreirao:radnici!osmD_izvestaji_kreirao_id_fkey(ime)")
+      .order("created_at",{ascending:false})
+      .then(({data})=>{ setIzvestaji(data||[]); setLoading(false); });
+  },[]);
+
+  const sacuvaj = async (form) => {
+    const isNew = !form.id;
+    const op = isNew
+      ? supabase.from("osmD_izvestaji").insert({...form,kreirao_id:korisnik.radnikId})
+          .select("*,kreirao:radnici!osmD_izvestaji_kreirao_id_fkey(ime)").single()
+      : supabase.from("osmD_izvestaji").update({...form,updated_at:new Date().toISOString()})
+          .eq("id",form.id)
+          .select("*,kreirao:radnici!osmD_izvestaji_kreirao_id_fkey(ime)").single();
+    const { data, error } = await op;
+    if (!error) {
+      setIzvestaji(p=>isNew?[data,...p]:p.map(i=>i.id===data.id?data:i));
+      setAktivni(data);
+      addToast(`✓ 8D izveštaj ${isNew?"kreiran":"sačuvan"}`, "uspeh");
+    } else addToast(error.message,"greska");
+  };
+
+  const exportPDF8D = async (izv) => {
+    const { default: jsPDF } = await import("jspdf");
+    const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    const W = pdf.internal.pageSize.getWidth();
+    pdf.setFillColor(28,35,51);
+    pdf.rect(0,0,W,30,"F");
+    pdf.setTextColor(88,166,255); pdf.setFontSize(16); pdf.setFont("helvetica","bold");
+    pdf.text("8D IZVEŠTAJ O PROBLEMU",14,12);
+    pdf.setTextColor(200,210,230); pdf.setFontSize(10); pdf.setFont("helvetica","normal");
+    pdf.text(`${izv.id_deo} · ${new Date(izv.created_at).toLocaleDateString("sr-RS")}`,14,22);
+    let y=40;
+    const D_LABELE = ["D1 Tim","D2 Opis problema","D3 Privremena akcija",
+      "D4 Uzrok","D5 Korektivna akcija","D6 Implementacija","D7 Prevencija","D8 Zaključak"];
+    const D_POLJA  = ["d1_tim","d2_opis_problema","d3_privremena_akcija",
+      "d4_uzrok","d5_korektivna","d6_implementacija","d7_prevencija","d8_zakljucak"];
+    D_LABELE.forEach((lab,i)=>{
+      if(y>260){pdf.addPage();y=20;}
+      pdf.setFillColor(240,244,248); pdf.rect(14,y,W-28,6,"F");
+      pdf.setFontSize(9); pdf.setFont("helvetica","bold"); pdf.setTextColor(80,100,120);
+      pdf.text(lab.toUpperCase(),16,y+4.5);
+      y+=8;
+      pdf.setFontSize(10); pdf.setFont("helvetica","normal"); pdf.setTextColor(30,32,36);
+      const tekst = izv[D_POLJA[i]]||"—";
+      const linije = pdf.splitTextToSize(tekst, W-28);
+      pdf.text(linije,14,y);
+      y += linije.length*5+4;
+    });
+    pdf.save(`8D_${izv.id_deo}_${new Date(izv.created_at).toISOString().split("T")[0]}.pdf`);
+  };
+
+  const POLJA_8D = [
+    {key:"d1_tim",           label:"D1 — Tim",                ph:"Navedi članove tima i voditelja..."},
+    {key:"d2_opis_problema",  label:"D2 — Opis problema",       ph:"Ko, šta, kada, gde, koliko, trend..."},
+    {key:"d3_privremena_akcija",label:"D3 — Privremena akcija", ph:"Šta je urađeno odmah da zaštiti kupca..."},
+    {key:"d4_uzrok",          label:"D4 — Uzrok (5×Zašto)",     ph:"Zašto1? → Zašto2? → ... → Koren uzroka..."},
+    {key:"d5_korektivna",     label:"D5 — Korektivna akcija",   ph:"Šta će eliminisati uzrok..."},
+    {key:"d6_implementacija", label:"D6 — Implementacija",      ph:"Ko, šta, do kada..."},
+    {key:"d7_prevencija",     label:"D7 — Prevencija",          ph:"Kako sprečiti sličan problem u budućnosti..."},
+    {key:"d8_zakljucak",      label:"D8 — Zaključak i čestitke",ph:"Timski doprinos, napomena..."},
+  ];
+
+  if (aktivni !== null) {
+    return <Editor8D izvestaj={aktivni} sviDelovi={sviDelovi} polja={POLJA_8D}
+      onSacuvaj={sacuvaj} onNazad={()=>setAktivni(null)}
+      onPDF={exportPDF8D} C={C}/>;
+  }
+
+  return (
+    <div style={{padding:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>8D IZVEŠTAJI</div>
+        <button onClick={()=>setAktivni({})}
+          style={{background:C.plava,border:"none",borderRadius:8,color:"#fff",
+            fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
+          + Novi 8D
+        </button>
+      </div>
+      {loading?<div style={{color:C.sivi,fontSize:12,padding:20}}>Učitavanje...</div>
+       :!izvestaji.length?(
+        <div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
+          Nema izveštaja
+        </div>
+      ):izvestaji.map(i=>(
+        <div key={i.id} onClick={()=>setAktivni(i)}
+          style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,
+            padding:16,marginBottom:10,cursor:"pointer",transition:"border-color 0.2s"}}
+          onMouseEnter={e=>e.currentTarget.style.borderColor=C.plava}
+          onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <span style={{color:C.tekst,fontWeight:700,fontSize:13}}>{i.id_deo}</span>
+              <span style={{background:i.status==="zavrsен"?`${C.zelena}20`:`${C.zuta}20`,
+                color:i.status==="zavrsen"?C.zelena:C.zuta,fontSize:9,
+                padding:"2px 8px",borderRadius:10}}>{i.status.replace("_"," ")}</span>
+            </div>
+            <button onClick={e=>{e.stopPropagation();exportPDF8D(i);}}
+              style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,
+                color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>
+              📄 PDF
+            </button>
+          </div>
+          <div style={{color:C.sivi,fontSize:11}}>{i.d2_opis_problema?.substring(0,80)||"—"}</div>
+          <div style={{color:C.border,fontSize:10,marginTop:4}}>
+            {i.kreirao?.ime} · {new Date(i.created_at).toLocaleDateString("sr-RS")}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Editor8D({ izvestaj, sviDelovi, polja, onSacuvaj, onNazad, onPDF, C }) {
+  const [form, setForm] = useState({
+    id:          izvestaj.id||null,
+    id_deo:      izvestaj.id_deo||"",
+    naziv_dela:  izvestaj.naziv_dela||"",
+    status:      izvestaj.status||"u_izradi",
+    d1_tim:               izvestaj.d1_tim||"",
+    d2_opis_problema:     izvestaj.d2_opis_problema||"",
+    d3_privremena_akcija: izvestaj.d3_privremena_akcija||"",
+    d4_uzrok:             izvestaj.d4_uzrok||"",
+    d5_korektivna:        izvestaj.d5_korektivna||"",
+    d6_implementacija:    izvestaj.d6_implementacija||"",
+    d7_prevencija:        izvestaj.d7_prevencija||"",
+    d8_zakljucak:         izvestaj.d8_zakljucak||"",
+  });
+
+  const INP = {width:"100%",background:C.input,border:`1px solid ${C.border}`,borderRadius:8,
+    color:C.tekst,fontSize:13,padding:"10px 12px",boxSizing:"border-box",
+    outline:"none",fontFamily:"inherit"};
+  const popunjeno = polja.filter(p=>form[p.key]?.trim()).length;
+
+  return (
+    <div style={{padding:18,maxWidth:680}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <button onClick={onNazad} style={{background:"none",border:"none",
+          color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>← Nazad</button>
+        <div style={{color:C.tekst,fontSize:13,fontWeight:700}}>8D Izveštaj</div>
+        <button onClick={()=>onPDF(form)}
+          style={{background:"#7c3aed",border:"none",borderRadius:7,color:"#fff",
+            fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer"}}>
+          📄 PDF
+        </button>
+      </div>
+
+      {/* ID dela */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>ID DELA</div>
+          <select value={form.id_deo} onChange={e=>{
+            const d=sviDelovi.find(d=>d.id_deo===e.target.value);
+            setForm(p=>({...p,id_deo:e.target.value,naziv_dela:d?.naziv_dela||""}));
+          }} style={{...INP,cursor:"pointer"}}>
+            <option value="">-- Izaberi --</option>
+            {sviDelovi.map(d=><option key={d.id_deo} value={d.id_deo}>{d.id_deo} — {d.naziv_dela}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>STATUS</div>
+          <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}
+            style={{...INP,cursor:"pointer"}}>
+            <option value="u_izradi">U izradi</option>
+            <option value="pregled">Na pregledu</option>
+            <option value="zavrsen">Završen</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Progres */}
+      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,
+        padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
+        <div style={{flex:1,background:C.hover,borderRadius:3,height:6}}>
+          <div style={{background:C.plava,width:`${(popunjeno/8)*100}%`,
+            height:6,borderRadius:3,transition:"width 0.3s"}}/>
+        </div>
+        <span style={{color:C.sivi,fontSize:11}}>{popunjeno}/8 polja</span>
+      </div>
+
+      {/* D1-D8 polja */}
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {polja.map((p,i)=>(
+          <div key={p.key}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+              <span style={{background:form[p.key]?.trim()?C.zelena:C.hover,
+                color:form[p.key]?.trim()?"#fff":C.sivi,
+                fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:6,
+                minWidth:24,textAlign:"center"}}>{i+1}</span>
+              <span style={{color:C.tekst,fontSize:12,fontWeight:600}}>{p.label}</span>
+            </div>
+            <textarea value={form[p.key]||""} onChange={e=>setForm(pr=>({...pr,[p.key]:e.target.value}))}
+              placeholder={p.ph} rows={3}
+              style={{...INP,resize:"vertical",minHeight:70}}/>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={()=>onSacuvaj(form)} style={{
+        width:"100%",background:C.plava,border:"none",borderRadius:10,color:"#fff",
+        fontSize:14,fontWeight:700,padding:"14px",cursor:"pointer",marginTop:16,
+        boxShadow:`0 0 16px ${C.plava}40`}}>
+        💾 Sačuvaj 8D izveštaj
+      </button>
+    </div>
+  );
+}
+
+// ─── FOTO ARHIVA GREŠAKA ─────────────────────────────────────
+function FotoArhiva({ C, addToast }) {
+  const [podaci,   setPodaci]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [filter,   setFilter]   = useState("");
+  const [uvecana,  setUvecana]  = useState(null);
+
+  useEffect(()=>{
+    supabase.from("kontrolni_log")
+      .select("id,datum,id_deo,naziv_dela,greska_naziv,podkategorija,komentar,nok_kolicina")
+      .eq("status","NOK").not("komentar","is",null).neq("komentar","")
+      .order("created_at",{ascending:false}).limit(100)
+      .then(({data})=>{ setPodaci(data||[]); setLoading(false); });
+  },[]);
+
+  // Za slike iz Supabase Storage — za sada prikazujemo komentare kao katalog
+  const filtrirani = filter
+    ? podaci.filter(p=>p.greska_naziv?.toLowerCase().includes(filter.toLowerCase())
+        || p.id_deo?.toLowerCase().includes(filter.toLowerCase()))
+    : podaci;
+
+  const greske = [...new Set(podaci.map(p=>p.greska_naziv).filter(Boolean))];
+
+  return (
+    <div style={{padding:18}}>
+      {uvecana&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",
+          zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+          onClick={()=>setUvecana(null)}>
+          <div style={{background:C.panel,borderRadius:12,padding:20,maxWidth:500,width:"100%"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+              <span style={{color:C.crvena,fontWeight:700,fontSize:14}}>{uvecana.greska_naziv}</span>
+              <button onClick={()=>setUvecana(null)} style={{background:"none",border:"none",
+                color:C.sivi,fontSize:20,cursor:"pointer"}}>✕</button>
+            </div>
+            {[["ID dela",uvecana.id_deo],["Naziv",uvecana.naziv_dela],
+              ["Greška",uvecana.greska_naziv],["Podkat.",uvecana.podkategorija],
+              ["Datum",uvecana.datum],["Količina",uvecana.nok_kolicina],
+            ].map(([l,v])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",
+                fontSize:12,marginBottom:6}}>
+                <span style={{color:C.sivi}}>{l}</span>
+                <span style={{color:C.tekst,fontWeight:500}}>{v}</span>
+              </div>
+            ))}
+            {uvecana.komentar&&(
+              <div style={{background:C.zuta+"15",border:`1px solid ${C.zuta}30`,
+                borderRadius:8,padding:"10px 12px",marginTop:10,color:C.tekst,fontSize:12}}>
+                💬 {uvecana.komentar}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
+        FOTO ARHIVA GREŠAKA — NOK sa komentarima
+      </div>
+
+      {/* Filter */}
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+        <input value={filter} onChange={e=>setFilter(e.target.value)}
+          placeholder="Pretraži po grešci ili ID dela..."
+          style={{flex:1,background:C.input,border:`1px solid ${C.border}`,borderRadius:8,
+            color:C.tekst,fontSize:12,padding:"9px 12px",outline:"none",fontFamily:"inherit",
+            minWidth:200}}/>
+        {filter&&<button onClick={()=>setFilter("")}
+          style={{background:"none",border:`1px solid ${C.border}`,borderRadius:8,
+            color:C.sivi,fontSize:12,padding:"9px 12px",cursor:"pointer"}}>✕</button>}
+      </div>
+
+      {/* Kategorije */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        <button onClick={()=>setFilter("")}
+          style={{background:!filter?C.plava:"none",border:`1px solid ${!filter?C.plava:C.border}`,
+            borderRadius:20,color:!filter?"#fff":C.sivi,fontSize:11,padding:"5px 14px",cursor:"pointer"}}>
+          Sve ({podaci.length})
+        </button>
+        {greske.slice(0,6).map(g=>(
+          <button key={g} onClick={()=>setFilter(g)}
+            style={{background:filter===g?C.crvena:"none",border:`1px solid ${filter===g?C.crvena:C.border}`,
+              borderRadius:20,color:filter===g?"#fff":C.sivi,fontSize:11,
+              padding:"5px 14px",cursor:"pointer"}}>
+            {g}
+          </button>
+        ))}
+      </div>
+
+      {loading?<div style={{color:C.sivi,fontSize:12,textAlign:"center",padding:40}}>Učitavanje...</div>
+       :!filtrirani.length?(
+        <div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
+          {filter?"Nema rezultata za pretragu":"Nema NOK unosa sa komentarima"}
+        </div>
+      ):(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+          {filtrirani.map(p=>(
+            <div key={p.id} onClick={()=>setUvecana(p)}
+              style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,
+                padding:14,cursor:"pointer",transition:"border-color 0.2s"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=C.crvena}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+              <div style={{background:`${C.crvena}15`,borderRadius:8,height:80,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                marginBottom:10,fontSize:32}}>
+                ⚠
+              </div>
+              <div style={{color:C.crvena,fontWeight:700,fontSize:12,marginBottom:4}}>
+                {p.greska_naziv}
+              </div>
+              <div style={{color:C.sivi,fontSize:10,marginBottom:4}}>{p.id_deo}</div>
+              <div style={{color:C.border,fontSize:9}}>{p.datum} · ×{p.nok_kolicina}</div>
+              {p.komentar&&(
+                <div style={{color:C.zuta,fontSize:10,marginTop:6,
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  💬 {p.komentar}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
