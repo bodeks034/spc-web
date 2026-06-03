@@ -1,0 +1,4 @@
+id,id dela,period,mereno n,nok,dpmo,rty %,sigma nivo,cilj dpmo,status,trend
+1,5501-A,Jan 2024,250,18,72000.0,92.80000000000001,~3.5σ,50000,IZNAD,Pogoršanje
+2,5502-A,Jan 2024,180,6,33333.333333333336,96.66666666666667,~3.8σ,30000,IZNAD,Stabilan
+3,5503-A,Jan 2024,150,3,20000.0,98.0,~4.1σ,50000,OK,Poboljšanje

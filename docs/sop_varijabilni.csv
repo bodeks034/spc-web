@@ -1,0 +1,4 @@
+id,datum,smena,radni_nalog,id_deo,naziv_dela,karakteristika,lsl,usl,target,jedinica,slika,masina,operater,kontrolor,merni_instrument,linija,proces,operacija
+1,2026-01-01,1,RN-1,5501-A,Nosac,Ugao savijanja,"44° 44' 44''","48° 40' 00''",460000,"step",Deo1.jpg,M1,PERA,PETROVIC DRAGOMIR,UGLOMER,Preseraj,,,
+2,2026-01-02,2,RN-2,5502-A,Osovina,Precnik,"9.8","10.2",10,"mm",Deo2.jpg,M2,LAZA,KIKA KON,SUBLER,Montaza,,,
+3,2026-01-03,1,RN-3,5503-A,Nosac,Radujus,"52","52.5",51.5,"mm",Deo3.jpg,M3,Mika,peric milic,sablon,Preseraj,,,

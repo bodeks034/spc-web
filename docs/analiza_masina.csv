@@ -1,0 +1,4 @@
+id,masina,period,id dela,mereno,ok,nok,rty %,dpmo,korelacija greska,status
+1,Masina M1,Jan 2024,5501-A,250,232,18,7.199999999999999,928000,"LOS VAR 60%, ZAZOR 40%",Stabilan
+2,Masina M2,Jan 2024,5502-A,180,174,6,3.3333333333333335,966667,POVRSINA 80%,Stabilan
+3,Masina M3,Jan 2024,5503-A,150,140,10,6.666666666666667,933333,ZAZOR 70%,Trend rasta

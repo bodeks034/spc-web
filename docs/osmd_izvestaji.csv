@@ -1,0 +1,9 @@
+id,d1 tim,d2 opis problema,d3 privremena akcija,d4 uzrok,d5 korektivna,d6 implementacija,d7 prevencija,d8 zakljucak
+1,"Clanovi tima, funkcije, voditelj, sponzor","Ko, sta, kada, gde, koliko, trend",Sta je uradjeno odmah da zasti kupca,Analiza korena uzroka,Sta eliminise uzrok,"Ko, sta, do kada",Kako spreciti u buducnosti,Tim doprinos i cestitke
+2,"Tim: P.Dragomir (vodja), K.Kon (kontrola), M.Kon (masina), Menadzer (sponzor)","UCL probijen na p-karti za 5501-A, Smena 1, LOS VAR, 5/30 NOK dana 15.1.","100% vizuelna kontrola, povecati n uzorak na 50, segregacija sumnjive serije",Zasto? Rupa u varu → elektroda istrosena → nije zamenjena na vreme → nema plana PM,"Uvesti plan zamene elektrode na svakih 500 zavara, provera svake smene","M.Kon implementira novu proceduru do 2024-01-25,  verifikacija P.Dragomir","Dodati u SPC plan, auto alarm pri 400 zavara, godisnji pregled opreme","Tim resio problem za 7 dana, DPMO smanjen 167000→33000, implementacija u STD"
+3,,,,,,,,
+4,,,,,,,,
+5,,,,,,,,
+6,,,,,,,,
+7,,,,,,,,
+8,,,,,,,,

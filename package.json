@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:docs": "node scripts/import-all-docs.mjs"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,10 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "recharts": "^3.8.1",
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "eslint-plugin-react-hooks": "^7.1.1"
   }
 }

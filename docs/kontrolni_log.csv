@@ -1,0 +1,6 @@
+id,datum,smena,radni nalog,id dela,naziv dela,linija id,masina id,kontrolor id,operater id,status,kategorija greske,podkategorija,defekt,kom nok,ok kol.,nok kol.,ukupno n,komentar
+1,2024-01-15,1,RN-2024-001,5501-A,Nosac,7,1,1,4,OK,OK,-,-,0,1,0,1,
+2,2024-01-15,1,RN-2024-001,5501-A,Nosac,7,1,1,4,NOK,LOS VAR,Rupa u varu,-,2,0,2,2,Alat istrosen
+3,2024-01-15,1,RN-2024-001,5501-A,Nosac,7,1,1,4,NOK,ZAZOR,Prevelik,-,1,0,1,1,
+4,2024-01-15,2,RN-2024-002,5502-A,Osovina,1,2,2,4,OK,OK,-,-,0,1,0,1,
+5,2024-01-15,2,RN-2024-002,5502-A,Osovina,1,2,2,4,NOK,POVRSINA,Ogrebotina,-,1,0,1,1,Materijal los

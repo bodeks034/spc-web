@@ -1,0 +1,10 @@
+id,id_deo,sifra_merenja,pozicija,naziv_mere,nominala,usl,lsl,usl_text,lsl_text,merni_instrument,jedinica,napomena
+1,5502-A,A,Ukupna duzina,360,360,360.5,359.5,"360.5","359.5",Pomicno merilo,mm,
+2,5502-A,B,Glavni rukavac (A-A),55h6,55,55,54.981,"55","54.981",Mikrometar,mm,
+3,5502-A,B,Ulazni rukavac (B-B),42h6,42,42,41.984,"42","41.984",Mikrometar,mm,
+4,5502-A,B,Srednji precnik (C-C),50h6,50,50,49.984,"50","49.984",Mikrometar,mm,
+5,5502-A,A,Sirina zleba za klin,12P9,12,11.982,11.939,"11.982","11.939",Tolerancijski cep,mm,
+6,5502-A,A,Dubina zleba,5,5,5.2,5,"5.2","5",Dubinsko pomicno merilo,mm,
+7,5502-A,B,Radijalno bacanje,0.05,0.05,0.05,0,"0,05","0",Komparator,mm,
+8,5502-A,A,Hrapavost (N5),Ra0,4,0.4,0.4,,"0,4","",Profilometrar,mm,
+9,5502-A,A,Ugao fasete,45,450000,460000,440000,"46° 00' 00""","44° 00' 00""",Uglomer,stepen,

@@ -95,7 +95,7 @@ function LoginScreen({ onLogin }) {
           <label style={{color:C.sivi, fontSize:10, letterSpacing:1.5, display:"block", marginBottom:5}}>EMAIL</label>
           <input value={email} onChange={e=>setEmail(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&prijavi()}
-            type="email" placeholder="kontrolor@fabrika.rs"
+            type="email" placeholder="kontrolor@fabrika.com"
             style={{ width:"100%", background:"#0d1117", border:`1px solid ${C.border}`,
               borderRadius:6, color:C.tekst, fontSize:13, padding:"10px 12px",
               boxSizing:"border-box", outline:"none", fontFamily:"inherit" }} />

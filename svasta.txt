@@ -7,11 +7,25 @@ https://wzxkcomeurogvfisticq.supabase.co
 
 
 
+
+
+
+$env:SUPABASE_URL="https://wzxkcomeurogvfisticq.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTUzMzUwNiwiZXhwIjoyMDk1MTA5NTA2fQ.Y9qBfJ9pZWgQX_ZrmCewvbtmKLYDKGQ5zGR4b1ORUFU"
+node scripts/import-csv-to-supabase.mjs --table defekti --file docs/defekti.csv --onConflict kategorija,podkategorija,defekt
+
 UPDATE radnici SET uloga = 'admin' WHERE ime = 'admin';
+
+set:SUPABASE_URL="https://wzxkcomeurogvfisticq.supabase.co"
+set:SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTUzMzUwNiwiZXhwIjoyMDk1MTA5NTA2fQ.Y9qBfJ9pZWgQX_ZrmCewvbtmKLYDKGQ5zGR4b1ORUFU"
+
 
 
 npm run dev
 
+cd C:\mix\spc-web
+set SUPABASE_URL=https://wzxkcomeurogvfisticq.supabase.co
+set SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTUzMzUwNiwiZXhwIjoyMDk1MTA5NTA2fQ.Y9qBfJ9pZWgQX_ZrmCewvbtmKLYDKGQ5zGR4b1ORUFU
 
 
 Važan korak pre slanja na GitHub (Za Vite projekte)Svaki put kada promenite kod u aplikaciji, pre nego što ukucate git add, morate da napravite svežu produkcionu verziju u terminalu:

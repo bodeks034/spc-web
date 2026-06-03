@@ -1,0 +1,4 @@
+id,id dela,opis problema,prioritet,status,kreirao,dodeljen,rok,korektivna akcija,zatvoren
+1,5501-A,UCL probijen — LOS VAR 5x za 3 dana,KRITICNO,otvoren,PETROVIC D.,MIKA KON,2024-01-20,Zamena elektrode,
+2,5503-A,Trend rasta NOK na Masini M3,VISOK,u_toku,KIKA KON,Admin,2024-01-25,Pregled geometrije alata,
+3,5502-A,DPMO > 50000 u januaru,SREDNJI,zatvoren,MIKA KON,PETROVIC D.,2024-01-18,Kalibracija merila,2024-01-17
