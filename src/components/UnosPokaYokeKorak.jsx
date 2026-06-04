@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { kalibracijaBlokiraUnos } from "../lib/meriloStatus.js";
-import { useEkran } from "../lib/useEkran.js";
 import CrtezZoomViewer from "./CrtezZoomViewer.jsx";
 
 const STAVKE_MERLJIVE = [
@@ -46,8 +45,6 @@ export default function UnosPokaYokeKorak({
   prikaziNazad = false,
   daljeLabel = "Unos merenja →",
 }) {
-  const ekran = useEkran();
-  const usko = ekran.mob || ekran.unosStek || ekran.w < 1100;
   const stavke = modul === "atributivne" ? STAVKE_ATRIBUTIVNE : STAVKE_MERLJIVE;
   const boja = akcent || (modul === "merljive" ? C.zelena : C.plava);
   const [checks, setChecks] = useState(() => initChecks(stavke));
@@ -77,26 +74,22 @@ export default function UnosPokaYokeKorak({
       flexDirection: "column",
       minHeight: 0,
       gap: 12,
-      width: "100%",
-      boxSizing: "border-box",
     }}>
       <div style={{
         flex: 1,
         display: "flex",
-        flexDirection: usko ? "column" : "row",
+        flexDirection: "row",
         gap: 12,
         minHeight: 0,
         alignItems: "stretch",
-        width: "100%",
       }}>
         <div style={{
-          flex: urlSlike && !usko ? "1 1 52%" : "1 1 auto",
+          flex: urlSlike ? "1 1 52%" : "1 1 100%",
           background: `${boja}12`,
           border: `1px solid ${boja}55`,
           borderRadius: 10,
-          padding: ekran.mob ? "12px 10px" : "14px 16px",
+          padding: "14px 16px",
           minHeight: 0,
-          minWidth: 0,
           overflowY: "auto",
         }}>
           <div style={{ color: boja, fontSize: 10, letterSpacing: 1.5, marginBottom: 10, fontWeight: 700 }}>
@@ -105,9 +98,7 @@ export default function UnosPokaYokeKorak({
 
           <div style={{
             display: "grid",
-            gridTemplateColumns: usko
-              ? "repeat(2, minmax(0, 1fr))"
-              : "repeat(auto-fit, minmax(160px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 8,
             marginBottom: 14,
             fontSize: 11,
@@ -167,7 +158,7 @@ export default function UnosPokaYokeKorak({
                   alignItems: "flex-start",
                   gap: 10,
                   cursor: "pointer",
-                  padding: ekran.mob ? "8px 10px" : "10px 12px",
+                  padding: "10px 12px",
                   background: checks[s.id] ? `${boja}18` : C.input,
                   border: `1px solid ${checks[s.id] ? boja : C.border}`,
                   borderRadius: 8,
@@ -179,7 +170,7 @@ export default function UnosPokaYokeKorak({
                   onChange={() => toggle(s.id)}
                   style={{ marginTop: 2, accentColor: boja }}
                 />
-                <span style={{ color: C.tekst, fontSize: ekran.mob ? 11 : 12, lineHeight: 1.45 }}>{s.label}</span>
+                <span style={{ color: C.tekst, fontSize: 12, lineHeight: 1.45 }}>{s.label}</span>
               </label>
             ))}
           </div>
@@ -193,19 +184,15 @@ export default function UnosPokaYokeKorak({
 
         {urlSlike && (
           <aside style={{
-            flex: usko ? "0 0 auto" : "1 1 42%",
-            width: usko ? "100%" : undefined,
-            minWidth: usko ? 0 : 200,
-            maxWidth: "100%",
+            flex: "1 1 42%",
+            minWidth: 220,
             display: "flex",
             flexDirection: "column",
-            minHeight: usko ? (ekran.mob ? 200 : 240) : 280,
-            maxHeight: usko ? (ekran.mob ? 220 : 280) : undefined,
+            minHeight: 280,
             background: C.panel,
             border: `1px solid ${C.border}`,
             borderRadius: 8,
             padding: 8,
-            boxSizing: "border-box",
           }}>
             <div style={{ color: C.sivi, fontSize: 9, marginBottom: 6, textAlign: "center", flexShrink: 0 }}>
               Crtež · zoom · klik = ceo ekran
@@ -227,7 +214,7 @@ export default function UnosPokaYokeKorak({
           onClick={() => setZoomSlika(false)}
           style={{
             position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.88)",
-            display: "flex", flexDirection: "column", padding: ekran.mob ? 8 : 16,
+            display: "flex", flexDirection: "column", padding: 16,
           }}
         >
           <div
@@ -255,7 +242,6 @@ export default function UnosPokaYokeKorak({
         justifyContent: "space-between",
         flexShrink: 0,
         paddingTop: 4,
-        width: "100%",
       }}>
         {prikaziNazad && typeof onNazad === "function" ? (
           <button
@@ -291,14 +277,12 @@ export default function UnosPokaYokeKorak({
             border: "none",
             borderRadius: 8,
             color: mozeDalje ? "#000" : C.sivi,
-            fontSize: ekran.mob ? 13 : 14,
+            fontSize: 14,
             fontWeight: 800,
-            padding: ekran.mob ? "12px 20px" : "14px 28px",
+            padding: "14px 28px",
             cursor: mozeDalje ? "pointer" : "not-allowed",
             letterSpacing: 0.5,
             marginLeft: "auto",
-            width: ekran.mob ? "100%" : undefined,
-            boxSizing: "border-box",
           }}
         >
           {daljeLabel}
@@ -306,7 +290,7 @@ export default function UnosPokaYokeKorak({
       </div>
 
       {!mozeDalje && (
-        <div style={{ color: C.sivi, fontSize: 10, textAlign: ekran.mob ? "left" : "right" }}>
+        <div style={{ color: C.sivi, fontSize: 10, textAlign: "right" }}>
           {!sviStavke && "Označite sve stavke checkliste. "}
           {kalBlok && !mozeAdmin && "Kalibracija blokira unos. "}
           {kontrolnaListaOk === false && "Potrebna kontrolna lista smene."}

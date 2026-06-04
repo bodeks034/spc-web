@@ -739,19 +739,37 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
   const KOLONA_MIN = 168;
   const KOLONE_GAP = ekran.mob ? 8 : 10;
-  const stackVertikalno = ekran.mob || ekran.tablet || ekran.unosStek;
+  /** Mob / tablet — slika gore, kolone u vodoravnom skrolu (kao ranije) */
+  const stackVertikalno = ekran.mob || ekran.tablet;
+  /** Laptop ~1366×760 — 5 kolona levo + crtež desno (referentna slika) */
+  const laptopKlassic = ekran.desk && ekran.w >= 1024 && ekran.w < 1700 && ekran.h < 980;
+  /** Veliki desktop 1920×1080+ */
+  const visokDesktop = ekran.desk && !laptopKlassic;
   const slikaPx = stackVertikalno
     ? 0
-    : Math.min(280, Math.max(200, Math.round(ekran.w * 0.15)));
+    : laptopKlassic
+      ? Math.min(300, Math.max(220, Math.round(ekran.w * 0.24)))
+      : Math.min(280, Math.max(200, Math.round(ekran.w * 0.15)));
   const slikaSirina = stackVertikalno ? "100%" : `${slikaPx}px`;
   const prostorZaKolone = ekran.w - slikaPx - (ekran.mob ? 16 : 24);
   const koloneUGridu = !stackVertikalno && prostorZaKolone >= 5 * KOLONA_MIN;
-  const koloneScroll = !koloneUGridu;
+  const koloneScroll = stackVertikalno || !koloneUGridu;
+  const kolonePoravnaj = visokDesktop && koloneUGridu ? "flex-start" : "flex-end";
+  const koloneGridCols = laptopKlassic && koloneUGridu
+    ? "repeat(5, minmax(0, 1fr))"
+    : koloneUGridu
+      ? `repeat(5, minmax(${KOLONA_MIN}px, 1fr))`
+      : undefined;
   const sirinaKolone = ekran.mob
-    ? Math.min(300, Math.max(260, ekran.w - 16))
-    : koloneScroll
-      ? Math.min(240, Math.max(KOLONA_MIN, Math.floor((prostorZaKolone - 16) / 2.4)))
-      : null;
+    ? Math.min(280, Math.max(236, ekran.w - 20))
+    : stackVertikalno
+      ? Math.min(300, Math.max(200, Math.round(ekran.w * 0.44)))
+      : koloneScroll
+        ? Math.min(240, Math.max(KOLONA_MIN, Math.floor((prostorZaKolone - 16) / 2.4)))
+        : null;
+  const visinaKoloneScroll = ekran.mob
+    ? Math.min(340, Math.max(220, ekran.h - 200))
+    : Math.min(380, Math.max(240, ekran.h - 240));
 
   const metaRed = (naslov, vrednost, accent) => (
     <div style={{ fontSize: 10, marginBottom: 3, lineHeight: 1.25, flexShrink: 0 }}>
@@ -854,12 +872,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   };
 
   const padGlavni = ekran.mob
-    ? "6px 6px 10px"
+    ? "8px 10px 12px"
     : stackVertikalno
       ? "8px 10px 10px"
-      : ekran.wide
-        ? "6px 8px 8px"
-        : "8px 10px 8px";
+      : laptopKlassic
+        ? "8px 16px 10px"
+        : "6px 8px 8px";
 
   const prikaziZahtevPrekid = imaNepotpunuSesiju && !prekidOdobrenId && !mozeAdmin && imaBiloSta(kolone);
 
@@ -1356,7 +1374,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "flex-start",
+            justifyContent: kolonePoravnaj,
             minHeight: stackVertikalno ? "auto" : 0,
             order: stackVertikalno ? 2 : 0,
             width: stackVertikalno ? "100%" : undefined,
@@ -1364,14 +1382,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           <div style={{
             display: koloneScroll ? "flex" : "grid",
             flexDirection: koloneScroll ? "row" : undefined,
-            gridTemplateColumns: koloneUGridu ? `repeat(5, minmax(${KOLONA_MIN}px, 1fr))` : undefined,
+            gridTemplateColumns: koloneGridCols,
             gap: KOLONE_GAP,
-            flex: koloneUGridu ? 1 : "none",
+            flex: laptopKlassic && koloneUGridu ? "0 1 auto" : koloneUGridu ? 1 : "none",
             width: koloneUGridu ? "100%" : undefined,
             minHeight: koloneUGridu ? 0 : undefined,
-            maxHeight: koloneUGridu ? "100%" : "none",
+            maxHeight: laptopKlassic && koloneUGridu ? "100%" : koloneUGridu ? "100%" : "none",
             overflowX: koloneScroll ? "auto" : "hidden",
-            overflowY: koloneUGridu ? "auto" : "hidden",
+            overflowY: laptopKlassic && koloneUGridu ? "auto" : koloneUGridu ? "auto" : "hidden",
             WebkitOverflowScrolling: "touch",
             scrollSnapType: koloneScroll ? "x proximity" : undefined,
             paddingBottom: koloneScroll ? 4 : 0,
@@ -1389,9 +1407,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                   width: koloneScroll ? sirinaKolone : "100%",
                   maxWidth: koloneScroll ? sirinaKolone : "none",
                   flex: koloneScroll ? "0 0 auto" : undefined,
-                  height: koloneUGridu ? "100%" : "auto",
-                  minHeight: koloneScroll ? Math.min(320, Math.max(260, ekran.h - 280)) : koloneUGridu ? 0 : 0,
-                  maxHeight: koloneScroll ? "min(72vh, 520px)" : "none",
+                  height: koloneUGridu && !koloneScroll ? "100%" : "auto",
+                  minHeight: koloneScroll ? visinaKoloneScroll : 0,
+                  maxHeight: koloneScroll ? (ekran.mob ? "62vh" : "70vh") : "none",
                   display: "flex",
                   flexDirection: "column",
                   scrollSnapAlign: koloneScroll ? "start" : undefined,
@@ -1558,8 +1576,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               borderRadius: 8,
               width: "100%",
               flex: stackVertikalno ? "none" : 1,
-              height: stackVertikalno ? (ekran.mob ? 180 : 220) : undefined,
-              minHeight: stackVertikalno ? (ekran.mob ? 180 : 220) : 100,
+              height: stackVertikalno ? (ekran.mob ? 160 : 200) : undefined,
+              minHeight: stackVertikalno ? (ekran.mob ? 150 : 190) : 100,
+              maxHeight: stackVertikalno ? (ekran.mob ? 175 : 210) : undefined,
               boxSizing: "border-box",
               padding: 6,
               display: "flex",
