@@ -561,6 +561,13 @@ async function main() {
     );
   }
 
+  if (merVarRows.length) {
+    console.log(
+      "\nAko Sačuvaj seriju javlja duplicate key na merenja_varijabilna:"
+      + "\n  pokreni 19_fix_merenja_varijabilna_sequence.sql u Supabase SQL Editoru.\n",
+    );
+  }
+
   console.log("Gotovo — svi CSV fajlovi su uvezani.");
 }
 

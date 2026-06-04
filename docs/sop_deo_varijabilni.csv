@@ -1,4 +1,4 @@
 id_deo,radni_nalog,naziv_dela,slika,masina,linija,broj_merenja,kontrolor_ime
-5501-A,RN-1,Nosac,Deo1.jpg,M1,Preseraj,2,PETROVIC DRAGOMIR
-5502-A,RN-2,Osovina,Deo2.jpg,M2,Montaza,30,KIKA KON
-5503-A,RN-3,Nosac,Deo3.jpg,M3,Preseraj,2,peric milic
+5501-A,RN-2024-001,Nosac,Deo1.jpg,M1,Preseraj,5,PETROVIC DRAGOMIR
+5502-A,RN-2024-002,Osovina,Deo2.jpg,M2,Montaza,5,KIKA KON
+5503-A,RN-2024-003,Poklopac,Deo3.jpg,M3,Preseraj,5,peric milic

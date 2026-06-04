@@ -1,17 +1,14 @@
 import { useState, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabaseClient.js";
 import {
   readWorkbookFromFile,
+  readWorkbookFromArrayBuffer,
   downloadWorkbook,
   previewMerljiveImport,
   importMerljiveWorkbookToSupabase,
   exportMerljiveMasterWorkbook,
   MERLJIVE_IMPORT_SHEETS,
 } from "./lib/excelSync.js";
-
-const SUPABASE_URL = "https://wzxkcomeurogvfisticq.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -58,6 +55,34 @@ export default function MerljiveExcelPanel({ C, addToast }) {
     }
   };
 
+  const uvozDemo = async () => {
+    setBusy("demo");
+    try {
+      const res = await fetch("/SPC_merljive_demo_5501_5503.xlsx");
+      if (!res.ok) throw new Error("Nema demo fajla — pokreni: npm run seed:5501-5503");
+      const buf = await res.arrayBuffer();
+      const book = await readWorkbookFromArrayBuffer(buf);
+      setWb(book);
+      setFileName("SPC_merljive_demo_5501_5503.xlsx");
+      const prev = previewMerljiveImport(book);
+      setPreview(prev);
+      if (!prev.some(p => p.mappedCount > 0)) {
+        addToast("Demo fajl nema očekivane tabove.", "greska");
+        return;
+      }
+      const results = await importMerljiveWorkbookToSupabase(supabase, book);
+      const ok = results.filter(r => r.status === "ok");
+      const msg = ok.length
+        ? ok.map(r => `${r.sheet}: ${r.count} redova`).join("\n")
+        : "Uvoz nije uspeo — proveri RLS ili uloguj se kao admin.";
+      addToast(`✓ Demo 5501-A / 5503-A\n${msg}`, ok.length ? "uspeh" : "greska");
+    } catch (err) {
+      addToast(err.message, "greska");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const izvozSve = async () => {
     setBusy("izvoz");
     try {
@@ -93,6 +118,9 @@ export default function MerljiveExcelPanel({ C, addToast }) {
         <button type="button" onClick={izvozSve} disabled={!!busy} style={BTN(C.zelena)}>
           ⬇ Preuzmi merljive tabele
         </button>
+        <button type="button" onClick={uvozDemo} disabled={!!busy} style={BTN(C.plava)}>
+          ⚡ Demo 5501-A / 5503-A
+        </button>
         <button type="button" onClick={() => fileRef.current?.click()} disabled={!!busy} style={BTN(C.narandzasta)}>
           ⬆ Uvezi iz Excela
         </button>
@@ -121,8 +149,9 @@ export default function MerljiveExcelPanel({ C, addToast }) {
 
       <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.6 }}>
         1. Pokreni <code>11_varijabilne_schema.sql</code> u Supabase.<br />
-        2. Ili: <code>node scripts/export-varijabilne-csv.mjs</code> → <code>node scripts/import-all-docs.mjs</code>.<br />
-        3. Ovde uvezi direktno iz .xlsm bez CSV koraka.
+        2. Terminal: <code>npm run seed:5501-5503</code> (CSV + Supabase + demo xlsx).<br />
+        3. Dugme <strong style={{ color: C.tekst }}>Demo 5501-A / 5503-A</strong> — 3 sheeta odjednom.<br />
+        4. Ili uvezi direktno iz .xlsm bez CSV koraka.
       </div>
     </div>
   );

@@ -8,8 +8,9 @@ U Supabase SQL Editor pokreni redom:
 2. `04_kontrolna_lista_policies.sql` — kontrolna lista + seed stavki
 3. `05_dopuna_tabele_rls.sql` — RLS za sve tabele + ispravka delova/mašina/smena
 4. `06_storage_excel_sync.sql` — Storage bucket za Excel kopije + dozvole za uvoz iz Excela
+5. `12_gage_rr_schema.sql` — MSA Gage R&R studije (merljive)
 
-Ako već imaš tabele iz koraka 1, dovoljno je pokrenuti `05` i `06`.
+Ako već imaš tabele iz koraka 1, dovoljno je pokrenuti `05`, `06` i `12` (za MSA).
 
 ## Excel ↔ Supabase (preporučeni tok)
 

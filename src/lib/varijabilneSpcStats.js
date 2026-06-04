@@ -165,6 +165,14 @@ export function calcCpCpk(xbarBar, sigmaHat, lsl, usl) {
   return { cp, cpk };
 }
 
+/** Cp/Cpk: >=1.33 zeleno, 1.0-1.33 zuto, <1.0 crveno */
+export function bojaKapabiliteta(v, C) {
+  if (v == null || !Number.isFinite(v)) return C.sivi;
+  if (v >= 1.33) return C.zelena;
+  if (v >= 1.0) return C.zuta;
+  return C.crvena;
+}
+
 export function paretoNokPoPoziciji(merenja, limit = 8) {
   const g = {};
   (merenja || []).forEach(m => {
@@ -197,6 +205,59 @@ export function statPoSmeni(merenja) {
     rty: s.n > 0 ? +((s.ok / s.n) * 100).toFixed(1) : 0,
     p: s.n > 0 ? +((s.nok / s.n) * 100).toFixed(2) : 0,
   }));
+}
+
+/** Agregat OK/NOK po polju (masina, kontrolor, operater, …). */
+export function statPoGrupi(merenja, polje = "masina") {
+  const g = {};
+  (merenja || []).forEach(m => {
+    const k = String(m[polje] ?? "").trim() || "Nepoznato";
+    if (!g[k]) g[k] = { naziv: k, ok: 0, nok: 0, n: 0 };
+    g[k].n += 1;
+    if ((m.status || "").toUpperCase() === "NOK") g[k].nok += 1;
+    else g[k].ok += 1;
+  });
+  return Object.values(g)
+    .map(o => ({
+      ...o,
+      rty: o.n > 0 ? +((o.ok / o.n) * 100).toFixed(1) : 0,
+      p: o.n > 0 ? +((o.nok / o.n) * 100).toFixed(2) : 0,
+      dpmo: o.n > 0 ? Math.round((o.nok / o.n) * 1e6) : 0,
+    }))
+    .sort((a, b) => b.nok - a.nok || b.n - a.n);
+}
+
+/** Heatmap: pozicija (dimenzija) × mašina — broj NOK merenja. */
+export function korelacijaPozicijaMasina(merenja, limitPoz = 10) {
+  const nokRows = (merenja || []).filter(m => (m.status || "").toUpperCase() === "NOK");
+  const masine = [...new Set(nokRows.map(m => String(m.masina || "").trim() || "Nepoznata"))];
+  const pozG = {};
+  nokRows.forEach(m => {
+    const p = m.pozicija || "?";
+    pozG[p] = (pozG[p] || 0) + 1;
+  });
+  const pozicije = Object.entries(pozG)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limitPoz)
+    .map(([p]) => p);
+
+  const pivot = {};
+  pozicije.forEach(p => {
+    pivot[p] = {};
+    masine.forEach(ma => { pivot[p][ma] = 0; });
+  });
+  nokRows.forEach(m => {
+    const p = m.pozicija || "?";
+    if (!pivot[p]) return;
+    const ma = String(m.masina || "").trim() || "Nepoznata";
+    pivot[p][ma] = (pivot[p][ma] || 0) + 1;
+  });
+
+  const maxVal = Math.max(
+    0,
+    ...pozicije.flatMap(p => masine.map(ma => pivot[p]?.[ma] || 0)),
+  );
+  return { masine, pozicije, pivot, maxVal, ukNok: nokRows.length };
 }
 
 export function histogramMerenja(merenja, bins = 12, jedinica) {

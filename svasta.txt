@@ -35,3 +35,11 @@ git add .
 git commit -m "Azurirane komponente"
 git push origin main
 Nakon što se slanje završi, Vercel će automatski preuzeti osveženi dist folder i vaš sajt će kroz minut biti ažuriran najnovijim kodom
+
+
+Važan korak pre slanja na GitHub (Za Vite projekte)Svaki put kada promenite kod u aplikaciji
+Pravilan postupak za Windows (CMD ili PowerShell):
+npm run build
+git add .
+git commit -m "Osvežen build pre slanja"
+git push origin main

@@ -163,6 +163,27 @@ export const INSPECTION_TYPES = [
   { id: "Smanjena", label: "Smanjena (Reduced — Table II-C)" },
 ];
 
+/** Podrazumevana veličina lota — ista kao na AQL tabu / Excel kalkulatoru. */
+export const DEFAULT_AQL_LOT_SIZE = 5000;
+
+const AQL_LOT_STORAGE_KEY = "spc_aql_lot_velicina";
+
+export function ucitajAqlLotVelicina() {
+  try {
+    const v = Number(localStorage.getItem(AQL_LOT_STORAGE_KEY));
+    if (Number.isFinite(v) && v >= 2) return Math.round(v);
+  } catch { /* ignore */ }
+  return DEFAULT_AQL_LOT_SIZE;
+}
+
+export function snimiAqlLotVelicina(n) {
+  const v = Math.max(2, Math.round(Number(n) || DEFAULT_AQL_LOT_SIZE));
+  try {
+    localStorage.setItem(AQL_LOT_STORAGE_KEY, String(v));
+  } catch { /* ignore */ }
+  return v;
+}
+
 export const DEFECT_KLASE = [
   {
     id: "critical",

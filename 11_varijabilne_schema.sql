@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS merenja_varijabilna (
   merni_instrument   TEXT,
   masina             TEXT,
   radnik_id          INT REFERENCES radnici(id),
+  foto               TEXT,
+  komentar           TEXT,
   created_at         TIMESTAMPTZ DEFAULT NOW()
 );
 

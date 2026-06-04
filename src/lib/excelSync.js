@@ -221,6 +221,8 @@ export const MERLJIVE_IMPORT_SHEETS = [
       operater: pick(r, "operater") || null,
       merni_instrument: pick(r, "merni_instrument", "merni instrument") || null,
       masina: pick(r, "masina") || null,
+      foto: pick(r, "foto") || null,
+      komentar: pick(r, "komentar", "napomena") || null,
     }),
     valid: (r) => r.id && r.id_deo && r.vrednost_raw,
   },
@@ -349,11 +351,11 @@ function parseKarakteristikePositional(rows) {
       nominala: num(r[4]),
       usl: num(r[5]),
       lsl: num(r[6]),
-      usl_text: String(r[5] ?? "") || null,
-      lsl_text: String(r[6] ?? "") || null,
-      merni_instrument: String(r[7] || "").trim() || null,
-      jedinica: String(r[8] || "").trim() || null,
-      napomena: String(r[9] || "").trim() || null,
+      usl_text: String(r[7] ?? "").trim() || null,
+      lsl_text: String(r[8] ?? "").trim() || null,
+      merni_instrument: String(r[9] || "").trim() || null,
+      jedinica: String(r[10] || "").trim() || null,
+      napomena: String(r[11] || "").trim() || null,
     });
   }
   return out;
@@ -644,5 +646,89 @@ export async function exportKontrolniLogExcel(supabase, idDeo, datumOd, datumDo)
   const wb = XLSX.utils.book_new();
   const sheet = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(wb, sheet, "kontrolni_log");
+  return wb;
+}
+
+/** Izvoz jedne Gage R&R studije — listovi: info, merenja, Xbar_R, ANOVA. */
+export function exportGageRRExcel(studija) {
+  const wb = XLSX.utils.book_new();
+  const r = studija.rezultat || {};
+  const xbar = r.xbar || (r.metoda === "xbar_r" ? r : null);
+  const anova = r.anova || (r.metoda === "anova" ? r : null);
+
+  const info = [{
+    Polje: "Naziv", Vrednost: studija.naziv || "",
+  }, {
+    Polje: "Datum", Vrednost: studija.datum || "",
+  }, {
+    Polje: "Merilo", Vrednost: studija.merilo_naziv || studija.merilo_id || "",
+  }, {
+    Polje: "Karakteristika", Vrednost: studija.karakteristika || "",
+  }, {
+    Polje: "LSL", Vrednost: studija.lsl ?? "",
+  }, {
+    Polje: "USL", Vrednost: studija.usl ?? "",
+  }, {
+    Polje: "Delova", Vrednost: studija.nDelova,
+  }, {
+    Polje: "Operatera", Vrednost: studija.nOperatera,
+  }, {
+    Polje: "Ponavljanja", Vrednost: studija.nPonavljanja,
+  }, {
+    Polje: "%GRR (primarni)", Vrednost: r.pctGRR ?? studija.pct_grr ?? "",
+  }, {
+    Polje: "ndc", Vrednost: r.ndc ?? studija.ndc ?? "",
+  }, {
+    Polje: "Status MSA", Vrednost: r.odluka?.status || studija.status_msa || "",
+  }];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(info), "info");
+
+  const merenja = [];
+  const mat = studija.matrica || [];
+  const ops = studija.operateri || [];
+  const dels = studija.delovi || [];
+  mat.forEach((deo, i) => {
+    deo.forEach((op, j) => {
+      op.forEach((v, k) => {
+        merenja.push({
+          Deo: dels[i] ?? i + 1,
+          Operater: ops[j] ?? j + 1,
+          Ponavljanje: k + 1,
+          Vrednost: v,
+        });
+      });
+    });
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(merenja), "merenja");
+
+  const rezultatRed = (obj, metoda) => {
+    if (!obj?.ok) return [{ Metoda: metoda, Napomena: "Nije izračunato" }];
+    return [
+      { Metoda: metoda, Pokazatelj: "%GRR", Vrednost: obj.pctGRR },
+      { Metoda: metoda, Pokazatelj: "%Repeat", Vrednost: obj.pctRepeat },
+      { Metoda: metoda, Pokazatelj: "%Reprod", Vrednost: obj.pctReprod },
+      { Metoda: metoda, Pokazatelj: "%Part", Vrednost: obj.pctPart },
+      { Metoda: metoda, Pokazatelj: "%GRR/Tol", Vrednost: obj.pctTolGRR ?? "—" },
+      { Metoda: metoda, Pokazatelj: "ndc", Vrednost: obj.ndc },
+      { Metoda: metoda, Pokazatelj: "EV", Vrednost: obj.EV },
+      { Metoda: metoda, Pokazatelj: "AV", Vrednost: obj.AV },
+      { Metoda: metoda, Pokazatelj: "PV", Vrednost: obj.PV },
+      { Metoda: metoda, Pokazatelj: "GRR", Vrednost: obj.GRR },
+      { Metoda: metoda, Pokazatelj: "TV", Vrednost: obj.TV },
+      { Metoda: metoda, Pokazatelj: "Odluka", Vrednost: obj.odluka?.tekst || "" },
+    ];
+  };
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(rezultatRed(xbar, "Xbar_R")),
+    "Xbar_R",
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(rezultatRed(anova, "ANOVA")),
+    "ANOVA",
+  );
+
   return wb;
 }

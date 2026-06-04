@@ -1,6 +1,12 @@
-id,ime i prezime*,uloga*,email*,supabase user_id,aktivan,napomena
-1,PETROVIC DRAGOMIR,kontrolor,petrovic@fabrika.com,(auto iz Supabase Auth),DA,
-2,KIKA KON,kontrolor,kika@fabrika.com,(auto iz Supabase Auth),DA,
-3,MIKA KON,kontrolor,mika@fabrika.com,(auto iz Supabase Auth),DA,
-4,PERA OPERATER,operator,pera@fabrika.com,(auto iz Supabase Auth),DA,
-5,ADMIN,admin,admin@fabrika.com,(auto iz Supabase Auth),DA,Sistem administrator
+id,ime i prezime*,uloga*,email*,supabase user_id,aktivan,napomena
+
+1,PETROVIC DRAGOMIR,kontrolor,petrovic@fabrika.com,(auto iz Supabase Auth),DA,
+
+2,KIKA KON,kontrolor,kika@fabrika.com,(auto iz Supabase Auth),DA,
+
+3,MIKA KON,kontrolor,mika@fabrika.com,(auto iz Supabase Auth),DA,
+
+4,PERA OPERATER,operator,pera@fabrika.com,(auto iz Supabase Auth),DA,
+
+5,ADMIN,admin,admin@fabrika.com,(auto iz Supabase Auth),DA,Sistem administrator
+

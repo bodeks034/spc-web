@@ -6,14 +6,33 @@ import {
   ResponsiveContainer, Cell,
 } from "recharts";
 import {
-  podgrupeMerenja, izracunajXbarRKarte, izracunajIMRKarte, calcCpCpk,
-  paretoNokPoPoziciji, statPoSmeni, histogramMerenja,
+  podgrupeMerenja, izracunajXbarRKarte, izracunajIMRKarte, calcCpCpk, bojaKapabiliteta,
+  paretoNokPoPoziciji, statPoSmeni,
   trendKvalitetaPoDanu, agregatKvaliteta, nokPoPozicijiDashboard,
   SIGMA_BENCH, yDomainSpc, sigmaProcesa,
 } from "./lib/varijabilneSpcStats.js";
 import { upisiSpcAlarm, kreirajAutoEskalaciju } from "./lib/spcStats.js";
 import { downloadWorkbook, exportMerenjaVarijabilnaExcel } from "./lib/excelSync.js";
-import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen } from "./lib/varijabilneUtils.js";
+import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi } from "./lib/varijabilneUtils.js";
+import { useEkran } from "./lib/useEkran.js";
+import {
+  predlogMerljivihKarti,
+  jeVodicSakriven,
+  sakrijVodic,
+} from "./lib/spcPredlogKarti.js";
+import SpcVodicPredlog, { tabJePreporucen } from "./components/SpcVodicPredlog.jsx";
+import SpcKontrolnaGraf from "./components/SpcKontrolnaGraf.jsx";
+import {
+  SpcParetoGraf, SpcOkNokBarGraf, SpcRtyTrendGraf, SpcRtyJednaLinija,
+  SpcHistogramGraf, SpcSigmaBarGraf,
+} from "./components/SpcAnalitikaGrafovi.jsx";
+import NormalnostPanel from "./components/NormalnostPanel.jsx";
+import {
+  PoGrupiPanel, KorelacijaPozicijaMasinaPanel, PoredjenjeMerljive,
+  ArhivaNokMerljive, OsmDIzvestajMerljive, HeatmapMerljivePanel,
+} from "./components/MerljiveAnalitika.jsx";
+import { histogramIGaus, proceniNormalnost } from "./lib/normalnost.js";
+import { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 
 const SUPABASE_URL = "https://wzxkcomeurogvfisticq.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
@@ -27,6 +46,14 @@ function dISO() {
 
 function fmt(v, jedinica, dec = 4) {
   return formatVrednostKarte(v, jedinica, dec);
+}
+
+function histBinZaVrednost(histData, vrednost) {
+  if (!histData?.length || !Number.isFinite(vrednost)) return undefined;
+  const bin = histData.reduce((best, d) =>
+    Math.abs(d.mid - vrednost) < Math.abs((best?.mid ?? Infinity) - vrednost) ? d : best,
+  histData[0]);
+  return bin?.bin;
 }
 
 function TrendUpozorenje({ podaci, C, jedinica }) {
@@ -89,90 +116,7 @@ function WesternUpozorenja({ podaci, C, jedinica }) {
   );
 }
 
-function SpcGraf({ podaci, bojaLinije, C, lsl, usl, jedinica, height = 320 }) {
-  if (!podaci?.length) return null;
-  const sufiks = isStepen(jedinica) ? "°" : "";
-  const cl = podaci[0].cl;
-  const ucl = podaci[0].ucl;
-  const lcl = podaci[0].lcl;
-  const yDom = yDomainSpc(podaci, [lsl, usl].filter(Number.isFinite));
-  const sigma = (ucl - cl) / 3;
-
-  const Dot = (props) => {
-    const { cx, cy, index } = props;
-    const u = podaci[index]?.upoz;
-    return (
-      <circle cx={cx} cy={cy} r={u ? 7 : 4}
-        fill={u ? C.crvena : bojaLinije} stroke={u ? "#fff" : "none"} strokeWidth={u ? 2 : 0} opacity={0.95} />
-    );
-  };
-
-  const refLabel = (text, color, y) => ({
-    value: `${text}=${fmt(y, jedinica)}`,
-    fill: color,
-    fontSize: 9,
-    position: "right",
-  });
-
-  const fmtTip = (v, d) => {
-    if (!Number.isFinite(v)) return "—";
-    if (isStepen(jedinica)) return `${fmt(v, jedinica)} (${decStepenUDms(v)})`;
-    return fmt(v, jedinica);
-  };
-
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={podaci} margin={{ top: 12, right: 110, bottom: 32, left: 12 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false} />
-        <XAxis dataKey="label" tick={{ fill: C.sivi, fontSize: 9 }} tickLine={false}
-          interval={Math.max(0, Math.floor(podaci.length / 14))} />
-        <YAxis tick={{ fill: C.sivi, fontSize: 10 }} tickLine={false} axisLine={false}
-          domain={yDom} tickFormatter={v => `${v}${sufiks}`} width={56} />
-        <Tooltip
-          contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 11 }}
-          formatter={(v, _n, p) => {
-            const d = p?.payload;
-            const we = d?.upoz ? " ⚠ WE" : "";
-            return [
-              `${fmtTip(v)}${we}`,
-              `UCL ${fmtTip(d?.ucl)} · CL ${fmtTip(d?.cl)} · LCL ${fmtTip(d?.lcl)}`,
-            ];
-          }}
-        />
-        {Number.isFinite(ucl) && (
-          <ReferenceLine y={ucl} stroke={C.crvena} strokeWidth={2} strokeDasharray="8 4"
-            label={refLabel("UCL", C.crvena, ucl)} />
-        )}
-        {Number.isFinite(cl) && (
-          <ReferenceLine y={cl} stroke={C.zuta} strokeWidth={2} strokeDasharray="4 3"
-            label={refLabel("CL", C.zuta, cl)} />
-        )}
-        {Number.isFinite(lcl) && (
-          <ReferenceLine y={lcl} stroke={C.zelena} strokeWidth={2} strokeDasharray="8 4"
-            label={refLabel("LCL", C.zelena, lcl)} />
-        )}
-        {sigma > 0 && Number.isFinite(cl) && (
-          <>
-            <ReferenceLine y={cl + sigma} stroke={C.zuta} strokeWidth={0.5} strokeDasharray="2 6" opacity={0.45} />
-            <ReferenceLine y={cl + 2 * sigma} stroke={C.crvena} strokeWidth={0.5} strokeDasharray="2 6" opacity={0.35} />
-            <ReferenceLine y={cl - sigma} stroke={C.zuta} strokeWidth={0.5} strokeDasharray="2 6" opacity={0.45} />
-            <ReferenceLine y={cl - 2 * sigma} stroke={C.crvena} strokeWidth={0.5} strokeDasharray="2 6" opacity={0.35} />
-          </>
-        )}
-        {Number.isFinite(usl) && (
-          <ReferenceLine y={usl} stroke="#f472b6" strokeWidth={1.2} strokeDasharray="3 3"
-            label={{ value: `USL=${fmt(usl, jedinica)}`, fill: "#f472b6", fontSize: 8, position: "left" }} />
-        )}
-        {Number.isFinite(lsl) && (
-          <ReferenceLine y={lsl} stroke="#f472b6" strokeWidth={1.2} strokeDasharray="3 3"
-            label={{ value: `LSL=${fmt(lsl, jedinica)}`, fill: "#f472b6", fontSize: 8, position: "left" }} />
-        )}
-        <Line type="monotone" dataKey="val" stroke={bojaLinije} strokeWidth={2.5}
-          dot={<Dot />} connectNulls activeDot={{ r: 6 }} name="Vrednost" />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-}
+const NASLOV_KARTE = { xbar: "X̄-Karta", r: "R-Karta", i: "I-Karta", mr: "MR-Karta" };
 
 function KpiRed({ items, C }) {
   return (
@@ -180,10 +124,10 @@ function KpiRed({ items, C }) {
       {items.map(([n, v, b]) => (
         <div key={n} style={{
           background: C.panel, border: `1px solid ${b}25`, borderRadius: 8,
-          padding: "9px 12px", textAlign: "center", minWidth: 72,
+          padding: "10px 14px", textAlign: "center", minWidth: 80,
         }}>
-          <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1.2 }}>{n}</div>
-          <div style={{ color: b, fontSize: 15, fontWeight: 700 }}>{v}</div>
+          <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2, marginBottom: 3 }}>{n}</div>
+          <div style={{ color: b, fontSize: 17, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{v}</div>
         </div>
       ))}
     </div>
@@ -191,6 +135,7 @@ function KpiRed({ items, C }) {
 }
 
 export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
+  const ekran = useEkran();
   const [delovi, setDelovi] = useState([]);
   const [karakteristike, setKarakteristike] = useState([]);
   const [idDeo, setIdDeo] = useState("");
@@ -202,8 +147,12 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   const [tip, setTip] = useState("xbar");
   const [loading, setLoading] = useState(false);
   const [rawData, setRawData] = useState([]);
+  const [vodicSakrij, setVodicSakrij] = useState(false);
+  const [osmdPrefill, setOsmdPrefill] = useState(null);
   const kartaRef = useRef(null);
   const alarmPoslat = useRef(new Set());
+  const prevIdDeoRef = useRef("");
+  const prevPozicijaRef = useRef("");
 
   useEffect(() => {
     (async () => {
@@ -256,6 +205,44 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   useEffect(() => { ucitaj(); }, [ucitaj]);
 
   const podgrupe = useMemo(() => podgrupeMerenja(rawData, nPodgrupa, jedinica), [rawData, nPodgrupa, jedinica]);
+  const deoInfo = useMemo(() => delovi.find(d => d.id_deo === idDeo), [delovi, idDeo]);
+  const imaGranice = Number.isFinite(gr.lsl) || Number.isFinite(gr.usl);
+
+  const predlog = useMemo(() => predlogMerljivihKarti({
+    deo: deoInfo,
+    rawData,
+    pozicija,
+    pozicijeCount: pozicijeDeo.length,
+    imaGranice,
+    nPodgrupa,
+    brojPodgrupa: podgrupe.length,
+  }), [deoInfo, rawData, pozicija, pozicijeDeo.length, imaGranice, nPodgrupa, podgrupe.length]);
+
+  useEffect(() => {
+    setVodicSakrij(jeVodicSakriven("var", idDeo));
+  }, [idDeo]);
+
+  useEffect(() => {
+    if (!idDeo || idDeo === prevIdDeoRef.current) return;
+    prevIdDeoRef.current = idDeo;
+    prevPozicijaRef.current = "";
+    const prvi = predlog?.stavke?.[0]?.id;
+    if (prvi) setTip(prvi);
+  }, [idDeo, predlog]);
+
+  useEffect(() => {
+    if (!pozicija || pozicija === prevPozicijaRef.current) return;
+    prevPozicijaRef.current = pozicija;
+    const prvi = predlog?.stavke?.find(s => ["xbar", "i", "cpk"].includes(s.id))?.id
+      || predlog?.stavke?.[0]?.id;
+    if (prvi) setTip(prvi);
+  }, [pozicija, predlog]);
+
+  const zatvoriVodic = () => {
+    sakrijVodic("var", idDeo);
+    setVodicSakrij(true);
+  };
+
   const spc = useMemo(() => izracunajXbarRKarte(podgrupe, nPodgrupa), [podgrupe, nPodgrupa]);
   const imr = useMemo(() => izracunajIMRKarte(rawData, jedinica), [rawData, jedinica]);
   const cpk = useMemo(() => {
@@ -265,7 +252,12 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   }, [imr, spc, gr.lsl, gr.usl]);
   const paretoData = useMemo(() => paretoNokPoPoziciji(rawData, 8), [rawData]);
   const poSmeni = useMemo(() => statPoSmeni(rawData), [rawData]);
-  const histData = useMemo(() => histogramMerenja(rawData, 10, jedinica), [rawData, jedinica]);
+  const histPaket = useMemo(() => histogramIGaus(rawData, 12, jedinica), [rawData, jedinica]);
+  const histData = histPaket.data;
+  const normalnost = useMemo(
+    () => proceniNormalnost(histPaket.vals),
+    [histPaket.vals],
+  );
   const rtyTrend = useMemo(() => trendKvalitetaPoDanu(rawData), [rawData]);
   const agregat = useMemo(() => agregatKvaliteta(rawData), [rawData]);
   const poPoziciji = useMemo(() => nokPoPozicijiDashboard(rawData), [rawData]);
@@ -348,19 +340,37 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
     ["dashboard", "Dashboard", C.zuta],
     ["pareto", "Pareto NOK", C.crvena],
     ["smena", "Po smeni", C.zuta],
+    ["heatmap", "Heat mapa", "#f472b6"],
+    ["masina", "Po mašini", C.narandzasta],
+    ["operater", "Po operateru", C.ljubicasta],
+    ["korelacija", "Korelacija", "#22d3ee"],
+    ["poredi", "Poređenje", "#a78bfa"],
+    ["foto_spc", "Foto arhiva", "#fb923c"],
+    ["8d", "8D", C.plava],
     ["hist", "Histogram", C.ljubicasta],
+    ["oee", "OEE", C.narandzasta],
   ];
+
+  const otvori8D = useCallback((d) => {
+    setOsmdPrefill({
+      id_deo: d.id_deo || idDeo,
+      opis: d.opis || "",
+    });
+    setTip("8d");
+  }, [idDeo]);
 
   const sigmaNivo = sigmaProcesa(cpk, imr.sigmaHat || spc.sigmaHat, agregat.dpmo);
   const sigmaBoja = sigmaNivo >= 5 ? C.zelena : sigmaNivo >= 4 ? C.zuta : sigmaNivo >= 3 ? C.narandzasta : C.crvena;
 
+  const pad = ekran.mob ? 12 : ekran.tablet ? 14 : 18;
+
   return (
-    <div style={{ padding: 18, overflowY: "auto", flex: 1, minHeight: 0 }} ref={kartaRef}>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+    <div style={{ padding: pad, overflowY: "auto", flex: 1, minHeight: 0, boxSizing: "border-box" }} ref={kartaRef}>
+      <div style={{ display: "flex", gap: ekran.mob ? 8 : 10, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 4 }}>ID DELA</div>
           <select value={idDeo} onChange={e => { setIdDeo(e.target.value); setPozicija(""); }}
-            style={{ ...INP_S, minWidth: 160, cursor: "pointer" }}>
+            style={{ ...INP_S, minWidth: ekran.mob ? "100%" : 160, width: ekran.mob ? "100%" : undefined, cursor: "pointer" }}>
             <option value="">— Izaberi —</option>
             {delovi.map(d => (
               <option key={d.id_deo} value={d.id_deo}>{d.id_deo} — {d.naziv_dela}</option>
@@ -370,7 +380,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
         <div>
           <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 4 }}>KARAKTERISTIKA</div>
           <select value={pozicija} onChange={e => setPozicija(e.target.value)} disabled={!idDeo}
-            style={{ ...INP_S, minWidth: 200, cursor: "pointer" }}>
+            style={{ ...INP_S, minWidth: ekran.mob ? "100%" : 200, width: ekran.mob ? "100%" : undefined, cursor: "pointer" }}>
             <option value="">— Sve dimenzije —</option>
             {pozicijeDeo.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
@@ -430,23 +440,50 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
         )}
       </div>
 
-      <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 16, flexWrap: "wrap" }}>
-        {TABOVI.map(([id, naziv, boja]) => (
+      {idDeo && !vodicSakrij && (
+        <SpcVodicPredlog
+          C={C}
+          predlog={predlog}
+          tip={tip}
+          setTip={setTip}
+          onZatvori={zatvoriVodic}
+          kompakt={ekran.mob}
+        />
+      )}
+
+      <div style={{
+        display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 16, flexWrap: "wrap",
+        overflowX: ekran.mob ? "auto" : "visible", WebkitOverflowScrolling: "touch",
+      }}>
+        {TABOVI.map(([id, naziv, boja]) => {
+          const preporuka = tabJePreporucen(predlog, id);
+          return (
           <button key={id} type="button" onClick={() => setTip(id)} style={{
             background: "none", border: "none",
             borderBottom: tip === id ? `2px solid ${boja}` : "2px solid transparent",
             color: tip === id ? boja : C.sivi,
-            fontSize: 11, fontWeight: 700, padding: "8px 12px", cursor: "pointer",
+            fontSize: ekran.mob ? 10 : 11, fontWeight: 700, padding: "8px 12px", cursor: "pointer", flexShrink: 0,
+            boxShadow: preporuka && tip !== id ? `inset 0 -1px 0 ${C.plava}55` : "none",
           }}>
-            {naziv}
+            {naziv}{preporuka ? <span style={{ color: C.plava, fontSize: 8, marginLeft: 3 }}>★</span> : null}
           </button>
-        ))}
+        );})}
       </div>
 
       {!idDeo ? (
         <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.border, fontSize: 12 }}>
           Izaberi ID dela
         </div>
+      ) : tip === "oee" ? (
+        <OeeKpiTab
+          C={C}
+          modul="merljive"
+          addToast={addToast}
+          idDeoFilter={idDeo}
+          datumOd={datumOd}
+          datumDo={datumDo}
+          smena={smena}
+        />
       ) : loading ? (
         <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.sivi }}>Učitavanje…</div>
       ) : rawData.length === 0 ? (
@@ -476,14 +513,19 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                     <>
                       LSL {gr.lslText} ({fmt(gr.lsl, jedinica)}) · USL {gr.uslText} ({fmt(gr.usl, jedinica)})
                       {gr.nominala != null && <> · nominala {fmt(gr.nominala, jedinica)}</>}
-                      {" · "}osa grafikona: decimalni stepeni (°)
+                      {" · "}Excel IF(O7=Ugao): G7→mm — 15000 = 1,833333 mm
                     </>
                   ) : (
                     <>
                       LSL={gr.lsl ?? "—"} · USL={gr.usl ?? "—"} · nominala={gr.nominala ?? "—"} {gr.jedinica}
                     </>
                   )}
-                  {cpk.cp != null && <> · Cp={cpk.cp} · Cpk={cpk.cpk}</>}
+                  {cpk.cp != null && (
+                    <>
+                      {" · "}Cp=<span style={{ color: bojaKapabiliteta(cpk.cp, C), fontWeight: 700 }}>{cpk.cp}</span>
+                      {" · "}Cpk=<span style={{ color: bojaKapabiliteta(cpk.cpk, C), fontWeight: 700 }}>{cpk.cpk ?? "—"}</span>
+                    </>
+                  )}
                 </div>
               )}
               <TrendUpozorenje podaci={aktPodaci} C={C} jedinica={jedinica} />
@@ -495,13 +537,21 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 <div style={{ color: C.zuta, fontSize: 11, padding: 20 }}>Potrebna bar 2 merenja za I-MR kartu</div>
               ) : (
                 <>
-                  <SpcGraf
+                  <SpcKontrolnaGraf
                     podaci={aktPodaci}
                     bojaLinije={tip === "r" ? C.narandzasta : tip === "mr" ? C.ljubicasta : tip === "i" ? "#22d3ee" : C.zelena}
                     C={C}
                     lsl={gr.lsl}
                     usl={gr.usl}
-                    jedinica={jedinica}
+                    naslovKarte={NASLOV_KARTE[tip]}
+                    sufiks={isStepen(jedinica) ? " mm" : (jedinicaSpcOsi(jedinica) === "mm" ? " mm" : "")}
+                    yDomain={yDomainSpc(aktPodaci, [gr.lsl, gr.usl].filter(Number.isFinite))}
+                    formatVrednost={(v) => {
+                      if (!Number.isFinite(v)) return "—";
+                      if (isStepen(jedinica)) return `${fmt(v, jedinica)} (${decStepenUDms(v)})`;
+                      return fmt(v, jedinica);
+                    }}
+                    height={ekran.mob ? 300 : 400}
                   />
                   <WesternUpozorenja podaci={aktPodaci} C={C} jedinica={jedinica} />
                 </>
@@ -510,21 +560,37 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           )}
 
           {tip === "cpk" && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
-              {[
-                ["X̄ / X̄̄", imr.xBar || spc.xbarBar, C.plava],
-                ["σ̂", imr.sigmaHat || spc.sigmaHat, "#22d3ee"],
-                ["Cp", cpk.cp, C.zelena],
-                ["Cpk", cpk.cpk, cpk.cpk != null && cpk.cpk < 1.33 ? C.crvena : C.zelena],
-                ["Sigma proc.", `${sigmaNivo}σ`, sigmaBoja],
-                ["Podgrupa n", nPodgrupa, C.sivi],
-              ].map(([n, v, b]) => (
-                <div key={n} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, textAlign: "center" }}>
-                  <div style={{ color: C.sivi, fontSize: 9, marginBottom: 6 }}>{n}</div>
-                  <div style={{ color: b, fontSize: 22, fontWeight: 700 }}>{v ?? "—"}</div>
+            <>
+              <NormalnostPanel normalnost={normalnost} C={C} jedinica={jedinica} />
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gap: 12, marginTop: 14,
+              }}>
+                {[
+                  ["X̄ / X̄̄", imr.xBar || spc.xbarBar, C.plava],
+                  ["σ̂ SPC", imr.sigmaHat || spc.sigmaHat, "#22d3ee"],
+                  ["σ uzorak", normalnost.sigma != null ? fmt(normalnost.sigma, jedinica) : "—", C.sivi],
+                  ["Cp", cpk.cp, bojaKapabiliteta(cpk.cp, C)],
+                  ["Cpk", cpk.cpk, bojaKapabiliteta(cpk.cpk, C)],
+                  ["Sigma proc.", `${sigmaNivo}σ`, sigmaBoja],
+                  ["Podgrupa n", nPodgrupa, C.sivi],
+                ].map(([n, v, b]) => (
+                  <div key={n} style={{
+                    background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10,
+                    padding: 16, textAlign: "center",
+                  }}>
+                    <div style={{ color: C.sivi, fontSize: 9, marginBottom: 6 }}>{n}</div>
+                    <div style={{ color: b, fontSize: 22, fontWeight: 700 }}>{v ?? "—"}</div>
+                  </div>
+                ))}
+              </div>
+              {normalnost.status !== "ok" && cpk.cpk != null && (
+                <div style={{ color: C.zuta, fontSize: 10, marginTop: 12, lineHeight: 1.5 }}>
+                  Cp/Cpk pretpostavljaju približno normalnu raspodelu i stabilan proces. Ako je status žut/crven,
+                  interpretiraj indekse uz oprez ili proširi uzorak.
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
 
           {tip === "rty" && (
@@ -536,24 +602,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 ["Uk. mereno", agregat.n, C.plava],
                 ["Uk. NOK", agregat.nok, C.crvena],
               ]} />
-              <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={rtyTrend} margin={{ top: 8, right: 70, bottom: 44, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: C.sivi, fontSize: 9 }} angle={-35} textAnchor="end" height={48} />
-                  <YAxis yAxisId="l" domain={[0, 100]} tick={{ fill: C.sivi, fontSize: 10 }} tickFormatter={v => `${v}%`} width={42} />
-                  <YAxis yAxisId="r" orientation="right" domain={[0, "auto"]} tick={{ fill: C.sivi, fontSize: 10 }} width={50} />
-                  <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 11 }} />
-                  <Legend wrapperStyle={{ color: C.sivi, fontSize: 10 }} />
-                  <ReferenceLine yAxisId="l" y={99.38} stroke="#a3e635" strokeDasharray="3 5" opacity={0.7}
-                    label={{ value: "4σ 99.38%", fill: "#a3e635", fontSize: 8, position: "right" }} />
-                  <ReferenceLine yAxisId="l" y={95} stroke={C.zelena} strokeDasharray="4 2"
-                    label={{ value: "95%", fill: C.zelena, fontSize: 8, position: "right" }} />
-                  <Line yAxisId="l" type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={2.5}
-                    dot={{ fill: C.zelena, r: 4 }} name="RTY %" connectNulls />
-                  <Line yAxisId="r" type="monotone" dataKey="p" stroke={C.crvena} strokeWidth={1.5}
-                    dot={{ fill: C.crvena, r: 3 }} name="p % NOK" strokeDasharray="5 3" connectNulls />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <SpcRtyTrendGraf data={rtyTrend} C={C} height={360} xKey="label" />
             </div>
           )}
 
@@ -576,7 +625,8 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                   {[
                     ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
                     ["RTY %", `${agregat.rty}%`, C.zelena],
-                    ["Cp / Cpk", `${cpk.cp ?? "—"} / ${cpk.cpk ?? "—"}`, C.plava],
+                    ["Cp", cpk.cp, bojaKapabiliteta(cpk.cp, C)],
+                    ["Cpk", cpk.cpk, bojaKapabiliteta(cpk.cpk, C)],
                     ["σ̂ procesa", fmt(imr.sigmaHat || spc.sigmaHat, jedinica), "#22d3ee"],
                   ].map(([n, v, b]) => (
                     <div key={n} style={{ display: "flex", justifyContent: "space-between", background: C.panel, borderRadius: 8, padding: "10px 14px" }}>
@@ -597,19 +647,12 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                   {["1σ", "2σ", "3σ", "4σ", "5σ", "6σ"].map(s => <span key={s}>{s}</span>)}
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={SIGMA_BENCH.map(b => ({ ...b, trenutni: b.sigma === Math.round(sigmaNivo) }))} margin={{ top: 8, right: 10, bottom: 20, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} />
-                  <XAxis dataKey="nivo" tick={{ fill: C.sivi, fontSize: 10 }} />
-                  <YAxis tick={{ fill: C.sivi, fontSize: 9 }} tickFormatter={v => v.toLocaleString()} />
-                  <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, fontSize: 11 }} />
-                  <Bar dataKey="sigma" name="Sigma" fill={C.plava} radius={[4, 4, 0, 0]}>
-                    {SIGMA_BENCH.map((b, i) => (
-                      <Cell key={b.nivo} fill={Math.round(sigmaNivo) === b.sigma ? sigmaBoja : C.plava} opacity={0.85} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <SpcSigmaBarGraf
+                data={SIGMA_BENCH.map(b => ({ ...b, trenutni: b.sigma === Math.round(sigmaNivo) }))}
+                C={C}
+                height={260}
+                accentBoja={sigmaBoja}
+              />
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginTop: 16 }}>
                 {SIGMA_BENCH.map((b, i) => (
                   <div key={b.nivo} style={{
@@ -639,31 +682,8 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 ["Merenja", agregat.n, C.plava],
               ]} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
-                  <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>RTY / DPMO TREND</div>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <ComposedChart data={rtyTrend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={C.hover} />
-                      <XAxis dataKey="label" tick={{ fill: C.sivi, fontSize: 8 }} />
-                      <YAxis yAxisId="l" domain={[0, 100]} tick={{ fill: C.sivi, fontSize: 9 }} tickFormatter={v => `${v}%`} />
-                      <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, fontSize: 10 }} />
-                      <Line yAxisId="l" type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={2} dot={{ r: 3 }} name="RTY" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
-                  <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>PO SMENI</div>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={poSmeni}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={C.hover} />
-                      <XAxis dataKey="s" tick={{ fill: C.sivi, fontSize: 9 }} />
-                      <YAxis tick={{ fill: C.sivi, fontSize: 9 }} />
-                      <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, fontSize: 10 }} />
-                      <Bar dataKey="ok" stackId="a" fill={C.zelena} name="OK" />
-                      <Bar dataKey="nok" stackId="a" fill={C.crvena} name="NOK" radius={[3, 3, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <SpcRtyJednaLinija data={rtyTrend} C={C} height={220} xKey="label" naslov="RTY % trend" />
+                <SpcOkNokBarGraf data={poSmeni} C={C} height={220} xKey="s" naslov="Po smeni" />
               </div>
               {!pozicija && poPoziciji.length > 0 && (
                 <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
@@ -688,53 +708,120 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
 
           {tip === "pareto" && (
             paretoData.length ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={paretoData} margin={{ top: 8, right: 20, bottom: 40, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} />
-                  <XAxis dataKey="naziv" tick={{ fill: C.sivi, fontSize: 8 }} angle={-25} textAnchor="end" height={60} />
-                  <YAxis tick={{ fill: C.sivi, fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, fontSize: 11 }} />
-                  <Bar dataKey="count" name="NOK" radius={[4, 4, 0, 0]}>
-                    {paretoData.map((_, i) => <Cell key={i} fill={C.crvena} opacity={0.85 - i * 0.06} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <>
+                <div style={{
+                  border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 14,
+                }}>
+                  <div style={{
+                    display: "grid", gridTemplateColumns: "1fr 70px 70px auto",
+                    background: C.hover, padding: "8px 14px", fontSize: 9, color: C.sivi, gap: 8,
+                  }}>
+                    <span>POZICIJA</span><span>NOK</span><span>%</span><span />
+                  </div>
+                  {paretoData.map((p, i) => {
+                    const uk = paretoData.reduce((s, d) => s + d.count, 0);
+                    return (
+                      <div key={p.naziv} style={{
+                        display: "grid", gridTemplateColumns: "1fr 70px 70px auto",
+                        padding: "8px 14px", borderTop: `1px solid ${C.border}`, fontSize: 11, gap: 8, alignItems: "center",
+                      }}>
+                        <span style={{ color: C.crvena, fontWeight: 700 }}>{p.naziv}</span>
+                        <span>{p.count}</span>
+                        <span style={{ color: C.sivi }}>{uk > 0 ? ((p.count / uk) * 100).toFixed(1) : 0}%</span>
+                        <button type="button" onClick={() => otvori8D({
+                          id_deo: idDeo,
+                          opis: `Pareto merljive: ${p.naziv} — ${p.count} NOK (${p.kum}% kum.)`,
+                        })}
+                          style={{
+                            background: "none", border: `1px solid ${C.plava}`, borderRadius: 5,
+                            color: C.plava, fontSize: 9, padding: "3px 8px", cursor: "pointer",
+                          }}>8D →</button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <SpcParetoGraf data={paretoData} C={C} height={320} kumKey="kum" countKey="count" />
+              </>
             ) : (
               <div style={{ color: C.zelena, textAlign: "center", padding: 40 }}>Nema NOK merenja ✓</div>
             )
           )}
 
-          {tip === "smena" && (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={poSmeni} margin={{ top: 8, right: 20, bottom: 20, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.hover} />
-                <XAxis dataKey="s" tick={{ fill: C.sivi, fontSize: 10 }} />
-                <YAxis tick={{ fill: C.sivi, fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, fontSize: 11 }} />
-                <Bar dataKey="ok" stackId="a" fill={C.zelena} name="OK" />
-                <Bar dataKey="nok" stackId="a" fill={C.crvena} name="NOK" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {tip === "masina" && (
+            <PoGrupiPanel merenja={rawData} polje="masina" naslov="MAŠINA" C={C} />
           )}
 
-          {tip === "hist" && histData.length > 0 && (
+          {tip === "operater" && (
             <>
+              <PoGrupiPanel merenja={rawData} polje="kontrolor" naslov="KONTROLOR" podnaslov="Ko je evidentirao merenje" C={C} />
+              <div style={{ marginTop: 24 }}>
+                <PoGrupiPanel merenja={rawData} polje="operater" naslov="OPERATER" podnaslov="Uloga / radnik na unosu" C={C} />
+              </div>
+            </>
+          )}
+
+          {tip === "korelacija" && (
+            <KorelacijaPozicijaMasinaPanel merenja={rawData} C={C} />
+          )}
+
+          {tip === "poredi" && (
+            <PoredjenjeMerljive idDeo={idDeo} pozicija={pozicija || ""} C={C} addToast={addToast} />
+          )}
+
+          {tip === "foto_spc" && (
+            <ArhivaNokMerljive merenja={rawData} idDeo={idDeo} C={C} />
+          )}
+
+          {tip === "8d" && (
+            <OsmDIzvestajMerljive
+              korisnik={korisnik}
+              C={C}
+              addToast={addToast}
+              sviDelovi={delovi}
+              prefill={osmdPrefill}
+              onPrefillUsed={() => setOsmdPrefill(null)}
+            />
+          )}
+
+          {tip === "heatmap" && (
+            <HeatmapMerljivePanel merenja={rawData} C={C} />
+          )}
+
+          {tip === "smena" && (
+            <SpcOkNokBarGraf data={poSmeni} C={C} height={300} xKey="s" naslov="Merenja po smeni" />
+          )}
+
+          {tip === "hist" && (
+            <>
+              <NormalnostPanel normalnost={normalnost} C={C} jedinica={jedinica} kompakt />
               {kar && (
                 <div style={{ color: C.sivi, fontSize: 10, marginBottom: 8 }}>
                   {gr.jeUgao
                     ? <>LSL {gr.lslText} ({fmt(gr.lsl, jedinica)}) · USL {gr.uslText} ({fmt(gr.usl, jedinica)})</>
                     : <>LSL={gr.lsl ?? "—"} · USL={gr.usl ?? "—"}</>}
+                  {histPaket.mu != null && histPaket.sigma != null && (
+                    <> · μ={fmt(histPaket.mu, jedinica)} · σ={fmt(histPaket.sigma, jedinica)}</>
+                  )}
                 </div>
               )}
-              <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={histData} margin={{ top: 8, right: 20, bottom: 40, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.hover} />
-                <XAxis dataKey="bin" tick={{ fill: C.sivi, fontSize: 7 }} angle={-30} textAnchor="end" height={55} />
-                <YAxis tick={{ fill: C.sivi, fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: C.panel, border: `1px solid ${C.border}`, fontSize: 11 }} />
-                <Bar dataKey="count" fill={C.plava} radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+              {histData.length > 0 ? (
+                <SpcHistogramGraf
+                  histData={histData}
+                  C={C}
+                  gr={gr}
+                  histPaket={histPaket}
+                  formatVrednost={v => fmt(v, jedinica)}
+                  binZaVrednost={histBinZaVrednost}
+                  height={360}
+                />
+              ) : (
+                <div style={{ color: C.border, fontSize: 12, padding: 40, textAlign: "center" }}>
+                  Nema numeričkih merenja za histogram
+                </div>
+              )}
+              <div style={{ color: C.sivi, fontSize: 9, marginTop: 8, lineHeight: 1.5 }}>
+                Ljubičasta kriva: Gausova raspodela N(μ, σ²) iz uzorka · stubovi: stvarna učestanost po intervalima.
+              </div>
             </>
           )}
         </>

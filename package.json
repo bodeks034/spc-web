@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "import:docs": "node scripts/import-all-docs.mjs"
+    "import:docs": "node scripts/import-all-docs.mjs",
+    "seed:5501-5503": "node scripts/seed-merljive-5501-5503.mjs",
+    "build:merljive-xlsx": "node scripts/seed-merljive-5501-5503.mjs"
   },
   "keywords": [],
   "author": "",

@@ -17,21 +17,58 @@ import {
   KONTROLNI_LOG_FILE,
   IMPORT_SHEETS,
 } from "./lib/excelSync.js";
-import { INSPECTION_LEVELS, INSPECTION_TYPES, DEFECT_KLASE, planUzorka, planZaKlasu, aqlOdluka, kombinovanaOdluka } from "./lib/aqlIso2859.js";
+import {
+  INSPECTION_LEVELS, INSPECTION_TYPES, DEFECT_KLASE, planUzorka, planZaKlasu, aqlOdluka, kombinovanaOdluka,
+  DEFAULT_AQL_LOT_SIZE, ucitajAqlLotVelicina, snimiAqlLotVelicina,
+} from "./lib/aqlIso2859.js";
 import {
   westernElectric, aggregateLogRows, groupSpcRows, buildParetoFromLog,
   pendingFromLista, mergeSmenaStat, fetchSmenaStat, fetchAktuelniCilj, fetchDeoStatDanas,
   nokPoAqlKlasi, kreirajAutoEskalaciju, upisiSpcAlarm, chartDataWithWesternElectric,
   calcDPMO, calcRTY,
 } from "./lib/spcStats.js";
-import { ucitajUrlSlike, storagePutanjaSlike } from "./lib/slikePaths.js";
+import { ucitajPrikazSliku, storagePutanjaSlike, STORAGE_BUCKET } from "./lib/slikePaths.js";
+import {
+  jeKontrolaCelogVozila,
+  predlogAtributivnihKarti,
+  jeVodicSakriven,
+  sakrijVodic,
+} from "./lib/spcPredlogKarti.js";
+import SpcVodicPredlog, { tabJePreporucen } from "./components/SpcVodicPredlog.jsx";
+import SpcKontrolnaGraf from "./components/SpcKontrolnaGraf.jsx";
+import {
+  SpcParetoGraf, SpcOkNokBarGraf, SpcRtyTrendGraf, SpcRtyJednaLinija,
+  SpcOcKrivaGraf, SpcStabilnostGraf,
+} from "./components/SpcAnalitikaGrafovi.jsx";
 import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ReferenceLine,
   ResponsiveContainer, Legend, Cell
 } from "recharts";
 import VarijabilneForma from "./VarijabilneForma.jsx";
+import UnosPokaYokeKorak from "./components/UnosPokaYokeKorak.jsx";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
+import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid } from "./lib/kontrolaSesije.jsx";
+import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
+import { podrazumevaniKpiIzListeP } from "./lib/oeeKpi.js";
+import { snimiKpiUnos, porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf } from "./lib/kpiUnos.js";
+import { useOfflineQueue } from "./lib/offlineQueue.js";
+import { ensureSesija, novaSesija, clearSveSesije, getAktivnaSesija } from "./lib/spcSesija.js";
+import SchemaStatusPanel from "./components/SchemaStatusPanel.jsx";
+import ZajednickiDashboard from "./components/ZajednickiDashboard.jsx";
+import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
+import { parsiBarkod, useBarcodeScanner } from "./lib/barkod.js";
+import {
+  ucitajPodesavanjaNotifikacija,
+  obradiAlarmeNotifikacije,
+  zatraziBrowserDozvolu,
+} from "./lib/notifikacije.js";
+import NotifikacijePodesavanja from "./components/NotifikacijePodesavanja.jsx";
+import MeriloBarkodUputstvo from "./components/MeriloBarkodUputstvo.jsx";
+import OfflineSyncPanel from "./components/OfflineSyncPanel.jsx";
+import TrasabilitetPanel from "./components/TrasabilitetPanel.jsx";
+import { mozeTabAtributivne, opisUloge } from "./lib/uloge.js";
+import { porukaDbGreske } from "./lib/dbGreske.js";
 
 const SUPABASE_URL  = "https://wzxkcomeurogvfisticq.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
@@ -77,7 +114,7 @@ async function ucitajRadnika(user) {
   }
 
   const ulogaRaw = (r?.uloga || "kontrolor").toLowerCase().trim();
-  const uloga = ["admin", "kontrolor", "operator"].includes(ulogaRaw) ? ulogaRaw : "kontrolor";
+  const uloga = ["admin", "kontrolor", "operator", "kvalitet", "sef"].includes(ulogaRaw) ? ulogaRaw : "kontrolor";
 
   return {
     id: user.id,
@@ -94,20 +131,12 @@ function ocistiRedZaInsert(row) {
   return rest;
 }
 
-function porukaDbGreske(error) {
-  const msg = error?.message || "";
-  if (msg.includes("duplicate key") && msg.includes("kontrolni_log")) {
-    return "Dupli ID u bazi (sekvenca nije usklađena posle CSV importa). "
-      + "Pokreni 09_fix_kontrolni_log_sequence.sql u Supabase SQL Editoru, pa pokušaj ponovo.";
-  }
-  return msg;
-}
-
 function ocistiUnosDraft() {
   localStorage.removeItem("spc_draft_id");
   localStorage.removeItem("spc_draft_g");
   localStorage.removeItem("spc_draft_p");
   localStorage.removeItem("spc_rn");
+  clearSveSesije();
 }
 
 function normalizujUlogu(uloga) {
@@ -130,19 +159,6 @@ const TEME = {
 
 function dISO()    { return new Date().toISOString().split("T")[0]; }
 function dPrikaz() { return new Date().toLocaleDateString("sr-RS",{day:"2-digit",month:"2-digit",year:"numeric"}); }
-
-function jeKontrolaCelogVozila(deo) {
-  if (!deo) return false;
-  if (deo.tip_kontrole === "vozilo") return true;
-  const id = (deo.id_deo || "").toUpperCase();
-  const naziv = (deo.naziv_dela || "").toLowerCase();
-  const kar = (deo.karakteristika || "").toLowerCase();
-  return id.startsWith("AUTO")
-    || naziv.includes("komplet")
-    || naziv.includes("celo vozilo")
-    || kar.includes("celog vozila")
-    || kar.includes("ceog vozila");
-}
 
 function lokacijaDela(deo, linije, masine) {
   if (!deo) return { linija: "-", masina: "-" };
@@ -174,45 +190,6 @@ function vreme()   { return new Date().toLocaleTimeString("sr-RS",{hour:"2-digit
 
 function mozeAdmin(uloga) {
   return normalizujUlogu(uloga) === "admin";
-}
-
-// ─── BARCODE HOOK ────────────────────────────────────────────
-function useBarcodeScanner(onScan) {
-  const buf = useRef(""); const timer = useRef(null);
-  useEffect(() => {
-    const h = (e) => {
-      if (e.key==="Enter"&&buf.current.length>2) { onScan(buf.current.trim()); buf.current=""; return; }
-      if (e.key.length===1) { buf.current+=e.key; clearTimeout(timer.current); timer.current=setTimeout(()=>{buf.current="";},100); }
-    };
-    window.addEventListener("keydown",h);
-    return ()=>window.removeEventListener("keydown",h);
-  },[onScan]);
-}
-
-// ─── OFFLINE QUEUE ────────────────────────────────────────────
-function useOfflineQueue() {
-  const [online,setOnline] = useState(navigator.onLine);
-  const [queue,setQueue]   = useState(()=>{ try{return JSON.parse(localStorage.getItem("spc_q")||"[]");}catch{return [];} });
-  useEffect(()=>{
-    const on=()=>setOnline(true), off=()=>setOnline(false);
-    window.addEventListener("online",on); window.addEventListener("offline",off);
-    return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off);};
-  },[]);
-  const addToQueue = useCallback((r)=>{ const n=[...queue,...r]; setQueue(n); localStorage.setItem("spc_q",JSON.stringify(n)); },[queue]);
-  const flushQueue = useCallback(async()=>{
-    if(!queue.length||!online) return 0;
-    const batch=queue.map(ocistiRedZaInsert);
-    const{error}=await supabase.from("kontrolni_log").insert(batch);
-    if(!error){
-      setQueue([]);
-      localStorage.removeItem("spc_q");
-      mirrorKontrolniLogToExcel(supabase, batch).catch(()=>{});
-      return batch.length;
-    }
-    console.warn("Offline sync:", porukaDbGreske(error));
-    return 0;
-  },[queue,online]);
-  return{online,queue,addToQueue,flushQueue};
 }
 
 // ─── TOAST ───────────────────────────────────────────────────
@@ -262,9 +239,9 @@ function AlarmBanner({poruka,onClose,C}) {
 }
 
 // ─── CRTEŽ DELA (SVG viewer sa zoom/pan + anotacije) ─────────
-function CrtezDela({ deoInfo, C }) {
+function CrtezDela({ deoInfo, C, onNazad, onSlikaSnimljena, addToast }) {
   const [slika, setSlika]       = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [status, setStatus]     = useState("idle"); // idle | loading | ok | missing | error
   const [zoom, setZoom]         = useState(1);
   const [pan, setPan]           = useState({ x:0, y:0 });
   const [dragging, setDragging] = useState(false);
@@ -272,32 +249,63 @@ function CrtezDela({ deoInfo, C }) {
   const [anotacije, setAnotacije] = useState([]);
   const [dodajeAn, setDodajeAn] = useState(false);
   const [novaAn, setNovaAn]     = useState("");
+  const [uploading, setUploading] = useState(false);
   const containerRef = useRef(null);
   const fileRef      = useRef(null);
 
-  // Učitaj sliku iz Supabase Storage ako postoji
-  useEffect(() => {
-    if (!deoInfo?.slika_naziv) { setSlika(null); return; }
-    setLoading(true);
-    ucitajUrlSlike(supabase, "atributivne", deoInfo.slika_naziv)
-      .then(url => setSlika(url))
-      .finally(() => setLoading(false));
-  }, [deoInfo?.slika_naziv]);
-
-  // Upload crteža
-  const uploadSliku = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !deoInfo) return;
-    const ext = file.name.split(".").pop();
-    const naziv = storagePutanjaSlike("atributivne", `${deoInfo.id_deo}.${ext}`);
-    setLoading(true);
-    const { error } = await supabase.storage.from("spc-crtezi").upload(naziv, file, { upsert: true });
-    if (!error) {
-      await supabase.from("delovi").update({ slika_naziv: naziv }).eq("id_deo", deoInfo.id_deo);
-      const url = await ucitajUrlSlike(supabase, "atributivne", naziv);
-      setSlika(url);
+  const ucitajCrtez = useCallback(async () => {
+    if (!deoInfo) {
+      setSlika(null);
+      setStatus("idle");
+      return;
     }
-    setLoading(false);
+    if (!deoInfo.slika_naziv) {
+      setSlika(null);
+      setStatus("missing");
+      return;
+    }
+    setStatus("loading");
+    setSlika(null);
+    const url = await ucitajPrikazSliku(supabase, "atributivne", deoInfo.slika_naziv);
+    if (url) {
+      setSlika(url);
+      setStatus("ok");
+    } else {
+      setSlika(null);
+      setStatus("error");
+    }
+  }, [deoInfo]);
+
+  useEffect(() => { ucitajCrtez(); }, [ucitajCrtez]);
+
+  const uploadSliku = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !deoInfo) return;
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const naziv = storagePutanjaSlike("atributivne", `${deoInfo.id_deo}.${ext}`);
+    setUploading(true);
+    try {
+      const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(naziv, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { error: dbErr } = await supabase.from("delovi").update({ slika_naziv: naziv }).eq("id_deo", deoInfo.id_deo);
+      if (dbErr) throw dbErr;
+      onSlikaSnimljena?.(naziv);
+      const url = await ucitajPrikazSliku(supabase, "atributivne", naziv);
+      if (url) {
+        setSlika(url);
+        setStatus("ok");
+        addToast?.("✓ Crtež uvezen i sačuvan", "uspeh");
+      } else {
+        setStatus("error");
+        addToast?.("Fajl je uploadovan, ali pregled nije učitan — osveži stranicu.", "greska");
+      }
+    } catch (err) {
+      setStatus("error");
+      addToast?.(err.message || "Greška pri uvozu crteža", "greska");
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Zoom wheel
@@ -323,10 +331,55 @@ function CrtezDela({ deoInfo, C }) {
 
   const resetView = () => { setZoom(1); setPan({x:0,y:0}); };
 
+  const loading = status === "loading" || uploading;
+  const prikaziUvoz = status === "missing" || status === "error";
+
+  const panelUvoz = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+      height: "100%", flexDirection: "column", gap: 12, padding: 24, textAlign: "center" }}>
+      <span style={{ fontSize: 48 }}>📐</span>
+      {status === "error" ? (
+        <>
+          <div style={{ color: C.zuta, fontSize: 13, fontWeight: 700 }}>Crtež nije pronađen</div>
+          <div style={{ color: C.sivi, fontSize: 11, maxWidth: 360, lineHeight: 1.5 }}>
+            U bazi je <strong style={{ color: C.tekst }}>{deoInfo.slika_naziv}</strong>, ali fajl nije u Storage-u
+            ni u <code>public/slike/atributivne/</code>. Uvezi sliku ručno.
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700 }}>Nema crteža za {deoInfo.id_deo}</div>
+          <div style={{ color: C.sivi, fontSize: 11 }}>Uvezi SOP sliku / crtež dela.</div>
+        </>
+      )}
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={loading}
+        style={{ background: C.plava, border: "none", borderRadius: 8, color: "#fff",
+          fontSize: 13, fontWeight: 700, padding: "11px 22px", cursor: loading ? "wait" : "pointer" }}>
+        {uploading ? "Uvozim…" : "📎 Uvezi crtež ručno"}
+      </button>
+      <span style={{ color: C.sivi, fontSize: 10 }}>PNG, JPG, WEBP, SVG</span>
+      {onNazad && (
+        <button type="button" onClick={onNazad}
+          style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8,
+            color: C.sivi, fontSize: 12, padding: "9px 18px", cursor: "pointer", marginTop: 4 }}>
+          ← Nazad na UNOS
+        </button>
+      )}
+    </div>
+  );
+
   if (!deoInfo) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",
       height:"100%",color:C.border,flexDirection:"column",gap:8,fontSize:11}}>
-      <span style={{fontSize:28}}>📐</span>Unesi ID dela za prikaz crteža
+      <span style={{fontSize:28}}>📐</span>
+      <span>Unesi ID dela za prikaz crteža</span>
+      {onNazad && (
+        <button type="button" onClick={onNazad}
+          style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6,
+            color: C.sivi, fontSize: 11, padding: "8px 14px", cursor: "pointer" }}>
+          ← Nazad na UNOS
+        </button>
+      )}
     </div>
   );
 
@@ -347,8 +400,13 @@ function CrtezDela({ deoInfo, C }) {
             borderColor:dodajeAn?C.zuta:C.border, color:dodajeAn?C.zuta:C.sivi}}>
           ✏ Anotacija
         </button>
-        <button onClick={()=>fileRef.current?.click()} style={toolBtn(C)}>📎 Upload</button>
-        <input ref={fileRef} type="file" accept="image/*,.pdf,.svg"
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={loading} style={toolBtn(C)}>
+          {uploading ? "Uvoz…" : "📎 Uvezi ručno"}
+        </button>
+        {onNazad && (
+          <button type="button" onClick={onNazad} style={toolBtn(C)}>← UNOS</button>
+        )}
+        <input ref={fileRef} type="file" accept="image/*,.svg,.webp"
           onChange={uploadSliku} style={{display:"none"}}/>
       </div>
 
@@ -373,13 +431,16 @@ function CrtezDela({ deoInfo, C }) {
         onWheel={onWheel} onMouseDown={onMouseDown} onMouseMove={onMouseMove}
         onMouseUp={onMouseUp} onMouseLeave={onMouseUp} onClick={onKlik}>
 
-        {loading ? (
+        {status === "loading" ? (
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",
-            height:"100%",color:C.sivi,fontSize:11}}>Učitavanje...</div>
-        ) : slika ? (
+            height:"100%",color:C.sivi,fontSize:11}}>Učitavanje crteža…</div>
+        ) : prikaziUvoz ? (
+          panelUvoz()
+        ) : slika && status === "ok" ? (
           <div style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
             transformOrigin:"top left",position:"absolute",userSelect:"none"}}>
             <img src={slika} alt="crtež" draggable={false}
+              onError={() => { setSlika(null); setStatus("error"); }}
               style={{maxWidth:"100%",display:"block",
                 borderRadius:4, boxShadow:"0 2px 12px rgba(0,0,0,0.4)"}}/>
             {/* SVG anotacije */}
@@ -398,17 +459,7 @@ function CrtezDela({ deoInfo, C }) {
             </svg>
           </div>
         ) : (
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",
-            height:"100%",flexDirection:"column",gap:12,color:C.border}}>
-            <span style={{fontSize:48}}>📐</span>
-            <span style={{fontSize:12}}>Nema crteža za {deoInfo.id_deo}</span>
-            <button onClick={()=>fileRef.current?.click()}
-              style={{background:C.plava,border:"none",borderRadius:6,color:"#fff",
-                fontSize:12,fontWeight:700,padding:"9px 20px",cursor:"pointer"}}>
-              📎 Dodaj crtež / SOP sliku
-            </button>
-            <span style={{color:C.sivi,fontSize:10}}>PNG, JPG, SVG, PDF</span>
-          </div>
+          panelUvoz()
         )}
       </div>
 
@@ -449,8 +500,32 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
   const [loading,setLoading] = useState(false);
   const [rawData,setRawData] = useState([]);
   const [masineList,setMasineList] = useState([]);
+  const [vodicSakrij,setVodicSakrij] = useState(false);
   const kartaRef = useRef(null);
   const alarmPoslat = useRef(new Set());
+  const prevIdDeoRef = useRef("");
+
+  const deoIzabran = useMemo(() => sviDelovi.find(d => d.id_deo === idDeo), [sviDelovi, idDeo]);
+  const predlog = useMemo(
+    () => predlogAtributivnihKarti({ deo: deoIzabran, rawData, grupisanje }),
+    [deoIzabran, rawData, grupisanje],
+  );
+
+  useEffect(() => {
+    setVodicSakrij(jeVodicSakriven("atr", idDeo));
+  }, [idDeo]);
+
+  useEffect(() => {
+    if (!idDeo || idDeo === prevIdDeoRef.current) return;
+    prevIdDeoRef.current = idDeo;
+    const prvi = predlog?.stavke?.[0]?.id;
+    if (prvi) setTip(prvi);
+  }, [idDeo, predlog]);
+
+  const zatvoriVodic = () => {
+    sakrijVodic("atr", idDeo);
+    setVodicSakrij(true);
+  };
 
   useEffect(() => {
     supabase.from("masine").select("id,naziv").then(({ data }) => setMasineList(data || []));
@@ -637,11 +712,6 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
     pdf.save(`SPC_${idDeo}_${tip}_${dISO()}.pdf`);
   };
 
-  const Dot=(props)=>{
-    const{cx,cy,index}=props; const u=cd[index]?.upoz;
-    return<circle key={index} cx={cx} cy={cy} r={u?7:4}
-      fill={u?C.crvena:akt.boja} stroke={u?"#fff":"none"} strokeWidth={u?2:0} opacity={0.9}/>;
-  };
   const INP_S={background:C.input,border:`1px solid ${C.border}`,borderRadius:6,
     color:C.tekst,fontSize:11,padding:"7px 10px",outline:"none",fontFamily:"inherit"};
   const BOJE_P=[C.crvena,C.narandzasta,C.zuta,C.plava,C.ljubicasta,"#22d3ee","#f472b6","#a3e635"];
@@ -714,17 +784,24 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
         </span>}
       </div>
 
+      {idDeo && !vodicSakrij && (
+        <SpcVodicPredlog C={C} predlog={predlog} tip={tip} setTip={setTip} onZatvori={zatvoriVodic} />
+      )}
+
       {/* ── TABOVI KARATA ── */}
       <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:16,flexWrap:"wrap"}}>
-        {karte.map(k=>(
+        {karte.map(k=>{
+          const preporuka = tabJePreporucen(predlog, k.id);
+          return (
           <button key={k.id} onClick={()=>setTip(k.id)} style={{
             background:"none",border:"none",
             borderBottom:tip===k.id?`2px solid ${k.boja}`:"2px solid transparent",
             color:tip===k.id?k.boja:C.sivi,
-            fontSize:11,fontWeight:700,padding:"8px 14px",cursor:"pointer",letterSpacing:0.5}}>
-            {k.naziv}
+            fontSize:11,fontWeight:700,padding:"8px 14px",cursor:"pointer",letterSpacing:0.5,
+            boxShadow: preporuka && tip !== k.id ? `inset 0 -1px 0 ${C.plava}55` : "none"}}>
+            {k.naziv}{preporuka ? <span style={{ color: C.plava, fontSize: 8, marginLeft: 3 }}>★</span> : null}
           </button>
-        ))}
+        );})}
         {[
           ["pareto",   "Pareto",      C.zelena],
           ["smena",    "Po smeni",    C.zuta],
@@ -738,15 +815,18 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
           ["foto_spc",   "Foto arhiva", "#fb923c"],
           ["oc_spc",    "OC kriva",    "#a3e635"],
           ["stabilnost_spc","Stabilnost","#f472b6"],
-        ].map(([id,naziv,boja])=>(
+        ].map(([id,naziv,boja])=>{
+          const preporuka = tabJePreporucen(predlog, id);
+          return (
           <button key={id} onClick={()=>setTip(id)} style={{
             background:"none",border:"none",
             borderBottom:tip===id?`2px solid ${boja}`:"2px solid transparent",
             color:tip===id?boja:C.sivi,
-            fontSize:11,fontWeight:700,padding:"8px 14px",cursor:"pointer",letterSpacing:0.5}}>
-            {naziv}
+            fontSize:11,fontWeight:700,padding:"8px 14px",cursor:"pointer",letterSpacing:0.5,
+            boxShadow: preporuka && tip !== id ? `inset 0 -1px 0 ${C.plava}55` : "none"}}>
+            {naziv}{preporuka ? <span style={{ color: C.plava, fontSize: 8, marginLeft: 3 }}>★</span> : null}
           </button>
-        ))}
+        );})}
       </div>
 
       {!idDeo?(
@@ -779,9 +859,9 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                   ["DPMO",ukN>0?Math.round(ukNOK/ukN*1e6).toLocaleString():"-","#f472b6",""],
                 ].map(([n,v,b,o])=>(
                   <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:8,
-                    padding:"9px 12px",textAlign:"center",minWidth:80}}>
-                    <div style={{color:C.sivi,fontSize:8,letterSpacing:1.2,marginBottom:2}}>{n}</div>
-                    <div style={{color:b,fontSize:16,fontWeight:700}}>{v}</div>
+                    padding:"10px 14px",textAlign:"center",minWidth:84}}>
+                    <div style={{color:C.sivi,fontSize:9,letterSpacing:1.2,marginBottom:3}}>{n}</div>
+                    <div style={{color:b,fontSize:17,fontWeight:700,fontVariantNumeric:"tabular-nums"}}>{v}</div>
                     {o&&<div style={{color:C.sivi,fontSize:8,marginTop:1}}>{o}</div>}
                   </div>
                 ))}
@@ -796,44 +876,15 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                 {(tip==="p"||tip==="np")&&<> · n̄ = {Math.round(nBar)}</>}
               </div>
 
-              {/* Graf */}
-              <ResponsiveContainer width="100%" height={310}>
-                <ComposedChart data={cd} margin={{top:8,right:90,bottom:44,left:10}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                  <XAxis dataKey="label" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
-                    angle={-40} textAnchor="end" height={52}
-                    interval={Math.max(0,Math.floor(cd.length/12)-1)}/>
-                  <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}
-                    domain={['auto','auto']} tickFormatter={v=>v+akt.sufiks}/>
-                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                    borderRadius:8,fontSize:11,fontFamily:"'IBM Plex Mono',monospace"}}
-                    labelStyle={{color:C.sivi}}
-                    formatter={(v,name,props)=>{
-                      const p=props?.payload;
-                      return [v+akt.sufiks, p?.n!=null?`n=${p.n}${p.nok!=null?`, NOK=${p.nok}`:""}`:name];
-                    }}/>
-                  <ReferenceLine y={ucl} stroke={C.crvena} strokeWidth={1.5} strokeDasharray="8 4"
-                    label={{value:`UCL=${ucl}${akt.sufiks}`,fill:C.crvena,fontSize:9,position:"right"}}/>
-                  <ReferenceLine y={cl} stroke={C.zuta} strokeWidth={1.5} strokeDasharray="4 3"
-                    label={{value:`CL=${cl}${akt.sufiks}`,fill:C.zuta,fontSize:9,position:"right"}}/>
-                  {lcl>0&&<ReferenceLine y={lcl} stroke={C.zelena} strokeWidth={1.5} strokeDasharray="8 4"
-                    label={{value:`LCL=${lcl}${akt.sufiks}`,fill:C.zelena,fontSize:9,position:"right"}}/>}
-                  <ReferenceLine y={+(cl+(ucl-cl)*2/3).toFixed(4)}
-                    stroke={C.crvena} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}
-                    label={{value:"2σ",fill:C.crvena,fontSize:8,position:"right",opacity:0.5}}/>
-                  <ReferenceLine y={+(cl+(ucl-cl)/3).toFixed(4)}
-                    stroke={C.zuta} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}
-                    label={{value:"1σ",fill:C.zuta,fontSize:8,position:"right",opacity:0.5}}/>
-                  {lcl>0&&<>
-                    <ReferenceLine y={+(cl-(cl-lcl)*2/3).toFixed(4)}
-                      stroke={C.zelena} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}/>
-                    <ReferenceLine y={+(cl-(cl-lcl)/3).toFixed(4)}
-                      stroke={C.zelena} strokeWidth={0.4} strokeDasharray="2 6" opacity={0.35}/>
-                  </>}
-                  <Line type="monotone" dataKey="val" stroke={akt.boja} strokeWidth={2}
-                    dot={<Dot/>} name={akt.naziv} connectNulls activeDot={{r:6}}/>
-                </ComposedChart>
-              </ResponsiveContainer>
+              <SpcKontrolnaGraf
+                podaci={cd}
+                bojaLinije={akt.boja}
+                C={C}
+                sufiks={akt.sufiks}
+                naslovKarte={akt.naziv}
+                height={400}
+                formatVrednost={(v) => (Number.isFinite(v) ? String(v) : "—")}
+              />
 
               {/* Upozorenja */}
               {upozoreni.length>0&&(
@@ -884,26 +935,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                   color:C.border,fontSize:12}}>Nema NOK podataka</div>
               ):(
                 <>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={paretoData} margin={{top:8,right:60,bottom:60,left:10}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                      <XAxis dataKey="naziv" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
-                        angle={-40} textAnchor="end" height={65}/>
-                      <YAxis yAxisId="l" tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
-                      <YAxis yAxisId="r" orientation="right" tick={{fill:C.sivi,fontSize:9}}
-                        tickLine={false} domain={[0,100]} tickFormatter={v=>v+"%"} axisLine={false}/>
-                      <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                        borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
-                      <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
-                      <Bar yAxisId="l" dataKey="count" name="Broj grešaka" radius={[4,4,0,0]}>
-                        {paretoData.map((_,i)=><Cell key={i} fill={BOJE_P[i%BOJE_P.length]}/>)}
-                      </Bar>
-                      <Line yAxisId="r" type="monotone" dataKey="kum" stroke={C.zuta}
-                        strokeWidth={2} dot={{fill:C.zuta,r:4}} name="Kumulativ %"/>
-                      <ReferenceLine yAxisId="r" y={80} stroke={C.sivi} strokeDasharray="4 2"
-                        label={{value:"80%",fill:C.sivi,fontSize:9,position:"right"}}/>
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  <SpcParetoGraf data={paretoData} C={C} height={340} boje={BOJE_P} kumKey="kum" />
                   {/* Tabela */}
                   <div style={{marginTop:14,border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden"}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",
@@ -962,18 +994,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                   </div>
                 ))}
               </div>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={poSmeni} margin={{top:8,right:10,bottom:10,left:10}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                  <XAxis dataKey="s" tick={{fill:C.sivi,fontSize:11}} tickLine={false}/>
-                  <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}/>
-                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                    borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
-                  <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
-                  <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[4,4,0,0]}/>
-                  <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[4,4,0,0]}/>
-                </BarChart>
-              </ResponsiveContainer>
+              <SpcOkNokBarGraf data={poSmeni} C={C} height={300} xKey="s" stacked={false} naslov="OK / NOK po smeni" />
             </div>
           )}
 
@@ -998,33 +1019,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                   </div>
                 ))}
               </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={rtyTrend} margin={{top:8,right:70,bottom:44,left:10}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                  <XAxis dataKey="datum" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
-                    angle={-40} textAnchor="end" height={52}
-                    interval={Math.max(0,Math.floor(rtyTrend.length/12)-1)}/>
-                  <YAxis yAxisId="l" tick={{fill:C.sivi,fontSize:10}} tickLine={false}
-                    axisLine={false} domain={[0,100]} tickFormatter={v=>v+"%"} width={42}/>
-                  <YAxis yAxisId="r" orientation="right" tick={{fill:C.sivi,fontSize:10}}
-                    tickLine={false} axisLine={false} tickFormatter={v=>v+"%"} width={42}/>
-                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                    borderRadius:8,fontSize:11,fontFamily:"monospace"}} labelStyle={{color:C.sivi}}/>
-                  <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
-                  <ReferenceLine yAxisId="l" y={99.38} stroke="#a3e635" strokeDasharray="3 5" opacity={0.6}
-                    label={{value:"4σ 99.38%",fill:"#a3e635",fontSize:8,position:"right"}}/>
-                  <ReferenceLine yAxisId="l" y={95} stroke={C.zelena} strokeDasharray="4 2"
-                    label={{value:"95%",fill:C.zelena,fontSize:8,position:"right"}}/>
-                  <ReferenceLine yAxisId="l" y={80} stroke={C.zuta} strokeDasharray="4 2"
-                    label={{value:"80%",fill:C.zuta,fontSize:8,position:"right"}}/>
-                  <Line yAxisId="l" type="monotone" dataKey="rty" stroke={C.zelena}
-                    strokeWidth={2.5} dot={{fill:C.zelena,r:4}} name="RTY %" connectNulls
-                    activeDot={{r:7,stroke:C.zelena,strokeWidth:2,fill:C.panel}}/>
-                  <Line yAxisId="r" type="monotone" dataKey="p" stroke={C.crvena}
-                    strokeWidth={1.5} dot={{fill:C.crvena,r:3}} name="p % NOK" connectNulls
-                    strokeDasharray="5 3" activeDot={{r:6}}/>
-                </ComposedChart>
-              </ResponsiveContainer>
+              <SpcRtyTrendGraf data={rtyTrend} C={C} height={360} xKey="datum" />
             </div>
           )}
 
@@ -1074,17 +1069,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                         </div>
                       ))}
                     </div>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={arr} margin={{top:8,right:10,bottom:30,left:10}} barGap={4}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                        <XAxis dataKey="naziv" tick={{fill:C.sivi,fontSize:10}} tickLine={false}/>
-                        <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
-                        <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
-                        <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
-                        <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[4,4,0,0]} stackId="a"/>
-                        <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[4,4,0,0]} stackId="a"/>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <SpcOkNokBarGraf data={arr} C={C} height={280} xKey="naziv" naslov="OK / NOK po mašini" />
                   </>
                 )}
               </div>
@@ -1150,18 +1135,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                         </div>
                       ))}
                     </div>
-                    <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={arr} margin={{top:8,right:10,bottom:40,left:10}}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                        <XAxis dataKey="ime" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
-                          angle={-30} textAnchor="end" height={50}/>
-                        <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
-                        <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}/>
-                        <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
-                        <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[3,3,0,0]} stackId="s"/>
-                        <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[3,3,0,0]} stackId="s"/>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <SpcOkNokBarGraf data={arr} C={C} height={280} xKey="ime" naslov="OK / NOK po operateru" />
                   </>
                 )}
               </div>
@@ -1441,57 +1415,25 @@ function Dashboard({C, addToast}) {
           </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-            <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:16}}>
-              <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:10}}>RTY % TREND</div>
-              <ResponsiveContainer width="100%" height={200}>
-                <ComposedChart data={podaci.trend} margin={{top:4,right:10,bottom:30,left:0}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                  <XAxis dataKey="datum" tick={{fill:C.sivi,fontSize:8}} tickLine={false} angle={-30} textAnchor="end" height={40}/>
-                  <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} domain={[0,100]} tickFormatter={v=>v+"%"} axisLine={false}/>
-                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:10}} labelStyle={{color:C.sivi}}/>
-                  <ReferenceLine y={95} stroke={C.zelena} strokeDasharray="4 2" label={{value:"95%",fill:C.zelena,fontSize:8}}/>
-                  <ReferenceLine y={80} stroke={C.zuta} strokeDasharray="4 2" label={{value:"80%",fill:C.zuta,fontSize:8}}/>
-                  <Line type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={2} dot={{fill:C.zelena,r:3}} name="RTY %"/>
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:16}}>
-              <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:10}}>ANALIZA PO SMENI</div>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={podaci.smene} margin={{top:4,right:10,bottom:4,left:0}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                  <XAxis dataKey="s" tickFormatter={v=>`Smena ${v}`} tick={{fill:C.sivi,fontSize:10}} tickLine={false}/>
-                  <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
-                  <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:10}} labelStyle={{color:C.sivi}}/>
-                  <Legend wrapperStyle={{color:C.sivi,fontSize:9}}/>
-                  <Bar dataKey="ok" fill={C.zelena} name="OK" radius={[3,3,0,0]}/>
-                  <Bar dataKey="nok" fill={C.crvena} name="NOK" radius={[3,3,0,0]}/>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <SpcRtyJednaLinija data={podaci.trend} C={C} height={220} xKey="datum" naslov="RTY % trend" />
+            <SpcOkNokBarGraf
+              data={podaci.smene.map(s => ({ ...s, label: `Smena ${s.s}` }))}
+              C={C}
+              height={220}
+              xKey="label"
+              stacked={false}
+              naslov="Analiza po smeni"
+            />
           </div>
 
-          <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:16}}>
-            <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:12}}>PARETO — TOP 10 GREŠAKA (80/20 pravilo)</div>
-            <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={paretoData()} margin={{top:8,right:60,bottom:60,left:10}}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                <XAxis dataKey="naziv" tick={{fill:C.sivi,fontSize:9}} tickLine={false} angle={-40} textAnchor="end" height={65}/>
-                <YAxis yAxisId="l" tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}/>
-                <YAxis yAxisId="r" orientation="right" tick={{fill:C.sivi,fontSize:9}} tickLine={false}
-                  tickFormatter={v=>v+"%"} domain={[0,100]} axisLine={false}/>
-                <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:10}} labelStyle={{color:C.sivi}}/>
-                <Legend wrapperStyle={{color:C.sivi,fontSize:9}}/>
-                <Bar yAxisId="l" dataKey="count" name="Broj grešaka" radius={[3,3,0,0]}>
-                  {paretoData().map((_,i)=><Cell key={i} fill={BOJE[i%BOJE.length]}/>)}
-                </Bar>
-                <Line yAxisId="r" type="monotone" dataKey="kumulativ" stroke={C.zuta}
-                  strokeWidth={2} dot={{fill:C.zuta,r:3}} name="Kumulativ %"/>
-                <ReferenceLine yAxisId="r" y={80} stroke={C.sivi} strokeDasharray="4 2"
-                  label={{value:"80%",fill:C.sivi,fontSize:9,position:"right"}}/>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          <SpcParetoGraf
+            data={paretoData()}
+            C={C}
+            height={300}
+            boje={BOJE}
+            kumKey="kumulativ"
+            countKey="count"
+          />
 
           {/* Prioritizacija delova */}
           <PrioritizacijaDelova C={C} addToast={addToast}/>
@@ -1505,6 +1447,17 @@ function Dashboard({C, addToast}) {
 function Login({onLogin,C}) {
   const [email,setEmail]=useState(""); const [loz,setLoz]=useState("");
   const [err,setErr]=useState(""); const [load,setLoad]=useState(false);
+  const [inputsReady,setInputsReady]=useState(false);
+
+  useEffect(() => {
+    setEmail("");
+    setLoz("");
+    setErr("");
+    setInputsReady(false);
+    const t = setTimeout(() => setInputsReady(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
   const prijavi=async()=>{
     if(!email||!loz){setErr("Unesite email i lozinku.");return;}
     setLoad(true);setErr("");
@@ -1531,12 +1484,24 @@ function Login({onLogin,C}) {
         <div style={{fontSize:36,marginBottom:8}}>⚙️</div>
         <div style={{color:C.plava,fontSize:20,fontWeight:700,letterSpacing:2,marginBottom:4}}>SPC KONTROLA</div>
         <div style={{color:C.sivi,fontSize:10,marginBottom:30,letterSpacing:1}}>ATRIBUTIVNE KARTE</div>
-        {[["EMAIL","email","text",email,setEmail,"kontrolor@fabrika.com"],
-          ["LOZINKA","password","password",loz,setLoz,"••••••••"]].map(([l,n,t,v,s,ph])=>(
-          <div key={n} style={{textAlign:"left",marginBottom:14}}>
+        <form autoComplete="off" onSubmit={e=>{e.preventDefault();prijavi();}}>
+        {[["EMAIL","spc-login-email","text",email,setEmail,"","off"],
+          ["LOZINKA","spc-login-pass","password",loz,setLoz,"","new-password"]].map(([l,name,t,v,s,ph,ac])=>(
+          <div key={name} style={{textAlign:"left",marginBottom:14}}>
             <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>{l}</div>
-            <input value={v} onChange={e=>s(e.target.value)} onKeyDown={e=>e.key==="Enter"&&prijavi()}
-              type={t} placeholder={ph}
+            <input
+              name={name}
+              id={name}
+              value={v}
+              onChange={e=>s(e.target.value)}
+              readOnly={!inputsReady}
+              onFocus={e=>{ if(!inputsReady) setInputsReady(true); e.target.readOnly=false; }}
+              type={t}
+              placeholder={ph}
+              autoComplete={ac}
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               style={{width:"100%",background:C.input,border:`1px solid ${C.border}`,borderRadius:6,
                 color:C.tekst,fontSize:13,padding:"10px 12px",boxSizing:"border-box",
                 outline:"none",fontFamily:"inherit"}}/>
@@ -1544,12 +1509,13 @@ function Login({onLogin,C}) {
         ))}
         {err&&<div style={{color:C.crvena,fontSize:11,marginBottom:10,textAlign:"left",
           background:C.nok,padding:"7px 10px",borderRadius:5}}>{err}</div>}
-        <button onClick={prijavi} disabled={load}
+        <button type="submit" disabled={load}
           style={{width:"100%",background:load?C.hover:C.zelena,border:"none",borderRadius:6,
             color:load?C.sivi:"#fff",fontSize:13,fontWeight:700,padding:"12px",
             cursor:load?"not-allowed":"pointer",letterSpacing:1,marginTop:4}}>
           {load?"Prijavljivanje...":"PRIJAVA"}
         </button>
+        </form>
         <div style={{color:C.sivi,fontSize:10,marginTop:20,lineHeight:1.6}}>
           Korisnici se kreiraju u Supabase<br/>
           Auth → Users → Add user
@@ -1603,12 +1569,24 @@ function UnosCiljBanner({ idDeo, listaP, C }) {
   );
 }
 
-function UnosAqlPanel({ lotVelicina, listaG, listaP, C }) {
+function UnosAqlPanel({ lotVelicina, onLotVelicinaChange, listaG, listaP, C }) {
   const [nivo, setNivo] = useState("II");
   const [tipInspekcije, setTipInspekcije] = useState("Normalna");
   const stavke = useMemo(() => [...(listaG || []), ...(listaP || [])], [listaG, listaP]);
   const nokKlase = useMemo(() => nokPoAqlKlasi(stavke), [stavke]);
-  const velicina = Math.max(2, lotVelicina || 5000);
+  const velicina = Math.max(2, lotVelicina || DEFAULT_AQL_LOT_SIZE);
+
+  const inpAql = {
+    background: C.input,
+    border: `1px solid ${C.border}`,
+    borderRadius: 5,
+    color: C.tekst,
+    fontSize: 10,
+    padding: "4px 6px",
+    fontFamily: "inherit",
+    width: "100%",
+    boxSizing: "border-box",
+  };
 
   const planovi = useMemo(() =>
     DEFECT_KLASE.map(k => {
@@ -1639,18 +1617,30 @@ function UnosAqlPanel({ lotVelicina, listaG, listaP, C }) {
         <span style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2 }}>AQL SERIJA</span>
         <span style={{ color: boja, fontWeight: 700, fontSize: 11 }}>{konacna.tekst}</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
-        <select value={nivo} onChange={e => setNivo(e.target.value)}
-          style={{ background: C.input, border: `1px solid ${C.border}`, borderRadius: 5,
-            color: C.tekst, fontSize: 10, padding: "4px 6px", fontFamily: "inherit" }}>
-          {INSPECTION_LEVELS.filter(l => l.grupa === "general").map(l =>
-            <option key={l.id} value={l.id}>{l.label}</option>)}
-        </select>
-        <select value={tipInspekcije} onChange={e => setTipInspekcije(e.target.value)}
-          style={{ background: C.input, border: `1px solid ${C.border}`, borderRadius: 5,
-            color: C.tekst, fontSize: 10, padding: "4px 6px", fontFamily: "inherit" }}>
-          {INSPECTION_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-        </select>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>LOT</span>
+          <input
+            type="number"
+            min={2}
+            value={velicina}
+            onChange={e => onLotVelicinaChange?.(snimiAqlLotVelicina(e.target.value))}
+            style={inpAql}
+          />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>NIVO</span>
+          <select value={nivo} onChange={e => setNivo(e.target.value)} style={inpAql}>
+            {INSPECTION_LEVELS.filter(l => l.grupa === "general").map(l =>
+              <option key={l.id} value={l.id}>{l.id}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>TIP</span>
+          <select value={tipInspekcije} onChange={e => setTipInspekcije(e.target.value)} style={inpAql}>
+            {INSPECTION_TYPES.map(t => <option key={t.id} value={t.id}>{t.id}</option>)}
+          </select>
+        </label>
       </div>
       <div style={{ fontSize: 9, color: C.sivi, lineHeight: 1.5 }}>
         Lot {velicina.toLocaleString()} · NOK {ukNok} (C:{nokKlase.critical} M:{nokKlase.major} m:{nokKlase.minor})
@@ -1697,16 +1687,33 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   const [toasts,setToasts]         = useState([]);
   const [foto,setFoto]             = useState(null);
   const [pokaziZahtev,setPokaziZahtev] = useState(false);
+  const [unosKorakAtr, setUnosKorakAtr] = useState("poka");
+  const prethodniIdAtr = useRef("");
+  const prethodnaSmenaAtr = useRef(smena);
   const [komentar,setKomentar]     = useState("");
   const [radniNalog,setRadniNalog] = useState("");
+  const [kpiSerija, setKpiSerija] = useState(() => podrazumevaniKpiIzListeP([]));
   const fotoRef = useRef(null);
   const idRef   = useRef(null);
-  const {online,queue,addToQueue,flushQueue} = useOfflineQueue();
 
   const addToast = useCallback((tekst,tip="info")=>{
     const id=Date.now(); setToasts(p=>[...p,{tekst,tip,id}]);
     setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4500);
   },[]);
+
+  const onFlushed = useCallback((res) => {
+    if (res.syncedJobs > 0) {
+      addToast(`✓ Sinhronizovano ${res.syncedJobs} offline paketa (${res.syncedRows} stavki)`, "uspeh");
+    }
+  }, [addToast]);
+
+  const {
+    online, queue, counts: offlineCounts, flushQueue,
+    addAtributivneBatch,
+  } = useOfflineQueue(supabase, {
+    mirrorKontrolniLog: mirrorKontrolniLogToExcel,
+    onFlushed,
+  });
 
   const voziloMode = jeKontrolaCelogVozila(deoInfo);
   const prikaziLokaciju = !voziloMode;
@@ -1715,7 +1722,25 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   const smenaOK = smenaStat.ok;
   const smenaNOK = smenaStat.nok;
   const smenaTotal = smenaStat.merenja;
-  const lotVelicina = nalogInfo?.kolicina || deoInfo?.kom_za_kontrolu * 100 || 5000;
+  const [lotAql, setLotAql] = useState(() => ucitajAqlLotVelicina());
+  const promeniLotAql = useCallback((n) => {
+    const v = snimiAqlLotVelicina(n);
+    setLotAql(v);
+    return v;
+  }, []);
+
+  useEffect(() => {
+    if (!listaP.length) return;
+    const base = podrazumevaniKpiIzListeP(listaP);
+    setKpiSerija(prev => ({
+      ...base,
+      dorada: prev?.dorada ?? base.dorada,
+      skart: prev?.skart ?? base.skart,
+      ok_nakon_dorade: prev?.ok_nakon_dorade ?? base.ok_nakon_dorade,
+      planirano_min: prev?.planirano_min ?? base.planirano_min,
+      zastoj_min: prev?.zastoj_min ?? base.zastoj_min,
+    }));
+  }, [listaP]);
   const { linija: linijaNaziv, masina: masinaNaziv } = lokacijaDela(deoInfo, linije, masine);
   const voziloKatFiltered = useMemo(() => {
     const kid = deoInfo?.vozilo_katalog_id;
@@ -1733,35 +1758,54 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   }, [deoInfo?.id_deo, koristiDefekte]);
 
   const proveriPrekid = useCallback(async () => {
-    if (!idDeo || idDeo.length < 3 || !korisnik.radnikId) {
-      setPrekidOdobrenId(null);
-      return;
-    }
     try {
-      const { data } = await supabase.from("prekidi_zahtevi")
-        .select("id")
-        .eq("id_deo", idDeo.toUpperCase())
-        .eq("operater_id", korisnik.radnikId)
-        .eq("status", "odobreno")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setPrekidOdobrenId(data?.id ?? null);
+      const id = await ucitajOdobrenPrekid(supabase, {
+        radnikId: korisnik?.radnikId,
+        idDeo,
+      });
+      setPrekidOdobrenId(id);
     } catch {
       setPrekidOdobrenId(null);
     }
-  }, [idDeo, korisnik.radnikId]);
+  }, [idDeo, korisnik?.radnikId]);
 
   useEffect(() => { proveriPrekid(); }, [proveriPrekid]);
 
+  const prethodniPrekid = useRef(null);
   useEffect(() => {
-    if (!korisnik.radnikId) return;
+    if (prekidOdobrenId && !prethodniPrekid.current) {
+      addToast("✓ Admin je odobrio prekid serije — možete zapisati u bazu", "uspeh");
+    }
+    prethodniPrekid.current = prekidOdobrenId;
+  }, [prekidOdobrenId, addToast]);
+
+  useEffect(() => {
+    if (!korisnik?.radnikId) return;
     const ch = supabase.channel("prekidi_kontrolor")
       .on("postgres_changes", { event: "*", schema: "public", table: "prekidi_zahtevi" },
         () => proveriPrekid())
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, [korisnik.radnikId, proveriPrekid]);
+  }, [korisnik?.radnikId, proveriPrekid]);
+
+  /** Ako realtime ne stigne, povremeno proveri odobrenje dok serija nije završena. */
+  useEffect(() => {
+    if (!idDeo || idDeo.length < 3 || preostalo <= 0 || prekidOdobrenId) return;
+    const t = setInterval(() => proveriPrekid(), 4000);
+    return () => clearInterval(t);
+  }, [idDeo, preostalo, prekidOdobrenId, proveriPrekid]);
+
+  useEffect(() => {
+    const osvezi = () => {
+      if (document.visibilityState === "visible") proveriPrekid();
+    };
+    document.addEventListener("visibilitychange", osvezi);
+    window.addEventListener("focus", proveriPrekid);
+    return () => {
+      document.removeEventListener("visibilitychange", osvezi);
+      window.removeEventListener("focus", proveriPrekid);
+    };
+  }, [proveriPrekid]);
 
   // Init
   useEffect(()=>{
@@ -1817,18 +1861,28 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     return () => supabase.removeChannel(ch);
   }, [osveziSmenaStat]);
 
-  // Flush offline queue
-  useEffect(()=>{
-    if(online&&queue.length>0) flushQueue().then(n=>{ if(n>0) addToast(`✓ ${n} offline unosa sinhronizovano!`,"uspeh"); });
-  },[online]);
+  useEffect(() => {
+    if (idDeo.length < 3) return;
+    ensureSesija({ modul: "atributivne", idDeo, smena, radniNalog });
+  }, [idDeo, smena, radniNalog]);
+
+  useEffect(() => {
+    if (idDeo.length < 3) return;
+    fetchPlaniranoKomZaDeo(supabase, idDeo).then(plan => {
+      if (plan > 0) setKpiSerija(p => ({ ...p, planirano_kom: plan }));
+    });
+  }, [idDeo, nalogInfo?.broj_naloga]);
 
   useEffect(()=>{ localStorage.setItem("spc_smena", String(smena)); },[smena]);
 
   useBarcodeScanner(useCallback((raw)=>{
     const parsed = parsiBarkod(raw);
     if (!parsed) return;
-    // Postavi ID dela
-    if (parsed.id_deo) setIdDeo(parsed.id_deo.toUpperCase());
+    if (parsed.id_deo) {
+      const id = parsed.id_deo.toUpperCase();
+      setIdDeo(id);
+      setTimeout(() => idRef.current?.blur(), 50);
+    }
     // Auto-postavi radni nalog ako postoji u skenu
     if (parsed.radni_nalog) {
       addToast(`📷 Skenirano: ${parsed.id_deo}${parsed.radni_nalog?" | "+parsed.radni_nalog:""}`, "uspeh");
@@ -1844,12 +1898,25 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     window._vibrirajOK?.();
   },[]));
 
+  useEffect(() => {
+    if (!deoInfo) return;
+    if (smena !== prethodnaSmenaAtr.current) {
+      setUnosKorakAtr("poka");
+      prethodnaSmenaAtr.current = smena;
+    }
+  }, [smena, deoInfo]);
+
   // ID deo lookup + barkod auto-popunjavanje
   useEffect(()=>{
-    if(idDeo.length<3){setDeoInfo(null);setUpoz("");return;}
+    if(idDeo.length<3){setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";return;}
     const n=sviDelovi.find(d=>d.id_deo.toUpperCase()===idDeo.toUpperCase());
     if(n){
       setDeoInfo(n);setCilj(n.kom_za_kontrolu||30);setPreostalo(n.kom_za_kontrolu||30);
+      const noviDeo = idDeo.toUpperCase() !== prethodniIdAtr.current.toUpperCase();
+      if (noviDeo) {
+        setUnosKorakAtr("poka");
+        prethodniIdAtr.current = idDeo;
+      }
 
       // Paralelno: najčešće greške + aktivni radni nalog za deo
       Promise.all([
@@ -1872,7 +1939,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           addToast(`📋 Nalog: ${nalog.broj_naloga}${nalog.kupac?" ("+nalog.kupac+")":""}`, "info");
         }
       });
-    }else{setDeoInfo(null);setUpoz("");}
+    }else{setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";}
   },[idDeo,sviDelovi]); // eslint-disable-line
 
   const dodajGresku=()=>{
@@ -1918,6 +1985,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       return;
     }
     setSaving(true);
+    const sesija_id = ensureSesija({ modul: "atributivne", idDeo, smena, radniNalog });
     const redovi=listaP.map(s=>{const j=s.status==="OK";return ocistiRedZaInsert({
       datum:s.datum,smena,radni_nalog:radniNalog||null,id_deo:s.idDeo,naziv_dela:deoInfo?.naziv_dela||"",
       linija_id:deoInfo?.linija?.id||null,masina_id:deoInfo?.masina?.id||null,
@@ -1927,16 +1995,29 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       kom_nok:j?0:s.kolicina,ok_kolicina:j?s.kolicina:0,
       nok_kolicina:j?0:s.kolicina,ukupno_merenja:s.kolicina,potreban_broj:cilj,
       komentar:s.komentar||null,
+      sesija_id,
     });});
+    const kpiPayload = {
+      modul: "atributivne",
+      datum: dISO(),
+      smena,
+      id_deo: idDeo,
+      serija: null,
+      radni_nalog: radniNalog,
+      sesija_id,
+      kpi: kpiSerija,
+    };
     try{
       if(!online){
-        addToQueue(redovi);
-        addToast(`📶 Offline: ${redovi.length} u redu`,"info");
+        addAtributivneBatch({ logRows: redovi, kpi: kpiPayload, sesija_id });
+        addToast(`📶 Offline: paket u redu (${redovi.length} stavki + KPI)`,"info");
         setListaP([]);setListaG([]);noviNalog();
         return;
       }
       const{error}=await supabase.from("kontrolni_log").insert(redovi);
       if(error)throw error;
+      const { error: errKpi } = await snimiKpiUnos(supabase, kpiPayload);
+      if (errKpi) addToast(porukaKpiGreske(errKpi), "greska");
       const mirror = await mirrorKontrolniLogToExcel(supabase, redovi);
       if (mirror.storage) addToast("📊 Excel kopija ažurirana (Supabase Storage)","info");
       else if (mirror.download) addToast("📊 Excel kopija preuzeta lokalno","info");
@@ -1945,6 +2026,13 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       const okKom=redovi.reduce((s,r)=>s+(r.ok_kolicina||0),0);
       if(uk>0&&(nok/uk)>0.1) setAlarm(`p = ${((nok/uk)*100).toFixed(1)}% NOK za ${deoInfo?.naziv_dela}`);
       if (uk > 0 && nokKom / (nokKom + okKom) > 0.1) {
+        const settings = await ucitajPodesavanjaNotifikacija(supabase);
+        await obradiAlarmeNotifikacije(supabase, [{
+          id: `nok_serija_${idDeo}_${dISO()}`,
+          nivo: "visok",
+          naslov: `Visok NOK: ${idDeo}`,
+          opis: `${((nokKom / (nokKom + okKom)) * 100).toFixed(1)}% NOK — ${deoInfo?.naziv_dela || ""}`,
+        }], settings);
         try {
           await kreirajAutoEskalaciju(supabase, {
             id_deo: idDeo.toUpperCase(),
@@ -1985,10 +2073,12 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   useEffect(()=>{if(tab==="log")ucitajLog();},[tab]);
 
   const noviNalog=()=>{
-    setIdDeo("");setDeoInfo(null);setUpoz("");setStatus("");
+    novaSesija({ modul: "atributivne", idDeo: "", smena, radniNalog: "" });
+    setIdDeo("");setDeoInfo(null);setUpoz("");setStatus("");setUnosKorakAtr("poka");
     setKategorija("");setPodkat("");setDefekt("");setKolicina(1);
     setListaG([]);setListaP([]);setPreostalo(0);setCilj(0);setFoto(null);
     setKomentar("");setRadniNalog("");setNalogInfo(null);setPrekidOdobrenId(null);
+    setKpiSerija(podrazumevaniKpiIzListeP([]));
     setTimeout(()=>idRef.current?.focus(),100);
   };
 
@@ -2004,10 +2094,15 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   const TABOVI=[
     ["unos","UNOS"],["crtez","CRTEŽ"],["log","LOG"],["smena","SMENA"],["karte","SPC KARTE"],
     ["dashboard","DASHBOARD"],["eskalacije","ESKALACIJE"],["8d","8D"],["aql","AQL"],
-    ["foto","FOTO"],["kalibracija","MERILA"],["ciljevi","CILJEVI"],["nalozi","NALOZI"],
+    ["foto","FOTO"],["oee","OEE"],["kalibracija","MERILA"],["ciljevi","CILJEVI"],["nalozi","NALOZI"],
     ["kupac","KUPAC"],["oc","OC KRIVA"],["stabilnost","STABILNOST"],
+    ["trasabilitet","TRASABILITET"],
     ...(mozeAdmin(korisnik.uloga)?[["admin","ADMIN"]]:[]),
-  ];
+  ].filter(([id]) => mozeTabAtributivne(id, korisnik.uloga));
+
+  useEffect(() => {
+    if (!mozeTabAtributivne(tab, korisnik.uloga)) setTab("unos");
+  }, [tab, korisnik.uloga]);
 
   if(loadInit)return(
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",
@@ -2023,7 +2118,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       {alarm&&<AlarmBanner poruka={alarm} onClose={()=>setAlarm(null)} C={C}/>}
       <Toast poruke={toasts} C={C}/>
       {pokaziZahtev&&<ZahtevPrekid
-        korisnik={korisnik} idDeo={idDeo} nazivDela={deoInfo?.naziv_dela||""}
+        korisnik={korisnik} idDeo={String(idDeo||"").toUpperCase()} nazivDela={deoInfo?.naziv_dela||""}
         preostalo={preostalo} cilj={cilj}
         onUspeh={()=>{setPokaziZahtev(false);proveriPrekid();addToast("✓ Zahtev poslat adminu — čeka odobrenje","uspeh");}}
         onOtkazati={()=>setPokaziZahtev(false)} C={C}
@@ -2039,7 +2134,13 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           <span style={{color:C.border}}>|</span>
           <span style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.sivi}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:online?C.zelena:C.crvena,display:"inline-block"}}/>
-            {online?`Online`:`Offline (${queue.length})`}
+            {online ? "Online" : `Offline (${offlineCounts.total} pak.)`}
+            {getAktivnaSesija("atributivne")?.sesija_id && (
+              <span style={{ color: C.border, fontSize: 8, marginLeft: 6 }}
+                title={getAktivnaSesija("atributivne").sesija_id}>
+                · sesija
+              </span>
+            )}
           </span>
           <span style={{color:C.border}}>|</span>
           <select value={smena} onChange={e=>{setSmena(Number(e.target.value));localStorage.setItem("spc_smena",e.target.value);}}
@@ -2058,7 +2159,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
             color:korisnik.uloga==="admin"?C.zuta:C.plava,
             fontSize:9,padding:"2px 8px",borderRadius:20,letterSpacing:1}}>
             {korisnik.uloga.toUpperCase()}</span>
-          <span style={{color:C.sivi,fontSize:10}}>{korisnik.ime}</span>
+          <span style={{color:C.sivi,fontSize:10}} title={opisUloge(korisnik.uloga)}>{korisnik.ime}</span>
           <button onClick={odjava} style={{background:"none",border:`1px solid ${C.border}`,
             borderRadius:5,color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>Odjava</button>
         </div>
@@ -2102,19 +2203,27 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           onZahtevPrekid={()=>setPokaziZahtev(true)}
           korisnik={korisnik}
           smenaOK={smenaOK} smenaNOK={smenaNOK} smenaTotal={smenaTotal}
-          lotVelicina={lotVelicina}
+          lotVelicina={lotAql}
+          onLotVelicinaChange={promeniLotAql}
           foto={foto} setFoto={setFoto} fotoRef={fotoRef}
           dodajGresku={dodajGresku} snimiDeo={snimiDeo} zapisi={zapisi}
-          noviNalog={noviNalog} saving={saving} online={online} queue={queue} C={C}
+          noviNalog={noviNalog} saving={saving} online={online} offlineQueueTotal={offlineCounts.total} C={C}
+          kpiSerija={kpiSerija} setKpiSerija={setKpiSerija}
           idRef={idRef}
         />
       )}
       {tab==="unos" && !ekran.mob && (
-        <div style={{display:"grid",gridTemplateColumns:"280px 1fr 235px",height:"calc(100vh - 89px)"}}>
+        <div style={{
+          display:"grid",
+          gridTemplateColumns: deoInfo
+            ? (unosKorakAtr === "poka" ? "280px 1fr" : "280px 1fr 235px")
+            : "280px 1fr",
+          height:"calc(100vh - 89px)",
+        }}>
           {/* Leva */}
           <div style={{borderRight:`1px solid ${C.border}`,padding:14,overflowY:"auto",display:"flex",flexDirection:"column",gap:11}}>
             <div>
-              <label style={LBL}>ID DELA / BARKOD <span style={{color:C.border,fontWeight:400}}>(skeniraj ili unesi)</span></label>
+              <label style={LBL}>ID DELA / BARKOD <span style={{color:C.border,fontWeight:400}}>(USB čitač · Enter na kraju skena)</span></label>
               <input ref={idRef} value={idDeo} onChange={e=>setIdDeo(e.target.value.toUpperCase())}
                 placeholder="npr. 5501-A"
                 style={{...INP,borderColor:deoInfo?C.zelena:idDeo.length>2?C.crvena:C.border,
@@ -2163,7 +2272,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
                       height:5,borderRadius:3,transition:"width 0.3s"}}/>
                   </div>
                 </div>
-                <UnosAqlPanel lotVelicina={lotVelicina} listaG={listaG} listaP={listaP} C={C}/>
+                <UnosAqlPanel lotVelicina={lotAql} onLotVelicinaChange={promeniLotAql} listaG={listaG} listaP={listaP} C={C}/>
               </div>
             ):(
               <div style={{background:C.panel,border:`1px dashed ${C.border}`,borderRadius:8,
@@ -2198,8 +2307,52 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
             </button>
           </div>
 
+          {deoInfo && unosKorakAtr === "poka" && (
+            <div style={{
+              padding: 14,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}>
+              <UnosPokaYokeKorak
+                C={C}
+                modul="atributivne"
+                akcent={C.plava}
+                idDeo={String(idDeo || "").toUpperCase()}
+                nazivDela={deoInfo?.naziv_dela}
+                radniNalog={radniNalog}
+                linija={linijaNaziv}
+                masina={masinaNaziv}
+                kontrolor={korisnik?.ime}
+                onDalje={() => setUnosKorakAtr("forma")}
+                daljeLabel="Unos OK/NOK →"
+              />
+            </div>
+          )}
+
+          {deoInfo && unosKorakAtr === "forma" && (
+          <>
           {/* Sredina */}
           <div style={{padding:14,overflowY:"auto",display:"flex",flexDirection:"column",gap:9,borderRight:`1px solid ${C.border}`}}>
+            <button
+              type="button"
+              onClick={() => setUnosKorakAtr("poka")}
+              style={{
+                alignSelf: "flex-start",
+                background: C.panel,
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                color: C.sivi,
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "6px 12px",
+                cursor: "pointer",
+                marginBottom: 4,
+              }}
+            >
+              ← Nazad na poka-yoke proveru
+            </button>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
               <div>
                 <label style={LBL}>STATUS</label>
@@ -2344,10 +2497,10 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
               ))}
             </div>
 
-            {!online&&queue.length>0&&(
+            {!online&&offlineCounts.total>0&&(
               <div style={{background:"#3d2c00",border:`1px solid ${C.zuta}30`,borderRadius:5,
                 padding:"7px 10px",fontSize:10,color:C.zuta}}>
-                📶 {queue.length} stavki u offline redu
+                📶 {offlineCounts.total} paketa u offline redu ({offlineCounts.stavki} stavki)
               </div>
             )}
 
@@ -2366,19 +2519,42 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
               </button>
             )}
 
+            {listaP.length > 0 && (
+              <SkartDoradaOeePanel
+                C={C}
+                kompakt
+                vrednosti={kpiSerija}
+                onChange={setKpiSerija}
+                podnaslov="Snima se uz Zapiši u bazu"
+              />
+            )}
+
             <button onClick={zapisi} disabled={!listaP.length||saving}
               style={{...BTN("#7c3aed",!listaP.length||saving),fontSize:11,padding:"10px",
                 boxShadow:listaP.length?`0 0 10px #7c3aed40`:"none"}}>
               {saving?"Snimanje...":(online?"💾  ZAPIŠI U BAZU":"📶  OFFLINE QUEUE")}
             </button>
           </div>
+          </>
+          )}
         </div>
       )}
 
       {/* ══ CRTEŽ ══ */}
       {tab==="crtez"&&(
         <div style={{height:"calc(100vh - 89px)"}}>
-          <CrtezDela deoInfo={deoInfo} C={C}/>
+          <CrtezDela
+            deoInfo={deoInfo}
+            C={C}
+            addToast={addToast}
+            onNazad={() => setTab("unos")}
+            onSlikaSnimljena={(naziv) => {
+              setDeoInfo(d => d ? { ...d, slika_naziv: naziv } : d);
+              setSviDelovi(prev => prev.map(d =>
+                d.id_deo === deoInfo?.id_deo ? { ...d, slika_naziv: naziv } : d
+              ));
+            }}
+          />
         </div>
       )}
 
@@ -2462,15 +2638,21 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
         prefill={osmdPrefill} onPrefillUsed={()=>setOsmdPrefill(null)}/>}
       {tab==="aql" && <AQLTabela C={C}/>}
       {tab==="foto"        && <FotoArhiva C={C} addToast={addToast}/>}
+      {tab==="oee"         && <OeeKpiTab C={C} modul="atributivne" addToast={addToast} idDeoFilter={idDeo || undefined}/>}
       {tab==="kalibracija" && <KalibracijaMerila korisnik={korisnik} C={C} addToast={addToast}/>}
       {tab==="ciljevi"     && <CiljeviKvaliteta C={C} addToast={addToast} sviDelovi={sviDelovi}/>}
       {tab==="nalozi"      && <RadniNaloziPanel C={C} addToast={addToast} sviDelovi={sviDelovi}/>}
       {tab==="kupac"       && <IzvestajKupac C={C} addToast={addToast}/>}
       {tab==="oc"          && <OCKriva C={C}/>}
       {tab==="stabilnost"  && <StabilnostProcesa sviDelovi={sviDelovi} C={C} addToast={addToast}/>}
+      {tab==="trasabilitet" && (
+        <div style={{ padding: 20, overflow: "auto" }}>
+          <TrasabilitetPanel C={C} addToast={addToast} modul="atributivne" />
+        </div>
+      )}
       {ekran.mob && (
         <MobilnaNavigacija tab={tab} setTab={setTab}
-          listaP={listaP} queue={queue} C={C}/>
+          listaP={listaP} offlineQueueTotal={offlineCounts.total} C={C}/>
       )}
     </div>
   );
@@ -2502,7 +2684,7 @@ function useEkran() {
 // ════════════════════════════════════════════════════════════
 // MOBILNA NAVIGACIJA — bottom tab bar (kao mobilne app)
 // ════════════════════════════════════════════════════════════
-function MobilnaNavigacija({ tab, setTab, listaP, queue, C }) {
+function MobilnaNavigacija({ tab, setTab, listaP, offlineQueueTotal, C }) {
   const TABS = [
     { id:"unos",      ikon:"⌨",  naziv:"Unos"    },
     { id:"karte",     ikon:"📊", naziv:"Karte"   },
@@ -2538,11 +2720,11 @@ function MobilnaNavigacija({ tab, setTab, listaP, queue, C }) {
               {listaP.length}
             </div>
           )}
-          {t.id==="unos" && queue.length > 0 && (
+          {t.id==="unos" && offlineQueueTotal > 0 && (
             <div style={{position:"absolute",top:6,left:"20%",
               background:C.zuta,color:"#000",fontSize:8,fontWeight:700,
               borderRadius:8,padding:"0 4px",minWidth:14,textAlign:"center",lineHeight:"14px"}}>
-              {queue.length}
+              {offlineQueueTotal}
             </div>
           )}
         </button>
@@ -2570,10 +2752,11 @@ function MobilniUnos({
   preostalo, cilj,
   prekidOdobrenId, onZahtevPrekid, korisnik,
   smenaOK, smenaNOK, smenaTotal,
-  lotVelicina,
+  lotVelicina, onLotVelicinaChange,
   foto, setFoto, fotoRef,
   dodajGresku, snimiDeo, zapisi,
-  noviNalog, saving, online, queue, C,
+  noviNalog, saving, online, offlineQueueTotal, C,
+  kpiSerija, setKpiSerija,
   idRef,
 }) {
   const [korak, setKorak] = useState(1);
@@ -2695,7 +2878,7 @@ function MobilniUnos({
           </div>
         ))}
       </div>
-      <UnosAqlPanel lotVelicina={lotVelicina} listaG={listaG} listaP={listaP} C={C}/>
+      <UnosAqlPanel lotVelicina={lotVelicina} onLotVelicinaChange={onLotVelicinaChange} listaG={listaG} listaP={listaP} C={C}/>
 
       <div style={{flex:1}}/>
 
@@ -2955,6 +3138,16 @@ function MobilniUnos({
         </button>
       )}
 
+      {listaP.length > 0 && setKpiSerija && (
+        <SkartDoradaOeePanel
+          C={C}
+          kompakt
+          vrednosti={kpiSerija}
+          onChange={setKpiSerija}
+          podnaslov="Uz Zapiši u bazu"
+        />
+      )}
+
       {/* Zapiši u bazu — vidljivo tek kad ima snimljenih */}
       {listaP.length > 0 && (
         <button onClick={zapisi} disabled={saving}
@@ -2965,10 +3158,10 @@ function MobilniUnos({
       )}
 
       {/* Offline indikator */}
-      {!online && queue.length>0 && (
+      {!online && offlineQueueTotal > 0 && (
         <div style={{background:"#3d2c00",border:`1px solid ${C.zuta}40`,
           borderRadius:8,padding:"10px 14px",fontSize:12,color:C.zuta,textAlign:"center"}}>
-          📶 Offline — {queue.length} u redu čekanja
+          📶 Offline — {offlineQueueTotal} paketa u redu
         </div>
       )}
     </div>
@@ -2982,15 +3175,41 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
   const [tip,setTip]         = useState("p");
   const [idDeo,setIdDeo]     = useState("");
   const [loading,setLoading] = useState(false);
+  const [vodicSakrij,setVodicSakrij] = useState(false);
+  const [rawLog,setRawLog] = useState([]);
   const [pD,setPD] = useState([]); const [cD,setCD]=useState([]); const [uD,setUD]=useState([]);
+  const prevIdDeoRef = useRef("");
+
+  const deoIzabran = useMemo(() => sviDelovi.find(d => d.id_deo === idDeo), [sviDelovi, idDeo]);
+  const predlog = useMemo(
+    () => predlogAtributivnihKarti({ deo: deoIzabran, rawData: rawLog, grupisanje: "dan" }),
+    [deoIzabran, rawLog],
+  );
+
+  useEffect(() => {
+    setVodicSakrij(jeVodicSakriven("atr_mob", idDeo));
+  }, [idDeo]);
+
+  useEffect(() => {
+    if (!idDeo || idDeo === prevIdDeoRef.current) return;
+    prevIdDeoRef.current = idDeo;
+    const prvi = predlog?.stavke?.[0]?.id;
+    if (prvi && ["p", "u", "c"].includes(prvi)) setTip(prvi);
+  }, [idDeo, predlog]);
+
+  const zatvoriVodic = () => {
+    sakrijVodic("atr_mob", idDeo);
+    setVodicSakrij(true);
+  };
 
   const ucitaj = useCallback(async () => {
     if (!idDeo) return; setLoading(true);
     try {
       const {data,error} = await supabase.from("kontrolni_log")
-        .select("datum,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv")
+        .select("datum,smena,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv")
         .eq("id_deo",idDeo).order("datum",{ascending:true});
       if (error) throw error;
+      setRawLog(data || []);
       if (!data?.length) { setPD([]); setCD([]); setUD([]); return; }
 
       const gr={};
@@ -3055,17 +3274,23 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
         </select>
       </div>
 
+      {idDeo && !vodicSakrij && (
+        <SpcVodicPredlog C={C} predlog={predlog} tip={tip} setTip={setTip} onZatvori={zatvoriVodic} kompakt />
+      )}
+
       {/* Tip karte */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-        {karte.map(k=>(
+        {karte.map(k=>{
+          const preporuka = tabJePreporucen(predlog, k.id);
+          return (
           <button key={k.id} onClick={()=>setTip(k.id)} style={{
             background:tip===k.id?`${k.boja}20`:"none",
-            border:`2px solid ${tip===k.id?k.boja:C.border}`,
+            border:`2px solid ${tip===k.id?k.boja:preporuka?`${C.plava}55`:C.border}`,
             borderRadius:10,color:tip===k.id?k.boja:C.sivi,
             fontSize:15,fontWeight:700,padding:"12px",cursor:"pointer"}}>
-            {k.naziv}-karta
+            {k.naziv}-karta{preporuka ? " ★" : ""}
           </button>
-        ))}
+        );})}
       </div>
 
       {!idDeo ? (
@@ -3235,29 +3460,7 @@ function MobilniDashboard({ C, addToast }) {
             ))}
           </div>
 
-          {/* RTY trend */}
-          <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 6px 8px"}}>
-            <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,paddingLeft:10,marginBottom:8}}>
-              RTY % TREND
-            </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <ComposedChart data={podaci.trend} margin={{top:4,right:10,bottom:28,left:2}}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-                <XAxis dataKey="datum" tick={{fill:C.sivi,fontSize:8}} tickLine={false}
-                  angle={-35} textAnchor="end" height={36}/>
-                <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}
-                  domain={[0,100]} tickFormatter={v=>v+"%"} width={32}/>
-                <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                  borderRadius:8,fontSize:12}} labelStyle={{color:C.sivi}}/>
-                <ReferenceLine y={95} stroke={C.zelena} strokeDasharray="4 2"
-                  label={{value:"95%",fill:C.zelena,fontSize:9,position:"right"}}/>
-                <ReferenceLine y={80} stroke={C.zuta} strokeDasharray="4 2"
-                  label={{value:"80%",fill:C.zuta,fontSize:9,position:"right"}}/>
-                <Line type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={2.5}
-                  dot={{fill:C.zelena,r:4}} name="RTY %"/>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          <SpcRtyJednaLinija data={podaci.trend} C={C} height={200} xKey="datum" naslov="RTY % trend" />
 
           {/* Pareto - horizontalni bar (lakši za čitanje na mob) */}
           <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:14}}>
@@ -3299,7 +3502,10 @@ export default function App() {
     return saved==="svetla"?TEME.svetla:TEME.tamna;
   });
   // Mora biti na vrhu — Rules of Hooks
-  const [listaOk,setListaOk]   = useState(()=>!!sessionStorage.getItem("spc_lista_ok"));
+  const [listaOk,setListaOk]   = useState(()=>
+    !!sessionStorage.getItem("spc_lista_ok_atributivne") || !!sessionStorage.getItem("spc_lista_ok"));
+  const [listaOkVar,setListaOkVar] = useState(()=>!!sessionStorage.getItem("spc_lista_ok_varijabilne"));
+  const [loginKey,setLoginKey] = useState(0);
 
   useEffect(()=>{localStorage.setItem("spc_tema",C.naziv);},[C]);
 
@@ -3314,7 +3520,11 @@ export default function App() {
       setChecking(false);
     });
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{
-      if(!session){setKorisnik(null);setModul(null);}
+      if(!session){
+        setKorisnik(null);
+        setModul(null);
+        setLoginKey(k=>k+1);
+      }
     });
     return()=>subscription.unsubscribe();
   },[]);
@@ -3324,6 +3534,7 @@ export default function App() {
     ocistiUnosDraft();
     setKorisnik(null);
     setModul(null);
+    setLoginKey(k=>k+1);
   };
 
   if(checking)return(
@@ -3333,7 +3544,7 @@ export default function App() {
     </div>
   );
 
-  if(!korisnik) return <Login onLogin={setKorisnik} C={C}/>;
+  if(!korisnik) return <Login key={loginKey} onLogin={setKorisnik} C={C}/>;
 
   if(!modul) return (
     <PocetniEkran
@@ -3355,7 +3566,25 @@ export default function App() {
       </div>
       <KontrolnaLista korisnik={korisnik}
         smena={Number(localStorage.getItem("spc_smena")||1)}
-        onZavrsena={()=>{localStorage.setItem("spc_lista_ok","1");setListaOk(true);}}
+        naslovModul="Atributivne"
+        onZavrsena={()=>{sessionStorage.setItem("spc_lista_ok_atributivne","1");setListaOk(true);}}
+        C={C}/>
+    </div>
+  );
+
+  if(modul==="varijabilne"&&!listaOkVar) return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
+      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
+        height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>
+        <button onClick={()=>setModul(null)} style={{background:"none",border:"none",
+          color:C.sivi,fontSize:14,cursor:"pointer"}}>←</button>
+        <span style={{color:C.zelena,fontWeight:700,fontSize:13,letterSpacing:2}}>± MERLJIVE</span>
+      </div>
+      <KontrolnaLista korisnik={korisnik}
+        smena={Number(localStorage.getItem("spc_smena")||sessionStorage.getItem("spc_smena")||1)}
+        naslovModul="Merljive"
+        akcent={C.zelena}
+        onZavrsena={()=>{sessionStorage.setItem("spc_lista_ok_varijabilne","1");setListaOkVar(true);}}
         C={C}/>
     </div>
   );
@@ -3393,6 +3622,7 @@ export default function App() {
       onOdjava={odjava}
       onNazad={()=>setModul(null)}
       C={C}
+      unosRezim={sessionStorage.getItem("spc_mer_unos_rezim") === "digital" ? "digital" : "rucni"}
     />
   );
 
@@ -3416,11 +3646,12 @@ function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
     },
     {
       id: "varijabilne",
-      ikon: "±",
-      naziv: "Varijabilne veličine",
-      opis: "Merljive vrednosti · X̄/R karte · Cp/Cpk · Histogram",
+      ikon: "⌨",
+      naziv: "Varijabilne — ručni unos",
+      opis: "Kucanje merenja · X̄/R karte · Cp/Cpk · bez serial/barkod panela",
       boja: C.zelena,
       dostupan: true,
+      rezim: "rucni",
     },
     {
       id: "admin",
@@ -3471,28 +3702,37 @@ function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
       {/* Sadržaj */}
       <div style={{
         flex:1, display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center",
-        padding: ekran.mob ? "24px 16px" : "40px 24px",
-        gap:32,
+        alignItems:"center", justifyContent:"flex-start",
+        padding: ekran.mob ? "16px 12px 32px" : "24px 24px 40px",
+        gap: ekran.mob ? 20 : 28,
+        overflowY: "auto",
       }}>
-        <div style={{textAlign:"center"}}>
-          <div style={{fontSize: ekran.mob?32:48, marginBottom:8}}>⚙️</div>
-          <div style={{color:C.tekst, fontSize: ekran.mob?20:28, fontWeight:700, letterSpacing:2, marginBottom:6}}>
+        <div style={{ textAlign:"center", width: "100%" }}>
+          <div style={{color:C.tekst, fontSize: ekran.mob?16:20, fontWeight:700, letterSpacing:1.5, marginBottom:4}}>
             SPC KONTROLA
           </div>
-          <div style={{color:C.sivi, fontSize:12, letterSpacing:1}}>
-            Dobrodošli, {korisnik.ime}
+          <div style={{color:C.sivi, fontSize:11}}>
+            {korisnik.ime}
           </div>
         </div>
 
-        {/* Moduli */}
+        <ZajednickiDashboard C={C} kompakt onIzborModula={onIzbor} />
+
+        <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2, width: "100%", maxWidth: 960 }}>
+          MODULI
+        </div>
+
         <div style={{
           display:"grid",
           gridTemplateColumns: ekran.mob ? "1fr" : "repeat(3, 1fr)",
           gap:16, width:"100%", maxWidth:960,
         }}>
           {MODULI.map(m => (
-            <button key={m.id} onClick={()=>m.dostupan&&onIzbor(m.id)}
+            <button key={m.id} onClick={()=>{
+              if (!m.dostupan) return;
+              if (m.rezim) sessionStorage.setItem("spc_mer_unos_rezim", m.rezim);
+              onIzbor(m.id);
+            }}
               style={{
                 background:C.panel,
                 border:`2px solid ${m.dostupan?m.boja+"50":C.border}`,
@@ -3784,6 +4024,7 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
               style={{...INP,cursor:"pointer"}}>
               <option value="operator">Operator</option>
               <option value="kontrolor">Kontrolor</option>
+              <option value="kvalitet">Kvalitet</option>
               <option value="admin">Admin</option>
             </select>
             <button onClick={dodajRadnika}
@@ -3831,6 +4072,7 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
                       color:C.tekst,fontSize:11,padding:"4px 8px",cursor:"pointer",fontFamily:"inherit"}}>
                     <option value="operator">Operator</option>
                     <option value="kontrolor">Kontrolor</option>
+                    <option value="kvalitet">Kvalitet</option>
                     <option value="admin">Admin</option>
                   </select>
                   {r.user_id && (
@@ -3846,6 +4088,22 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
             </div>
           )}
         </div>
+
+        <OfflineSyncPanel
+          supabase={supabase}
+          C={C}
+          addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
+          onSync={(res) => {
+            if (res.syncedJobs > 0) {
+              setModal({ poruka: `Sinhronizovano ${res.syncedJobs} paketa`, tip: "uspeh" });
+            }
+          }}
+          mirrorKontrolniLog={mirrorKontrolniLogToExcel}
+        />
+        <SchemaStatusPanel C={C} />
+        <TrasabilitetPanel C={C} addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })} modul="atributivne" />
+        <MeriloBarkodUputstvo C={C} />
+        <NotifikacijePodesavanja C={C} addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })} />
 
         {/* Excel ↔ Supabase — atributivne */}
         <AdminExcelPanel C={C} addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })} />
@@ -3914,41 +4172,6 @@ function AdminStatistike({C}) {
 // v8 DODACI — sve nove funkcionalnosti
 // ============================================================
 
-// ─── HOOK: Napredni barkod/QR čitač ─────────────────────────
-// Podržava formate:
-//   1) Samo ID:      "5501-A"
-//   2) ID|RN:        "5501-A|RN-2024-001"
-//   3) ID|RN|datum|smena: "5501-A|RN-2024-001|2024-01-15|1"
-//   4) JSON:         {"id":"5501-A","rn":"RN-001","smena":1}
-function parsiBarkod(raw) {
-  if (!raw) return null;
-  raw = raw.trim();
-  // JSON format
-  if (raw.startsWith("{")) {
-    try {
-      const j = JSON.parse(raw);
-      return {
-        id_deo:      j.id || j.id_deo || j.deo || "",
-        radni_nalog: j.rn || j.radni_nalog || j.nalog || "",
-        datum:       j.datum || "",
-        smena:       j.smena ? Number(j.smena) : null,
-      };
-    } catch {}
-  }
-  // Pipe-separated format
-  if (raw.includes("|")) {
-    const parts = raw.split("|");
-    return {
-      id_deo:      parts[0]?.trim() || "",
-      radni_nalog: parts[1]?.trim() || "",
-      datum:       parts[2]?.trim() || "",
-      smena:       parts[3] ? Number(parts[3].trim()) : null,
-    };
-  }
-  // Samo ID
-  return { id_deo: raw, radni_nalog: "", datum: "", smena: null };
-}
-
 // ─── HOOK: Offline cache za karte ────────────────────────────
 function useOfflineCache(key, ttlMin=30) {
   const get = () => {
@@ -3966,74 +4189,6 @@ function useOfflineCache(key, ttlMin=30) {
   };
   const clear = () => localStorage.removeItem(`spc_cache_${key}`);
   return { get, set, clear };
-}
-
-// ─── ZAHTEV ZA PREKID ────────────────────────────────────────
-function ZahtevPrekid({ korisnik, idDeo, nazivDela, preostalo, cilj, onUspeh, onOtkazati, C }) {
-  const [razlog, setRazlog] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const posalji = async () => {
-    if (!razlog.trim()) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase.from("prekidi_zahtevi").insert({
-        operater_id: korisnik.radnikId,
-        id_deo:      idDeo,
-        naziv_dela:  nazivDela,
-        preostalo,
-        cilj,
-        razlog:      razlog.trim(),
-        status:      "ceka",
-      });
-      if (error) throw error;
-      onUspeh();
-    } catch(e) {
-      alert(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",
-      display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
-      <div style={{background:C.panel,border:`1px solid ${C.zuta}`,borderRadius:12,
-        padding:"28px 32px",maxWidth:420,width:"90%"}}>
-        <div style={{color:C.zuta,fontSize:20,marginBottom:10}}>⚠</div>
-        <div style={{color:C.tekst,fontSize:15,fontWeight:700,marginBottom:6}}>
-          Zahtev za prekid merenja
-        </div>
-        <div style={{color:C.sivi,fontSize:12,marginBottom:16,lineHeight:1.6}}>
-          Deo: <strong style={{color:C.tekst}}>{idDeo} — {nazivDela}</strong><br/>
-          Preostalo: <strong style={{color:C.crvena}}>{preostalo} / {cilj}</strong>
-        </div>
-        <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:6}}>RAZLOG PREKIDA</div>
-        <textarea value={razlog} onChange={e=>setRazlog(e.target.value)}
-          placeholder="Npr: alat istrošen, materijal loš, vanredna situacija..."
-          rows={3}
-          style={{width:"100%",background:C.input,border:`1px solid ${C.border}`,borderRadius:8,
-            color:C.tekst,fontSize:13,padding:"10px 12px",boxSizing:"border-box",
-            outline:"none",fontFamily:"inherit",resize:"none"}}/>
-        <div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={posalji} disabled={!razlog.trim()||loading}
-            style={{flex:1,background:razlog.trim()&&!loading?C.zuta:C.hover,border:"none",
-              borderRadius:8,color:razlog.trim()?"#000":"#666",fontSize:13,fontWeight:700,
-              padding:"12px",cursor:razlog.trim()?"pointer":"not-allowed"}}>
-            {loading?"Šalje se...":"📤 Pošalji zahtev adminu"}
-          </button>
-          <button onClick={onOtkazati}
-            style={{background:"none",border:`1px solid ${C.border}`,borderRadius:8,
-              color:C.sivi,fontSize:13,padding:"12px 16px",cursor:"pointer"}}>
-            Otkaži
-          </button>
-        </div>
-        <div style={{color:C.sivi,fontSize:10,marginTop:10,textAlign:"center"}}>
-          Admin će dobiti notifikaciju i odobriti ili odbiti zahtev
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ─── ADMIN: Panel za odobrenje prekida ───────────────────────
@@ -4059,18 +4214,24 @@ function AdminPrekidiPanel({ korisnik, C, addToast }) {
         payload => {
           addToast(`📤 Novi zahtev: ${payload.new.id_deo} — ${payload.new.razlog?.substring(0,30)}...`,"greska");
           ucitaj();
-        });
+        })
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"prekidi_zahtevi"},
+        () => ucitaj());
     ch.subscribe();
     return () => supabase.removeChannel(ch);
   },[]);
 
   const odluci = async (id, odluka, napomena="") => {
-    await supabase.from("prekidi_zahtevi").update({
+    const { error } = await supabase.from("prekidi_zahtevi").update({
       status:   odluka,
       admin_id: korisnik.radnikId,
       napomena,
       updated_at: new Date().toISOString(),
-    }).eq("id",id);
+    }).eq("id", id);
+    if (error) {
+      addToast(error.message, "greska");
+      return;
+    }
     addToast(odluka==="odobreno"?"✓ Prekid odobren":"✗ Zahtev odbijen",
       odluka==="odobreno"?"uspeh":"greska");
     ucitaj();
@@ -4463,6 +4624,16 @@ async function generisiIzvestajSmene(korisnik, smena, C) {
     gB[r.greska_naziv]=(gB[r.greska_naziv]||0)+(r.nok_kolicina||0);});
   const topGreske=Object.entries(gB).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
+  let kpiAgg = null;
+  try {
+    const kpiRows = await fetchKpiUnos(supabase, {
+      modul: "atributivne",
+      datum: danas,
+      smena,
+    });
+    kpiAgg = agregirajKpiUnos(kpiRows);
+  } catch { /* */ }
+
   const { default: jsPDF } = await import("jspdf");
   const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
   const W = pdf.internal.pageSize.getWidth();
@@ -4505,6 +4676,10 @@ async function generisiIzvestajSmene(korisnik, smena, C) {
     pdf.text(`${vrednost}${suf}`,x+4,yy+15);
   });
   y+=50;
+
+  if (kpiAgg) {
+    y = dodajKpiBlokPdf(pdf, y, kpiAgg);
+  }
 
   // Top greške
   if (topGreske.length) {
@@ -4576,7 +4751,8 @@ function registrujPWA() {
 
 // ─── AQL ACCEPTANCE SAMPLING ────────────────────────────────
 function AQLTabela({ C }) {
-  const [velicina, setVelicina] = useState(5000);
+  const [velicina, setVelicina] = useState(() => ucitajAqlLotVelicina());
+  const promeniVelicinu = (n) => setVelicina(snimiAqlLotVelicina(n));
   const [nivo, setNivo] = useState("II");
   const [tipInspekcije, setTipInspekcije] = useState("Normalna");
   const [aqlPoKlasi, setAqlPoKlasi] = useState(() =>
@@ -4630,7 +4806,7 @@ function AQLTabela({ C }) {
         <div>
           <div style={{ color:C.sivi, fontSize:9, letterSpacing:1.5, marginBottom:6 }}>VELIČINA LOTA</div>
           <input type="number" value={velicina} min={2}
-            onChange={e => setVelicina(Math.max(2, Number(e.target.value)))} style={INP_S}/>
+            onChange={e => promeniVelicinu(e.target.value)} style={INP_S}/>
         </div>
         <div>
           <div style={{ color:C.sivi, fontSize:9, letterSpacing:1.5, marginBottom:6 }}>NIVO INSPEKCIJE</div>
@@ -4801,196 +4977,6 @@ function AQLTabela({ C }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// ─── KONTROLNA LISTA PRE SMENE ───────────────────────────────
-function KontrolnaLista({ korisnik, smena, onZavrsena, C }) {
-  const [stavke,    setStavke]    = useState([]);
-  const [checklist, setChecklist] = useState({});
-  const [napomena,  setNapomena]  = useState("");
-  const [loading,   setLoading]   = useState(true);
-  const [saving,    setSaving]    = useState(false);
-  const [greska,    setGreska]    = useState("");
-  const [vec_uradjena, setVecUradjena] = useState(false);
-
-  useEffect(()=>{
-    (async()=>{
-      try {
-        const danas = new Date().toISOString().split("T")[0];
-        if (korisnik?.radnikId) {
-          const { data: log } = await supabase.from("kontrolna_lista_log")
-            .select("id,zavrsena").eq("radnik_id", korisnik.radnikId)
-            .eq("smena", smena).eq("datum", danas).eq("zavrsena", true).maybeSingle();
-          if (log) { setVecUradjena(true); return; }
-        }
-        const { data, error } = await supabase.from("kontrolna_lista_stavke")
-          .select("*").eq("aktivna", true).order("redosled");
-        if (error) throw error;
-        setStavke(data || []);
-      } catch (e) {
-        console.error("Kontrolna lista:", e.message);
-        setStavke([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [korisnik?.radnikId, smena]);
-
-  const toggle = (id) => {
-    const key = String(id);
-    setChecklist(p => ({ ...p, [key]: !p[key] }));
-  };
-
-  const ukupno     = stavke.length;
-  const potvrdjeno = stavke.filter(s => checklist[String(s.id)]).length;
-  const procenat   = ukupno > 0 ? Math.round(potvrdjeno / ukupno * 100) : 0;
-
-  const snimi = async () => {
-    if (potvrdjeno < ukupno || saving) return;
-    setGreska("");
-    setSaving(true);
-    const danas = new Date().toISOString().split("T")[0];
-    const payload = {
-      radnik_id:   korisnik?.radnikId ?? null,
-      smena,
-      datum:       danas,
-      stavke_json: { items: checklist, napomena: napomena || null },
-      zavrsena:    true,
-    };
-    const { error } = await supabase.from("kontrolna_lista_log").insert(payload);
-    setSaving(false);
-    if (error) {
-      console.error("Kontrolna lista snimi:", error.message);
-      setGreska(error.message);
-      return;
-    }
-    onZavrsena();
-  };
-
-  const kategorije = [...new Set(stavke.map(s=>s.kategorija))];
-
-  if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",
-      minHeight:"60vh",color:C.sivi,fontSize:13}}>Učitavanje...</div>
-  );
-
-  if (vec_uradjena) return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-      justifyContent:"center",minHeight:"60vh",gap:16,padding:24}}>
-      <div style={{fontSize:60}}>✅</div>
-      <div style={{color:C.zelena,fontSize:20,fontWeight:700}}>Lista potvrđena</div>
-      <div style={{color:C.sivi,fontSize:13}}>Kontrolna lista za Smenu {smena} je već popunjena danas.</div>
-      <button onClick={onZavrsena} style={{background:C.plava,border:"none",borderRadius:10,
-        color:"#fff",fontSize:14,fontWeight:700,padding:"12px 28px",cursor:"pointer"}}>
-        Nastavi →
-      </button>
-    </div>
-  );
-
-  if (stavke.length === 0) return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-      justifyContent:"center",minHeight:"60vh",gap:16,padding:24,textAlign:"center"}}>
-      <div style={{fontSize:48}}>📋</div>
-      <div style={{color:C.tekst,fontSize:16,fontWeight:700}}>Nema stavki u kontrolnoj listi</div>
-      <div style={{color:C.sivi,fontSize:12,maxWidth:360,lineHeight:1.6}}>
-        Uvezi stavke komandom <code>node scripts/import-all-docs.mjs</code> ili SQL seed, pa osveži stranicu.
-      </div>
-      <button onClick={onZavrsena} style={{background:C.plava,border:"none",borderRadius:10,
-        color:"#fff",fontSize:14,fontWeight:700,padding:"12px 28px",cursor:"pointer"}}>
-        Nastavi bez liste →
-      </button>
-    </div>
-  );
-
-  return (
-    <div style={{padding:"16px 16px 100px",display:"flex",flexDirection:"column",gap:16,
-      maxWidth:600,margin:"0 auto"}}>
-      <div style={{textAlign:"center"}}>
-        <div style={{color:C.tekst,fontSize:18,fontWeight:700,marginBottom:4}}>
-          📋 Kontrolna lista pre smene
-        </div>
-        <div style={{color:C.sivi,fontSize:12}}>Smena {smena} · {new Date().toLocaleDateString("sr-RS")}</div>
-      </div>
-
-      {/* Progres */}
-      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:14}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:8}}>
-          <span style={{color:C.sivi}}>Potvrđeno</span>
-          <span style={{color:procenat===100?C.zelena:C.zuta,fontWeight:700}}>
-            {potvrdjeno} / {ukupno}
-          </span>
-        </div>
-        <div style={{background:C.hover,borderRadius:4,height:8}}>
-          <div style={{background:procenat===100?C.zelena:C.plava,
-            width:`${procenat}%`,height:8,borderRadius:4,transition:"width 0.3s"}}/>
-        </div>
-      </div>
-
-      {/* Stavke po kategorijama */}
-      {kategorije.map(kat=>(
-        <div key={kat} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-          <div style={{background:C.hover,padding:"10px 16px",
-            color:C.sivi,fontSize:10,fontWeight:700,letterSpacing:1.5}}>
-            {kat}
-          </div>
-          {stavke.filter(s=>s.kategorija===kat).map(s=>{
-            const ok = !!checklist[String(s.id)];
-            return (
-            <div key={s.id} onClick={()=>toggle(s.id)}
-              style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",
-                borderTop:`1px solid ${C.border}`,cursor:"pointer",
-                background:ok?`${C.zelena}10`:"transparent",
-                transition:"background 0.2s"}}>
-              <div style={{width:24,height:24,borderRadius:6,flexShrink:0,
-                border:`2px solid ${ok?C.zelena:C.border}`,
-                background:ok?C.zelena:"transparent",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                transition:"all 0.2s"}}>
-                {ok&&<span style={{color:"#fff",fontSize:14,fontWeight:700}}>✓</span>}
-              </div>
-              <span style={{color:ok?C.sivi:C.tekst,fontSize:13,
-                textDecoration:ok?"line-through":"none"}}>
-                {s.stavka}
-              </span>
-            </div>
-            );
-          })}
-        </div>
-      ))}
-
-      {/* Napomena */}
-      <div>
-        <div style={{color:C.sivi,fontSize:10,letterSpacing:1.5,marginBottom:6}}>
-          NAPOMENA (opciono)
-        </div>
-        <textarea value={napomena} onChange={e=>setNapomena(e.target.value)}
-          placeholder="Posebni uslovi, problemi uočeni..."
-          rows={3}
-          style={{width:"100%",background:C.input,border:`1px solid ${C.border}`,
-            borderRadius:10,color:C.tekst,fontSize:13,padding:"12px",
-            boxSizing:"border-box",outline:"none",fontFamily:"inherit",resize:"none"}}/>
-      </div>
-
-      {greska && (
-        <div style={{background:`${C.crvena}18`,border:`1px solid ${C.crvena}`,
-          borderRadius:10,padding:"12px 14px",color:C.crvena,fontSize:12,lineHeight:1.5}}>
-          Greška pri snimanju: {greska}
-        </div>
-      )}
-
-      {/* Potvrdi */}
-      <button type="button" onClick={snimi} disabled={potvrdjeno<ukupno||saving}
-        style={{background:potvrdjeno===ukupno?C.zelena:C.hover,border:"none",borderRadius:12,
-          color:potvrdjeno===ukupno?"#fff":C.sivi,fontSize:16,fontWeight:700,
-          padding:"18px",cursor:potvrdjeno<ukupno||saving?"not-allowed":"pointer",
-          boxShadow:potvrdjeno===ukupno?`0 0 20px ${C.zelena}40`:"none",
-          transition:"all 0.3s"}}>
-        {saving?"Snimanje..."
-         :potvrdjeno===ukupno?"✓ Potvrdi i nastavi sa radom"
-         :`Potvrdi još ${ukupno-potvrdjeno} stavki`}
-      </button>
     </div>
   );
 }
@@ -6382,28 +6368,7 @@ function OCKriva({ C }) {
       <div style={{color:C.sivi,fontSize:11,marginBottom:14}}>
         n={n}, Ac={ac} — Verovatnoća prihvatanja lota u zavisnosti od stvarnog % neispravnih
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <ComposedChart data={ocData} margin={{top:8,right:20,bottom:30,left:10}}>
-          <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-          <XAxis dataKey="p" tick={{fill:C.sivi,fontSize:10}} tickLine={false}
-            tickFormatter={v=>v+"%"} label={{value:"% Neispravnih u lotu",fill:C.sivi,fontSize:10,position:"insideBottom",offset:-10}}/>
-          <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}
-            tickFormatter={v=>v+"%"} domain={[0,100]}/>
-          <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}}
-            labelStyle={{color:C.sivi}} formatter={(v,n)=>[v+"%",n]}/>
-          <Legend wrapperStyle={{color:C.sivi,fontSize:10}}/>
-          <ReferenceLine y={95} stroke={C.zelena} strokeDasharray="4 2"
-            label={{value:"Pa=95%",fill:C.zelena,fontSize:9}}/>
-          <ReferenceLine y={10} stroke={C.crvena} strokeDasharray="4 2"
-            label={{value:"Pa=10%",fill:C.crvena,fontSize:9}}/>
-          <Line type="monotone" dataKey="pa5"  stroke={C.zelena+"80"} strokeWidth={1}
-            dot={false} name={`Ac=${Math.max(0,ac-1)}`} strokeDasharray="4 3"/>
-          <Line type="monotone" dataKey="pa"   stroke={C.plava}       strokeWidth={2.5}
-            dot={{fill:C.plava,r:4}} name={`Ac=${ac} (trenutni)`}/>
-          <Line type="monotone" dataKey="pa10" stroke={C.narandzasta+"80"} strokeWidth={1}
-            dot={false} name={`Ac=${ac+1}`} strokeDasharray="4 3"/>
-        </ComposedChart>
-      </ResponsiveContainer>
+      <SpcOcKrivaGraf data={ocData} C={C} ac={ac} height={360} />
       <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginTop:14}}>
         <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:10}}>KLJUČNE TAČKE</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
@@ -6544,38 +6509,7 @@ function StabilnostProcesa({ sviDelovi, C, addToast }) {
             </div>
           )}
 
-          {/* Graf */}
-          <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={podaci.niz} margin={{top:8,right:20,bottom:40,left:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.hover} vertical={false}/>
-              <XAxis dataKey="datum" tick={{fill:C.sivi,fontSize:8}} tickLine={false}
-                angle={-40} textAnchor="end" height={52}
-                interval={Math.max(0,Math.floor(podaci.niz.length/8)-1)}
-                tickFormatter={v=>v?.substring(5)||""}/>
-              <YAxis tick={{fill:C.sivi,fontSize:10}} tickLine={false} axisLine={false}
-                tickFormatter={v=>v+"%"} domain={[0,"auto"]}/>
-              <Tooltip contentStyle={{background:C.panel,border:`1px solid ${C.border}`,
-                borderRadius:8,fontSize:11}} labelStyle={{color:C.sivi}}
-                formatter={v=>[v.toFixed(2)+"%"]}/>
-              {/* Linija promene procesa */}
-              {podaci.shift && (
-                <ReferenceLine x={podaci.niz[Math.floor(podaci.niz.length/2)]?.datum}
-                  stroke={C.crvena} strokeDasharray="6 3" strokeWidth={2}
-                  label={{value:"Promena",fill:C.crvena,fontSize:9,position:"top"}}/>
-              )}
-              <ReferenceLine y={parseFloat(podaci.m1)}
-                stroke={C.plava} strokeDasharray="4 2"
-                label={{value:`x̄₁=${podaci.m1}%`,fill:C.plava,fontSize:9,position:"right"}}/>
-              {podaci.shift && (
-                <ReferenceLine y={parseFloat(podaci.m2)}
-                  stroke={C.crvena} strokeDasharray="4 2"
-                  label={{value:`x̄₂=${podaci.m2}%`,fill:C.crvena,fontSize:9,position:"right"}}/>
-              )}
-              <Line type="monotone" dataKey="p" stroke={podaci.shift?C.narandzasta:C.zelena}
-                strokeWidth={2} dot={{r:3,fill:podaci.shift?C.narandzasta:C.zelena}}
-                name="p % NOK" connectNulls activeDot={{r:6}}/>
-            </ComposedChart>
-          </ResponsiveContainer>
+          <SpcStabilnostGraf podaci={podaci} C={C} height={320} />
         </>
       )}
     </div>

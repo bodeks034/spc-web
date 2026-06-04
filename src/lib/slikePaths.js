@@ -30,23 +30,63 @@ export function storagePutanjaSlike(tip, vrednost) {
   return `${pod}/${fajl}`;
 }
 
-/** Redosled pokušaja učitavanja slike */
+/** Da li URL zaista učitava sliku (ne vraća broken link). */
+export function testUrlSlike(url) {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve(false);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
+/** Jedinstvene storage putanje za pokušaj učitavanja. */
+export function storageKandidati(tip, vrednost) {
+  if (!vrednost) return [];
+  const raw = String(vrednost).trim().replace(/\\/g, "/");
+  const fajl = imeFajlaSlika(vrednost);
+  const pod = tip === "merljive" ? SLIKE_MERLJIVE : SLIKE_ATRIBUTIVNE;
+  const list = [
+    storagePutanjaSlike(tip, vrednost),
+    raw.includes("/") ? raw : null,
+    fajl ? `${pod}/${fajl}` : null,
+    fajl,
+  ].filter(Boolean);
+  return [...new Set(list)];
+}
+
+/** Redosled pokušaja učitavanja slike (bez provere učitavanja). */
 export async function ucitajUrlSlike(supabase, tip, vrednost) {
   if (!vrednost) return null;
 
-  const putanje = [
-    storagePutanjaSlike(tip, vrednost),
-    String(vrednost).trim().replace(/\\/g, "/"),
-    imeFajlaSlika(vrednost),
-  ].filter(Boolean);
-
-  const seen = new Set();
-  for (const put of putanje) {
-    if (seen.has(put)) continue;
-    seen.add(put);
+  for (const put of storageKandidati(tip, vrednost)) {
     const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
     if (!error && data?.signedUrl) return data.signedUrl;
   }
 
   return lokalnaPutanjaSlike(tip, vrednost);
+}
+
+/**
+ * Prvi URL koji stvarno radi (Storage pa public/slike/...).
+ * Vraća null ako nigde nema fajla — tada prikaži ručni uvoz.
+ */
+export async function ucitajPrikazSliku(supabase, tip, vrednost) {
+  if (!vrednost) return null;
+
+  for (const put of storageKandidati(tip, vrednost)) {
+    const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
+    if (!error && data?.signedUrl && await testUrlSlike(data.signedUrl)) {
+      return data.signedUrl;
+    }
+  }
+
+  const lokal = lokalnaPutanjaSlike(tip, vrednost);
+  if (lokal && await testUrlSlike(lokal)) return lokal;
+
+  return null;
 }

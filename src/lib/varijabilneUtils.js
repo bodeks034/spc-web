@@ -1,35 +1,232 @@
 /**
- * Port VBA UserForm logike (ToDec, stepeni, OK/NOK, validacija unosa).
+ * Port VBA / Excel DATA logike (ToDec, uglovi, OK/NOK).
+ *
+ * Excel (lista DATA):
+ * =IF(O7="Ugao";
+ *   INT(G7/10000) + (INT(MOD(G7;10000)/100)/60) + (MOD(G7;100)/3600);
+ *   G7)
  */
 
-export function isStepen(jedinica) {
-  return String(jedinica || "").toLowerCase().startsWith("step");
+/** Excel INT — zaokružuje nadole. */
+function excelInt(x) {
+  return Math.floor(x);
 }
 
-/** VBA FormatStep — 6 cifara → D° M' S" */
-export function formatStep(s) {
-  const t = String(s || "").trim();
-  if (t.length !== 6 || !/^\d{6}$/.test(t)) return t;
-  return `${t.slice(0, 2)}° ${t.slice(2, 4)}' ${t.slice(4, 6)}"`;
+/** Excel MOD — ostatak kao u Excelu. */
+function excelMod(n, d) {
+  if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) return NaN;
+  return n - d * excelInt(n / d);
 }
 
-/** VBA ToDec — stepeni (6 cifara) ili decimalni broj */
-export function toDec(t) {
-  let s = String(t ?? "").trim();
-  if (!s) return 0;
+/**
+ * Grana IF kada je O7 = "Ugao" (G7 = pakovani ugao).
+ * 15000 → 1,833333 mm; 450000 → 45 mm.
+ */
+export function excelUgaoG7(g7) {
+  const g = Number(g7);
+  if (!Number.isFinite(g)) return 0;
+  const d = excelInt(g / 10000);
+  const m = excelInt(excelMod(g, 10000) / 100);
+  const s = excelMod(g, 100);
+  return d + m / 60 + s / 3600;
+}
 
-  s = s.replace(/°/g, "").replace(/'/g, "").replace(/"/g, "").replace(/\s/g, "");
+/**
+ * Cela Excel formula: IF(O7="Ugao"; …; G7).
+ * @param {number|string} g7 — DATA!G7
+ * @param {string} tipO7 — DATA!O7 (npr. "Ugao", "stepen", "mm")
+ */
+export function excelDataG7(g7, tipO7) {
+  if (isUgao(tipO7)) return excelUgaoG7(g7);
+  const n = Number(g7);
+  return Number.isFinite(n) ? n : 0;
+}
 
-  if (s.length === 6 && /^\d{6}$/.test(s)) {
-    const d = Number(s.slice(0, 2));
-    const m = Number(s.slice(2, 4));
-    const sec = Number(s.slice(4, 6));
-    return d + m / 60 + sec / 3600;
+/** DATA!O7="Ugao" ili jedinica stepen u šifarniku. */
+export function isUgao(tipO7) {
+  const j = String(tipO7 || "").trim().toLowerCase();
+  return j === "ugao" || j.startsWith("step") || j.includes("ugao");
+}
+
+/** Šifarnik / Excel ponekad ima jedinicu mm, a granice su u stepenima (44–46). */
+export function prepoznajUgaoKarakteristiku(k) {
+  if (!k) return false;
+  if (isUgao(k.jedinica)) return true;
+  const blob = `${k.pozicija || ""} ${k.naziv_mere || ""} ${k.merni_instrument || ""}`.toLowerCase();
+  return blob.includes("ugao") || blob.includes("uglomer");
+}
+
+const JEDINICE_MERE = new Set(["mm", "stepen", "ugao", "μm", "um", "µm", "deg", "degree", "ra", ""]);
+
+function izgledaKaoNazivMerila(s) {
+  const t = String(s || "").trim().toLowerCase();
+  if (!t || JEDINICE_MERE.has(t)) return false;
+  return /merilo|metar|uglomer|komparator|profilomet|tolerancijski|sublere|kalibrator|cep/.test(t);
+}
+
+/**
+ * Uvoz/CSV ponekad pomeri kolone: Profilometrar završi u jedinici, mm u napomeni.
+ */
+export function normalizujKarakteristikuRed(k) {
+  if (!k) return k;
+  let instrument = String(k.merni_instrument || "").trim();
+  let jedinica = String(k.jedinica || "").trim();
+  const napomena = String(k.napomena || "").trim();
+
+  if (!instrument && izgledaKaoNazivMerila(jedinica)) {
+    instrument = jedinica;
+    jedinica = JEDINICE_MERE.has(napomena.toLowerCase()) ? napomena : "mm";
+  } else if (!instrument && izgledaKaoNazivMerila(napomena)) {
+    instrument = napomena;
+    if (!jedinica || izgledaKaoNazivMerila(jedinica)) jedinica = "mm";
+  } else if (instrument && !jedinica && JEDINICE_MERE.has(napomena.toLowerCase())) {
+    jedinica = napomena;
   }
 
-  s = s.replace(",", ".");
-  const n = Number(s);
+  return {
+    ...k,
+    merni_instrument: instrument || k.merni_instrument,
+    jedinica: jedinica || k.jedinica || "mm",
+  };
+}
+
+/** Da li je vrednost pakovani DMS (npr. 440000, 15000), ne običan mm broj. */
+export function izgledaPakovaniUgao(raw) {
+  const cifre = samoCifre(raw);
+  if (cifre.length < 5 || cifre.length > 7) return false;
+  const packed = parseInt(cifre, 10);
+  const m = Math.floor((packed % 10000) / 100);
+  const sec = packed % 100;
+  return m <= 59 && sec <= 59;
+}
+
+/** LSL/USL/nominala u mm-skali za uglove (excelUgaoG7). */
+export function graniceIzKarakteristike(k) {
+  k = normalizujKarakteristikuRed(k);
+  const jeUgao = prepoznajUgaoKarakteristiku(k);
+  const jedinica = jeUgao ? (k.jedinica && isUgao(k.jedinica) ? k.jedinica : "Ugao") : (k.jedinica || "");
+
+  const fmtTxt = (text, num) => {
+    if (!jeUgao) return (text != null && String(text).trim() !== "") ? String(text) : String(num ?? "");
+    const t = String(text ?? "").trim();
+    if (t && (/°|['"]/.test(t) || /[°'"]/.test(t))) return t;
+    if (/^\d{4,7}$/.test(t)) return formatStep(t);
+    const n = num ?? (/^\d{4,7}$/.test(t) ? Number(t) : null);
+    if (Number.isFinite(n) && n >= 1000) return formatStep(String(Math.round(n)));
+    if (t) return t;
+    return Number.isFinite(num) ? formatStep(String(Math.round(num))) : "—";
+  };
+
+  let lslT = k.lsl_text ?? (k.lsl != null ? String(k.lsl) : "");
+  let uslT = k.usl_text ?? (k.usl != null ? String(k.usl) : "");
+  let lslDec = toDec(lslT, jedinica);
+  let uslDec = toDec(uslT, jedinica);
+
+  if (jeUgao) {
+    if (!Number.isFinite(lslDec) || lslDec > 180) lslDec = toDec(String(k.lsl ?? ""), jedinica);
+    if (!Number.isFinite(uslDec) || uslDec > 180) uslDec = toDec(String(k.usl ?? ""), jedinica);
+    if (Number.isFinite(lslDec) && Number.isFinite(uslDec) && lslDec > uslDec) {
+      [lslDec, uslDec] = [uslDec, lslDec];
+      [lslT, uslT] = [uslT, lslT];
+    }
+  }
+
+  let nominalDec = null;
+  if (k.nominala != null && k.nominala !== "") {
+    if (jeUgao) {
+      const n = Number(k.nominala);
+      if (Number.isFinite(n) && n > 0 && n <= 180) nominalDec = n;
+      else nominalDec = toDec(String(k.nominala), jedinica);
+      if (Number.isFinite(nominalDec) && nominalDec > 180) {
+        nominalDec = excelUgaoG7(Math.round(n));
+      }
+    } else if (Number.isFinite(Number(k.nominala))) {
+      nominalDec = Number(k.nominala);
+    } else {
+      nominalDec = toDec(String(k.nominala), jedinica);
+    }
+    if (!Number.isFinite(nominalDec)) nominalDec = null;
+  }
+
+  return {
+    jeUgao,
+    jedinica,
+    lslText: fmtTxt(lslT, k.lsl),
+    uslText: fmtTxt(uslT, k.usl),
+    lslDec: Number.isFinite(lslDec) ? lslDec : 0,
+    uslDec: Number.isFinite(uslDec) ? uslDec : 0,
+    nominalDec,
+  };
+}
+
+/** Kolona koristi DMS unos (stepeni). */
+export function koristiUgaoUnosKolone(k) {
+  return prepoznajUgaoKarakteristiku(k) || isUgao(k?.jedinica);
+}
+
+/** Unos merenja: ugao ako je jedinica Ugao ili pakovani DMS u opsegu LSL/USL. */
+export function unosKaoUgao(jedinica, raw, lslDec, uslDec) {
+  if (isUgao(jedinica)) return true;
+  if (!izgledaPakovaniUgao(raw)) return false;
+  if (!Number.isFinite(lslDec) || !Number.isFinite(uslDec)) return false;
+  if (lslDec > 200 || uslDec > 200) return false;
+  const dec = excelUgaoG7(parseInt(samoCifre(raw), 10));
+  const lo = Math.min(lslDec, uslDec) - 2;
+  const hi = Math.max(lslDec, uslDec) + 2;
+  return dec >= lo && dec <= hi;
+}
+
+/** @deprecated koristi isUgao */
+export const isStepen = isUgao;
+
+/** Alias — ista formula kao excelUgaoG7 */
+export function ugaoPackedToMm(packed) {
+  return excelUgaoG7(packed);
+}
+
+/** @deprecated alias — ista vrednost kao ugaoPackedToMm */
+export const ugaoPackedToDec = ugaoPackedToMm;
+
+/** Pakovani ugao → D° M' S" (prikaz unosa) */
+export function formatStep(s) {
+  const cifre = samoCifre(String(s ?? ""));
+  if (!cifre) return String(s || "").trim();
+  const v = parseInt(cifre, 10);
+  if (!Number.isFinite(v)) return cifre;
+  const d = Math.floor(v / 10000);
+  const m = Math.floor((v % 10000) / 100);
+  const sec = v % 100;
+  return `${d}° ${String(m).padStart(2, "0")}' ${String(sec).padStart(2, "0")}"`;
+}
+
+/** Ugao: pakovani broj ili decimal → mm (ista formula kao DMS u decimalnom obliku) */
+export function toDecStepen(t) {
+  const s = String(t ?? "").trim();
+  if (!s) return 0;
+
+  const bezSimbola = s.replace(/°/g, "").replace(/'/g, "").replace(/"/g, "").replace(/\s/g, "");
+  const normalized = bezSimbola.replace(",", ".");
+
+  if (/^-?\d+\.\d+$/.test(normalized)) {
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  const cifre = samoCifre(s);
+  if (cifre) return excelUgaoG7(parseInt(cifre, 10));
+
+  const n = Number(normalized);
   return Number.isFinite(n) ? n : 0;
+}
+
+/** ToDec — excelDataG7 za uglove; inače G7 kao broj */
+export function toDec(t, jedinica) {
+  if (isUgao(jedinica)) return toDecStepen(t);
+
+  let s = String(t ?? "").trim();
+  if (!s) return 0;
+  s = s.replace(",", ".");
+  return excelDataG7(s, jedinica);
 }
 
 /** Samo cifre iz unosa (za stepene) */
@@ -41,52 +238,267 @@ export function samoCifre(s) {
 export function bojaMerenja(vrednost, lsl, usl, jedinica, C) {
   const s = String(vrednost ?? "").trim();
   if (!s) return C.input;
-  const v = toDec(s);
+  const v = toDec(s, jedinica);
   if (v < lsl || v > usl) return C.nok || "#2d1010";
   return C.ok || "#0f2d1a";
 }
 
-export function proveriOkNok(vrednost, lsl, usl) {
-  const v = toDec(vrednost);
+export function proveriOkNok(vrednost, lsl, usl, jedinica) {
+  const v = toDec(vrednost, jedinica);
   return v >= lsl && v <= usl ? "OK" : "NOK";
 }
 
+/**
+ * Razuman opseg unosa (zaštita od „napamet“ / pogrešne cifre: 33 → 333).
+ * Uži je od LSL/USL — OK/NOK i dalje po specifikaciji.
+ */
+export function granicePlausibilnostiUnosa(lslDec, uslDec, nominalDec, jedinica) {
+  const hasLsl = Number.isFinite(lslDec);
+  const hasUsl = Number.isFinite(uslDec);
+  const hasNom = Number.isFinite(nominalDec);
+
+  if (!hasLsl && !hasUsl && !hasNom) return null;
+
+  const lo = hasLsl ? lslDec : (hasUsl ? uslDec : null);
+  const hi = hasUsl ? uslDec : (hasLsl ? lslDec : null);
+  const nomUOpsegu = hasNom && hasLsl && hasUsl
+    && nominalDec >= Math.min(lslDec, uslDec) - 1e-9
+    && nominalDec <= Math.max(lslDec, uslDec) + 1e-9;
+
+  let center;
+  let span = 0;
+  let istaGranica = false;
+
+  if (hasLsl && hasUsl) {
+    span = uslDec - lslDec;
+    if (Math.abs(span) < 1e-9) {
+      istaGranica = true;
+      center = lslDec;
+      span = Math.max(Math.abs(center) * 0.5, 0.05);
+    } else {
+      center = nomUOpsegu ? nominalDec : (lslDec + uslDec) / 2;
+    }
+  } else if (hasNom) {
+    center = nominalDec;
+    span = Math.max(Math.abs(nominalDec) * 0.05, 0.01);
+  } else {
+    center = hasLsl ? lslDec : uslDec;
+    span = Math.max(Math.abs(center) * 0.05, 0.01);
+  }
+
+  if (!Number.isFinite(center)) return null;
+
+  const margin = Math.max(
+    span * 3,
+    Math.abs(center) * 0.2,
+    span > 0 ? span : Math.abs(center) * 0.35,
+    isUgao(jedinica) ? 0.001 : 0.01,
+  );
+
+  let min = (hasLsl ? Math.min(lslDec, center) : center) - margin;
+  let max = (hasUsl ? Math.max(uslDec, center) : center) + margin;
+
+  const ratioOk = !istaGranica
+    && (nomUOpsegu || !hasNom || !hasLsl || !hasUsl
+      || (nominalDec >= (lo ?? -Infinity) * 0.5 && nominalDec <= (hi ?? Infinity) * 2));
+
+  if (ratioOk && Math.abs(center) >= 1e-6 && (!isUgao(jedinica) || center < 10)) {
+    const ratio = isUgao(jedinica) ? 4 : 2.5;
+    min = Math.max(min, center / ratio - margin * 0.5);
+    max = Math.min(max, center * ratio + margin * 0.5);
+  }
+
+  if (isUgao(jedinica) && span > 0 && span < 20 && !istaGranica) {
+    const ugaoMargin = Math.max(span * 2, 1);
+    min = (hasLsl ? Math.min(lslDec, center) : center) - ugaoMargin;
+    max = (hasUsl ? Math.max(uslDec, center) : center) + ugaoMargin;
+  }
+
+  if (istaGranica && hasLsl && hasUsl) {
+    const m = Math.max(Math.abs(center) * 0.5, 0.05);
+    min = center - m;
+    max = center + m;
+    if (center >= 0 && lslDec >= 0 && uslDec >= 0) {
+      min = Math.max(0, min);
+    }
+  }
+
+  if (min > max) [min, max] = [max, min];
+
+  return { min, max, center, span, margin };
+}
+
+function decimaleZaPrikazOpsega(v, jedinica) {
+  if (!Number.isFinite(v)) return 2;
+  if (isUgao(jedinica)) return 3;
+  const a = Math.abs(v);
+  if (a < 1) return 2;
+  if (a < 100) return 1;
+  return 0;
+}
+
+function formatBrojOpseg(v, jedinica) {
+  if (!Number.isFinite(v)) return "—";
+  const dec = decimaleZaPrikazOpsega(v, jedinica);
+  if (isUgao(jedinica)) return formatVrednostKarte(v, jedinica, dec);
+  return (+v).toFixed(dec).replace(".", ",");
+}
+
+export function formatOpsegPlausibilnosti(opseg, jedinica) {
+  if (!opseg) return "";
+  const j = jedinicaSpcOsi(jedinica);
+  const a = formatBrojOpseg(opseg.min, jedinica);
+  const b = formatBrojOpseg(opseg.max, jedinica);
+  return j ? `${a} – ${b} ${j}` : `${a} – ${b}`;
+}
+
+export function maxDuzinaUnosaBroja(opseg) {
+  if (!opseg) return 14;
+  const cap = Math.max(Math.abs(opseg.min), Math.abs(opseg.max), 1);
+  const intLen = String(Math.floor(cap)).length;
+  return intLen + 4;
+}
+
+/** Da li je broj u razumnom opsegu (pre dodavanja merenja). */
+export function proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, jedinica) {
+  if (!Number.isFinite(dec)) {
+    return { ok: false, poruka: "Unesite ispravan broj." };
+  }
+
+  const opseg = granicePlausibilnostiUnosa(lslDec, uslDec, nominalDec, jedinica);
+  if (!opseg) return { ok: true, opseg: null };
+
+  if (dec < opseg.min || dec > opseg.max) {
+    const raspon = formatOpsegPlausibilnosti(opseg, jedinica);
+    return {
+      ok: false,
+      poruka: `Vrednost ${formatVrednostKarte(dec, jedinica)} nije u razumnom opsegu (${raspon}). `
+        + "Proverite cifre (npr. 33 umesto 333) — pogrešan unos kvare SPC karte.",
+      opseg,
+    };
+  }
+
+  return { ok: true, opseg };
+}
+
+/** Boja polja dok operator kuca (plausibilnost + LSL/USL). */
+export function bojaUnosMerenja(raw, lslDec, uslDec, nominalDec, jedinica, C) {
+  const s = String(raw ?? "").trim();
+  if (!s) return C.input;
+
+  if (unosKaoUgao(jedinica, s, lslDec, uslDec)) {
+    const cifre = samoCifre(s);
+    if (cifre.length >= 5) {
+      const pl = proveriPlausibilnostUnosa(toDecStepen(cifre), lslDec, uslDec, nominalDec, "Ugao");
+      if (!pl.ok) return C.nok || "#2d1010";
+      return bojaMerenja(s, lslDec, uslDec, "Ugao", C);
+    }
+    return C.input;
+  }
+
+  const normalized = s.replace(",", ".");
+  if (!/^-?\d*[.,]?\d*$/.test(normalized)) return C.nok || "#2d1010";
+
+  const dec = toDec(s, jedinica);
+  if (!Number.isFinite(dec)) return C.input;
+
+  const pl = proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, jedinica);
+  if (!pl.ok) return C.nok || "#2d1010";
+
+  return bojaMerenja(s, lslDec, uslDec, jedinica, C);
+}
+
 /** Validacija pre dodavanja u listu */
-export function validirajUnos(raw, jedinica) {
+export function validirajUnos(raw, jedinica, granice = {}) {
   const s = String(raw ?? "").trim();
   if (!s) return { ok: false, poruka: "" };
 
-  if (isStepen(jedinica)) {
+  const { lslDec, uslDec, nominalDec } = granice;
+
+  if (unosKaoUgao(jedinica, s, lslDec, uslDec)) {
     const cifre = samoCifre(s);
-    if (cifre.length !== 6) {
-      return { ok: false, poruka: "Mora biti tačno 6 cifara (stepeni)!" };
+    if (cifre.length < 5 || cifre.length > 7) {
+      return { ok: false, poruka: "Ugao: 5–7 cifara (npr. 440000 = 44°00′00″, 15000 = 1°50′00″)" };
     }
-    return { ok: true, vrednost: formatStep(cifre), dec: toDec(formatStep(cifre)) };
+    const packed = parseInt(cifre, 10);
+    const m = Math.floor((packed % 10000) / 100);
+    const sec = packed % 100;
+    if (m > 59 || sec > 59) {
+      return { ok: false, poruka: "Minute i sekunde moraju biti 0–59." };
+    }
+    const dec = toDecStepen(cifre);
+    const pl = proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, "Ugao");
+    if (!pl.ok) return { ok: false, poruka: pl.poruka };
+    return { ok: true, vrednost: formatStep(cifre), dec };
   }
 
-  const dec = toDec(s);
-  if (!Number.isFinite(dec) && s.replace(",", ".").match(/^-?\d*\.?\d+$/)) {
+  const normalized = s.replace(",", ".");
+  if (!/^-?\d+([.,]\d+)?$/.test(normalized)) {
+    return { ok: false, poruka: "Samo broj (zarez ili tačka za decimale)." };
+  }
+
+  const dec = toDec(s, jedinica);
+  if (!Number.isFinite(dec)) {
     return { ok: false, poruka: "Neispravan broj." };
   }
+
+  const pl = proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, jedinica);
+  if (!pl.ok) return { ok: false, poruka: pl.poruka };
+
   return { ok: true, vrednost: s.replace(".", ","), dec };
 }
 
 /** Live format stepeni dok korisnik kuca */
 export function formatLiveStep(raw) {
   const cifre = samoCifre(raw);
-  if (cifre.length === 6) return formatStep(cifre);
-  return raw;
+  if (cifre.length >= 5) return formatStep(cifre);
+  return cifre.length ? cifre : raw;
 }
 
 /** Da li su sve aktivne kolone popunjene do potrebnog broja */
 export function svaMerenjaZavrsena(kolone, potrebanBroj) {
   const n = potrebanBroj || 5;
-  for (const k of kolone) {
-    if (k.naziv && k.naziv !== "-") {
-      if ((k.merenja?.length || 0) < n) return false;
-    }
+  const aktivne = (kolone || []).filter(k => k.naziv && k.naziv !== "-");
+  if (!aktivne.length) return false;
+  for (const k of aktivne) {
+    if ((k.merenja?.length || 0) < n) return false;
   }
   return true;
+}
+
+/** Skraćuje / čisti unos dok operator kuca (bez Delete). */
+export function sanitizujInputMerenja(raw, k) {
+  const s = String(raw ?? "");
+  if (!s) return "";
+
+  if (koristiUgaoUnosKolone(k) || unosKaoUgao(k.jedinica, s, k.lslDec, k.uslDec)) {
+    const cifre = samoCifre(s).slice(0, 7);
+    return cifre.length ? formatLiveStep(cifre) : "";
+  }
+
+  let v = s.replace(/\./g, ",");
+  const neg = v.startsWith("-");
+  v = v.replace(/-/g, "");
+  const idxZarez = v.indexOf(",");
+  const pre = idxZarez >= 0 ? v.slice(0, idxZarez) : v;
+  const pos = idxZarez >= 0 ? v.slice(idxZarez + 1) : "";
+  const cisti = (deo) => deo.replace(/\D/g, "");
+  const maxLen = maxDuzinaUnosaBroja(k.plausibilnost);
+  let preC = cisti(pre);
+  let posC = cisti(pos);
+  const uk = preC.length + posC.length;
+  if (uk > maxLen) {
+    const visak = uk - maxLen;
+    if (posC.length >= visak) posC = posC.slice(0, posC.length - visak);
+    else {
+      const ost = visak - posC.length;
+      posC = "";
+      preC = preC.slice(0, Math.max(0, preC.length - ost));
+    }
+  }
+  let out = preC;
+  if (idxZarez >= 0 || s.includes(",")) out += "," + posC;
+  return neg ? `-${out}` : out;
 }
 
 export function imaBiloSta(kolone) {
@@ -119,6 +531,8 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj)
     jedinica: "",
     lslDec: 0,
     uslDec: 0,
+    nominalDec: null,
+    plausibilnost: null,
     merenja: [],
     input: "",
     cntOK: 0,
@@ -130,21 +544,24 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj)
   const rows = karakteristike.filter(
     k => String(k.id_deo || "").toUpperCase() === id
       && String(k.sifra_merenja || "").trim() === ab
-  );
+  ).sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
 
   rows.slice(0, 5).forEach((k, i) => {
-    const lslT = k.lsl_text ?? String(k.lsl ?? "");
-    const uslT = k.usl_text ?? String(k.usl ?? "");
+    const kn = normalizujKarakteristikuRed(k);
+    const g = graniceIzKarakteristike(kn);
+    const nomFin = g.nominalDec;
     cols[i] = {
-      id: k.id,
-      naziv: k.pozicija,
-      nazivMere: k.naziv_mere || "",
-      lslText: lslT,
-      uslText: uslT,
-      instrument: k.merni_instrument || "-",
-      jedinica: k.jedinica || "",
-      lslDec: toDec(lslT),
-      uslDec: toDec(uslT),
+      id: kn.id,
+      naziv: kn.pozicija,
+      nazivMere: kn.naziv_mere || "",
+      lslText: g.lslText,
+      uslText: g.uslText,
+      instrument: kn.merni_instrument || "-",
+      jedinica: g.jedinica,
+      lslDec: g.lslDec,
+      uslDec: g.uslDec,
+      nominalDec: nomFin,
+      plausibilnost: granicePlausibilnostiUnosa(g.lslDec, g.uslDec, nomFin, g.jedinica),
       merenja: [],
       input: "",
       cntOK: 0,
@@ -156,24 +573,27 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj)
 }
 
 /**
- * Numerička vrednost pogodna za SPC karte (decimalni stepeni ili mm).
- * Za uglove nikad ne koristi sirovi vrednost_dec tipa 450000 — uvek toDec.
+ * Numerička vrednost za SPC — excelDataG7(G7, O7).
+ * Uglovi: ne koristi sirovi vrednost_dec tipa 450000 bez formule.
  */
 export function vrednostZaKarte(vrednostRaw, vrednostDec, jedinica) {
-  if (isStepen(jedinica)) {
+  if (isUgao(jedinica)) {
     const raw = String(vrednostRaw ?? "").trim();
     if (raw) {
-      const d = toDec(raw);
+      const d = toDec(raw, jedinica);
       return Number.isFinite(d) ? d : null;
     }
     if (vrednostDec == null || vrednostDec === "") return null;
-    const d = toDec(vrednostDec);
+    const d = excelDataG7(vrednostDec, jedinica);
     return Number.isFinite(d) ? d : null;
   }
-  if (vrednostDec != null && vrednostDec !== "" && Number.isFinite(Number(vrednostDec))) {
-    return Number(vrednostDec);
+  if (vrednostDec != null && vrednostDec !== "") {
+    const d = excelDataG7(vrednostDec, jedinica);
+    if (Number.isFinite(d)) return d;
   }
-  const d = toDec(vrednostRaw);
+  const raw = String(vrednostRaw ?? "").trim();
+  if (!raw) return null;
+  const d = excelDataG7(raw.replace(",", "."), jedinica);
   return Number.isFinite(d) ? d : null;
 }
 
@@ -182,34 +602,32 @@ export function graniceKarakteristike(k) {
   if (!k) {
     return { lsl: null, usl: null, nominala: null, jedinica: "", jeUgao: false, lslText: "—", uslText: "—" };
   }
-  const jeUgao = isStepen(k.jedinica);
-  const lslText = k.lsl_text ?? String(k.lsl ?? "");
-  const uslText = k.usl_text ?? String(k.usl ?? "");
-  const lsl = toDec(lslText || k.lsl);
-  const usl = toDec(uslText || k.usl);
-  let nominala = toDec(k.nominala);
-  if (!jeUgao && k.nominala != null && k.nominala !== "") {
-    nominala = Number(k.nominala);
-  }
+  const g = graniceIzKarakteristike(k);
   return {
-    lsl: Number.isFinite(lsl) ? lsl : null,
-    usl: Number.isFinite(usl) ? usl : null,
-    nominala: Number.isFinite(nominala) ? nominala : null,
-    jedinica: k.jedinica || "",
-    jeUgao,
-    lslText: lslText || "—",
-    uslText: uslText || "—",
+    lsl: Number.isFinite(g.lslDec) ? g.lslDec : null,
+    usl: Number.isFinite(g.uslDec) ? g.uslDec : null,
+    nominala: g.nominalDec,
+    jedinica: g.jedinica,
+    jedinicaOs: g.jeUgao ? "mm" : (g.jedinica || ""),
+    jeUgao: g.jeUgao,
+    lslText: g.lslText || "—",
+    uslText: g.uslText || "—",
   };
 }
 
-/** Format vrednosti na grafikonu / KPI (° za uglove). */
+/** Jedinica na osi SPC grafika (uglovi → mm). */
+export function jedinicaSpcOsi(jedinica) {
+  return isUgao(jedinica) ? "mm" : String(jedinica || "").trim();
+}
+
+/** Format vrednosti na grafikonu / KPI. */
 export function formatVrednostKarte(v, jedinica, dec = 4) {
   if (!Number.isFinite(v)) return "—";
-  if (isStepen(jedinica)) return `${(+v).toFixed(dec)}°`;
+  if (isUgao(jedinica)) return `${(+v).toFixed(dec)} mm`;
   return (+v).toFixed(dec);
 }
 
-/** Decimalni stepeni → prikaz DMS (za tooltip/listu). */
+/** Vrednost u mm (ugao) → prikaz DMS u tooltipu (npr. 1,833333 → 01° 50′ 00″). */
 export function decStepenUDms(dec) {
   if (!Number.isFinite(dec)) return "—";
   const neg = dec < 0;
@@ -224,17 +642,22 @@ export function decStepenUDms(dec) {
   return neg ? `-${txt}` : txt;
 }
 
-/** Ograničenje tastature (brojevi, jedan zarez, max 6 cifara za stepene) */
-export function filterKeyUnos(key, current, jedinica) {
+/** Ograničenje tastature (brojevi, jedan zarez, max cifara po opsegu mere) */
+export function filterKeyUnos(key, current, jedinica, plausibilnost = null) {
   if (key === "Backspace" || key === "Delete" || key === "Tab" || key.startsWith("Arrow")) return key;
-  if (isStepen(jedinica)) {
-    if (/^\d$/.test(key) && samoCifre(current).length < 6) return key;
+  if (isUgao(jedinica) || izgledaPakovaniUgao(current)) {
+    if (/^\d$/.test(key)) return key;
     return null;
   }
+  const maxLen = maxDuzinaUnosaBroja(plausibilnost);
+  const nextLen = String(current).replace(/[^\d]/g, "").length + (/^\d$/.test(key) ? 1 : 0);
   if (key === "." || key === ",") {
     if (String(current).includes(",")) return null;
     return ",";
   }
-  if (/^\d$/.test(key)) return key;
+  if (/^\d$/.test(key)) {
+    if (nextLen > maxLen) return null;
+    return key;
+  }
   return null;
 }
