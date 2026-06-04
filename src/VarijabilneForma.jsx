@@ -739,37 +739,38 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
   const KOLONA_MIN = 168;
   const KOLONE_GAP = ekran.mob ? 8 : 10;
-  /** Mob / tablet — slika gore, kolone u vodoravnom skrolu (kao ranije) */
-  const stackVertikalno = ekran.mob || ekran.tablet;
+  /** Telefon — isti redosled kao laptop (kolone levo, crtež desno), uži paneli */
+  const mobilniTelefon = ekran.mob;
   /** Laptop ~1366×760 — 5 kolona levo + crtež desno (referentna slika) */
   const laptopKlassic = ekran.desk && ekran.w >= 1024 && ekran.w < 1700 && ekran.h < 980;
   /** Veliki desktop 1920×1080+ */
   const visokDesktop = ekran.desk && !laptopKlassic;
-  const slikaPx = stackVertikalno
-    ? 0
+  const slikaPx = mobilniTelefon
+    ? Math.min(132, Math.max(96, Math.round(ekran.w * 0.26)))
     : laptopKlassic
       ? Math.min(300, Math.max(220, Math.round(ekran.w * 0.24)))
       : Math.min(280, Math.max(200, Math.round(ekran.w * 0.15)));
-  const slikaSirina = stackVertikalno ? "100%" : `${slikaPx}px`;
-  const prostorZaKolone = ekran.w - slikaPx - (ekran.mob ? 16 : 24);
-  const koloneUGridu = !stackVertikalno && prostorZaKolone >= 5 * KOLONA_MIN;
-  const koloneScroll = stackVertikalno || !koloneUGridu;
+  const slikaSirina = `${slikaPx}px`;
+  const prostorZaKolone = ekran.w - slikaPx - (mobilniTelefon ? 12 : 24);
+  const koloneUGridu = !mobilniTelefon && prostorZaKolone >= 5 * KOLONA_MIN;
+  const koloneScroll = mobilniTelefon || !koloneUGridu;
   const kolonePoravnaj = visokDesktop && koloneUGridu ? "flex-start" : "flex-end";
   const koloneGridCols = laptopKlassic && koloneUGridu
     ? "repeat(5, minmax(0, 1fr))"
     : koloneUGridu
       ? `repeat(5, minmax(${KOLONA_MIN}px, 1fr))`
       : undefined;
-  const sirinaKolone = ekran.mob
-    ? Math.min(280, Math.max(236, ekran.w - 20))
-    : stackVertikalno
-      ? Math.min(300, Math.max(200, Math.round(ekran.w * 0.44)))
-      : koloneScroll
-        ? Math.min(240, Math.max(KOLONA_MIN, Math.floor((prostorZaKolone - 16) / 2.4)))
-        : null;
-  const visinaKoloneScroll = ekran.mob
-    ? Math.min(340, Math.max(220, ekran.h - 200))
+  const sirinaKolone = koloneScroll
+    ? mobilniTelefon
+      ? Math.min(252, Math.max(200, Math.floor(prostorZaKolone - 6)))
+      : Math.min(240, Math.max(KOLONA_MIN, Math.floor((prostorZaKolone - 16) / 2.4)))
+    : null;
+  const visinaKoloneScroll = mobilniTelefon
+    ? Math.min(320, Math.max(200, ekran.h - 210))
     : Math.min(380, Math.max(240, ekran.h - 240));
+  const visinaRedaUnosa = mobilniTelefon
+    ? Math.min(420, Math.max(260, ekran.h - 200))
+    : undefined;
 
   const metaRed = (naslov, vrednost, accent) => (
     <div style={{ fontSize: 10, marginBottom: 3, lineHeight: 1.25, flexShrink: 0 }}>
@@ -871,13 +872,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     fontWeight: 600,
   };
 
-  const padGlavni = ekran.mob
-    ? "8px 10px 12px"
-    : stackVertikalno
-      ? "8px 10px 10px"
-      : laptopKlassic
-        ? "8px 16px 10px"
-        : "6px 8px 8px";
+  const padGlavni = mobilniTelefon
+    ? "6px 8px 10px"
+    : laptopKlassic
+      ? "8px 16px 10px"
+      : "6px 8px 8px";
 
   const prikaziZahtevPrekid = imaNepotpunuSesiju && !prekidOdobrenId && !mozeAdmin && imaBiloSta(kolone);
 
@@ -931,7 +930,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       minHeight: ekran.mob ? "100dvh" : "100vh",
       display: "flex",
       flexDirection: "column",
-      overflow: stackVertikalno && tab === "unos" ? "auto" : "hidden",
+      overflow: mobilniTelefon && tab === "unos" ? "auto" : "hidden",
       background: C.bg,
       fontFamily: "'IBM Plex Mono', monospace",
       color: C.tekst,
@@ -1147,8 +1146,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         display: "flex",
         flexDirection: "column",
         padding: padGlavni,
-        minHeight: stackVertikalno ? "auto" : 0,
-        overflow: stackVertikalno ? "visible" : "auto",
+        minHeight: mobilniTelefon ? 0 : 0,
+        overflow: mobilniTelefon ? "auto" : "auto",
         boxSizing: "border-box",
         width: "100%",
         maxWidth: "100%",
@@ -1352,32 +1351,30 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
         {idDeo && grupaAB && unosKorak === "forma" && (
         <div style={{
-          flex: stackVertikalno ? "none" : 1,
+          flex: 1,
           display: "flex",
           flexDirection: "column",
-          minHeight: stackVertikalno ? "auto" : 0,
+          minHeight: mobilniTelefon ? 0 : 0,
           gap: 8,
           width: "100%",
         }}>
         <div style={{
-          flex: stackVertikalno ? "none" : 1,
+          flex: 1,
           display: "flex",
-          flexDirection: stackVertikalno ? "column" : "row",
-          gap: 10,
+          flexDirection: "row",
+          gap: mobilniTelefon ? 6 : 10,
           alignItems: "stretch",
-          minHeight: stackVertikalno ? "auto" : 0,
-          overflow: stackVertikalno ? "visible" : "hidden",
+          minHeight: visinaRedaUnosa ?? 0,
+          overflow: "hidden",
           width: "100%",
         }}>
           <div style={{
-            flex: stackVertikalno ? "none" : 1,
+            flex: 1,
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
             justifyContent: kolonePoravnaj,
-            minHeight: stackVertikalno ? "auto" : 0,
-            order: stackVertikalno ? 2 : 0,
-            width: stackVertikalno ? "100%" : undefined,
+            minHeight: 0,
           }}>
           <div style={{
             display: koloneScroll ? "flex" : "grid",
@@ -1542,9 +1539,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           {idDeo && serijaPotpuna && (
             <div style={{
               flexShrink: 0,
-              maxHeight: stackVertikalno ? "none" : 200,
+              maxHeight: mobilniTelefon ? 160 : 200,
               overflowY: "auto",
-              marginTop: stackVertikalno ? 6 : 4,
+              marginTop: 4,
             }}>
               <SkartDoradaOeePanel
                 C={C}
@@ -1558,14 +1555,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           </div>
 
           <aside style={{
-            flex: stackVertikalno ? "0 0 auto" : `0 0 ${slikaSirina}`,
-            width: stackVertikalno ? "100%" : slikaSirina,
+            flex: `0 0 ${slikaSirina}`,
+            width: slikaSirina,
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
-            minHeight: stackVertikalno ? "auto" : 0,
+            minHeight: 0,
             alignSelf: "stretch",
-            order: stackVertikalno ? 0 : 1,
             gap: 6,
             maxWidth: "100%",
             boxSizing: "border-box",
@@ -1575,10 +1571,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               border: `1px solid ${C.border}`,
               borderRadius: 8,
               width: "100%",
-              flex: stackVertikalno ? "none" : 1,
-              height: stackVertikalno ? (ekran.mob ? 160 : 200) : undefined,
-              minHeight: stackVertikalno ? (ekran.mob ? 150 : 190) : 100,
-              maxHeight: stackVertikalno ? (ekran.mob ? 175 : 210) : undefined,
+              flex: 1,
+              minHeight: mobilniTelefon ? 80 : 100,
               boxSizing: "border-box",
               padding: 6,
               display: "flex",
