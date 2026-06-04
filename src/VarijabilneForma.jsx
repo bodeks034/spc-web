@@ -737,15 +737,20 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     resetKolone(5);
   };
 
+  const KOLONA_MIN = 168;
   const KOLONE_GAP = ekran.mob ? 8 : 10;
-  const stackVertikalno = ekran.mob || ekran.tablet;
-  const slikaSirina = stackVertikalno
-    ? "100%"
-    : Math.min(300, Math.max(220, Math.round(ekran.w * 0.24)));
+  const stackVertikalno = ekran.mob || ekran.tablet || ekran.unosStek;
+  const slikaPx = stackVertikalno
+    ? 0
+    : Math.min(280, Math.max(200, Math.round(ekran.w * 0.15)));
+  const slikaSirina = stackVertikalno ? "100%" : `${slikaPx}px`;
+  const prostorZaKolone = ekran.w - slikaPx - (ekran.mob ? 16 : 24);
+  const koloneUGridu = !stackVertikalno && prostorZaKolone >= 5 * KOLONA_MIN;
+  const koloneScroll = !koloneUGridu;
   const sirinaKolone = ekran.mob
-    ? Math.min(300, Math.max(260, ekran.w - 32))
-    : ekran.tablet
-      ? Math.min(220, Math.max(168, Math.floor((ekran.w - 48) / 3.2)))
+    ? Math.min(300, Math.max(260, ekran.w - 16))
+    : koloneScroll
+      ? Math.min(240, Math.max(KOLONA_MIN, Math.floor((prostorZaKolone - 16) / 2.4)))
       : null;
 
   const metaRed = (naslov, vrednost, accent) => (
@@ -826,15 +831,15 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     </div>
   );
 
-  const lbl = { display: "block", fontSize: 11, color: C.sivi, marginBottom: 3 };
+  const lbl = { display: "block", fontSize: ekran.mob ? 10 : 11, color: C.sivi, marginBottom: 3 };
 
   const inp = {
     background: C.input,
     border: `1px solid ${C.border}`,
     borderRadius: 6,
     color: C.tekst,
-    padding: "8px 10px",
-    fontSize: 13,
+    padding: ekran.mob ? "7px 8px" : "8px 10px",
+    fontSize: ekran.mob ? 12 : 13,
     width: "100%",
     fontFamily: "inherit",
     boxSizing: "border-box",
@@ -848,7 +853,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     fontWeight: 600,
   };
 
-  const padGlavni = ekran.mob ? "8px 10px 12px" : ekran.tablet ? "10px 14px 12px" : "8px 16px 10px";
+  const padGlavni = ekran.mob
+    ? "6px 6px 10px"
+    : stackVertikalno
+      ? "8px 10px 10px"
+      : ekran.wide
+        ? "6px 8px 8px"
+        : "8px 10px 8px";
 
   const prikaziZahtevPrekid = imaNepotpunuSesiju && !prekidOdobrenId && !mozeAdmin && imaBiloSta(kolone);
 
@@ -944,7 +955,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         flexShrink: 0,
       }}>
         <div style={{
-          padding: ekran.mob ? "0 10px" : "0 16px",
+          padding: ekran.mob ? "0 6px" : ekran.wide ? "0 8px" : "0 12px",
           minHeight: 48,
           height: "auto",
           display: "flex",
@@ -1121,6 +1132,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         minHeight: stackVertikalno ? "auto" : 0,
         overflow: stackVertikalno ? "visible" : "auto",
         boxSizing: "border-box",
+        width: "100%",
+        maxWidth: "100%",
       }}>
         {greskaDb && (
           <div style={{ background: C.nok, border: `1px solid ${C.crvena}`, borderRadius: 8, padding: 10, marginBottom: 8, fontSize: 11 }}>
@@ -1143,10 +1156,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             ? "repeat(2, minmax(0, 1fr))"
             : ekran.tablet
               ? "repeat(3, minmax(0, 1fr))"
-              : "repeat(auto-fill, minmax(128px, 1fr))",
+              : "repeat(auto-fill, minmax(110px, 1fr))",
           gap: 8,
           marginBottom: 6,
           flexShrink: 0,
+          width: "100%",
         }}>
           <label style={lbl}>Datum<input style={inp} value={datum} onChange={e => setDatum(e.target.value)} /></label>
           <label style={lbl}>Smena
@@ -1325,37 +1339,42 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           flexDirection: "column",
           minHeight: stackVertikalno ? "auto" : 0,
           gap: 8,
+          width: "100%",
         }}>
         <div style={{
           flex: stackVertikalno ? "none" : 1,
           display: "flex",
           flexDirection: stackVertikalno ? "column" : "row",
-          gap: stackVertikalno ? 10 : 10,
+          gap: 10,
           alignItems: "stretch",
           minHeight: stackVertikalno ? "auto" : 0,
           overflow: stackVertikalno ? "visible" : "hidden",
+          width: "100%",
         }}>
           <div style={{
             flex: stackVertikalno ? "none" : 1,
             minWidth: 0,
             display: "flex",
             flexDirection: "column",
-            justifyContent: stackVertikalno ? "flex-start" : "flex-end",
+            justifyContent: "flex-start",
             minHeight: stackVertikalno ? "auto" : 0,
             order: stackVertikalno ? 2 : 0,
+            width: stackVertikalno ? "100%" : undefined,
           }}>
           <div style={{
-            display: stackVertikalno ? "flex" : "grid",
-            flexDirection: stackVertikalno ? "row" : undefined,
-            gridTemplateColumns: stackVertikalno ? undefined : "repeat(5, minmax(0, 1fr))",
+            display: koloneScroll ? "flex" : "grid",
+            flexDirection: koloneScroll ? "row" : undefined,
+            gridTemplateColumns: koloneUGridu ? `repeat(5, minmax(${KOLONA_MIN}px, 1fr))` : undefined,
             gap: KOLONE_GAP,
-            flex: stackVertikalno ? "none" : "0 1 auto",
-            maxHeight: stackVertikalno ? "none" : "100%",
-            overflowX: stackVertikalno ? "auto" : "hidden",
-            overflowY: stackVertikalno ? "hidden" : "auto",
+            flex: koloneUGridu ? 1 : "none",
+            width: koloneUGridu ? "100%" : undefined,
+            minHeight: koloneUGridu ? 0 : undefined,
+            maxHeight: koloneUGridu ? "100%" : "none",
+            overflowX: koloneScroll ? "auto" : "hidden",
+            overflowY: koloneUGridu ? "auto" : "hidden",
             WebkitOverflowScrolling: "touch",
-            scrollSnapType: stackVertikalno ? "x proximity" : undefined,
-            paddingBottom: stackVertikalno ? 4 : 0,
+            scrollSnapType: koloneScroll ? "x proximity" : undefined,
+            paddingBottom: koloneScroll ? 4 : 0,
           }}>
               {kolone.map((k, i) => (
                 <div key={i} style={{
@@ -1367,15 +1386,15 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                   padding: ekran.mob ? 6 : 8,
                   boxSizing: "border-box",
                   opacity: k.naziv === "-" ? 0.4 : 1,
-                  width: stackVertikalno ? sirinaKolone : "100%",
-                  maxWidth: stackVertikalno ? sirinaKolone : "none",
-                  flex: stackVertikalno ? "0 0 auto" : undefined,
-                  height: stackVertikalno ? "auto" : "100%",
-                  minHeight: stackVertikalno ? 280 : 0,
-                  maxHeight: stackVertikalno ? "70vh" : "none",
+                  width: koloneScroll ? sirinaKolone : "100%",
+                  maxWidth: koloneScroll ? sirinaKolone : "none",
+                  flex: koloneScroll ? "0 0 auto" : undefined,
+                  height: koloneUGridu ? "100%" : "auto",
+                  minHeight: koloneScroll ? Math.min(320, Math.max(260, ekran.h - 280)) : koloneUGridu ? 0 : 0,
+                  maxHeight: koloneScroll ? "min(72vh, 520px)" : "none",
                   display: "flex",
                   flexDirection: "column",
-                  scrollSnapAlign: stackVertikalno ? "start" : undefined,
+                  scrollSnapAlign: koloneScroll ? "start" : undefined,
                 }}>
                   {k.naziv !== "-" ? (
                     <>
@@ -1497,7 +1516,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                 </div>
               ))}
           </div>
-          {stackVertikalno && kolone.some(k => k.naziv !== "-") && (
+          {koloneScroll && kolone.some(k => k.naziv !== "-") && (
             <div style={{ color: C.sivi, fontSize: 9, textAlign: "center", flexShrink: 0, marginTop: 4 }}>
               ← prevuci kolone merenja →
             </div>
@@ -1521,7 +1540,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           </div>
 
           <aside style={{
-            flex: stackVertikalno ? "0 0 auto" : `0 0 ${slikaSirina}px`,
+            flex: stackVertikalno ? "0 0 auto" : `0 0 ${slikaSirina}`,
             width: stackVertikalno ? "100%" : slikaSirina,
             flexShrink: 0,
             display: "flex",
@@ -1530,6 +1549,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             alignSelf: "stretch",
             order: stackVertikalno ? 0 : 1,
             gap: 6,
+            maxWidth: "100%",
+            boxSizing: "border-box",
           }}>
             <div style={{
               background: C.panel,
@@ -1543,7 +1564,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               padding: 6,
               display: "flex",
               flexDirection: "column",
-              minHeight: 0,
             }}>
               <div style={{ fontSize: 9, color: C.sivi, marginBottom: 2, textAlign: "center", flexShrink: 0 }}>
                 Crtež · klik = ceo ekran
