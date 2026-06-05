@@ -183,35 +183,6 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
             </div>
           )}
 
-          {kompakt && onIzborModula && (
-            <div style={{ width: "100%", marginTop: 12 }}>
-              <div style={{
-                color: C.sivi, fontSize: 9, letterSpacing: 1.2, marginBottom: 8,
-                textTransform: "uppercase",
-              }}>
-                Digitalna merila · unos
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" onClick={() => onIzborModula("atributivne")}
-                  style={{
-                    background: C.panel, border: `1px solid ${C.plava}50`, borderRadius: 8,
-                    color: C.plava, fontSize: 10, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
-                  }}>
-                  Atributivne →
-                </button>
-                <button type="button" onClick={() => {
-                  sessionStorage.setItem("spc_mer_unos_rezim", "digital");
-                  onIzborModula("varijabilne");
-                }}
-                  style={{
-                    background: C.panel, border: `1px solid ${C.zelena}50`, borderRadius: 8,
-                    color: C.zelena, fontSize: 10, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
-                  }}>
-                  Merljive →
-                </button>
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>

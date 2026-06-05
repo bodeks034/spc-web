@@ -47,8 +47,10 @@ export default function UnosPokaYokeKorak({
   daljeLabel = "Unos merenja →",
 }) {
   const ekran = useEkran();
-  const telefon = !ekran.desk && ekran.w < 1024;
-  const telefonLandscape = telefon && ekran.w > ekran.h;
+  const { telefon, telefonLandscape, uspravnoMobTab } = ekran;
+  const kompakt = uspravnoMobTab;
+  /** Portrait telefon/tablet: checklista gore, slika ispod */
+  const stekPortrait = kompakt && !telefonLandscape;
   const stavke = modul === "atributivne" ? STAVKE_ATRIBUTIVNE : STAVKE_MERLJIVE;
   const boja = akcent || (modul === "merljive" ? C.zelena : C.plava);
   const [checks, setChecks] = useState(() => initChecks(stavke));
@@ -77,27 +79,30 @@ export default function UnosPokaYokeKorak({
       display: "flex",
       flexDirection: "column",
       minHeight: 0,
-      gap: 12,
+      gap: kompakt ? 8 : 12,
     }}>
       <div style={{
         flex: 1,
         display: "flex",
-        flexDirection: "row",
-        gap: telefon ? 8 : 12,
-        minHeight: telefon ? Math.max(180, ekran.h - 120) : 0,
-        alignItems: "stretch",
+        flexDirection: stekPortrait ? "column" : "row",
+        gap: kompakt ? 8 : 12,
+        minHeight: 0,
+        alignItems: stekPortrait ? "stretch" : (kompakt ? "flex-start" : "stretch"),
       }}>
         <div style={{
-          flex: urlSlike
-            ? (telefonLandscape ? "1 1 58%" : telefon ? "1 1 55%" : "1 1 52%")
-            : "1 1 100%",
+          flex: stekPortrait
+            ? "0 0 auto"
+            : urlSlike
+              ? (telefonLandscape ? "1 1 58%" : kompakt ? "1 1 58%" : "1 1 52%")
+              : "1 1 100%",
           background: `${boja}12`,
           border: `1px solid ${boja}55`,
           borderRadius: 10,
-          padding: telefon ? "10px 10px" : "14px 16px",
+          padding: kompakt ? "10px 10px" : "14px 16px",
           minHeight: 0,
           minWidth: 0,
           overflowY: "auto",
+          maxHeight: stekPortrait ? undefined : (kompakt ? Math.min(ekran.h - 130, 420) : undefined),
         }}>
           <div style={{ color: boja, fontSize: 10, letterSpacing: 1.5, marginBottom: 10, fontWeight: 700 }}>
             POKA-YOKE · PROVERA PRE UNOSA
@@ -107,12 +112,12 @@ export default function UnosPokaYokeKorak({
             display: "grid",
             gridTemplateColumns: telefonLandscape
               ? "repeat(2, minmax(0, 1fr))"
-              : telefon
-                ? "repeat(auto-fit, minmax(130px, 1fr))"
+              : kompakt
+                ? "repeat(auto-fit, minmax(110px, 1fr))"
                 : "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 8,
-            marginBottom: 14,
-            fontSize: telefon ? 10 : 11,
+            gap: kompakt ? 6 : 8,
+            marginBottom: kompakt ? 10 : 14,
+            fontSize: kompakt ? 9 : 11,
           }}>
             <div><span style={{ color: C.sivi }}>ID: </span><strong style={{ color: boja }}>{idDeo}</strong></div>
             {nazivDela && <div><span style={{ color: C.sivi }}>Deo: </span>{nazivDela}</div>}
@@ -160,28 +165,28 @@ export default function UnosPokaYokeKorak({
           <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1, marginBottom: 8 }}>
             POTVRDI STAVKE
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: kompakt ? 5 : 8 }}>
             {stavke.map(s => (
               <label
                 key={s.id}
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: 10,
+                  gap: kompakt ? 7 : 10,
                   cursor: "pointer",
-                  padding: "10px 12px",
+                  padding: kompakt ? "7px 8px" : "10px 12px",
                   background: checks[s.id] ? `${boja}18` : C.input,
                   border: `1px solid ${checks[s.id] ? boja : C.border}`,
-                  borderRadius: 8,
+                  borderRadius: kompakt ? 6 : 8,
                 }}
               >
                 <input
                   type="checkbox"
                   checked={!!checks[s.id]}
                   onChange={() => toggle(s.id)}
-                  style={{ marginTop: 2, accentColor: boja }}
+                  style={{ marginTop: 2, accentColor: boja, flexShrink: 0 }}
                 />
-                <span style={{ color: C.tekst, fontSize: 12, lineHeight: 1.45 }}>{s.label}</span>
+                <span style={{ color: C.tekst, fontSize: kompakt ? 11 : 12, lineHeight: 1.4 }}>{s.label}</span>
               </label>
             ))}
           </div>
@@ -195,17 +200,24 @@ export default function UnosPokaYokeKorak({
 
         {urlSlike && (
           <aside style={{
-            flex: telefonLandscape ? "0 0 38%" : telefon ? "0 0 42%" : "1 1 42%",
-            minWidth: telefonLandscape ? 110 : telefon ? 120 : 220,
-            maxWidth: telefonLandscape ? "40%" : undefined,
+            flex: stekPortrait
+              ? "0 0 auto"
+              : telefonLandscape ? "0 0 38%" : kompakt ? "0 0 38%" : "1 1 42%",
+            width: stekPortrait ? "100%" : undefined,
+            minWidth: stekPortrait ? undefined : (telefonLandscape ? 110 : kompakt ? 100 : 220),
+            maxWidth: stekPortrait ? "100%" : (kompakt ? "38%" : undefined),
             display: "flex",
             flexDirection: "column",
-            minHeight: telefon ? 0 : 280,
+            minHeight: stekPortrait ? 0 : (kompakt ? 0 : 280),
+            maxHeight: stekPortrait
+              ? Math.min(240, Math.round(ekran.h * 0.32))
+              : (kompakt ? Math.min(200, Math.round(ekran.h * 0.28)) : undefined),
+            alignSelf: stekPortrait ? "stretch" : (kompakt ? "flex-start" : "stretch"),
             flexShrink: 0,
             background: C.panel,
             border: `1px solid ${C.border}`,
             borderRadius: 8,
-            padding: telefon ? 6 : 8,
+            padding: kompakt ? 6 : 8,
             boxSizing: "border-box",
           }}>
             <div style={{ color: C.sivi, fontSize: 9, marginBottom: 6, textAlign: "center", flexShrink: 0 }}>
@@ -251,31 +263,13 @@ export default function UnosPokaYokeKorak({
       <div style={{
         display: "flex",
         flexWrap: "wrap",
-        gap: 10,
+        gap: kompakt ? 6 : 10,
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         flexShrink: 0,
-        paddingTop: 4,
+        paddingTop: kompakt ? 0 : 4,
+        marginTop: kompakt ? -2 : 0,
       }}>
-        {prikaziNazad && typeof onNazad === "function" ? (
-          <button
-            type="button"
-            onClick={onNazad}
-            style={{
-              background: C.panel,
-              border: `1px solid ${C.border}`,
-              borderRadius: 8,
-              color: C.tekst,
-              fontSize: 12,
-              fontWeight: 600,
-              padding: "12px 16px",
-              cursor: "pointer",
-            }}
-          >
-            ← Provera
-          </button>
-        ) : <span />}
-
         <button
           type="button"
           disabled={!mozeDalje}
@@ -291,12 +285,12 @@ export default function UnosPokaYokeKorak({
             border: "none",
             borderRadius: 8,
             color: mozeDalje ? "#000" : C.sivi,
-            fontSize: 14,
+            fontSize: kompakt ? 13 : 14,
             fontWeight: 800,
-            padding: "14px 28px",
+            padding: kompakt ? "12px 22px" : "14px 28px",
             cursor: mozeDalje ? "pointer" : "not-allowed",
             letterSpacing: 0.5,
-            marginLeft: "auto",
+            width: kompakt ? "100%" : "auto",
           }}
         >
           {daljeLabel}

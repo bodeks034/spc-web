@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
+import { ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev, KontrolnaLista } from "./lib/kontrolaSesije.jsx";
 import {
   toDec, isStepen, koristiUgaoUnosKolone, validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
   formatOpsegPlausibilnosti,
@@ -22,7 +22,7 @@ import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel
 import { podrazumevaniKpiIzMerenja } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, porukaKpiGreske } from "./lib/kpiUnos.js";
 import { useOfflineQueue } from "./lib/offlineQueue.js";
-import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge } from "./lib/uloge.js";
+import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezima, jeKontrolorLinija, pocetniKorakUnosMer } from "./lib/uloge.js";
 import {
   mapaMerila,
   upozorenjaInstrumentaZaKolone,
@@ -46,6 +46,7 @@ import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
 import { parsiBarkod, useBarcodeScanner } from "./lib/barkod.js";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
+import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./components/LinijaWizardNav.jsx";
 
 function danasSr() {
   const d = new Date();
@@ -56,15 +57,18 @@ function prazneKolone(n) {
   return koloneZaGrupu([], "", "", n);
 }
 
-export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosRezim = "rucni" }) {
+export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosRezim = "rucni", rezimRada = "analitika", onPromeniRezim }) {
   const digitalniUnos = unosRezim === "digital";
   const ekran = useEkran();
+  const jeLinija = rezimRada === "linija";
+  const kontrolorLinija = jeKontrolorLinija(korisnik?.uloga, rezimRada);
+  const koristiMobLinija = jeLinija && ekran.linijaUredjaj;
   const [tab, setTab] = useState("unos");
   const [toasts, setToasts] = useState([]);
   const [logD, setLogD] = useState([]);
   const [loadLog, setLoadLog] = useState(false);
   const mozeAdmin = jeAdmin(korisnik?.uloga);
-  const mozeAnalitika = jeKvalitetIliVise(korisnik?.uloga) || mozeAdmin;
+  const mozeAnalitika = mozeAnalitikaUloga(korisnik?.uloga);
 
   const addToast = useCallback((tekst, tip = "info") => {
     const id = Date.now();
@@ -133,7 +137,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     ["log", "LOG"],
     ...(mozeAnalitika ? [["trasabilitet", "TRASABILITET"]] : []),
     ...(mozeAdmin ? [["admin", "ADMIN"]] : []),
-  ].filter(([id]) => mozeTabMerljive(id, korisnik?.uloga));
+  ].filter(([id]) => mozeTabMerljive(id, korisnik?.uloga, rezimRada));
 
   const bojaTaba = (id) => {
     if (id === "karte") return C.narandzasta;
@@ -205,10 +209,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     const noviDeo = idDeo && idDeo !== prethodniId.current;
     const novaSmena = smena !== prethodnaSmenaPoka.current;
     if (noviDeo || novaSmena) {
-      setUnosKorak("poka");
+      setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
       prethodnaSmenaPoka.current = smena;
     }
-  }, [idDeo, smena]);
+  }, [idDeo, smena, korisnik?.uloga, rezimRada]);
 
   useEffect(() => {
     localStorage.setItem("spc_smena", String(smena));
@@ -355,10 +359,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   );
 
   useEffect(() => {
-    if (!mozeTabMerljive(tab, korisnik?.uloga)) {
+    if (!mozeTabMerljive(tab, korisnik?.uloga, rezimRada)) {
       setTab("unos");
     }
-  }, [tab, korisnik?.uloga]);
+  }, [tab, korisnik?.uloga, rezimRada]);
+
+  useEffect(() => {
+    if (jeLinija && tab !== "unos" && tab !== "log") setTab("unos");
+  }, [jeLinija, tab]);
 
   const resetKolone = useCallback((broj) => {
     setKolone(prazneKolone(broj));
@@ -414,13 +422,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setKolone(cols);
     setAktivnaKolona(indeksSledecePrazno(cols, potrebanBroj, 0));
     prethodniId.current = id;
+    setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
     ensureSesija({
       modul: "merljive",
       idDeo: id,
       smena,
       radniNalog: sop.radni_nalog || radniNalog,
     });
-  }, [sopMap, karakteristike, korisnik, smena, radniNalog]);
+  }, [sopMap, karakteristike, korisnik, smena, radniNalog, rezimRada]);
 
   useEffect(() => {
     if (!slika) { setUrlSlike(null); return; }
@@ -474,7 +483,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setKolone(cols);
     setKpiSerija(podrazumevaniKpiIzMerenja({ kolone: cols, potrebanBroj, brojKolona: brojK }));
     setAktivnaKolona(indeksSledecePrazno(cols, potrebanBroj, 0));
-    if (idDeo) setUnosKorak("forma");
+    if (idDeo) setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
   };
 
   const prebaciNaSledecuSerijuPosleSnimanja = (sacuvanaSerija) => {
@@ -738,16 +747,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   };
 
   const KOLONA_MIN = 168;
-  const KOLONE_GAP = ekran.mob ? 8 : 10;
-  /** Telefon (<1024): portrait = kolone gore / crtež dole; landscape = kao laptop */
-  const telefon = !ekran.desk && ekran.w < 1024;
-  const telefonPortrait = telefon && ekran.h >= ekran.w;
-  const telefonLandscape = telefon && ekran.w > ekran.h;
-  const mobilniUnosStek = telefonPortrait;
-  /** Laptop ~1366×760 — 5 kolona levo + crtež desno (referentna slika) */
-  const laptopKlassic = ekran.desk && ekran.w >= 1024 && ekran.w < 1700 && ekran.h < 980;
-  /** Veliki desktop 1920×1080+ */
-  const visokDesktop = ekran.desk && !laptopKlassic;
+  const KOLONE_GAP = ekran.telefon ? 8 : 10;
+  const { telefon, telefonLandscape, uspravnoMobTab } = ekran;
+  /** Portrait: kolone merenja gore, crtež dole (telefon + tablet uspravno) */
+  const mobilniUnosStek = ekran.uspravnoMobTab;
+  /** Laptop ~1366×760 — 5 kolona levo + crtež desno */
+  const laptopKlassic = !telefon && ekran.w >= 1024 && ekran.w < 1700 && ekran.h < 980;
+  /** Desktop 1920×1080+ */
+  const visokDesktop = !telefon && ekran.w >= 1024 && !laptopKlassic;
   const slikaPx = mobilniUnosStek
     ? 0
     : telefonLandscape
@@ -777,12 +784,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   const visinaKoloneScroll = mobilniUnosStek
     ? Math.min(400, Math.max(220, Math.round(ekran.h * 0.52)))
     : telefonLandscape
-      ? Math.min(280, Math.max(150, ekran.h - 100))
+      ? Math.min(320, Math.max(160, ekran.h - 72))
       : Math.min(380, Math.max(240, ekran.h - 240));
   const visinaCrtezaMob = Math.min(200, Math.max(150, Math.round(ekran.h * 0.22)));
-  const kolonePoravnajMob = (mobilniUnosStek || telefonLandscape) ? "flex-start" : kolonePoravnaj;
+  const kolonePoravnajMob = telefon ? "flex-start" : kolonePoravnaj;
   const visinaGlavneOblasti = telefon
-    ? Math.max(200, ekran.h - (telefonLandscape ? 96 : 168))
+    ? Math.max(220, ekran.h - (telefonLandscape ? 88 : 150))
     : undefined;
 
   const metaRed = (naslov, vrednost, accent) => (
@@ -863,15 +870,15 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     </div>
   );
 
-  const lbl = { display: "block", fontSize: ekran.mob ? 10 : 11, color: C.sivi, marginBottom: 3 };
+  const lbl = { display: "block", fontSize: telefon ? 10 : 11, color: C.sivi, marginBottom: 3 };
 
   const inp = {
     background: C.input,
     border: `1px solid ${C.border}`,
     borderRadius: 6,
     color: C.tekst,
-    padding: ekran.mob ? "7px 8px" : "8px 10px",
-    fontSize: ekran.mob ? 12 : 13,
+    padding: telefon ? "7px 8px" : "8px 10px",
+    fontSize: telefon ? 12 : 13,
     width: "100%",
     fontFamily: "inherit",
     boxSizing: "border-box",
@@ -885,11 +892,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     fontWeight: 600,
   };
 
-  const padGlavni = telefonPortrait
-    ? "6px 8px 10px"
-    : laptopKlassic
-      ? "8px 16px 10px"
-      : "6px 8px 8px";
+  const padGlavni = koristiMobLinija
+    ? "8px 10px 16px"
+    : uspravnoMobTab
+      ? "6px 8px 10px"
+      : laptopKlassic
+        ? "8px 16px 10px"
+        : "6px 8px 8px";
 
   const prikaziZahtevPrekid = imaNepotpunuSesiju && !prekidOdobrenId && !mozeAdmin && imaBiloSta(kolone);
 
@@ -1025,13 +1034,42 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               </button>
             )}
             {!ekran.mob && (
-              <span style={{ color: C.sivi, fontSize: 10 }} title={opisUloge(korisnik?.uloga)}>
+              <span style={{ color: C.sivi, fontSize: 10 }} title={opisUloge(korisnik?.uloga, rezimRada)}>
                 {korisnik?.ime} · {korisnik?.uloga}
               </span>
+            )}
+            {mozePrebacivanjeRezima(korisnik?.uloga) && typeof onPromeniRezim === "function" && (
+              <button
+                type="button"
+                onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
+                style={{
+                  background: jeLinija ? `${C.zelena}22` : `${C.plava}22`,
+                  border: `1px solid ${jeLinija ? C.zelena : C.plava}`,
+                  borderRadius: 5, color: jeLinija ? C.zelena : C.plava,
+                  fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
+                }}
+              >
+                {jeLinija ? "📊 Analitika" : "🏭 Linija"}
+              </button>
+            )}
+            {jeLinija && koristiMobLinija && mozeTabMerljive("log", korisnik?.uloga, rezimRada) && (
+              <button
+                type="button"
+                onClick={() => setTab(tab === "log" ? "unos" : "log")}
+                style={{
+                  background: tab === "log" ? `${C.zelena}22` : C.hover,
+                  border: `1px solid ${tab === "log" ? C.zelena : C.border}`,
+                  borderRadius: 5, color: tab === "log" ? C.zelena : C.sivi,
+                  fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
+                }}
+              >
+                {tab === "log" ? "← Unos" : "LOG"}
+              </button>
             )}
             <button type="button" onClick={onOdjava} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, color: C.sivi, fontSize: 10, padding: "3px 10px", cursor: "pointer" }}>Odjava</button>
           </div>
         </div>
+        {(!jeLinija || !ekran.linijaUredjaj) && TABOVI.length > 1 && (
         <div style={{
           display: "flex",
           borderTop: `1px solid ${C.border}`,
@@ -1052,6 +1090,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {tab === "karte" && (
@@ -1153,6 +1192,16 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         </div>
       )}
 
+      {tab === "unos" && jeLinija && (
+        <LinijaWizardNav
+          korak={!idDeo || !grupaAB ? "id" : unosKorak === "forma" ? "unos" : unosKorak}
+          koraci={kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA}
+          C={C}
+          akcent={C.zelena}
+          kompakt={koristiMobLinija}
+        />
+      )}
+
       {tab === "unos" && (
       <div style={{
         flex: 1,
@@ -1182,27 +1231,31 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
         <div style={{
           display: "grid",
-          gridTemplateColumns: telefonPortrait
+          gridTemplateColumns: koristiMobLinija
             ? "repeat(2, minmax(0, 1fr))"
-            : telefonLandscape
-              ? "repeat(4, minmax(72px, 1fr))"
-              : ekran.tablet
-                ? "repeat(3, minmax(0, 1fr))"
-                : "repeat(auto-fill, minmax(110px, 1fr))",
-          gap: 8,
+            : uspravnoMobTab
+              ? "repeat(2, minmax(0, 1fr))"
+              : telefonLandscape
+                ? "repeat(4, minmax(72px, 1fr))"
+                : ekran.tablet
+                  ? "repeat(3, minmax(0, 1fr))"
+                  : "repeat(auto-fill, minmax(110px, 1fr))",
+          gap: koristiMobLinija ? 10 : 8,
           marginBottom: 6,
           flexShrink: 0,
           width: "100%",
         }}>
-          <label style={lbl}>Datum<input style={inp} value={datum} onChange={e => setDatum(e.target.value)} /></label>
+          {!koristiMobLinija && (
+            <label style={lbl}>Datum<input style={inp} value={datum} onChange={e => setDatum(e.target.value)} /></label>
+          )}
           <label style={lbl}>Smena
             <select style={inp} value={smena} onChange={e => setSmena(e.target.value)}>
               {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>
-          <label style={lbl}>ID deo *
+          <label style={{ ...lbl, gridColumn: koristiMobLinija ? "1 / -1" : undefined }}>ID deo *
             <input
-              style={inp}
+              style={{ ...inp, fontSize: koristiMobLinija ? 18 : undefined, fontWeight: koristiMobLinija ? 700 : undefined, textAlign: koristiMobLinija ? "center" : undefined }}
               value={idDeo}
               onChange={e => onIdChange(e.target.value)}
               onKeyDown={e => {
@@ -1212,12 +1265,25 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               title={digitalniUnos ? "USB barkod čitač" : "Šifra dela"}
             />
           </label>
+          {koristiMobLinija && nazivDela && (
+            <div style={{
+              gridColumn: "1 / -1", background: `${C.zelena}18`, border: `1px solid ${C.zelena}40`,
+              borderRadius: 8, padding: "8px 10px", fontSize: 12, fontWeight: 700, color: C.zelena,
+            }}>
+              {nazivDela}
+              {linija && <span style={{ color: C.sivi, fontWeight: 400, marginLeft: 8, fontSize: 10 }}>{linija}</span>}
+            </div>
+          )}
+          {!koristiMobLinija && (
+            <>
           <label style={lbl}>Radni nalog<input style={inp} value={radniNalog} readOnly /></label>
           <label style={lbl}>Naziv dela<input style={inp} value={nazivDela} readOnly /></label>
           <label style={lbl}>Linija<input style={inp} value={linija} readOnly /></label>
           <label style={lbl}>Kontrolor<input style={inp} value={kontrolor} readOnly /></label>
           <label style={lbl}>Mašina<input style={inp} value={masina || "-"} readOnly /></label>
-          <label style={lbl}>Serija
+            </>
+          )}
+          <label style={{ ...lbl, gridColumn: koristiMobLinija ? "1 / -1" : undefined }}>Serija
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {grupe.map((g) => {
                 const idx = grupe.indexOf(g);
@@ -1251,6 +1317,20 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             </div>
           </label>
         </div>
+
+        {idDeo && grupaAB && kontrolorLinija && unosKorak === "cek" && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: 8 }}>
+            <KontrolnaLista
+              korisnik={korisnik}
+              smena={Number(smena)}
+              naslovModul="Merljive"
+              akcent={C.zelena}
+              ugradjen
+              onZavrsena={() => setUnosKorak("poka")}
+              C={C}
+            />
+          </div>
+        )}
 
         {idDeo && grupaAB && unosKorak === "poka" && (
           <div style={{
@@ -1294,28 +1374,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           </div>
         )}
 
-        {idDeo && grupaAB && unosKorak === "forma" && (
-          <button
-            type="button"
-            onClick={() => setUnosKorak("poka")}
-            style={{
-              alignSelf: "flex-start",
-              background: C.panel,
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              color: C.sivi,
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "6px 12px",
-              cursor: "pointer",
-              marginBottom: 6,
-              flexShrink: 0,
-            }}
-          >
-            ← Nazad na poka-yoke proveru
-          </button>
-        )}
-
         {digitalniUnos && idDeo && grupaAB && unosKorak === "forma" && (
           <DigitalnoMeriloPanel
             C={C}
@@ -1325,7 +1383,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             aktivnaKolona={aktivnaKolona}
             setAktivnaKolona={setAktivnaKolona}
             addToast={addToast}
-            kompakt={ekran.mob}
+            kompakt={ekran.telefon}
           />
         )}
 
@@ -1437,7 +1495,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                     ? `2px solid ${C.zelena}`
                     : `1px solid ${C.border}`,
                   borderRadius: 8,
-                  padding: ekran.mob ? 6 : 8,
+                  padding: telefon ? 6 : 8,
                   boxSizing: "border-box",
                   opacity: k.naziv === "-" ? 0.4 : 1,
                   width: koloneScroll ? sirinaKolone : "100%",
@@ -1524,7 +1582,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                           : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
                       />
                       <button type="button" onClick={() => dodajMerenje(i)}
-                        style={{ width: "100%", background: C.plava, border: "none", borderRadius: 5, color: "#fff", padding: "5px 0", cursor: "pointer", fontSize: 11, marginBottom: 5, flexShrink: 0 }}>
+                        style={{
+                          width: "100%", background: C.plava, border: "none", borderRadius: 6,
+                          color: "#fff", padding: telefon ? "10px 0" : "8px 0", cursor: "pointer",
+                          fontSize: telefon ? 13 : 12, fontWeight: 700, marginBottom: 5, flexShrink: 0,
+                        }}>
                         + Dodaj
                       </button>
                       {metaBrojaciOkNok(k.cntNOK, k.cntOK)}
@@ -1580,7 +1642,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           {idDeo && serijaPotpuna && (
             <div style={{
               flexShrink: 0,
-              maxHeight: telefonPortrait ? 160 : 200,
+              maxHeight: uspravnoMobTab ? 160 : 200,
               overflowY: "auto",
               marginTop: 4,
             }}>
@@ -1614,9 +1676,17 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               borderRadius: 8,
               width: "100%",
               flex: mobilniUnosStek ? "none" : 1,
-              height: mobilniUnosStek ? visinaCrtezaMob : undefined,
-              minHeight: mobilniUnosStek ? visinaCrtezaMob : 100,
-              maxHeight: mobilniUnosStek ? visinaCrtezaMob : undefined,
+              height: mobilniUnosStek
+                ? visinaCrtezaMob
+                : telefonLandscape
+                  ? Math.max(120, Math.min(180, ekran.h - 80))
+                  : undefined,
+              minHeight: mobilniUnosStek
+                ? visinaCrtezaMob
+                : telefonLandscape
+                  ? Math.max(120, ekran.h - 88)
+                  : 100,
+              maxHeight: mobilniUnosStek ? visinaCrtezaMob : telefonLandscape ? "45vh" : undefined,
               boxSizing: "border-box",
               padding: 6,
               display: "flex",

@@ -38,6 +38,58 @@ export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, d
   };
 }
 
+/** Ograničen pregled za Modul 1 atributivne — samo kontrolni log (bez PDF / merljivih). */
+export async function ucitajTrasabilitetLinijaAtr(supabase, { idDeo, smena, limit = 25 }) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return { log: [], greska: "Unesite ID dela" };
+
+  const od = new Date();
+  od.setDate(od.getDate() - 7);
+  const datumOd = od.toISOString().split("T")[0];
+
+  let q = supabase.from("kontrolni_log")
+    .select("datum,smena,status,ok_kolicina,nok_kolicina,greska_naziv,podkategorija,created_at")
+    .eq("id_deo", id)
+    .gte("datum", datumOd)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (smena) q = q.eq("smena", smena);
+
+  const { data, error } = await q;
+  return {
+    idDeo: id,
+    smena: smena || null,
+    log: data || [],
+    greska: error?.message || null,
+  };
+}
+
+/** Ograničen pregled za Modul 1 merljive — samo varijabilna merenja. */
+export async function ucitajTrasabilitetLinijaMer(supabase, { idDeo, smena, limit = 25 }) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return { merenja: [], greska: "Unesite ID dela" };
+
+  const od = new Date();
+  od.setDate(od.getDate() - 7);
+  const datumOd = od.toISOString().split("T")[0];
+
+  let q = supabase.from("merenja_varijabilna")
+    .select("datum,smena,pozicija,vrednost_raw,status,sifra_merenja,created_at")
+    .eq("id_deo", id)
+    .gte("datum", datumOd)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (smena) q = q.eq("smena", String(smena));
+
+  const { data, error } = await q;
+  return {
+    idDeo: id,
+    smena: smena || null,
+    merenja: data || [],
+    greska: error?.message || null,
+  };
+}
+
 export async function preuzmiTrasabilitetPdf(podaci, C) {
   const { default: jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });

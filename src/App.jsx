@@ -67,7 +67,15 @@ import NotifikacijePodesavanja from "./components/NotifikacijePodesavanja.jsx";
 import MeriloBarkodUputstvo from "./components/MeriloBarkodUputstvo.jsx";
 import OfflineSyncPanel from "./components/OfflineSyncPanel.jsx";
 import TrasabilitetPanel from "./components/TrasabilitetPanel.jsx";
-import { mozeTabAtributivne, opisUloge } from "./lib/uloge.js";
+import {
+  mozeTabAtributivne, opisUloge, podrazumevaniRezim, mozePrebacivanjeRezima,
+  mozeAnalitika, jeLinijaUloga, efektivniRezimRada,
+  jeKontrolorLinija, pocetniKorakUnosAtr, preskociAppKontrolnuListu,
+} from "./lib/uloge.js";
+import { useEkran } from "./lib/useEkran.js";
+import LinijaWizardNav, { KORACI_ATRIB_LINIJA, KORACI_ATRIB_KONTROLOR } from "./components/LinijaWizardNav.jsx";
+import VoziloZonaNav from "./components/VoziloZonaNav.jsx";
+import { filtrirajVoziloRedove } from "./lib/voziloZoneConfig.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
 
 const SUPABASE_URL  = "https://wzxkcomeurogvfisticq.supabase.co";
@@ -1650,8 +1658,15 @@ function UnosAqlPanel({ lotVelicina, onLotVelicinaChange, listaG, listaP, C }) {
 }
 
 // ─── GLAVNA FORMA ─────────────────────────────────────────────
-function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
+function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analitika", onPromeniRezim }) {
   const ekran = useEkran();
+  const jeLinija = rezimRada === "linija";
+  const koristiMobLinija = jeLinija && ekran.linijaUredjaj;
+  const koristiMobAnalitika = !jeLinija && ekran.mob;
+  const koristiMobUnos = koristiMobLinija || koristiMobAnalitika;
+  const kontrolorLinija = jeKontrolorLinija(korisnik?.uloga, rezimRada);
+  const LEva_W = "220px";
+  const H = 1.5;
   const [sviDelovi,setSviDelovi] = useState([]);
   const [linije,setLinije]       = useState([]);
   const [masine,setMasine]       = useState([]);
@@ -1668,6 +1683,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   const [kategorija,setKategorija] = useState("");
   const [podkat,setPodkat]         = useState("");
   const [defekt,setDefekt]         = useState("");
+  const [voziloZona,setVoziloZona] = useState(null);
   const [kolicina,setKolicina]     = useState(1);
   const [smena,setSmena]           = useState(()=>Number(localStorage.getItem("spc_smena")||sessionStorage.getItem("spc_smena")||1));
   const [listaG,setListaG]         = useState([]);
@@ -1716,6 +1732,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   });
 
   const voziloMode = jeKontrolaCelogVozila(deoInfo);
+  const voziloFormaEkran = voziloMode && deoInfo && unosKorakAtr === "forma";
   const prikaziLokaciju = !voziloMode;
   const pendingStat = useMemo(() => pendingFromLista(listaP), [listaP]);
   const smenaStat = useMemo(() => mergeSmenaStat(dbSmena, pendingStat), [dbSmena, pendingStat]);
@@ -1742,16 +1759,25 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     }));
   }, [listaP]);
   const { linija: linijaNaziv, masina: masinaNaziv } = lokacijaDela(deoInfo, linije, masine);
-  const voziloKatFiltered = useMemo(() => {
-    const kid = deoInfo?.vozilo_katalog_id;
-    const rows = kid
-      ? voziloKatalogRows.filter(r => r.vozilo_id === kid)
-      : voziloKatalogRows;
-    return buildGreskeKatalog(rows);
-  }, [deoInfo?.vozilo_katalog_id, voziloKatalogRows]);
-  const aktivneGreske = voziloMode ? voziloKatFiltered.gr : greskeKat;
-  const aktivniDefekti = voziloMode ? voziloKatFiltered.df : defektiMap;
+  const aktivneGreske = voziloMode ? {} : greskeKat;
+  const aktivniDefekti = voziloMode ? {} : defektiMap;
   const koristiDefekte = voziloMode;
+
+  const onVoziloZonaChange = useCallback((zonaId) => {
+    setVoziloZona(zonaId);
+    setKategorija("");
+    setPodkat("");
+    setDefekt("");
+  }, []);
+
+  const voziloKatPoZoni = useMemo(() => {
+    if (!voziloMode || !voziloZona) return { gr: {}, df: {} };
+    const rows = filtrirajVoziloRedove(voziloKatalogRows, voziloZona);
+    return buildGreskeKatalog(rows);
+  }, [voziloMode, voziloZona, voziloKatalogRows]);
+
+  const greskeZaUnos = voziloMode ? voziloKatPoZoni.gr : aktivneGreske;
+  const defektiZaUnos = voziloMode ? voziloKatPoZoni.df : aktivniDefekti;
 
   useEffect(() => {
     if (!koristiDefekte) setDefekt("");
@@ -1901,20 +1927,24 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
   useEffect(() => {
     if (!deoInfo) return;
     if (smena !== prethodnaSmenaAtr.current) {
-      setUnosKorakAtr("poka");
+      setUnosKorakAtr(pocetniKorakUnosAtr(korisnik?.uloga, rezimRada, { voziloMode }));
       prethodnaSmenaAtr.current = smena;
     }
-  }, [smena, deoInfo]);
+  }, [smena, deoInfo, korisnik?.uloga, rezimRada, voziloMode]);
 
   // ID deo lookup + barkod auto-popunjavanje
   useEffect(()=>{
     if(idDeo.length<3){setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";return;}
-    const n=sviDelovi.find(d=>d.id_deo.toUpperCase()===idDeo.toUpperCase());
+    const idNorm = idDeo.toUpperCase();
+    const n=sviDelovi.find(d=>d.id_deo.toUpperCase()===idNorm);
     if(n){
-      setDeoInfo(n);setCilj(n.kom_za_kontrolu||30);setPreostalo(n.kom_za_kontrolu||30);
-      const noviDeo = idDeo.toUpperCase() !== prethodniIdAtr.current.toUpperCase();
+      const voziloDeo = jeKontrolaCelogVozila(n);
+      setDeoInfo(prev => (prev?.id_deo?.toUpperCase() === idNorm ? prev : n));
+      setCilj(n.kom_za_kontrolu||30);setPreostalo(n.kom_za_kontrolu||30);
+      const noviDeo = idNorm !== prethodniIdAtr.current.toUpperCase();
       if (noviDeo) {
-        setUnosKorakAtr("poka");
+        setUnosKorakAtr(pocetniKorakUnosAtr(korisnik?.uloga, rezimRada, { voziloMode: voziloDeo }));
+        setVoziloZona(null);
         prethodniIdAtr.current = idDeo;
       }
 
@@ -1939,12 +1969,15 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           addToast(`📋 Nalog: ${nalog.broj_naloga}${nalog.kupac?" ("+nalog.kupac+")":""}`, "info");
         }
       });
-    }else{setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";}
-  },[idDeo,sviDelovi]); // eslint-disable-line
+    }else if (prethodniIdAtr.current.toUpperCase() !== idNorm) {
+      setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";
+    }
+  },[idDeo,sviDelovi,korisnik?.uloga,rezimRada]); // eslint-disable-line
 
   const dodajGresku=()=>{
     if(!deoInfo){setModal({poruka:"ID dela nije pronađen!",tip:"greska"});return;}
     if(!status) {setModal({poruka:"Izaberi STATUS!",tip:"greska"});return;}
+    if(status==="NOK"&&voziloMode&&!voziloZona){setModal({poruka:"Izaberi zonu vozila na dijagramu!",tip:"greska"});return;}
     if(status==="NOK"&&(!kategorija||!podkat)){setModal({poruka:"Popuni NOK detalje!",tip:"greska"});return;}
     if(status==="NOK"&&koristiDefekte&&!defekt){setModal({poruka:"Izaberi DEFEKT (kontrola vozila)!",tip:"greska"});return;}
     const defektUnos = status==="OK" ? "-" : (koristiDefekte ? defekt : podkat);
@@ -2074,10 +2107,12 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
 
   const noviNalog=()=>{
     novaSesija({ modul: "atributivne", idDeo: "", smena, radniNalog: "" });
-    setIdDeo("");setDeoInfo(null);setUpoz("");setStatus("");setUnosKorakAtr("poka");
+    setIdDeo("");setDeoInfo(null);setUpoz("");setStatus("");
+    setUnosKorakAtr(pocetniKorakUnosAtr(korisnik?.uloga, rezimRada, { voziloMode: false }));
     setKategorija("");setPodkat("");setDefekt("");setKolicina(1);
     setListaG([]);setListaP([]);setPreostalo(0);setCilj(0);setFoto(null);
     setKomentar("");setRadniNalog("");setNalogInfo(null);setPrekidOdobrenId(null);
+    setVoziloZona(null);
     setKpiSerija(podrazumevaniKpiIzListeP([]));
     setTimeout(()=>idRef.current?.focus(),100);
   };
@@ -2098,11 +2133,15 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
     ["kupac","KUPAC"],["oc","OC KRIVA"],["stabilnost","STABILNOST"],
     ["trasabilitet","TRASABILITET"],
     ...(mozeAdmin(korisnik.uloga)?[["admin","ADMIN"]]:[]),
-  ].filter(([id]) => mozeTabAtributivne(id, korisnik.uloga));
+  ].filter(([id]) => mozeTabAtributivne(id, korisnik.uloga, rezimRada));
 
   useEffect(() => {
-    if (!mozeTabAtributivne(tab, korisnik.uloga)) setTab("unos");
-  }, [tab, korisnik.uloga]);
+    if (!mozeTabAtributivne(tab, korisnik.uloga, rezimRada)) setTab("unos");
+  }, [tab, korisnik.uloga, rezimRada]);
+
+  useEffect(() => {
+    if (jeLinija && tab !== "unos" && tab !== "log") setTab("unos");
+  }, [jeLinija, tab]);
 
   if(loadInit)return(
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",
@@ -2150,6 +2189,20 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           </select>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {jeLinija && koristiMobLinija && mozeTabAtributivne("log", korisnik.uloga, rezimRada) && (
+            <button
+              type="button"
+              onClick={() => setTab(tab === "log" ? "unos" : "log")}
+              style={{
+                background: tab === "log" ? `${C.plava}22` : C.hover,
+                border: `1px solid ${tab === "log" ? C.plava : C.border}`,
+                borderRadius: 5, color: tab === "log" ? C.plava : C.sivi,
+                fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
+              }}
+            >
+              {tab === "log" ? "← Unos" : "LOG"}
+            </button>
+          )}
           <button onClick={()=>setC(p=>p.naziv==="tamna"?TEME.svetla:TEME.tamna)}
             style={{background:C.hover,border:`1px solid ${C.border}`,borderRadius:5,
               color:C.sivi,fontSize:11,padding:"4px 10px",cursor:"pointer"}}>
@@ -2159,14 +2212,28 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
             color:korisnik.uloga==="admin"?C.zuta:C.plava,
             fontSize:9,padding:"2px 8px",borderRadius:20,letterSpacing:1}}>
             {korisnik.uloga.toUpperCase()}</span>
-          <span style={{color:C.sivi,fontSize:10}} title={opisUloge(korisnik.uloga)}>{korisnik.ime}</span>
+          <span style={{color:C.sivi,fontSize:10}} title={opisUloge(korisnik.uloga, rezimRada)}>{korisnik.ime}</span>
+          {mozePrebacivanjeRezima(korisnik.uloga) && typeof onPromeniRezim === "function" && (
+            <button
+              type="button"
+              onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
+              style={{
+                background: jeLinija ? `${C.zelena}22` : `${C.plava}22`,
+                border: `1px solid ${jeLinija ? C.zelena : C.plava}`,
+                borderRadius: 5, color: jeLinija ? C.zelena : C.plava,
+                fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
+              }}
+            >
+              {jeLinija ? "📊 Analitika" : "🏭 Linija"}
+            </button>
+          )}
           <button onClick={odjava} style={{background:"none",border:`1px solid ${C.border}`,
             borderRadius:5,color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>Odjava</button>
         </div>
       </div>
 
-      {/* TABOVI */}
-      {!ekran.mob && (
+      {/* TABOVI — analitika desktop ili linija kontrolor (UNOS+LOG) */}
+      {!ekran.linijaUredjaj && (!jeLinija || TABOVI.length > 1) && (
       <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:C.panel,paddingLeft:18}}>
         {TABOVI.map(([id,n])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
@@ -2183,19 +2250,31 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
       )}
 
             {/* ══ UNOS ══ */}
-      {tab==="unos" && ekran.mob && (
+      {tab==="unos" && koristiMobUnos && (
         <MobilniUnos
+          linijaMode={jeLinija}
+          kontrolorLinija={kontrolorLinija}
+          smena={smena}
+          radniNalog={radniNalog}
+          setRadniNalog={setRadniNalog}
+          unosKorakAtr={unosKorakAtr}
+          setUnosKorakAtr={setUnosKorakAtr}
+          linijaNaziv={linijaNaziv}
+          masinaNaziv={masinaNaziv}
+          korisnikIme={korisnik?.ime}
           idDeo={idDeo} setIdDeo={setIdDeo} deoInfo={deoInfo} upoz={upoz}
-          linijaNaziv={linijaNaziv} masinaNaziv={masinaNaziv}
           prikaziLokaciju={prikaziLokaciju}
           status={status} setStatus={setStatus}
           kategorija={kategorija} setKategorija={setKategorija}
           podkat={podkat} setPodkat={setPodkat}
           defekt={defekt} setDefekt={setDefekt}
           kolicina={kolicina} setKolicina={setKolicina}
-          greskeKat={aktivneGreske}
-          defektiMap={aktivniDefekti}
+          greskeKat={greskeZaUnos}
+          defektiMap={defektiZaUnos}
           koristiDefekte={koristiDefekte}
+          voziloMode={voziloMode}
+          voziloZona={voziloZona}
+          onVoziloZonaChange={onVoziloZonaChange}
           listaG={listaG} setListaG={setListaG}
           listaP={listaP} setListaP={setListaP}
           preostalo={preostalo} cilj={cilj}
@@ -2212,87 +2291,83 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           idRef={idRef}
         />
       )}
-      {tab==="unos" && !ekran.mob && (
+      {tab==="unos" && !koristiMobUnos && (
         <div style={{
           display:"grid",
-          gridTemplateColumns: deoInfo
-            ? (unosKorakAtr === "poka" ? "280px 1fr" : "280px 1fr 235px")
-            : "280px 1fr",
+          gridTemplateColumns: !deoInfo
+            ? `${LEva_W} 1fr`
+            : voziloFormaEkran
+              ? `${LEva_W} minmax(480px, 1.35fr) minmax(280px, 0.65fr) 235px`
+              : (voziloMode || unosKorakAtr === "forma" ? `${LEva_W} 1fr 235px` : `${LEva_W} 1fr`),
           height:"calc(100vh - 89px)",
         }}>
           {/* Leva */}
-          <div style={{borderRight:`1px solid ${C.border}`,padding:14,overflowY:"auto",display:"flex",flexDirection:"column",gap:11}}>
+          <div style={{borderRight:`1px solid ${C.border}`,padding:Math.round(8*H),overflowY:"auto",display:"flex",flexDirection:"column",gap:Math.round(8*H)}}>
             <div>
-              <label style={LBL}>ID DELA / BARKOD <span style={{color:C.border,fontWeight:400}}>(USB čitač · Enter na kraju skena)</span></label>
+              <label style={{...LBL, fontSize: Math.round(8*H), letterSpacing: 1}}>ID DELA</label>
               <input ref={idRef} value={idDeo} onChange={e=>setIdDeo(e.target.value.toUpperCase())}
-                placeholder="npr. 5501-A"
+                placeholder="5501-A"
                 style={{...INP,borderColor:deoInfo?C.zelena:idDeo.length>2?C.crvena:C.border,
                   background:deoInfo?C.ok:idDeo.length>2?C.nok:C.input,
-                  fontSize:15,fontWeight:700,letterSpacing:2,textAlign:"center"}}/>
+                  fontSize:Math.round(12*H),fontWeight:700,letterSpacing:1,textAlign:"center",padding:`${Math.round(6*H)}px ${Math.round(4*H)}px`}}/>
               {deoInfo && prikaziLokaciju && (
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:8}}>
+                <div style={{display:"flex",flexDirection:"column",gap:Math.round(4*H),marginTop:Math.round(6*H)}}>
                   {[["Linija", linijaNaziv], ["Mašina", masinaNaziv]].map(([l, v]) => (
                     <div key={l} style={{background:C.panel,border:`1px solid ${C.zelena}30`,
-                      borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
-                      <div style={{color:C.sivi,fontSize:8,letterSpacing:1,marginBottom:2}}>{l}</div>
-                      <div style={{color:C.tekst,fontSize:11,fontWeight:700}}>{v}</div>
+                      borderRadius:5,padding:`${Math.round(4*H)}px ${Math.round(6*H)}px`,fontSize:Math.round(9*H)}}>
+                      <span style={{color:C.sivi}}>{l}: </span>
+                      <span style={{color:C.tekst,fontWeight:700}}>{v}</span>
                     </div>
                   ))}
                 </div>
               )}
-              {upoz&&<div style={{color:C.crvena,fontSize:10,marginTop:4,padding:"5px 8px",background:C.nok,borderRadius:4}}>{upoz}</div>}
+              {upoz&&<div style={{color:C.crvena,fontSize:Math.round(8*H),marginTop:Math.round(4*H),padding:`${Math.round(4*H)}px ${Math.round(6*H)}px`,background:C.nok,borderRadius:4,lineHeight:1.3}}>{upoz}</div>}
               <UnosCiljBanner idDeo={idDeo} listaP={[...listaP,...listaG]} C={C}/>
             </div>
 
             {deoInfo?(
-              <div style={{background:C.ok,border:`1px solid ${C.zelena}26`,borderRadius:8,padding:11}}>
-                <div style={{color:C.zelena,fontWeight:700,fontSize:12,marginBottom:5}}>{deoInfo.naziv_dela}</div>
-                {prikaziLokaciju && [["Linija",linijaNaziv],["Mašina",masinaNaziv]].map(([l,v])=>(
-                  <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:3}}>
-                    <span style={{color:C.sivi}}>{l}</span><span style={{color:C.tekst}}>{v}</span>
-                  </div>
-                ))}
-                {/* Radni nalog input */}
-                <div style={{marginTop:8}}>
-                  <div style={{color:C.sivi,fontSize:8,letterSpacing:1.2,marginBottom:3}}>RADNI NALOG</div>
+              <div style={{background:C.ok,border:`1px solid ${C.zelena}26`,borderRadius:6,padding:Math.round(6*H)}}>
+                <div style={{color:C.zelena,fontWeight:700,fontSize:Math.round(9*H),marginBottom:Math.round(4*H),lineHeight:1.3}}>{deoInfo.naziv_dela}</div>
+                <div style={{marginTop:Math.round(4*H)}}>
+                  <div style={{color:C.sivi,fontSize:Math.round(7*H),letterSpacing:1,marginBottom:2}}>RN</div>
                   <input value={radniNalog} onChange={e=>setRadniNalog(e.target.value.toUpperCase())}
-                    placeholder="RN-2024-001"
-                    style={{width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:5,
-                      color:C.tekst,fontSize:11,padding:"5px 8px",boxSizing:"border-box",
+                    placeholder="RN-001"
+                    style={{width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:4,
+                      color:C.tekst,fontSize:Math.round(9*H),padding:`${Math.round(4*H)}px ${Math.round(5*H)}px`,boxSizing:"border-box",
                       outline:"none",fontFamily:"inherit"}}/>
                 </div>
 
-                <div style={{marginTop:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:9,marginBottom:3}}>
-                    <span style={{color:C.sivi}}>PREOSTALO</span>
+                <div style={{marginTop:Math.round(6*H)}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:Math.round(8*H),marginBottom:2}}>
+                    <span style={{color:C.sivi}}>PREOST.</span>
                     <span style={{color:preostalo===0?C.zelena:C.zuta,fontWeight:700}}>{preostalo}/{cilj}</span>
                   </div>
-                  <div style={{background:C.hover,borderRadius:3,height:5}}>
+                  <div style={{background:C.hover,borderRadius:3,height:Math.round(4*H)}}>
                     <div style={{background:preostalo===0?C.zelena:C.plava,width:`${cilj>0?(cilj-preostalo)/cilj*100:0}%`,
-                      height:5,borderRadius:3,transition:"width 0.3s"}}/>
+                      height:Math.round(4*H),borderRadius:3,transition:"width 0.3s"}}/>
                   </div>
                 </div>
                 <UnosAqlPanel lotVelicina={lotAql} onLotVelicinaChange={promeniLotAql} listaG={listaG} listaP={listaP} C={C}/>
               </div>
             ):(
-              <div style={{background:C.panel,border:`1px dashed ${C.border}`,borderRadius:8,
-                padding:20,textAlign:"center",color:C.border,fontSize:10}}>Unesi ID dela</div>
+              <div style={{background:C.panel,border:`1px dashed ${C.border}`,borderRadius:6,
+                padding:Math.round(10*H),textAlign:"center",color:C.border,fontSize:Math.round(8*H)}}>Unesi ID</div>
             )}
 
             {/* Foto */}
-            <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:10}}>
-              <div style={{color:C.sivi,fontSize:9,letterSpacing:1,marginBottom:6}}>FOTO GREŠKE</div>
+            <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:6,padding:Math.round(6*H)}}>
+              <div style={{color:C.sivi,fontSize:Math.round(7*H),letterSpacing:1,marginBottom:Math.round(4*H)}}>FOTO</div>
               {foto?(
                 <div style={{position:"relative"}}>
-                  <img src={foto} alt="greška" style={{width:"100%",borderRadius:5,maxHeight:110,objectFit:"cover"}}/>
-                  <button onClick={()=>setFoto(null)} style={{position:"absolute",top:3,right:3,
-                    background:C.crvena,border:"none",borderRadius:3,color:"#fff",fontSize:10,padding:"1px 6px",cursor:"pointer"}}>✕</button>
+                  <img src={foto} alt="greška" style={{width:"100%",borderRadius:4,maxHeight:Math.round(70*H),objectFit:"cover"}}/>
+                  <button onClick={()=>setFoto(null)} style={{position:"absolute",top:2,right:2,
+                    background:C.crvena,border:"none",borderRadius:3,color:"#fff",fontSize:Math.round(8*H),padding:"1px 4px",cursor:"pointer"}}>✕</button>
                 </div>
               ):(
-                <div onClick={()=>fotoRef.current?.click()} style={{height:70,display:"flex",alignItems:"center",
-                  justifyContent:"center",color:C.border,flexDirection:"column",gap:3,fontSize:10,
-                  border:`1px dashed ${C.border}`,borderRadius:5,cursor:"pointer"}}>
-                  📷 Fotografiši grešku
+                <div onClick={()=>fotoRef.current?.click()} style={{height:Math.round(48*H),display:"flex",alignItems:"center",
+                  justifyContent:"center",color:C.border,fontSize:Math.round(16*H),
+                  border:`1px dashed ${C.border}`,borderRadius:4,cursor:"pointer"}}>
+                  📷
                 </div>
               )}
               <input ref={fotoRef} type="file" accept="image/*" capture="environment" onChange={e=>{
@@ -2302,57 +2377,109 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
             </div>
 
             <button onClick={noviNalog}
-              style={{...BTN(C.hover),border:`1px solid ${C.border}`,color:C.sivi,fontSize:10,marginTop:"auto"}}>
-              ↺ NOVI NALOG
+              style={{...BTN(C.hover),border:`1px solid ${C.border}`,color:C.sivi,fontSize:Math.round(8*H),padding:`${Math.round(6*H)}px ${Math.round(4*H)}px`,marginTop:"auto"}}>
+              ↺ NOVI
             </button>
           </div>
 
-          {deoInfo && unosKorakAtr === "poka" && (
-            <div style={{
-              padding: 14,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 0,
-            }}>
-              <UnosPokaYokeKorak
-                C={C}
-                modul="atributivne"
-                akcent={C.plava}
-                idDeo={String(idDeo || "").toUpperCase()}
-                nazivDela={deoInfo?.naziv_dela}
-                radniNalog={radniNalog}
-                linija={linijaNaziv}
-                masina={masinaNaziv}
-                kontrolor={korisnik?.ime}
-                onDalje={() => setUnosKorakAtr("forma")}
-                daljeLabel="Unos OK/NOK →"
-              />
+          {deoInfo && unosKorakAtr !== "forma" && (
+            <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+              {kontrolorLinija && (
+                <LinijaWizardNav
+                  korak={unosKorakAtr}
+                  koraci={KORACI_ATRIB_KONTROLOR}
+                  C={C}
+                  akcent={C.plava}
+                />
+              )}
+
+              {unosKorakAtr === "cek" && (
+                <div style={{ padding: "8px 14px 14px", overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
+                  <KontrolnaLista
+                    korisnik={korisnik}
+                    smena={smena}
+                    naslovModul="Atributivne"
+                    ugradjen
+                    onZavrsena={() => setUnosKorakAtr("poka")}
+                    C={C}
+                  />
+                </div>
+              )}
+
+              {unosKorakAtr === "poka" && (
+                <div style={{
+                  padding: 14,
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  flex: 1,
+                }}>
+                  <UnosPokaYokeKorak
+                    C={C}
+                    modul="atributivne"
+                    akcent={C.plava}
+                    idDeo={String(idDeo || "").toUpperCase()}
+                    nazivDela={deoInfo?.naziv_dela}
+                    radniNalog={radniNalog}
+                    linija={linijaNaziv}
+                    masina={masinaNaziv}
+                    kontrolor={korisnik?.ime}
+                    onDalje={() => setUnosKorakAtr("forma")}
+                    daljeLabel="Unos OK/NOK →"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {deoInfo && unosKorakAtr !== "forma" && voziloMode && (
+            <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", borderLeft: `1px solid ${C.border}` }}>
+              <label style={LBL}>PREGLED ({listaP.length})</label>
+              <div style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "auto", minHeight: 60 }}>
+                {!listaP.length ? (
+                  <div style={{ padding: 14, textAlign: "center", color: C.border, fontSize: 10 }}>Nema snimljenih</div>
+                ) : listaP.map((s, i) => (
+                  <div key={i} style={{ padding: "6px 9px", borderBottom: `1px solid ${C.border}`,
+                    background: s.status === "OK" ? C.ok : C.nok, fontSize: 10 }}>
+                    <div style={{ color: s.status === "OK" ? C.zelena : C.crvena, fontWeight: 700 }}>{s.status}</div>
+                    <div style={{ color: C.tekst }}>{s.kat}</div>
+                    <div style={{ color: C.sivi, fontSize: 9 }}>{s.pod}{s.defekt && s.defekt !== "-" ? ` › ${s.defekt}` : ""}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {deoInfo && unosKorakAtr === "forma" && (
           <>
-          {/* Sredina */}
+          {voziloFormaEkran && (
+            <div style={{
+              padding: "10px 12px",
+              minHeight: 0,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              borderRight: `1px solid ${C.border}`,
+            }}>
+              <VoziloZonaNav
+                izabranaZona={voziloZona}
+                onZonaChange={onVoziloZonaChange}
+                velicina="veliki"
+                C={C}
+              />
+            </div>
+          )}
+          {/* Sredina — forma unosa */}
           <div style={{padding:14,overflowY:"auto",display:"flex",flexDirection:"column",gap:9,borderRight:`1px solid ${C.border}`}}>
-            <button
-              type="button"
-              onClick={() => setUnosKorakAtr("poka")}
-              style={{
-                alignSelf: "flex-start",
-                background: C.panel,
-                border: `1px solid ${C.border}`,
-                borderRadius: 6,
-                color: C.sivi,
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "6px 12px",
-                cursor: "pointer",
-                marginBottom: 4,
-              }}
-            >
-              ← Nazad na poka-yoke proveru
-            </button>
+            {kontrolorLinija && (
+              <LinijaWizardNav
+                korak="unos"
+                koraci={KORACI_ATRIB_KONTROLOR}
+                C={C}
+                akcent={C.plava}
+              />
+            )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
               <div>
                 <label style={LBL}>STATUS</label>
@@ -2375,10 +2502,10 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
             <div>
               <label style={LBL}>KATEGORIJA GREŠKE</label>
               <select value={kategorija} onChange={e=>{setKategorija(e.target.value);setPodkat("");setDefekt("");}}
-                disabled={status!=="NOK"}
-                style={{...INP,opacity:status!=="NOK"?0.4:1,cursor:status!=="NOK"?"not-allowed":"pointer"}}>
-                <option value="">-- Izaberi kategoriju --</option>
-                {Object.keys(aktivneGreske).map(k=><option key={k} value={k}>{k}</option>)}
+                disabled={status!=="NOK"||(voziloMode&&!voziloZona)}
+                style={{...INP,opacity:(status!=="NOK"||(voziloMode&&!voziloZona))?0.4:1,cursor:(status!=="NOK"||(voziloMode&&!voziloZona))?"not-allowed":"pointer"}}>
+                <option value="">{voziloMode&&!voziloZona?"— prvo izaberi zonu —":"-- Izaberi kategoriju --"}</option>
+                {Object.keys(greskeZaUnos).map(k=><option key={k} value={k}>{k}</option>)}
               </select>
             </div>
 
@@ -2388,7 +2515,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
                 disabled={!kategorija||status!=="NOK"}
                 style={{...INP,opacity:(!kategorija||status!=="NOK")?0.4:1,cursor:(!kategorija||status!=="NOK")?"not-allowed":"pointer"}}>
                 <option value="">-- Izaberi podkategoriju --</option>
-                {(aktivneGreske[kategorija]||[]).map(p=><option key={p} value={p}>{p}</option>)}
+                {(greskeZaUnos[kategorija]||[]).map(p=><option key={p} value={p}>{p}</option>)}
               </select>
             </div>
 
@@ -2409,7 +2536,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
                   background:!koristiDefekte?C.hover:C.input,
                   color:!koristiDefekte?C.sivi:C.tekst}}>
                 <option value="">{koristiDefekte ? "-- Izaberi defekt --" : "— nije potrebno —"}</option>
-                {koristiDefekte && ((aktivniDefekti[kategorija]||{})[podkat]||[]).map(d=><option key={d} value={d}>{d}</option>)}
+                {koristiDefekte && ((defektiZaUnos[kategorija]||{})[podkat]||[]).map(d=><option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
@@ -2423,7 +2550,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
             </div>
 
             <button onClick={dodajGresku} disabled={!deoInfo}
-              style={{...BTN(C.plava,!deoInfo),fontSize:11,padding:"10px"}}>
+              style={{...BTN(C.plava,!deoInfo),fontSize:13,padding:"14px",fontWeight:700}}>
               + DODAJ U LISTU
             </button>
 
@@ -2650,7 +2777,7 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
           <TrasabilitetPanel C={C} addToast={addToast} modul="atributivne" />
         </div>
       )}
-      {ekran.mob && (
+      {ekran.mob && !jeLinija && (
         <MobilnaNavigacija tab={tab} setTab={setTab}
           listaP={listaP} offlineQueueTotal={offlineCounts.total} C={C}/>
       )}
@@ -2659,31 +2786,8 @@ function GlavnaForma({korisnik,onOdjava,onNazad,C,setC}) {
 }
 
 // ============================================================
-// RESPONSIVE PATCH za SPCApp_v3.jsx
-// 
-// UPUTSTVO ZA INTEGRACIJU:
-// 1. Na vrh App.jsx dodaj useEkran hook (ispod importa)
-// 2. U GlavnaForma dodaj: const ekran = useEkran();
-// 3. Zameni svaki tab sadržaj sa responsive verzijama ispod
-// 4. Zameni TABOVI navigaciju sa MobilnaNavigacija na dnu
+// MOBILNA NAVIGACIJA — bottom tab bar (analitika mobil)
 // ============================================================
-
-// ════════════════════════════════════════════════════════════
-// HOOK — detektuje veličinu ekrana
-// ════════════════════════════════════════════════════════════
-function useEkran() {
-  const [w, setW] = useState(window.innerWidth);
-  useEffect(() => {
-    const h = () => setW(window.innerWidth);
-    window.addEventListener("resize", h);
-    return () => window.removeEventListener("resize", h);
-  }, []);
-  return { mob: w < 640, tablet: w < 1024, desk: w >= 1024, w };
-}
-
-// ════════════════════════════════════════════════════════════
-// MOBILNA NAVIGACIJA — bottom tab bar (kao mobilne app)
-// ════════════════════════════════════════════════════════════
 function MobilnaNavigacija({ tab, setTab, listaP, offlineQueueTotal, C }) {
   const TABS = [
     { id:"unos",      ikon:"⌨",  naziv:"Unos"    },
@@ -2737,6 +2841,14 @@ function MobilnaNavigacija({ tab, setTab, listaP, offlineQueueTotal, C }) {
 // MOBILNI UNOS — 3-koračni stepper (najvažniji ekran)
 // ════════════════════════════════════════════════════════════
 function MobilniUnos({
+  linijaMode = false,
+  kontrolorLinija = false,
+  smena = 1,
+  radniNalog = "",
+  setRadniNalog,
+  unosKorakAtr,
+  setUnosKorakAtr,
+  korisnikIme,
   idDeo, setIdDeo, deoInfo, upoz,
   linijaNaziv, masinaNaziv, prikaziLokaciju = true,
   status, setStatus,
@@ -2747,6 +2859,9 @@ function MobilniUnos({
   greskeKat,
   defektiMap,
   koristiDefekte,
+  voziloMode = false,
+  voziloZona = null,
+  onVoziloZonaChange,
   listaG, setListaG,
   listaP, setListaP,
   preostalo, cilj,
@@ -2759,38 +2874,83 @@ function MobilniUnos({
   kpiSerija, setKpiSerija,
   idRef,
 }) {
+  const ekran = useEkran();
   const [korak, setKorak] = useState(1);
+  const ukupnoKoraka = kontrolorLinija ? 5 : linijaMode ? 4 : 3;
+  const korakPoka = kontrolorLinija ? 3 : linijaMode ? 2 : null;
+  const korakUnos = kontrolorLinija ? 4 : linijaMode ? 3 : 2;
+  const korakLista = kontrolorLinija ? 5 : linijaMode ? 4 : 3;
+  const wizardKoraci = kontrolorLinija ? KORACI_ATRIB_KONTROLOR : KORACI_ATRIB_LINIJA;
+
+  useEffect(() => { if (idDeo.length < 3) setKorak(1); }, [idDeo]);
+
+  useEffect(() => {
+    if (idDeo.length < 3 || !voziloMode) return;
+    setKorak(korakUnos);
+  }, [idDeo, voziloMode, korakUnos]);
+
+  const korakWizardId = kontrolorLinija
+    ? (korak === 1 ? "id" : korak === 2 ? "cek" : korak === 3 ? "poka" : korak === 4 ? "unos" : "snimi")
+    : linijaMode
+      ? (korak === 1 ? "id" : korak === 2 ? "poka" : korak === 3 ? "unos" : "lista")
+      : null;
 
   const INP = {
     width:"100%", background:C.input, border:`1px solid ${C.border}`,
-    borderRadius:10, color:C.tekst, fontSize:16, padding:"14px",
+    borderRadius: linijaMode ? 12 : 10, color:C.tekst,
+    fontSize: linijaMode && ekran.linijaUredjaj ? 18 : 16,
+    padding: linijaMode ? "16px 14px" : "14px",
     boxSizing:"border-box", outline:"none", fontFamily:"inherit",
   };
   const BIG_BTN = (bg, dis=false) => ({
-    background:dis?C.hover:bg, border:"none", borderRadius:12,
-    color:dis?C.sivi:"#fff", fontSize:16, fontWeight:700,
-    padding:"18px", cursor:dis?"not-allowed":"pointer",
+    background:dis?C.hover:bg, border:"none", borderRadius: linijaMode ? 14 : 12,
+    color:dis?C.sivi:"#fff", fontSize: linijaMode ? 18 : 16, fontWeight:700,
+    padding: linijaMode ? "20px" : "18px", cursor:dis?"not-allowed":"pointer",
     width:"100%", opacity:dis?0.5:1,
   });
-  const LBL = { color:C.sivi, fontSize:11, letterSpacing:1.3, marginBottom:8, display:"block" };
+  const LBL = {
+    color:C.sivi, fontSize: linijaMode ? 12 : 11,
+    letterSpacing:1.3, marginBottom:8, display:"block",
+  };
+
+  const progresBar = (trenutni) => (
+    <div style={{display:"flex", gap:5}}>
+      {Array.from({ length: ukupnoKoraka }, (_, i) => i + 1).map(k => (
+        <div key={k} style={{flex:1, height: linijaMode ? 5 : 4, borderRadius:2,
+          background: k <= trenutni ? C.plava : C.hover}}/>
+      ))}
+    </div>
+  );
+
+  const omot = (children, trenutni, naslov) => (
+    <div style={{
+      padding: linijaMode ? "10px 12px 24px" : "16px 16px 100px",
+      display:"flex", flexDirection:"column", gap: linijaMode ? 12 : 16,
+      minHeight: linijaMode ? "calc(100dvh - 48px)" : "calc(100dvh - 89px)",
+      background:C.bg, boxSizing: "border-box",
+    }}>
+      {linijaMode && (
+        <LinijaWizardNav
+          korak={korakWizardId}
+          koraci={wizardKoraci}
+          C={C}
+          akcent={C.plava}
+          kompakt
+        />
+      )}
+      {!linijaMode && progresBar(trenutni)}
+      {!linijaMode && (
+        <div style={{color:C.sivi, fontSize:11, textAlign:"center", letterSpacing:1}}>
+          {naslov}
+        </div>
+      )}
+      {children}
+    </div>
+  );
 
   // ─ Korak 1: ID dela ─────────────────────────────────────
-  if (korak === 1) return (
-    <div style={{padding:"16px 16px 100px", display:"flex", flexDirection:"column",
-      gap:16, minHeight:"calc(100dvh - 89px)", background:C.bg}}>
-
-      {/* Progres */}
-      <div style={{display:"flex", gap:5}}>
-        {[1,2,3].map(k => (
-          <div key={k} style={{flex:1, height:4, borderRadius:2,
-            background: k<=korak?C.plava:C.hover}}/>
-        ))}
-      </div>
-      <div style={{color:C.sivi, fontSize:11, textAlign:"center", letterSpacing:1}}>
-        KORAK 1 / 3 — ID DELA
-      </div>
-
-      {/* ID input */}
+  if (korak === 1) return omot(
+    <>
       <div>
         <label style={LBL}>ID DELA <span style={{color:C.border, fontWeight:400}}>(ili skeniraj)</span></label>
         <input
@@ -2884,31 +3044,91 @@ function MobilniUnos({
 
       <button onClick={()=>setKorak(2)} disabled={!deoInfo}
         style={{...BIG_BTN(C.plava,!deoInfo), fontSize:18}}>
-        Nastavi →
+        {kontrolorLinija ? "Ček lista →" : linijaMode ? "Poka-yoke →" : "Nastavi →"}
       </button>
       <button onClick={noviNalog}
         style={{background:"none", border:`1px solid ${C.border}`, borderRadius:10,
           color:C.sivi, fontSize:14, padding:"14px", cursor:"pointer", width:"100%"}}>
         ↺ Novi nalog
       </button>
-    </div>
+    </>,
+    1,
+    "KORAK 1 / 3 — ID DELA",
   );
 
-  // ─ Korak 2: Unos greške ─────────────────────────────────
-  if (korak === 2) return (
-    <div style={{padding:"16px 16px 100px", display:"flex", flexDirection:"column",
-      gap:14, minHeight:"calc(100dvh - 89px)", background:C.bg}}>
+  // ─ Korak 2 kontrolor: Ček lista ──────────────────────────
+  if (kontrolorLinija && korak === 2) return omot(
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <KontrolnaLista
+        korisnik={korisnik}
+        smena={smena}
+        naslovModul="Atributivne"
+        ugradjen
+        onZavrsena={() => { setUnosKorakAtr?.("poka"); setKorak(3); }}
+        C={C}
+      />
+    </div>,
+    2,
+    "ČEK LISTA",
+  );
+
+  // ─ Korak 2 operator / Korak 3 kontrolor: Poka-yoke ───────
+  if (linijaMode && korakPoka && korak === korakPoka) return omot(
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <UnosPokaYokeKorak
+        C={C}
+        modul="atributivne"
+        akcent={C.plava}
+        idDeo={String(idDeo || "").toUpperCase()}
+        nazivDela={deoInfo?.naziv_dela}
+        radniNalog={radniNalog}
+        linija={linijaNaziv}
+        masina={masinaNaziv}
+        kontrolor={korisnikIme}
+        onDalje={() => { setUnosKorakAtr?.("forma"); setKorak(korakUnos); }}
+        daljeLabel="Unos OK/NOK →"
+      />
+    </div>,
+    korakPoka,
+    "POKA-YOKE",
+  );
+
+  // ─ Unos greške ───────────────────────────────────────────
+  if (korak === korakUnos) return (
+    <div style={{padding: linijaMode ? "10px 12px 24px" : "16px 16px 100px", display:"flex", flexDirection:"column",
+      gap:14, minHeight: linijaMode ? "calc(100dvh - 48px)" : "calc(100dvh - 89px)", background:C.bg, boxSizing:"border-box"}}>
+
+      {linijaMode && (
+        <LinijaWizardNav korak="unos" koraci={wizardKoraci} C={C} akcent={C.plava} kompakt />
+      )}
 
       {/* Progres + navigacija */}
+      {!linijaMode && (
       <div style={{display:"flex", gap:5}}>
-        {[1,2,3].map(k=>(<div key={k} style={{flex:1,height:4,borderRadius:2,background:k<=korak?C.plava:C.hover}}/>))}
+        {Array.from({ length: ukupnoKoraka }, (_, i) => i + 1).map(k => (
+          <div key={k} style={{flex:1,height:4,borderRadius:2,background:k<=korak?C.plava:C.hover}}/>
+        ))}
       </div>
+      )}
       <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-        <button onClick={()=>setKorak(1)} style={{background:"none",border:"none",
+        <button onClick={()=>setKorak(linijaMode ? korakPoka : 1)} style={{background:"none",border:"none",
           color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>← Nazad</button>
-        <span style={{color:C.sivi,fontSize:11,letterSpacing:1}}>KORAK 2 / 3</span>
+        <span style={{color:C.sivi,fontSize:11,letterSpacing:1}}>
+          KORAK {korakUnos} / {ukupnoKoraka}
+        </span>
         <span style={{color:C.zelena,fontWeight:700,fontSize:13}}>{idDeo}</span>
       </div>
+
+      {voziloMode && onVoziloZonaChange && (
+        <div style={{ marginBottom: 4 }}>
+          <VoziloZonaNav
+            izabranaZona={voziloZona}
+            onZonaChange={onVoziloZonaChange}
+            velicina="veliki"
+            C={C}
+          />
+        </div>
+      )}
 
       {/* STATUS — ogromna dugmad */}
       <div>
@@ -2949,6 +3169,12 @@ function MobilniUnos({
       {status==="NOK" && (
         <div>
           <label style={LBL}>KATEGORIJA GREŠKE</label>
+          {voziloMode && !voziloZona ? (
+            <div style={{background:C.hover,border:`1px dashed ${C.border}`,borderRadius:10,
+              padding:"14px 16px",color:C.sivi,fontSize:13,textAlign:"center"}}>
+              Prvo izaberi zonu na dijagramu vozila
+            </div>
+          ) : (
           <div style={{display:"flex", flexDirection:"column", gap:6, maxHeight:220, overflowY:"auto"}}>
             {Object.keys(greskeKat).map(k => (
               <button key={k} onClick={()=>{setKategorija(k);setPodkat("");setDefekt("");}}
@@ -2962,6 +3188,7 @@ function MobilniUnos({
                 }}>{k}</button>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -3044,38 +3271,22 @@ function MobilniUnos({
       <div style={{flex:1}}/>
 
       <button
-        onClick={()=>{ dodajGresku(); setKorak(3); }}
-        disabled={!status||(status==="NOK"&&(!kategorija||!podkat||(koristiDefekte&&!defekt)))}
+        onClick={()=>{ dodajGresku(); setKorak(korakLista); }}
+        disabled={!status||(status==="NOK"&&(voziloMode&&!voziloZona||!kategorija||!podkat||(koristiDefekte&&!defekt)))}
         style={{...BIG_BTN(
           status==="OK"?C.zelena:status==="NOK"?C.crvena:C.hover,
-          !status||(status==="NOK"&&(!kategorija||!podkat||(koristiDefekte&&!defekt)))
+          !status||(status==="NOK"&&(voziloMode&&!voziloZona||!kategorija||!podkat||(koristiDefekte&&!defekt)))
         ), fontSize:17}}>
         + Dodaj u listu
       </button>
     </div>
   );
 
-  // ─ Korak 3: Lista + snimi ────────────────────────────────
-  return (
-    <div style={{padding:"16px 16px 100px", display:"flex", flexDirection:"column",
-      gap:14, minHeight:"calc(100dvh - 89px)", background:C.bg}}>
+  // ─ Lista + snimi ─────────────────────────────────────────
+  if (korak !== korakLista) return null;
 
-      <div style={{display:"flex", gap:5}}>
-        {[1,2,3].map(k=>(<div key={k} style={{flex:1,height:4,borderRadius:2,
-          background:k<=korak?C.zelena:C.hover}}/>))}
-      </div>
-      <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-        <button onClick={()=>setKorak(2)}
-          style={{background:"none",border:"none",color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>
-          ← Dodaj još
-        </button>
-        <span style={{color:C.sivi,fontSize:11,letterSpacing:1}}>KORAK 3 / 3</span>
-        <span style={{color:preostalo===0?C.zelena:C.zuta,fontWeight:700,fontSize:13}}>
-          {preostalo} preostalo
-        </span>
-      </div>
-
-      {/* Sumarni KPI */}
+  return linijaMode ? omot(
+    <>
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8}}>
         {[
           ["OK",    listaG.filter(s=>s.status==="OK").reduce((s,d)=>s+d.kolicina,0),  C.zelena],
@@ -3163,6 +3374,82 @@ function MobilniUnos({
           borderRadius:8,padding:"10px 14px",fontSize:12,color:C.zuta,textAlign:"center"}}>
           📶 Offline — {offlineQueueTotal} paketa u redu
         </div>
+      )}
+
+      <button onClick={() => setKorak(korakUnos)}
+        style={{background:"none", border:`1px solid ${C.border}`, borderRadius:10,
+          color:C.sivi, fontSize:14, padding:"12px", cursor:"pointer", width:"100%"}}>
+        ← Dodaj još stavki
+      </button>
+    </>,
+    korakLista,
+    `KORAK ${korakLista} / ${ukupnoKoraka}`,
+  ) : (
+    <div style={{padding:"16px 16px 100px", display:"flex", flexDirection:"column",
+      gap:14, minHeight:"calc(100dvh - 89px)", background:C.bg}}>
+      <div style={{display:"flex", gap:5}}>
+        {[1,2,3].map(k=>(<div key={k} style={{flex:1,height:4,borderRadius:2,
+          background:k<=korak?C.zelena:C.hover}}/>))}
+      </div>
+      <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+        <button onClick={()=>setKorak(2)}
+          style={{background:"none",border:"none",color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>
+          ← Dodaj još
+        </button>
+        <span style={{color:C.sivi,fontSize:11,letterSpacing:1}}>KORAK 3 / 3</span>
+        <span style={{color:preostalo===0?C.zelena:C.zuta,fontWeight:700,fontSize:13}}>
+          {preostalo} preostalo
+        </span>
+      </div>
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8}}>
+        {[
+          ["OK",    listaG.filter(s=>s.status==="OK").reduce((s,d)=>s+d.kolicina,0),  C.zelena],
+          ["NOK",   listaG.filter(s=>s.status==="NOK").reduce((s,d)=>s+d.kolicina,0), C.crvena],
+          ["STAVKI",listaG.length,                                                      C.plava],
+        ].map(([l,v,b]) => (
+          <div key={l} style={{background:C.panel,border:`1px solid ${b}25`,
+            borderRadius:10,padding:"12px",textAlign:"center"}}>
+            <div style={{color:b,fontSize:24,fontWeight:700}}>{v}</div>
+            <div style={{color:C.sivi,fontSize:10,marginTop:3}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{flex:1, border:`1px solid ${C.border}`, borderRadius:12,
+        overflow:"auto", maxHeight:320}}>
+        {!listaG.length ? (
+          <div style={{padding:28,textAlign:"center",color:C.border,fontSize:13}}>
+            Lista je prazna — idi na Korak 2
+          </div>
+        ) : listaG.map((s,i) => (
+          <div key={i} style={{display:"flex",alignItems:"center",padding:"14px 16px",
+            borderBottom:`1px solid ${C.border}`,background:s.status==="OK"?C.ok:C.nok}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex", gap:8, alignItems:"center", marginBottom:4}}>
+                {s.foto && <span style={{fontSize:14}}>📷</span>}
+                <span style={{color:s.status==="OK"?C.zelena:C.crvena,
+                  fontWeight:700,fontSize:16}}>
+                  {s.status} ×{s.kolicina}
+                </span>
+              </div>
+              <div style={{color:C.sivi,fontSize:12}}>{s.kat} › {s.pod}{s.defekt&&s.defekt!=="-"?` › ${s.defekt}`:""}</div>
+            </div>
+            <button onClick={()=>setListaG(p=>p.filter((_,j)=>j!==i))}
+              style={{background:"none",border:`1px solid ${C.border}`,borderRadius:8,
+                color:C.crvena,fontSize:20,padding:"8px 14px",cursor:"pointer"}}>✕</button>
+          </div>
+        ))}
+      </div>
+      <button onClick={()=>{snimiDeo(); setKorak(1);}} disabled={!listaG.length}
+        style={{...BIG_BTN(C.zelena,!listaG.length), fontSize:17,
+          boxShadow:listaG.length?`0 0 20px ${C.zelena}40`:"none"}}>
+        ✓ Snimi deo
+      </button>
+      {listaP.length > 0 && (
+        <button onClick={zapisi} disabled={saving}
+          style={{...BIG_BTN("#7c3aed",saving), fontSize:16,
+            boxShadow:`0 0 16px #7c3aed40`}}>
+          {saving ? "Snimanje..." : `💾 Zapiši u bazu (${listaP.length})`}
+        </button>
       )}
     </div>
   );
@@ -3506,6 +3793,34 @@ export default function App() {
     !!sessionStorage.getItem("spc_lista_ok_atributivne") || !!sessionStorage.getItem("spc_lista_ok"));
   const [listaOkVar,setListaOkVar] = useState(()=>!!sessionStorage.getItem("spc_lista_ok_varijabilne"));
   const [loginKey,setLoginKey] = useState(0);
+  const [rezimRada, setRezimRada] = useState(() =>
+    sessionStorage.getItem("spc_rezim_rada") || "linija",
+  );
+
+  useEffect(() => {
+    if (!korisnik) return;
+    if (jeLinijaUloga(korisnik.uloga)) {
+      setRezimRada("linija");
+      sessionStorage.setItem("spc_rezim_rada", "linija");
+      return;
+    }
+    const saved = sessionStorage.getItem("spc_rezim_rada");
+    if (!saved) {
+      const r = podrazumevaniRezim(korisnik.uloga);
+      setRezimRada(r);
+      sessionStorage.setItem("spc_rezim_rada", r);
+    }
+  }, [korisnik]);
+
+  const promeniRezim = (novi) => {
+    if (!korisnik || !mozePrebacivanjeRezima(korisnik.uloga)) return;
+    setRezimRada(novi);
+    sessionStorage.setItem("spc_rezim_rada", novi);
+  };
+
+  const aktivniRezim = korisnik
+    ? efektivniRezimRada(korisnik.uloga, rezimRada)
+    : rezimRada;
 
   useEffect(()=>{localStorage.setItem("spc_tema",C.naziv);},[C]);
 
@@ -3552,11 +3867,13 @@ export default function App() {
       onIzbor={setModul}
       onOdjava={odjava}
       C={C} setC={setC}
+      rezimRada={aktivniRezim}
+      onPromeniRezim={promeniRezim}
     />
   );
 
   // Kontrolna lista pre atributivnog unosa
-  if(modul==="atributivne"&&!listaOk) return (
+  if(modul==="atributivne"&&!listaOk && !preskociAppKontrolnuListu(korisnik.uloga, aktivniRezim)) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
         height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>
@@ -3572,7 +3889,7 @@ export default function App() {
     </div>
   );
 
-  if(modul==="varijabilne"&&!listaOkVar) return (
+  if(modul==="varijabilne"&&!listaOkVar && !preskociAppKontrolnuListu(korisnik.uloga, aktivniRezim)) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
         height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>
@@ -3613,6 +3930,8 @@ export default function App() {
       onOdjava={odjava}
       onNazad={()=>setModul(null)}
       C={C} setC={setC}
+      rezimRada={aktivniRezim}
+      onPromeniRezim={promeniRezim}
     />
   );
 
@@ -3622,6 +3941,8 @@ export default function App() {
       onOdjava={odjava}
       onNazad={()=>setModul(null)}
       C={C}
+      rezimRada={aktivniRezim}
+      onPromeniRezim={promeniRezim}
       unosRezim={sessionStorage.getItem("spc_mer_unos_rezim") === "digital" ? "digital" : "rucni"}
     />
   );
@@ -3632,7 +3953,7 @@ export default function App() {
 // ============================================================
 // POČETNI EKRAN — izbor modula nakon logovanja
 // ============================================================
-function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
+function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC, rezimRada, onPromeniRezim }) {
   const ekran = useEkran();
 
   const MODULI = [
@@ -3648,19 +3969,30 @@ function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
       id: "varijabilne",
       ikon: "⌨",
       naziv: "Varijabilne — ručni unos",
-      opis: "Kucanje merenja · X̄/R karte · Cp/Cpk · bez serial/barkod panela",
+      opis: "Kucanje merenja · X̄/R karte · Cp/Cpk",
       boja: C.zelena,
       dostupan: true,
       rezim: "rucni",
     },
     {
+      id: "varijabilne",
+      ikon: "📟",
+      naziv: "Varijabilne — digitalni unos",
+      opis: "Digitalna merila · USB / paste · serije A/B",
+      boja: C.zelena,
+      dostupan: true,
+      rezim: "digital",
+      key: "varijabilne-digital",
+    },
+    ...(mozeAdmin(korisnik.uloga) ? [{
       id: "admin",
       ikon: "🔧",
       naziv: "Admin Panel",
       opis: "Excel ↔ Supabase · radnici · prekidi · reset smene",
       boja: C.zuta,
-      dostupan: mozeAdmin(korisnik.uloga),
-    },
+      dostupan: true,
+      key: "admin",
+    }] : []),
   ];
 
   return (
@@ -3712,11 +4044,36 @@ function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
             SPC KONTROLA
           </div>
           <div style={{color:C.sivi, fontSize:11}}>
-            {korisnik.ime}
+            Dobrodošli, {korisnik.ime}
           </div>
         </div>
 
-        <ZajednickiDashboard C={C} kompakt onIzborModula={onIzbor} />
+        <ZajednickiDashboard C={C} kompakt />
+
+        {mozePrebacivanjeRezima(korisnik.uloga) && typeof onPromeniRezim === "function" && (
+          <div style={{
+            display: "flex", gap: 8, width: "100%", maxWidth: 960,
+            justifyContent: ekran.mob ? "stretch" : "flex-end",
+          }}>
+            {["linija", "analitika"].map(r => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => onPromeniRezim(r)}
+                style={{
+                  flex: ekran.mob ? 1 : undefined,
+                  background: rezimRada === r ? (r === "linija" ? `${C.zelena}22` : `${C.plava}22`) : C.panel,
+                  border: `2px solid ${rezimRada === r ? (r === "linija" ? C.zelena : C.plava) : C.border}`,
+                  borderRadius: 10, padding: "10px 16px", cursor: "pointer",
+                  color: rezimRada === r ? C.tekst : C.sivi,
+                  fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+                }}
+              >
+                {r === "linija" ? "🏭 Modul 1 — Linija" : "📊 Modul 2 — Analitika"}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2, width: "100%", maxWidth: 960 }}>
           MODULI
@@ -3724,11 +4081,11 @@ function PocetniEkran({ korisnik, onIzbor, onOdjava, C, setC }) {
 
         <div style={{
           display:"grid",
-          gridTemplateColumns: ekran.mob ? "1fr" : "repeat(3, 1fr)",
+          gridTemplateColumns: ekran.mob ? "1fr" : "repeat(2, 1fr)",
           gap:16, width:"100%", maxWidth:960,
         }}>
           {MODULI.map(m => (
-            <button key={m.id} onClick={()=>{
+            <button key={m.key || m.id} onClick={()=>{
               if (!m.dostupan) return;
               if (m.rezim) sessionStorage.setItem("spc_mer_unos_rezim", m.rezim);
               onIzbor(m.id);
@@ -3934,6 +4291,7 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
   const [loading,setLoading]   = useState(true);
   const [modal,setModal]       = useState(null);
   const [novoIme,setNovoIme]   = useState("");
+  const [noviEmail,setNoviEmail] = useState("");
   const [novaUloga,setNovaUloga] = useState("kontrolor");
   const ekran = useEkran();
 
@@ -3958,15 +4316,30 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
   };
 
   const dodajRadnika = async () => {
-    if (!novoIme.trim()) return;
-    const {data,error} = await supabase.from("radnici")
-      .insert({ime:novoIme.toUpperCase(),uloga:novaUloga})
-      .select().single();
-    if (!error) {
-      setRadnici(p=>[...p,data]);
-      setNovoIme("");
-      setModal({poruka:`✓ Radnik ${novoIme.toUpperCase()} dodat.`,tip:"uspeh"});
+    const ime = novoIme.trim();
+    const email = noviEmail.trim().toLowerCase();
+    if (!ime) {
+      setModal({ poruka: "Unesite ime i prezime.", tip: "greska" });
+      return;
     }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setModal({ poruka: "Unesite ispravan email — isti kao u Supabase Auth.", tip: "greska" });
+      return;
+    }
+    const { data, error } = await supabase.from("radnici")
+      .insert({ ime: ime.toUpperCase(), uloga: novaUloga, email, aktivan: true })
+      .select().single();
+    if (error) {
+      setModal({ poruka: error.message, tip: "greska" });
+      return;
+    }
+    setRadnici(p => [...p, data]);
+    setNovoIme("");
+    setNoviEmail("");
+    setModal({
+      poruka: `✓ ${data.ime} dodat (${data.uloga}).\nEmail: ${email}\n\nU Supabase Auth kreiraj korisnika sa istim emailom — pri loginu se automatski povezuje.`,
+      tip: "uspeh",
+    });
   };
 
   const INP = {
@@ -4016,15 +4389,24 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
           <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:14,letterSpacing:1}}>
             DODAJ RADNIKA
           </div>
-          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            <input value={novoIme} onChange={e=>setNovoIme(e.target.value)}
-              placeholder="Ime i prezime"
-              style={{...INP,flex:1,minWidth:180}}/>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <input value={novoIme} onChange={e=>setNovoIme(e.target.value)}
+                placeholder="Ime i prezime"
+                style={{...INP,flex:1,minWidth:180}}/>
+              <input value={noviEmail} onChange={e=>setNoviEmail(e.target.value)}
+                type="email"
+                placeholder="email@fabrika.com"
+                autoComplete="off"
+                style={{...INP,flex:1,minWidth:200}}/>
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
             <select value={novaUloga} onChange={e=>setNovaUloga(e.target.value)}
-              style={{...INP,cursor:"pointer"}}>
+              style={{...INP,cursor:"pointer",flex:1,minWidth:160}}>
               <option value="operator">Operator</option>
               <option value="kontrolor">Kontrolor</option>
-              <option value="kvalitet">Kvalitet</option>
+              <option value="kvalitet">Inženjer kvaliteta</option>
+              <option value="sef">Šef / menadžment</option>
               <option value="admin">Admin</option>
             </select>
             <button onClick={dodajRadnika}
@@ -4032,9 +4414,11 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
                 color:"#fff",fontSize:12,fontWeight:700,padding:"10px 20px",cursor:"pointer"}}>
               + Dodaj
             </button>
+            </div>
           </div>
-          <div style={{color:C.sivi,fontSize:10,marginTop:8}}>
-            Napomena: korisnik mora biti kreiran i u Supabase Auth (Authentication → Users)
+          <div style={{color:C.sivi,fontSize:10,marginTop:8,lineHeight:1.5}}>
+            Email mora biti isti u Auth (Authentication → Users) i u tabeli radnici.
+            Inženjeri: uloga <strong style={{color:C.tekst}}>kvalitet</strong> ili <strong style={{color:C.tekst}}>sef</strong>.
           </div>
         </div>
         )}
@@ -4073,6 +4457,7 @@ function AdminPanel({ korisnik, onNazad, C, uGravnojFormi = false }) {
                     <option value="operator">Operator</option>
                     <option value="kontrolor">Kontrolor</option>
                     <option value="kvalitet">Kvalitet</option>
+                    <option value="sef">Šef</option>
                     <option value="admin">Admin</option>
                   </select>
                   {r.user_id && (

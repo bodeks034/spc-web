@@ -6,7 +6,7 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 /** Kontrolna lista pre smene (atributivne i merljive). */
-export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "", akcent }) {
+export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "", akcent, ugradjen = false }) {
   const boja = akcent || C.plava;
   const [stavke, setStavke] = useState([]);
   const [checklist, setChecklist] = useState({});
@@ -82,12 +82,12 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
   if (vecUradjena) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", minHeight: "60vh", gap: 16, padding: 24 }}>
-        <div style={{ fontSize: 60 }}>✅</div>
-        <div style={{ color: C.zelena, fontSize: 20, fontWeight: 700 }}>Lista potvrđena</div>
-        <div style={{ color: C.sivi, fontSize: 13 }}>Kontrolna lista za Smenu {smena} je već popunjena danas.</div>
-        <button type="button" onClick={onZavrsena} style={{ background: boja, border: "none", borderRadius: 10,
-          color: "#fff", fontSize: 14, fontWeight: 700, padding: "12px 28px", cursor: "pointer" }}>
+        justifyContent: "center", minHeight: ugradjen ? "auto" : "60vh", gap: ugradjen ? 10 : 16, padding: ugradjen ? 12 : 24 }}>
+        <div style={{ fontSize: ugradjen ? 36 : 60 }}>✅</div>
+        <div style={{ color: C.zelena, fontSize: ugradjen ? 14 : 20, fontWeight: 700 }}>Lista potvrđena</div>
+        <div style={{ color: C.sivi, fontSize: ugradjen ? 10 : 13 }}>Kontrolna lista za Smenu {smena} je već popunjena danas.</div>
+        <button type="button" onClick={onZavrsena} style={{ background: boja, border: "none", borderRadius: ugradjen ? 8 : 10,
+          color: "#fff", fontSize: ugradjen ? 12 : 14, fontWeight: 700, padding: ugradjen ? "10px 20px" : "12px 28px", cursor: "pointer" }}>
           Nastavi →
         </button>
       </div>
@@ -112,14 +112,14 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
   }
 
   return (
-    <div style={{ padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 16,
-      maxWidth: 600, margin: "0 auto" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ color: C.tekst, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
-          📋 Kontrolna lista pre smene
-          {naslovModul ? <span style={{ color: C.sivi, fontWeight: 400, fontSize: 14 }}> · {naslovModul}</span> : null}
+    <div style={{ padding: ugradjen ? "8px 0 12px" : "16px 16px 100px", display: "flex", flexDirection: "column", gap: ugradjen ? 10 : 16,
+      maxWidth: ugradjen ? "100%" : 600, margin: ugradjen ? 0 : "0 auto", flex: ugradjen ? 1 : undefined, minHeight: ugradjen ? 0 : undefined }}>
+      <div style={{ textAlign: ugradjen ? "left" : "center" }}>
+        <div style={{ color: C.tekst, fontSize: ugradjen ? 13 : 18, fontWeight: 700, marginBottom: 4 }}>
+          📋 {ugradjen ? "Ček lista" : "Kontrolna lista pre smene"}
+          {naslovModul ? <span style={{ color: C.sivi, fontWeight: 400, fontSize: ugradjen ? 11 : 14 }}> · {naslovModul}</span> : null}
         </div>
-        <div style={{ color: C.sivi, fontSize: 12 }}>Smena {smena} · {new Date().toLocaleDateString("sr-RS")}</div>
+        <div style={{ color: C.sivi, fontSize: ugradjen ? 9 : 12 }}>Smena {smena} · {new Date().toLocaleDateString("sr-RS")}</div>
       </div>
 
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>

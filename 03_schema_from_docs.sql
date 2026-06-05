@@ -68,7 +68,7 @@ CREATE TABLE delovi (
 CREATE TABLE radnici (
   id       SERIAL PRIMARY KEY,
   ime      TEXT NOT NULL,
-  uloga    TEXT NOT NULL CHECK (uloga IN ('operator','kontrolor','admin')),
+  uloga    TEXT NOT NULL CHECK (uloga IN ('operator','kontrolor','admin','kvalitet','sef')),
   email    TEXT,
   user_id  UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   aktivan  BOOLEAN NOT NULL DEFAULT TRUE,
