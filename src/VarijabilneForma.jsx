@@ -590,17 +590,21 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   );
 
   const prikazIndeksKolone = useMemo(() => {
+    if (L.mobTabKarusel) {
+      if (aktivnaKolona >= 0 && aktivnaKolona < kolone.length) return aktivnaKolona;
+      return 0;
+    }
     if (!indeksiMerljivih.length) return -1;
     if (indeksiMerljivih.includes(aktivnaKolona)) return aktivnaKolona;
     return indeksiMerljivih[0];
-  }, [indeksiMerljivih, aktivnaKolona]);
+  }, [L.mobTabKarusel, kolone.length, indeksiMerljivih, aktivnaKolona]);
 
   useEffect(() => {
-    if (!L.mobTabKarusel || unosKorak !== "forma" || !indeksiMerljivih.length) return;
-    if (!indeksiMerljivih.includes(aktivnaKolona)) {
-      setAktivnaKolona(indeksiMerljivih[0]);
+    if (!L.mobTabKarusel || unosKorak !== "forma") return;
+    if (aktivnaKolona < 0 || aktivnaKolona >= kolone.length) {
+      setAktivnaKolona(0);
     }
-  }, [L.mobTabKarusel, indeksiMerljivih, aktivnaKolona, unosKorak, kolone]);
+  }, [L.mobTabKarusel, aktivnaKolona, unosKorak, kolone.length]);
 
   const idiPrethodnaKolona = useCallback(() => {
     if (!indeksiMerljivih.length) return;
@@ -619,18 +623,20 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   }, [indeksiMerljivih, aktivnaKolona]);
 
   const idiSledecaKolonaMob = useCallback(() => {
-    idiSledecaKolona();
-    if (typeof document !== "undefined") {
-      document.activeElement?.blur?.();
-    }
-  }, [idiSledecaKolona]);
+    setAktivnaKolona((i) => {
+      const tren = i < 0 ? 0 : i;
+      return tren < kolone.length - 1 ? tren + 1 : tren;
+    });
+    document.activeElement?.blur?.();
+  }, [kolone.length]);
 
   const idiPrethodnaKolonaMob = useCallback(() => {
-    idiPrethodnaKolona();
-    if (typeof document !== "undefined") {
-      document.activeElement?.blur?.();
-    }
-  }, [idiPrethodnaKolona]);
+    setAktivnaKolona((i) => {
+      const tren = i < 0 ? 0 : i;
+      return tren > 0 ? tren - 1 : tren;
+    });
+    document.activeElement?.blur?.();
+  }, []);
 
   const dodajMerenje = (idx) => {
     const k = kolone[idx];
@@ -931,9 +937,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
   const inpMerenje = {
     ...inp,
-    padding: "7px 8px",
-    minHeight: 34,
-    fontSize: 13,
+    padding: L.mobTabKarusel ? "10px 12px" : "7px 8px",
+    minHeight: L.mobTabKarusel ? 42 : 34,
+    fontSize: L.mobTabKarusel ? 15 : 13,
     fontWeight: 600,
   };
 
@@ -1073,7 +1079,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         ? `2px solid ${C.zelena}`
         : `1px solid ${C.border}`,
       borderRadius: 8,
-      padding: ekran.mob ? 6 : 8,
+      padding: kompakt ? 8 : (ekran.mob ? 6 : 8),
       boxSizing: "border-box",
       width: "100%",
       height: kompakt ? undefined : "100%",
@@ -1149,8 +1155,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           />
           <button type="button" onClick={() => dodajMerenje(i)}
             style={{
-              width: "100%", background: C.plava, border: "none", borderRadius: 5,
-              color: "#fff", padding: "5px 0", cursor: "pointer", fontSize: 11,
+              width: "100%", background: C.plava, border: "none",
+              borderRadius: kompakt ? 6 : 5,
+              color: "#fff",
+              padding: kompakt ? "10px 0" : "5px 0",
+              cursor: "pointer",
+              fontSize: kompakt ? 14 : 11,
+              fontWeight: kompakt ? 700 : 400,
               marginBottom: 5, flexShrink: 0,
             }}>
             + Dodaj
@@ -1267,21 +1278,18 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             )}
             <MerljivaMobTabKarusel
               C={C}
-              kolone={kolone}
+              brojKolona={kolone.length}
               aktivnaKolona={prikazIndeksKolone}
-              indeksiMerljivih={indeksiMerljivih}
-              onPrethodna={L.mobTabKarusel ? idiPrethodnaKolonaMob : idiPrethodnaKolona}
-              onSledeca={L.mobTabKarusel ? idiSledecaKolonaMob : idiSledecaKolona}
+              onPrethodna={idiPrethodnaKolonaMob}
+              onSledeca={idiSledecaKolonaMob}
               crtezVisina={L.crtezVisinaDno}
               urlSlike={urlSlike}
               slika={slika}
               idDeo={idDeo}
               onZoomSlika={() => setZoomSlika(true)}
               CrtezZoomViewer={CrtezZoomViewer}
-              indeksUListe={Math.max(0, indeksiMerljivih.indexOf(prikazIndeksKolone))}
             >
-              {prikazIndeksKolone >= 0
-                && renderKolonaKartica(kolone[prikazIndeksKolone], prikazIndeksKolone, true)}
+              {renderKolonaKartica(kolone[prikazIndeksKolone], prikazIndeksKolone, true)}
             </MerljivaMobTabKarusel>
           </>
         ) : (

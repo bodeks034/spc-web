@@ -3,9 +3,8 @@
  */
 export default function MerljivaMobTabKarusel({
   C,
-  kolone,
-  aktivnaKolona,
-  indeksiMerljivih,
+  brojKolona = 5,
+  aktivnaKolona = 0,
   onPrethodna,
   onSledeca,
   crtezVisina,
@@ -15,49 +14,44 @@ export default function MerljivaMobTabKarusel({
   onZoomSlika,
   CrtezZoomViewer,
   children,
-  indeksUListe,
 }) {
-  const listaIdx = indeksUListe >= 0 ? indeksUListe : 0;
-  const imaPreth = listaIdx > 0;
-  const imaSled = indeksiMerljivih.length > 1 && listaIdx < indeksiMerljivih.length - 1;
+  const idx = aktivnaKolona >= 0 ? aktivnaKolona : 0;
+  const imaPreth = idx > 0;
+  const imaSled = brojKolona > 1 && idx < brojKolona - 1;
 
-  const strelica = (smer, onClick, disabled) => {
-    const pokreni = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!disabled) onClick();
-    };
-    return (
-      <button
-        type="button"
-        onClick={pokreni}
-        onPointerUp={pokreni}
-        disabled={disabled}
-        aria-label={smer === "l" ? "Prethodna kolona" : "Sledeća kolona"}
-        style={{
-          flex: "0 0 48px",
-          width: 48,
-          minHeight: 64,
-          alignSelf: "stretch",
-          background: disabled ? C.hover : C.panel,
-          border: `1px solid ${disabled ? C.hover : C.border}`,
-          borderRadius: 10,
-          color: disabled ? C.border : C.zelena,
-          fontSize: 30,
-          lineHeight: 1,
-          fontWeight: 700,
-          cursor: disabled ? "not-allowed" : "pointer",
-          flexShrink: 0,
-          padding: 0,
-          touchAction: "manipulation",
-          WebkitTapHighlightColor: "transparent",
-          userSelect: "none",
-        }}
-      >
-        {smer === "l" ? "‹" : "›"}
-      </button>
-    );
-  };
+  const strelica = (smer, onClick, disabled) => (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled) onClick();
+      }}
+      disabled={disabled}
+      aria-label={smer === "l" ? "Prethodna kolona" : "Sledeća kolona"}
+      style={{
+        flex: "0 0 30px",
+        width: 30,
+        minHeight: 48,
+        alignSelf: "stretch",
+        background: disabled ? C.hover : C.panel,
+        border: `1px solid ${disabled ? C.hover : C.border}`,
+        borderRadius: 8,
+        color: disabled ? C.border : C.zelena,
+        fontSize: 22,
+        lineHeight: 1,
+        fontWeight: 700,
+        cursor: disabled ? "not-allowed" : "pointer",
+        flexShrink: 0,
+        padding: 0,
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        userSelect: "none",
+      }}
+    >
+      {smer === "l" ? "‹" : "›"}
+    </button>
+  );
 
   return (
     <div style={{
@@ -73,7 +67,7 @@ export default function MerljivaMobTabKarusel({
         display: "flex",
         flexDirection: "row",
         alignItems: "stretch",
-        gap: 6,
+        gap: 4,
         minHeight: 0,
       }}>
         {strelica("l", onPrethodna, !imaPreth)}
@@ -85,7 +79,7 @@ export default function MerljivaMobTabKarusel({
           flexDirection: "column",
           overflow: "hidden",
         }}>
-          {indeksiMerljivih.length > 0 && (
+          {brojKolona > 0 && (
             <div style={{
               fontSize: 9,
               color: C.sivi,
@@ -93,7 +87,7 @@ export default function MerljivaMobTabKarusel({
               flexShrink: 0,
               marginBottom: 4,
             }}>
-              Merenje {listaIdx + 1} / {indeksiMerljivih.length}
+              Merenje {idx + 1} / {brojKolona}
             </div>
           )}
           <div style={{
