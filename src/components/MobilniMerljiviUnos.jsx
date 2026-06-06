@@ -83,7 +83,10 @@ export default function MobilniMerljiviUnos({
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      minHeight: "calc(100dvh - 48px)",
+      height: "100dvh",
+      maxHeight: "100dvh",
+      minHeight: 0,
+      overflow: "hidden",
       background: C.bg,
       boxSizing: "border-box",
     }}>
@@ -286,7 +289,14 @@ export default function MobilniMerljiviUnos({
   }
 
   return omot(
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, gap: 8 }}>
+    <div style={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0,
+      overflow: "hidden",
+      gap: 8,
+    }}>
       {children}
     </div>,
   );

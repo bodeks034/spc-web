@@ -5,17 +5,33 @@ export function useEkran() {
   const [sz, setSz] = useState(() => readViewport());
 
   useEffect(() => {
-    const onResize = () => setSz(readViewport());
+    let orientT1 = null;
+    let orientT2 = null;
+    const refresh = () => setSz(readViewport());
+    const onResize = () => refresh();
+    const onOrient = () => {
+      refresh();
+      clearTimeout(orientT1);
+      clearTimeout(orientT2);
+      orientT1 = setTimeout(refresh, 100);
+      orientT2 = setTimeout(refresh, 400);
+    };
     window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
+    window.addEventListener("orientationchange", onOrient);
     const vv = window.visualViewport;
     vv?.addEventListener("resize", onResize);
     vv?.addEventListener("scroll", onResize);
+    if (window.screen?.orientation) {
+      window.screen.orientation.addEventListener("change", onOrient);
+    }
     return () => {
+      clearTimeout(orientT1);
+      clearTimeout(orientT2);
       window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
+      window.removeEventListener("orientationchange", onOrient);
       vv?.removeEventListener("resize", onResize);
       vv?.removeEventListener("scroll", onResize);
+      window.screen?.orientation?.removeEventListener("change", onOrient);
     };
   }, []);
 
@@ -50,6 +66,8 @@ export function useEkran() {
     linijaUredjaj,
     nizak: h < 720,
     unosStek: uspravnoMobTab,
+    /** Menja se pri rotaciji — za key/remount layouta */
+    viewportKey: `${w}x${h}`,
   };
 }
 

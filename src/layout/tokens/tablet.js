@@ -9,6 +9,7 @@ export const TABLET = {
   kolonaGridOdbitak: 48,
   kolonaGridDelilac: 3.2,
   crtezVisina: 220,
+  crtezVisinaDno: 130,
   fontLabel: 11,
   fontInput: 13,
   inpPadV: 8,

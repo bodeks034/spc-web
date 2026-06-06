@@ -35,6 +35,8 @@ export function layoutListaMerljive(ekran, { koristiMobLinija = false } = {}) {
       fontInput: DESKTOP.fontInput,
       inpPadding: DESKTOP.inpPad,
       hintPrevuci: false,
+      mobTabKarusel: false,
+      crtezVisinaDno: null,
       gridGeneralije: `repeat(auto-fill, minmax(${DESKTOP.generalijeMinKolona}px, 1fr))`,
       gridGeneralijeGap: DESKTOP.generalijeGap,
     };
@@ -63,23 +65,27 @@ export function layoutListaMerljive(ekran, { koristiMobLinija = false } = {}) {
     );
   }
 
+  const crtezVisinaDno = dp(tok.crtezVisinaDno, ekran);
+
   return {
     stackVertikalno,
     desktopUnos,
+    mobTabKarusel: true,
     koloneGap: dp(tok.koloneGap, ekran),
     slikaSirina: "100%",
     slikaPunaSirina: true,
-    sirinaKolone,
+    sirinaKolone: "100%",
     padGlavni,
-    kolonaMinVisina: dp(tok.kolonaMinVisina, ekran),
-    kolonaMaxVisina: "70vh",
-    crtezVisinaAside: ekran.mob ? dp(TELEFON.crtezVisina, ekran) : dp(TABLET.crtezVisina, ekran),
+    kolonaMinVisina: 0,
+    kolonaMaxVisina: "none",
+    crtezVisinaAside: crtezVisinaDno,
+    crtezVisinaDno,
     crtezVisinaMob: dp(TELEFON.crtezVisina, ekran),
     crtezVisinaTablet: dp(TABLET.crtezVisina, ekran),
     fontLabel: dp(tok.fontLabel, ekran),
     fontInput: dp(tok.fontInput, ekran),
     inpPadding: `${dp(tok.inpPadV, ekran)}px ${dp(tok.inpPadH, ekran)}px`,
-    hintPrevuci: true,
+    hintPrevuci: false,
     gridGeneralije: ekran.uspravnoMobTab
       ? "repeat(2, minmax(0, 1fr))"
       : ekran.telefonLandscape

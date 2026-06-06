@@ -8,6 +8,8 @@ export const TELEFON = {
   kolonaSirinaMax: 300,
   kolonaSirinaOdbitak: 32,
   crtezVisina: 180,
+  /** Manja slika ispod polja za unos (portret) */
+  crtezVisinaDno: 100,
   crtezVisinaLandscape: 88,
   headerOdbitak: 150,
   fontLabel: 10,
