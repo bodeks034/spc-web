@@ -13,7 +13,6 @@ export default function MerljivaMobTabKarusel({
   slika,
   idDeo,
   onZoomSlika,
-  dugmadSerije,
   CrtezZoomViewer,
   children,
   indeksUListe,
@@ -145,8 +144,6 @@ export default function MerljivaMobTabKarusel({
           )}
         </div>
       </div>
-
-      {dugmadSerije}
     </div>
   );
 }

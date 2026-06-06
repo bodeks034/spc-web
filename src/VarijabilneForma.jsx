@@ -948,6 +948,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       gap: 6,
       flexShrink: 0,
       width: "100%",
+      ...(L.mobTabKarusel ? { marginBottom: 2 } : {}),
     }}>
       {prikaziZahtevPrekid && (
         <button type="button" onClick={() => setPokaziZahtev(true)}
@@ -968,16 +969,20 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
           style={{
             background: C.panel, border: `1px solid ${C.border}`, borderRadius: 6,
-            color: C.tekst, padding: "9px 8px", cursor: mozeObrisati ? "pointer" : "not-allowed",
-            fontSize: 10, fontWeight: 600, boxSizing: "border-box",
+            color: C.tekst,
+            padding: L.mobTabKarusel ? "12px 10px" : "9px 8px",
+            cursor: mozeObrisati ? "pointer" : "not-allowed",
+            fontSize: L.mobTabKarusel ? 12 : 10, fontWeight: 600, boxSizing: "border-box",
           }}>
           Obriši poslednje
         </button>
         <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
           style={{
             background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
-            color: "#fff", padding: "9px 8px", cursor: mozeSacuvati ? "pointer" : "not-allowed",
-            fontWeight: 700, fontSize: 11, boxSizing: "border-box",
+            color: "#fff",
+            padding: L.mobTabKarusel ? "12px 10px" : "9px 8px",
+            cursor: mozeSacuvati ? "pointer" : "not-allowed",
+            fontWeight: 700, fontSize: L.mobTabKarusel ? 13 : 11, boxSizing: "border-box",
           }}>
           {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju")}
         </button>
@@ -1253,6 +1258,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       }}>
         {L.mobTabKarusel ? (
           <>
+            {dugmadSerije}
             {idDeo && serijaPotpuna && (
               <div style={{ flexShrink: 0, overflowY: "auto", marginBottom: 4 }}>
                 <SkartDoradaOeePanel C={C} kompakt vrednosti={kpiSerija} onChange={setKpiSerija}
@@ -1271,7 +1277,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               slika={slika}
               idDeo={idDeo}
               onZoomSlika={() => setZoomSlika(true)}
-              dugmadSerije={dugmadSerije}
               CrtezZoomViewer={CrtezZoomViewer}
               indeksUListe={Math.max(0, indeksiMerljivih.indexOf(prikazIndeksKolone))}
             >
