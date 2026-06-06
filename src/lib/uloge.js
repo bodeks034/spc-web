@@ -43,16 +43,11 @@ export function jeKontrolorLinija(uloga, rezimRada) {
 
 export function pocetniKorakUnosAtr(uloga, rezimRada, { voziloMode = false } = {}) {
   if (voziloMode) return "forma";
-  return jeKontrolorLinija(uloga, rezimRada) ? "cek" : "poka";
+  return "poka";
 }
 
-export function pocetniKorakUnosMer(uloga, rezimRada) {
-  return jeKontrolorLinija(uloga, rezimRada) ? "cek" : "poka";
-}
-
-/** Ček lista ide u wizard pre poka-yoke — preskoči gate na ulazu modula */
-export function preskociAppKontrolnuListu(uloga, rezimRada) {
-  return jeKontrolorLinija(uloga, rezimRada);
+export function pocetniKorakUnosMer() {
+  return "poka";
 }
 
 /** Kontrolor/operator uvek linija; ostali po izboru */

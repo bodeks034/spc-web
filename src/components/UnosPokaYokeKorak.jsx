@@ -53,6 +53,8 @@ export default function UnosPokaYokeKorak({
   const stekPortrait = kompakt && !telefonLandscape;
   const stavke = modul === "atributivne" ? STAVKE_ATRIBUTIVNE : STAVKE_MERLJIVE;
   const boja = akcent || (modul === "merljive" ? C.zelena : C.plava);
+  /** Atributivne: crtež samo u levom panelu, ne u poka koraku */
+  const prikaziCrtez = modul !== "atributivne" && urlSlike;
   const [checks, setChecks] = useState(() => initChecks(stavke));
   const [zoomSlika, setZoomSlika] = useState(false);
 
@@ -92,7 +94,7 @@ export default function UnosPokaYokeKorak({
         <div style={{
           flex: stekPortrait
             ? "0 0 auto"
-            : urlSlike
+            : prikaziCrtez
               ? (telefonLandscape ? "1 1 58%" : kompakt ? "1 1 58%" : "1 1 52%")
               : "1 1 100%",
           background: `${boja}12`,
@@ -198,7 +200,7 @@ export default function UnosPokaYokeKorak({
           )}
         </div>
 
-        {urlSlike && (
+        {prikaziCrtez && (
           <aside style={{
             flex: stekPortrait
               ? "0 0 auto"
@@ -234,7 +236,7 @@ export default function UnosPokaYokeKorak({
         )}
       </div>
 
-      {zoomSlika && urlSlike && (
+      {zoomSlika && prikaziCrtez && (
         <div
           role="presentation"
           onClick={() => setZoomSlika(false)}

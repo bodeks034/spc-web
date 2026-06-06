@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev, KontrolnaLista } from "./lib/kontrolaSesije.jsx";
+import { ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
 import {
   toDec, isStepen, koristiUgaoUnosKolone, validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
   formatOpsegPlausibilnosti,
@@ -17,7 +17,7 @@ import {
   IzvestajSmeneMerljive, CiljeviMerljive, KupacMerljive, StabilnostMerljive, HeatmapTabMerljive,
 } from "./components/MerljiveOplTabovi.jsx";
 import { supabase, supabase as supabaseShared } from "./lib/supabaseClient.js";
-import { useEkran } from "./lib/useEkran.js";
+import { useEkran, layoutListaMerljive, layoutPokaYokeMerljive } from "./layout/index.js";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 import { podrazumevaniKpiIzMerenja } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, porukaKpiGreske } from "./lib/kpiUnos.js";
@@ -42,11 +42,14 @@ import NotifikacijePodesavanja from "./components/NotifikacijePodesavanja.jsx";
 import MeriloBarkodUputstvo from "./components/MeriloBarkodUputstvo.jsx";
 import DigitalnoMeriloPanel from "./components/DigitalnoMeriloPanel.jsx";
 import CrtezZoomViewer from "./components/CrtezZoomViewer.jsx";
+import CrtezPregledPanel from "./components/CrtezPregledPanel.jsx";
 import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
 import { parsiBarkod, useBarcodeScanner } from "./lib/barkod.js";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./components/LinijaWizardNav.jsx";
+import MobilniMerljiviUnos from "./components/MobilniMerljiviUnos.jsx";
+import MerljiveLinijaLeviPanel from "./components/MerljiveLinijaLeviPanel.jsx";
 
 function danasSr() {
   const d = new Date();
@@ -63,6 +66,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   const jeLinija = rezimRada === "linija";
   const kontrolorLinija = jeKontrolorLinija(korisnik?.uloga, rezimRada);
   const koristiMobLinija = jeLinija && ekran.linijaUredjaj;
+  const L = layoutListaMerljive(ekran, { koristiMobLinija });
+  const P = layoutPokaYokeMerljive(ekran);
   const [tab, setTab] = useState("unos");
   const [toasts, setToasts] = useState([]);
   const [logD, setLogD] = useState([]);
@@ -189,6 +194,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   );
   const [kalOdobrenRev, setKalOdobrenRev] = useState(0);
   const [unosKorak, setUnosKorak] = useState("poka");
+  const [linijaKorak, setLinijaKorak] = useState(1);
   const kalibracijaOdobrena = useMemo(
     () => jeKalibracijaOdobrena(idDeo),
     [idDeo, kalOdobrenRev],
@@ -423,6 +429,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setAktivnaKolona(indeksSledecePrazno(cols, potrebanBroj, 0));
     prethodniId.current = id;
     setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
+    if (jeLinija) setLinijaKorak(1);
     ensureSesija({
       modul: "merljive",
       idDeo: id,
@@ -483,7 +490,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setKolone(cols);
     setKpiSerija(podrazumevaniKpiIzMerenja({ kolone: cols, potrebanBroj, brojKolona: brojK }));
     setAktivnaKolona(indeksSledecePrazno(cols, potrebanBroj, 0));
-    if (idDeo) setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
+    if (idDeo) {
+      setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
+      if (jeLinija && force) setLinijaKorak(koristiMobLinija ? 2 : 1);
+    }
   };
 
   const prebaciNaSledecuSerijuPosleSnimanja = (sacuvanaSerija) => {
@@ -494,6 +504,19 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setPoruka(`Serija ${sacuvanaSerija} sačuvana. Unos merenja — serija ${sledeca}.`);
     addToast(`Serija ${sacuvanaSerija} sačuvana → ${sledeca}`, "uspeh");
     return true;
+  };
+
+  const idUcitano = !!(idDeo && nazivDela && grupe.length && grupaAB);
+
+  useEffect(() => {
+    if (!idDeo || idDeo.length < 3) setLinijaKorak(1);
+  }, [idDeo]);
+
+  const noviDeoLinija = () => {
+    onIdChange("");
+    setLinijaKorak(1);
+    setUnosKorak("poka");
+    setPoruka("");
   };
 
   const onIdChange = (v) => {
@@ -746,51 +769,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     resetKolone(5);
   };
 
-  const KOLONA_MIN = 168;
-  const KOLONE_GAP = ekran.telefon ? 8 : 10;
+  const { stackVertikalno, desktopUnos } = L;
   const { telefon, telefonLandscape, uspravnoMobTab } = ekran;
-  /** Portrait: kolone merenja gore, crtež dole (telefon + tablet uspravno) */
-  const mobilniUnosStek = ekran.uspravnoMobTab;
-  /** Laptop ~1366×760 — 5 kolona levo + crtež desno */
-  const laptopKlassic = !telefon && ekran.w >= 1024 && ekran.w < 1700 && ekran.h < 980;
-  /** Desktop 1920×1080+ */
-  const visokDesktop = !telefon && ekran.w >= 1024 && !laptopKlassic;
-  const slikaPx = mobilniUnosStek
-    ? 0
-    : telefonLandscape
-      ? Math.min(160, Math.max(112, Math.round(ekran.w * 0.2)))
-      : laptopKlassic
-        ? Math.min(300, Math.max(220, Math.round(ekran.w * 0.24)))
-        : Math.min(280, Math.max(200, Math.round(ekran.w * 0.15)));
-  const slikaSirina = mobilniUnosStek ? "100%" : `${slikaPx}px`;
-  const prostorZaKolone = mobilniUnosStek
-    ? ekran.w - 16
-    : ekran.w - slikaPx - 24;
-  const koloneUGridu = !mobilniUnosStek && prostorZaKolone >= 5 * KOLONA_MIN;
-  const koloneScroll = mobilniUnosStek || !koloneUGridu;
-  const kolonePoravnaj = visokDesktop && koloneUGridu ? "flex-start" : "flex-end";
-  const koloneGridCols = laptopKlassic && koloneUGridu
-    ? "repeat(5, minmax(0, 1fr))"
-    : koloneUGridu
-      ? `repeat(5, minmax(${KOLONA_MIN}px, 1fr))`
-      : undefined;
-  const sirinaKolone = koloneScroll
-    ? mobilniUnosStek
-      ? Math.min(300, Math.max(236, Math.floor(prostorZaKolone - 8)))
-      : telefonLandscape
-        ? Math.min(220, Math.max(168, Math.floor(prostorZaKolone - 10)))
-        : Math.min(240, Math.max(KOLONA_MIN, Math.floor((prostorZaKolone - 16) / 2.4)))
-    : null;
-  const visinaKoloneScroll = mobilniUnosStek
-    ? Math.min(400, Math.max(220, Math.round(ekran.h * 0.52)))
-    : telefonLandscape
-      ? Math.min(320, Math.max(160, ekran.h - 72))
-      : Math.min(380, Math.max(240, ekran.h - 240));
-  const visinaCrtezaMob = Math.min(200, Math.max(150, Math.round(ekran.h * 0.22)));
-  const kolonePoravnajMob = telefon ? "flex-start" : kolonePoravnaj;
-  const visinaGlavneOblasti = telefon
-    ? Math.max(220, ekran.h - (telefonLandscape ? 88 : 150))
-    : undefined;
 
   const metaRed = (naslov, vrednost, accent) => (
     <div style={{ fontSize: 10, marginBottom: 3, lineHeight: 1.25, flexShrink: 0 }}>
@@ -870,15 +850,15 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     </div>
   );
 
-  const lbl = { display: "block", fontSize: telefon ? 10 : 11, color: C.sivi, marginBottom: 3 };
+  const lbl = { display: "block", fontSize: L.fontLabel, color: C.sivi, marginBottom: 3 };
 
   const inp = {
     background: C.input,
     border: `1px solid ${C.border}`,
     borderRadius: 6,
     color: C.tekst,
-    padding: telefon ? "7px 8px" : "8px 10px",
-    fontSize: telefon ? 12 : 13,
+    padding: L.inpPadding,
+    fontSize: L.fontInput,
     width: "100%",
     fontFamily: "inherit",
     boxSizing: "border-box",
@@ -892,13 +872,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     fontWeight: 600,
   };
 
-  const padGlavni = koristiMobLinija
-    ? "8px 10px 16px"
-    : uspravnoMobTab
-      ? "6px 8px 10px"
-      : laptopKlassic
-        ? "8px 16px 10px"
-        : "6px 8px 8px";
+  const padGlavni = L.padGlavni;
 
   const prikaziZahtevPrekid = imaNepotpunuSesiju && !prekidOdobrenId && !mozeAdmin && imaBiloSta(kolone);
 
@@ -946,13 +920,395 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     </div>
   );
 
+  const prikaziMerljiveFormu = idDeo && grupaAB && unosKorak === "forma" && (
+    !jeLinija || (koristiMobLinija && linijaKorak === 3) || (jeLinija && !koristiMobLinija)
+  );
+  const linijaListaDesktop = jeLinija && !koristiMobLinija && unosKorak === "forma" && idUcitano;
+
+  const serijaDugmad = (
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+      {grupe.map((g) => {
+        const idx = grupe.indexOf(g);
+        const aktivna = g === grupaAB;
+        const zavrsena = sacuvaneGrupe.includes(g);
+        const zakljucana = idx > indeksAktivne && !zavrsena;
+        return (
+          <button
+            key={g}
+            type="button"
+            disabled={zakljucana}
+            onClick={() => !zakljucana && onGrupaChange(g)}
+            title={zakljucana ? `Prvo završi seriju ${grupe[idx - 1] || "prethodnu"}` : g}
+            style={{
+              ...inp,
+              width: "auto",
+              minWidth: 32,
+              padding: "3px 8px",
+              cursor: zakljucana ? "not-allowed" : "pointer",
+              opacity: zakljucana ? 0.4 : 1,
+              borderColor: aktivna ? C.zelena : zavrsena ? C.plava : C.border,
+              background: aktivna ? `${C.zelena}22` : C.input,
+              fontWeight: aktivna ? 700 : 400,
+            }}
+          >
+            {g}{zavrsena ? " ✓" : ""}
+          </button>
+        );
+      })}
+      {!grupe.length && <span style={{ color: C.sivi, fontSize: 10 }}>—</span>}
+    </div>
+  );
+
+  const generalijeGornjiRed = desktopUnos && (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+      gap: 8,
+      marginBottom: 6,
+      flexShrink: 0,
+      width: "100%",
+    }}>
+      <label style={lbl}>Datum<input style={inp} value={datum} onChange={e => setDatum(e.target.value)} /></label>
+      <label style={lbl}>Smena
+        <select style={inp} value={smena} onChange={e => setSmena(e.target.value)}>
+          {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </label>
+      <label style={lbl}>ID deo *
+        <input
+          style={inp}
+          value={idDeo}
+          onChange={e => onIdChange(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && idDeo.length >= 3) ucitajDeo(idDeo);
+          }}
+          placeholder="5502-A"
+          title={digitalniUnos ? "USB barkod čitač" : "Šifra dela"}
+        />
+      </label>
+      <label style={lbl}>Radni nalog<input style={inp} value={radniNalog} readOnly /></label>
+      <label style={lbl}>Naziv dela<input style={inp} value={nazivDela} readOnly /></label>
+      <label style={lbl}>Linija<input style={inp} value={linija} readOnly /></label>
+      <label style={lbl}>Kontrolor<input style={inp} value={kontrolor} readOnly /></label>
+      <label style={lbl}>Mašina<input style={inp} value={masina || "-"} readOnly /></label>
+      <label style={lbl}>Serija{serijaDugmad}</label>
+    </div>
+  );
+
+  const merljiveFormaBlok = prikaziMerljiveFormu && (
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      flex: desktopUnos ? 1 : undefined,
+      minHeight: desktopUnos ? 0 : undefined,
+      height: desktopUnos ? "100%" : undefined,
+      overflow: desktopUnos ? "hidden" : undefined,
+    }}>
+      {digitalniUnos && (
+        <DigitalnoMeriloPanel
+          C={C}
+          kolone={kolone}
+          setKolone={setKolone}
+          potrebanBroj={potrebanBroj}
+          aktivnaKolona={aktivnaKolona}
+          setAktivnaKolona={setAktivnaKolona}
+          addToast={addToast}
+          kompakt={ekran.telefon}
+        />
+      )}
+      <div style={{ fontSize: 10, color: C.zuta, marginBottom: 4, flexShrink: 0, flex: "0 0 auto" }}>
+        Serija {grupaAB}: unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
+        {ciljSesije > 0 && (
+          <span style={{ color: C.sivi }}> · Preostalo serija: {preostaloSesije} / {ciljSesije}</span>
+        )}
+      </div>
+      {prekidOdobrenId && imaNepotpunuSesiju && (
+        <div style={{
+          background: C.ok, border: `1px solid ${C.zelena}`, borderRadius: 6,
+          padding: "8px 10px", fontSize: 10, color: C.zelena, fontWeight: 700, marginBottom: 6,
+        }}>
+          ✓ Prekid odobren — možete sačuvati nepotpunu seriju
+        </div>
+      )}
+      {zoomSlika && urlSlike && (
+        <div role="presentation" onClick={() => setZoomSlika(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.88)", display: "flex", flexDirection: "column", padding: 16 }}>
+          <div role="presentation" onClick={e => e.stopPropagation()}
+            style={{ flex: 1, background: C.panel, borderRadius: 10, border: `1px solid ${C.border}`, padding: 12, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <CrtezZoomViewer url={urlSlike} C={C} onClose={() => setZoomSlika(false)} />
+          </div>
+        </div>
+      )}
+      <div style={{
+        flex: desktopUnos ? 1 : (stackVertikalno ? "none" : 1),
+        display: "flex",
+        flexDirection: "column",
+        minHeight: desktopUnos ? 0 : (stackVertikalno ? "auto" : 0),
+        gap: 8,
+        height: desktopUnos ? "100%" : undefined,
+        overflow: desktopUnos ? "hidden" : undefined,
+      }}>
+        <div style={{
+          flex: desktopUnos ? 1 : (stackVertikalno ? "none" : 1),
+          display: "flex",
+          flexDirection: stackVertikalno ? "column" : "row",
+          gap: 10,
+          alignItems: "stretch",
+          minHeight: desktopUnos ? 0 : (stackVertikalno ? "auto" : 0),
+          height: desktopUnos ? "100%" : undefined,
+          overflow: desktopUnos ? "hidden" : (stackVertikalno ? "visible" : "hidden"),
+        }}>
+          <div style={{
+            flex: desktopUnos ? 1 : (stackVertikalno ? "none" : 1),
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: stackVertikalno ? "flex-start" : "flex-end",
+            minHeight: desktopUnos ? 0 : (stackVertikalno ? "auto" : 0),
+            height: desktopUnos ? "100%" : undefined,
+            order: stackVertikalno ? 2 : 0,
+          }}>
+            <div style={{
+              display: stackVertikalno ? "flex" : "grid",
+              flexDirection: stackVertikalno ? "row" : undefined,
+              gridTemplateColumns: desktopUnos ? "repeat(5, minmax(0, 1fr))" : (stackVertikalno ? undefined : "repeat(5, minmax(0, 1fr))"),
+              gap: L.koloneGap,
+              flex: desktopUnos ? 1 : (stackVertikalno ? "none" : "0 1 auto"),
+              width: desktopUnos ? "100%" : undefined,
+              minHeight: desktopUnos ? 0 : undefined,
+              maxHeight: stackVertikalno ? "none" : "100%",
+              height: desktopUnos ? "100%" : undefined,
+              overflowX: stackVertikalno ? "auto" : "hidden",
+              overflowY: stackVertikalno ? "hidden" : "hidden",
+              WebkitOverflowScrolling: "touch",
+              scrollSnapType: stackVertikalno ? "x proximity" : undefined,
+              paddingBottom: stackVertikalno ? 4 : 0,
+              alignContent: desktopUnos ? "stretch" : undefined,
+            }}>
+              {kolone.map((k, i) => (
+                <div key={i} style={{
+                  background: C.panel,
+                  border: aktivnaKolona === i && k.naziv !== "-"
+                    ? `2px solid ${C.zelena}`
+                    : `1px solid ${C.border}`,
+                  borderRadius: 8,
+                  padding: ekran.mob ? 6 : 8,
+                  boxSizing: "border-box",
+                  opacity: k.naziv === "-" ? 0.4 : 1,
+                  width: stackVertikalno ? L.sirinaKolone : "100%",
+                  maxWidth: stackVertikalno ? L.sirinaKolone : "none",
+                  flex: stackVertikalno ? "0 0 auto" : undefined,
+                  height: desktopUnos ? "100%" : (stackVertikalno ? "auto" : "100%"),
+                  minHeight: stackVertikalno ? L.kolonaMinVisina : 0,
+                  maxHeight: stackVertikalno ? L.kolonaMaxVisina : "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  scrollSnapAlign: stackVertikalno ? "start" : undefined,
+                }}>
+                  {k.naziv !== "-" ? (
+                    <>
+                      {metaRed("Šta se meri", k.naziv, C.plava)}
+                      {k.nazivMere ? metaRed("Nominala / oznaka", k.nazivMere) : null}
+                      {metaRed("Merni instrument", k.instrument)}
+                      {metaRed("Broj merenja", k.ukupnoLabel, C.zuta)}
+                      {metaLevoDesno("LSL", k.lslText, "USL", k.uslText)}
+                      {k.plausibilnost && (
+                        <div style={{ color: C.sivi, fontSize: 8, marginTop: 2, marginBottom: 1, lineHeight: 1.35 }}>
+                          Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ color: C.border, fontSize: 11, textAlign: "center", margin: "auto" }}>—</div>
+                  )}
+                  {k.naziv !== "-" && (
+                    <>
+                      <div style={{
+                        color: C.border, fontSize: 8, textTransform: "uppercase",
+                        letterSpacing: 0.4, marginTop: 4, marginBottom: 3, flexShrink: 0,
+                      }}>
+                        Unos merenja
+                      </div>
+                      <input
+                        ref={el => { inputRefs.current[i] = el; }}
+                        style={{
+                          ...inpMerenje,
+                          marginBottom: 5,
+                          flexShrink: 0,
+                          background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
+                          outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
+                        }}
+                        value={k.input}
+                        onFocus={() => setAktivnaKolona(i)}
+                        onChange={e => {
+                          const v = sanitizujInputMerenja(e.target.value, k);
+                          setKolone(prev => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], input: v };
+                            return next;
+                          });
+                        }}
+                        onBlur={() => {
+                          const inpVal = String(k.input || "").trim();
+                          if (!inpVal) return;
+                          const v = validirajUnos(inpVal, k.jedinica, {
+                            lslDec: k.lslDec,
+                            uslDec: k.uslDec,
+                            nominalDec: k.nominalDec,
+                          });
+                          if (!v.ok) {
+                            setKolone(prev => {
+                              const next = [...prev];
+                              next[i] = { ...next[i], input: "" };
+                              return next;
+                            });
+                          }
+                        }}
+                        onKeyDown={e => {
+                          const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
+                          if (f === null && e.key.length === 1) e.preventDefault();
+                          if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
+                        }}
+                        title={k.plausibilnost
+                          ? `Dozvoljen opseg: ${formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}`
+                          : undefined}
+                        placeholder={koristiUgaoUnosKolone(k)
+                          ? "440000 = 44°00′00″"
+                          : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
+                      />
+                      <button type="button" onClick={() => dodajMerenje(i)}
+                        style={{
+                          width: "100%", background: C.plava, border: "none", borderRadius: 5,
+                          color: "#fff", padding: "5px 0", cursor: "pointer", fontSize: 11,
+                          marginBottom: 5, flexShrink: 0,
+                        }}>
+                        + Dodaj
+                      </button>
+                      {metaBrojaciOkNok(k.cntNOK, k.cntOK)}
+                      <FotoNokUnos
+                        C={C}
+                        kompakt
+                        foto={fotoPoPoziciji[k.naziv] || null}
+                        komentar={komentarPoPoziciji[k.naziv] || ""}
+                        onFoto={url => setFotoPoPoziciji(p => {
+                          const next = { ...p };
+                          if (url) next[k.naziv] = url;
+                          else delete next[k.naziv];
+                          return next;
+                        })}
+                        onKomentar={t => setKomentarPoPoziciji(p => ({ ...p, [k.naziv]: t }))}
+                        onGreska={m => setPoruka(m)}
+                      />
+                      <div style={{
+                        color: C.border, fontSize: 8, textTransform: "uppercase",
+                        letterSpacing: 0.4, marginBottom: 2, flexShrink: 0,
+                      }}>
+                        Lista merenja
+                      </div>
+                      <ul style={{
+                        listStyle: "none", padding: 0, margin: 0, flex: 1,
+                        minHeight: 0, overflow: "auto", fontSize: 11,
+                        fontVariantNumeric: "tabular-nums",
+                      }}>
+                        {k.merenja.map((m, j) => (
+                          <li key={j} style={{
+                            padding: "2px 5px",
+                            marginBottom: 1,
+                            borderRadius: 3,
+                            background: proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica) === "OK"
+                              ? `${C.zelena}12` : `${C.crvena}12`,
+                            color: proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica) === "OK" ? C.zelena : C.crvena,
+                            fontWeight: 600,
+                          }}>
+                            {m.raw}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            {L.hintPrevuci && kolone.some(k => k.naziv !== "-") && (
+              <div style={{ color: C.sivi, fontSize: 9, textAlign: "center", flexShrink: 0, marginTop: 4 }}>
+                ← prevuci kolone merenja →
+              </div>
+            )}
+            {idDeo && serijaPotpuna && (
+              <div style={{
+                flexShrink: 0,
+                maxHeight: stackVertikalno ? "none" : 200,
+                overflowY: "auto",
+                marginTop: stackVertikalno ? 6 : 4,
+              }}>
+                <SkartDoradaOeePanel C={C} kompakt vrednosti={kpiSerija} onChange={setKpiSerija}
+                  podnaslov={`Serija ${grupaAB || "—"} · popunite pre Sačuvaj`} />
+              </div>
+            )}
+          </div>
+          <aside style={{
+            flex: stackVertikalno ? "0 0 auto" : `0 0 ${L.slikaSirina}px`,
+            width: stackVertikalno ? "100%" : L.slikaSirina,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: stackVertikalno ? "auto" : 0,
+            height: desktopUnos ? "100%" : undefined,
+            alignSelf: "stretch",
+            order: stackVertikalno ? 0 : 1,
+            gap: 6,
+          }}>
+            <div style={{
+              background: C.panel,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              width: "100%",
+              flex: stackVertikalno ? "none" : 1,
+              height: stackVertikalno ? L.crtezVisinaAside : undefined,
+              minHeight: stackVertikalno ? L.crtezVisinaAside : 100,
+              boxSizing: "border-box",
+              padding: 6,
+              display: "flex",
+              flexDirection: "column",
+            }}>
+              <div style={{ fontSize: 9, color: C.sivi, marginBottom: 2, textAlign: "center", flexShrink: 0 }}>
+                Crtež · klik = ceo ekran
+              </div>
+              {urlSlike ? (
+                <CrtezZoomViewer url={urlSlike} C={C} onFullscreen={() => setZoomSlika(true)} />
+              ) : (
+                <div style={{
+                  flex: 1,
+                  minHeight: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: C.border,
+                  fontSize: 10,
+                  textAlign: "center",
+                  padding: 8,
+                  background: C.input,
+                  borderRadius: 6,
+                  border: `1px solid ${C.border}`,
+                }}>
+                  {idDeo ? (slika ? "Nije učitana" : "Nema crteža") : "Unesi ID"}
+                </div>
+              )}
+            </div>
+            {dugmadSerije}
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{
       height: telefon ? "100dvh" : "100vh",
       minHeight: telefon ? "100dvh" : "100vh",
       display: "flex",
       flexDirection: "column",
-      overflow: telefon && tab === "unos" ? "auto" : "hidden",
+      overflow: stackVertikalno && tab === "unos" ? "auto" : "hidden",
       background: C.bg,
       fontFamily: "'IBM Plex Mono', monospace",
       color: C.tekst,
@@ -1192,24 +1548,178 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         </div>
       )}
 
-      {tab === "unos" && jeLinija && (
+      {tab === "unos" && jeLinija && !koristiMobLinija && (
         <LinijaWizardNav
           korak={!idDeo || !grupaAB ? "id" : unosKorak === "forma" ? "unos" : unosKorak}
           koraci={kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA}
           C={C}
           akcent={C.zelena}
-          kompakt={koristiMobLinija}
         />
       )}
 
-      {tab === "unos" && (
+      {tab === "unos" && jeLinija && koristiMobLinija && (
+        <MobilniMerljiviUnos
+          linijaKorak={linijaKorak}
+          setLinijaKorak={setLinijaKorak}
+          kontrolorLinija={kontrolorLinija}
+          idDeo={idDeo}
+          onIdChange={onIdChange}
+          smena={smena}
+          setSmena={setSmena}
+          grupe={grupe}
+          grupaAB={grupaAB}
+          onGrupaChange={onGrupaChange}
+          sacuvaneGrupe={sacuvaneGrupe}
+          indeksAktivne={indeksAktivne}
+          nazivDela={nazivDela}
+          linija={linija}
+          masina={masina}
+          radniNalog={radniNalog}
+          potrebanBroj={potrebanBroj}
+          ucitava={ucitava}
+          poruka={poruka}
+          idUcitano={idUcitano}
+          unosKorak={unosKorak}
+          setUnosKorak={setUnosKorak}
+          korisnik={korisnik}
+          kontrolnaListaOk={kontrolnaListaOk}
+          kalUpozorenja={kalUpozorenja}
+          kalibracijaOdobrena={kalibracijaOdobrena}
+          mozeAdmin={mozeAdmin}
+          onToggleKalibracijaOdobrenje={() => {
+            const novo = !kalibracijaOdobrena;
+            postaviKalibracijaOdobrena(idDeo, novo);
+            setKalOdobrenRev(r => r + 1);
+            addToast(
+              novo ? "✓ Admin dozvolio merenje uprkos kalibraciji" : "Kalibracija: blokada ponovo uključena",
+              novo ? "uspeh" : "info",
+            );
+          }}
+          onNoviDeo={noviDeoLinija}
+          slikaNaziv={slika}
+          urlSlike={urlSlike}
+          C={C}
+        >
+          {linijaKorak === 3 && merljiveFormaBlok}
+        </MobilniMerljiviUnos>
+      )}
+
+      {tab === "unos" && jeLinija && !koristiMobLinija && linijaListaDesktop && (
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          padding: padGlavni,
+          minHeight: 0,
+          overflow: "hidden",
+          boxSizing: "border-box",
+        }}>
+          {greskaDb && (
+            <div style={{ background: C.nok, border: `1px solid ${C.crvena}`, borderRadius: 8, padding: 10, marginBottom: 8, fontSize: 11 }}>
+              {greskaDb}
+            </div>
+          )}
+          {poruka && (
+            <div style={{
+              background: poruka.includes("uspešno") || poruka.includes("kompletirana") ? C.ok : `${C.zuta}20`,
+              border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, marginBottom: 8, fontSize: 11,
+            }}>
+              {poruka}
+            </div>
+          )}
+          {generalijeGornjiRed}
+          {merljiveFormaBlok}
+        </div>
+      )}
+
+      {tab === "unos" && jeLinija && !koristiMobLinija && !linijaListaDesktop && (
+        <div style={{
+          flex: 1,
+          display: "grid",
+          gridTemplateColumns: "220px 1fr",
+          minHeight: 0,
+          height: "calc(100vh - 89px)",
+          overflow: "hidden",
+        }}>
+          <MerljiveLinijaLeviPanel
+            C={C}
+            idDeo={idDeo}
+            onIdChange={onIdChange}
+            smena={smena}
+            setSmena={setSmena}
+            grupe={grupe}
+            grupaAB={grupaAB}
+            onGrupaChange={onGrupaChange}
+            sacuvaneGrupe={sacuvaneGrupe}
+            indeksAktivne={indeksAktivne}
+            idUcitano={idUcitano}
+            nazivDela={nazivDela}
+            linija={linija}
+            masina={masina}
+            radniNalog={radniNalog}
+            potrebanBroj={potrebanBroj}
+            preostaloSesije={preostaloSesije}
+            ciljSesije={ciljSesije}
+            poruka={poruka}
+            onNoviDeo={noviDeoLinija}
+            slikaNaziv={slika}
+            urlSlike={urlSlike}
+          />
+          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+            {greskaDb && (
+              <div style={{ background: C.nok, border: `1px solid ${C.crvena}`, borderRadius: 8, padding: 10, margin: "8px 14px 0", fontSize: 11 }}>
+                {greskaDb}
+              </div>
+            )}
+            {!idUcitano && (
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.border, fontSize: 13 }}>
+                Unesi ID dela i izaberi seriju
+              </div>
+            )}
+            {idUcitano && unosKorak === "poka" && (
+              <div style={{ flex: 1, padding: 14, overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                <UnosPokaYokeKorak
+                  C={C}
+                  modul="merljive"
+                  akcent={C.zelena}
+                  idDeo={idDeo}
+                  nazivDela={nazivDela}
+                  radniNalog={radniNalog}
+                  linija={linija}
+                  masina={masina}
+                  kontrolor={kontrolor}
+                  grupaAB={grupaAB}
+                  potrebanBroj={potrebanBroj}
+                  kalUpozorenja={kalUpozorenja}
+                  kontrolnaListaOk={kontrolnaListaOk}
+                  kalibracijaOdobrena={kalibracijaOdobrena}
+                  mozeAdmin={mozeAdmin}
+                  onToggleKalibracijaOdobrenje={() => {
+                    const novo = !kalibracijaOdobrena;
+                    postaviKalibracijaOdobrena(idDeo, novo);
+                    setKalOdobrenRev(r => r + 1);
+                    addToast(
+                      novo ? "✓ Admin dozvolio merenje uprkos kalibraciji" : "Kalibracija: blokada ponovo uključena",
+                      novo ? "uspeh" : "info",
+                    );
+                  }}
+                  onDalje={() => setUnosKorak("forma")}
+                  daljeLabel="Unos merenja →"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === "unos" && !jeLinija && (
       <div style={{
         flex: 1,
         display: "flex",
         flexDirection: "column",
         padding: padGlavni,
         minHeight: 0,
-        overflow: telefon ? "auto" : "auto",
+        overflow: stackVertikalno ? "auto" : "hidden",
         boxSizing: "border-box",
         width: "100%",
         maxWidth: "100%",
@@ -1229,25 +1739,17 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           </div>
         )}
 
+        {desktopUnos ? generalijeGornjiRed : (
         <div style={{
           display: "grid",
           gridTemplateColumns: koristiMobLinija
             ? "repeat(2, minmax(0, 1fr))"
-            : uspravnoMobTab
-              ? "repeat(2, minmax(0, 1fr))"
-              : telefonLandscape
-                ? "repeat(4, minmax(72px, 1fr))"
-                : ekran.tablet
-                  ? "repeat(3, minmax(0, 1fr))"
-                  : "repeat(auto-fill, minmax(110px, 1fr))",
-          gap: koristiMobLinija ? 10 : 8,
+            : L.gridGeneralije,
+          gap: koristiMobLinija ? 10 : L.gridGeneralijeGap,
           marginBottom: 6,
           flexShrink: 0,
           width: "100%",
         }}>
-          {!koristiMobLinija && (
-            <label style={lbl}>Datum<input style={inp} value={datum} onChange={e => setDatum(e.target.value)} /></label>
-          )}
           <label style={lbl}>Smena
             <select style={inp} value={smena} onChange={e => setSmena(e.target.value)}>
               {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
@@ -1274,457 +1776,78 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               {linija && <span style={{ color: C.sivi, fontWeight: 400, marginLeft: 8, fontSize: 10 }}>{linija}</span>}
             </div>
           )}
-          {!koristiMobLinija && (
-            <>
-          <label style={lbl}>Radni nalog<input style={inp} value={radniNalog} readOnly /></label>
-          <label style={lbl}>Naziv dela<input style={inp} value={nazivDela} readOnly /></label>
-          <label style={lbl}>Linija<input style={inp} value={linija} readOnly /></label>
-          <label style={lbl}>Kontrolor<input style={inp} value={kontrolor} readOnly /></label>
-          <label style={lbl}>Mašina<input style={inp} value={masina || "-"} readOnly /></label>
-            </>
-          )}
-          <label style={{ ...lbl, gridColumn: koristiMobLinija ? "1 / -1" : undefined }}>Serija
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {grupe.map((g) => {
-                const idx = grupe.indexOf(g);
-                const aktivna = g === grupaAB;
-                const zavrsena = sacuvaneGrupe.includes(g);
-                const zakljucana = idx > indeksAktivne && !zavrsena;
-                return (
-                  <button
-                    key={g}
-                    type="button"
-                    disabled={zakljucana}
-                    onClick={() => !zakljucana && onGrupaChange(g)}
-                    title={zakljucana ? `Prvo završi seriju ${grupe[idx - 1] || "prethodnu"}` : g}
-                    style={{
-                      ...inp,
-                      width: "auto",
-                      minWidth: 32,
-                      padding: "3px 8px",
-                      cursor: zakljucana ? "not-allowed" : "pointer",
-                      opacity: zakljucana ? 0.4 : 1,
-                      borderColor: aktivna ? C.zelena : zavrsena ? C.plava : C.border,
-                      background: aktivna ? `${C.zelena}22` : C.input,
-                      fontWeight: aktivna ? 700 : 400,
-                    }}
-                  >
-                    {g}{zavrsena ? " ✓" : ""}
-                  </button>
-                );
-              })}
-              {!grupe.length && <span style={{ color: C.sivi, fontSize: 10 }}>—</span>}
-            </div>
-          </label>
+          <label style={{ ...lbl, gridColumn: koristiMobLinija ? "1 / -1" : undefined }}>Serija{serijaDugmad}</label>
         </div>
-
-        {idDeo && grupaAB && kontrolorLinija && unosKorak === "cek" && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: 8 }}>
-            <KontrolnaLista
-              korisnik={korisnik}
-              smena={Number(smena)}
-              naslovModul="Merljive"
-              akcent={C.zelena}
-              ugradjen
-              onZavrsena={() => setUnosKorak("poka")}
-              C={C}
-            />
-          </div>
         )}
 
         {idDeo && grupaAB && unosKorak === "poka" && (
           <div style={{
             flex: 1,
             display: "flex",
-            flexDirection: "column",
-            minHeight: telefon ? visinaGlavneOblasti : 0,
-            overflow: telefon ? "auto" : "hidden",
+            flexDirection: P.desktopUnos ? "row" : "column",
+            gap: P.redGap,
+            minHeight: stackVertikalno ? P.visinaGlavneOblasti : 0,
+            overflow: stackVertikalno ? "auto" : "hidden",
             WebkitOverflowScrolling: "touch",
           }}>
-          <UnosPokaYokeKorak
-            C={C}
-            modul="merljive"
-            akcent={C.zelena}
-            idDeo={idDeo}
-            nazivDela={nazivDela}
-            radniNalog={radniNalog}
-            linija={linija}
-            masina={masina}
-            kontrolor={kontrolor}
-            grupaAB={grupaAB}
-            potrebanBroj={potrebanBroj}
-            kalUpozorenja={kalUpozorenja}
-            kontrolnaListaOk={kontrolnaListaOk}
-            kalibracijaOdobrena={kalibracijaOdobrena}
-            mozeAdmin={mozeAdmin}
-            urlSlike={urlSlike}
-            onToggleKalibracijaOdobrenje={() => {
-              const novo = !kalibracijaOdobrena;
-              postaviKalibracijaOdobrena(idDeo, novo);
-              setKalOdobrenRev(r => r + 1);
-              addToast(
-                novo
-                  ? "✓ Admin dozvolio merenje uprkos kalibraciji"
-                  : "Kalibracija: blokada ponovo uključena",
-                novo ? "uspeh" : "info",
-              );
-            }}
-            onDalje={() => setUnosKorak("forma")}
-          />
-          </div>
-        )}
-
-        {digitalniUnos && idDeo && grupaAB && unosKorak === "forma" && (
-          <DigitalnoMeriloPanel
-            C={C}
-            kolone={kolone}
-            setKolone={setKolone}
-            potrebanBroj={potrebanBroj}
-            aktivnaKolona={aktivnaKolona}
-            setAktivnaKolona={setAktivnaKolona}
-            addToast={addToast}
-            kompakt={ekran.telefon}
-          />
-        )}
-
-        {grupaAB && unosKorak === "forma" && (
-          <div style={{ fontSize: 10, color: C.zuta, marginBottom: 4, flexShrink: 0 }}>
-            Serija {grupaAB}: unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
-            {ciljSesije > 0 && (
-              <span style={{ color: C.sivi }}> · Preostalo serija: {preostaloSesije} / {ciljSesije}</span>
-            )}
-          </div>
-        )}
-
-        {prekidOdobrenId && imaNepotpunuSesiju && (
-          <div style={{
-            background: C.ok, border: `1px solid ${C.zelena}`, borderRadius: 6,
-            padding: "8px 10px", fontSize: 10, color: C.zelena, fontWeight: 700, marginBottom: 6,
-          }}>
-            ✓ Prekid odobren — možete sačuvati nepotpunu seriju
-          </div>
-        )}
-
-        {zoomSlika && urlSlike && (
-          <div
-            role="presentation"
-            onClick={() => setZoomSlika(false)}
-            style={{
-              position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.88)",
-              display: "flex", flexDirection: "column", padding: 16,
-            }}
-          >
-            <div
-              role="presentation"
-              onClick={e => e.stopPropagation()}
-              style={{
-                flex: 1, background: C.panel, borderRadius: 10, border: `1px solid ${C.border}`,
-                padding: 12, minHeight: 0, display: "flex", flexDirection: "column",
-              }}
-            >
-              <CrtezZoomViewer
-                url={urlSlike}
-                C={C}
-                onClose={() => setZoomSlika(false)}
-              />
-            </div>
-          </div>
-        )}
-
-        {idDeo && grupaAB && unosKorak === "forma" && (
-        <div style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-          gap: 8,
-          width: "100%",
-        }}>
-        <div style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: mobilniUnosStek ? "column" : "row",
-          gap: mobilniUnosStek ? 8 : 8,
-          alignItems: "stretch",
-          minHeight: telefon ? visinaGlavneOblasti : 0,
-          overflow: telefon ? "auto" : "hidden",
-          WebkitOverflowScrolling: "touch",
-          width: "100%",
-        }}>
-          <div style={{
-            flex: mobilniUnosStek ? "1 1 auto" : 1,
-            minWidth: 0,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: kolonePoravnajMob,
-            minHeight: mobilniUnosStek ? 0 : 0,
-            width: "100%",
-            order: 0,
-          }}>
-          <div style={{
-            display: koloneScroll ? "flex" : "grid",
-            flexDirection: koloneScroll ? "row" : undefined,
-            gridTemplateColumns: koloneGridCols,
-            gap: KOLONE_GAP,
-            flex: laptopKlassic && koloneUGridu ? "0 1 auto" : koloneUGridu ? 1 : "none",
-            width: koloneUGridu ? "100%" : undefined,
-            minHeight: koloneUGridu ? 0 : undefined,
-            maxHeight: telefonLandscape
-              ? visinaKoloneScroll
-              : laptopKlassic && koloneUGridu
-                ? "100%"
-                : koloneUGridu
-                  ? "100%"
-                  : "none",
-            overflowX: koloneScroll ? "auto" : "hidden",
-            overflowY: telefonLandscape
-              ? "hidden"
-              : laptopKlassic && koloneUGridu
-                ? "auto"
-                : koloneUGridu
-                  ? "auto"
-                  : "hidden",
-            WebkitOverflowScrolling: "touch",
-            scrollSnapType: koloneScroll ? "x proximity" : undefined,
-            paddingBottom: koloneScroll ? 4 : 0,
-          }}>
-              {kolone.map((k, i) => (
-                <div key={i} style={{
-                  background: C.panel,
-                  border: aktivnaKolona === i && k.naziv !== "-"
-                    ? `2px solid ${C.zelena}`
-                    : `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  padding: telefon ? 6 : 8,
-                  boxSizing: "border-box",
-                  opacity: k.naziv === "-" ? 0.4 : 1,
-                  width: koloneScroll ? sirinaKolone : "100%",
-                  maxWidth: koloneScroll ? sirinaKolone : "none",
-                  flex: koloneScroll ? "0 0 auto" : undefined,
-                  height: koloneUGridu && !koloneScroll ? "100%" : "auto",
-                  minHeight: koloneScroll ? visinaKoloneScroll : 0,
-                  maxHeight: koloneScroll
-                    ? (mobilniUnosStek ? visinaKoloneScroll : "70vh")
-                    : "none",
-                  display: "flex",
-                  flexDirection: "column",
-                  scrollSnapAlign: koloneScroll ? "start" : undefined,
-                }}>
-                  {k.naziv !== "-" ? (
-                    <>
-                      {metaRed("Šta se meri", k.naziv, C.plava)}
-                      {k.nazivMere ? metaRed("Nominala / oznaka", k.nazivMere) : null}
-                      {metaRed("Merni instrument", k.instrument)}
-                      {metaRed("Broj merenja", k.ukupnoLabel, C.zuta)}
-                      {metaLevoDesno("LSL", k.lslText, "USL", k.uslText)}
-                      {k.plausibilnost && (
-                        <div style={{ color: C.sivi, fontSize: 8, marginTop: 2, marginBottom: 1, lineHeight: 1.35 }}>
-                          Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ color: C.border, fontSize: 11, textAlign: "center", margin: "auto" }}>—</div>
-                  )}
-                  {k.naziv !== "-" && (
-                    <>
-                      <div style={{
-                        color: C.border, fontSize: 8, textTransform: "uppercase",
-                        letterSpacing: 0.4, marginTop: 4, marginBottom: 3, flexShrink: 0,
-                      }}>
-                        Unos merenja
-                      </div>
-                      <input
-                        ref={el => { inputRefs.current[i] = el; }}
-                        style={{
-                          ...inpMerenje,
-                          marginBottom: 5,
-                          flexShrink: 0,
-                          background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
-                          outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
-                        }}
-                        value={k.input}
-                        onFocus={() => setAktivnaKolona(i)}
-                        onChange={e => {
-                          const v = sanitizujInputMerenja(e.target.value, k);
-                          setKolone(prev => {
-                            const next = [...prev];
-                            next[i] = { ...next[i], input: v };
-                            return next;
-                          });
-                        }}
-                        onBlur={() => {
-                          const inp = String(k.input || "").trim();
-                          if (!inp) return;
-                          const v = validirajUnos(inp, k.jedinica, {
-                            lslDec: k.lslDec,
-                            uslDec: k.uslDec,
-                            nominalDec: k.nominalDec,
-                          });
-                          if (!v.ok) {
-                            setKolone(prev => {
-                              const next = [...prev];
-                              next[i] = { ...next[i], input: "" };
-                              return next;
-                            });
-                          }
-                        }}
-                        onKeyDown={e => {
-                          const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
-                          if (f === null && e.key.length === 1) e.preventDefault();
-                          if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
-                        }}
-                        title={k.plausibilnost
-                          ? `Dozvoljen opseg: ${formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}`
-                          : undefined}
-                        placeholder={koristiUgaoUnosKolone(k)
-                          ? "440000 = 44°00′00″"
-                          : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
-                      />
-                      <button type="button" onClick={() => dodajMerenje(i)}
-                        style={{
-                          width: "100%", background: C.plava, border: "none", borderRadius: 6,
-                          color: "#fff", padding: telefon ? "10px 0" : "8px 0", cursor: "pointer",
-                          fontSize: telefon ? 13 : 12, fontWeight: 700, marginBottom: 5, flexShrink: 0,
-                        }}>
-                        + Dodaj
-                      </button>
-                      {metaBrojaciOkNok(k.cntNOK, k.cntOK)}
-                      <FotoNokUnos
-                        C={C}
-                        kompakt
-                        foto={fotoPoPoziciji[k.naziv] || null}
-                        komentar={komentarPoPoziciji[k.naziv] || ""}
-                        onFoto={url => setFotoPoPoziciji(p => {
-                          const next = { ...p };
-                          if (url) next[k.naziv] = url;
-                          else delete next[k.naziv];
-                          return next;
-                        })}
-                        onKomentar={t => setKomentarPoPoziciji(p => ({ ...p, [k.naziv]: t }))}
-                        onGreska={m => setPoruka(m)}
-                      />
-                      <div style={{
-                        color: C.border, fontSize: 8, textTransform: "uppercase",
-                        letterSpacing: 0.4, marginBottom: 2, flexShrink: 0,
-                      }}>
-                        Lista merenja
-                      </div>
-                      <ul style={{
-                        listStyle: "none", padding: 0, margin: 0, flex: 1,
-                        minHeight: 0, overflow: "auto", fontSize: 11,
-                        fontVariantNumeric: "tabular-nums",
-                      }}>
-                        {k.merenja.map((m, j) => (
-                          <li key={j} style={{
-                            padding: "2px 5px",
-                            marginBottom: 1,
-                            borderRadius: 3,
-                            background: proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica) === "OK"
-                              ? `${C.zelena}12` : `${C.crvena}12`,
-                            color: proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica) === "OK" ? C.zelena : C.crvena,
-                            fontWeight: 600,
-                          }}>
-                            {m.raw}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </div>
-              ))}
-          </div>
-          {koloneScroll && kolone.some(k => k.naziv !== "-") && (
-            <div style={{ color: C.sivi, fontSize: 9, textAlign: "center", flexShrink: 0, marginTop: 4 }}>
-              ← prevuci kolone merenja →
-            </div>
-          )}
-          {idDeo && serijaPotpuna && (
-            <div style={{
-              flexShrink: 0,
-              maxHeight: uspravnoMobTab ? 160 : 200,
-              overflowY: "auto",
-              marginTop: 4,
-            }}>
-              <SkartDoradaOeePanel
-                C={C}
-                kompakt
-                vrednosti={kpiSerija}
-                onChange={setKpiSerija}
-                podnaslov={`Serija ${grupaAB || "—"} · popunite pre Sačuvaj`}
-              />
-            </div>
-          )}
-          </div>
-
-          <aside style={{
-            flex: mobilniUnosStek ? "0 0 auto" : `0 0 ${slikaSirina}`,
-            width: slikaSirina,
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: mobilniUnosStek ? "auto" : 0,
-            alignSelf: "stretch",
-            gap: 6,
-            maxWidth: "100%",
-            boxSizing: "border-box",
-            order: mobilniUnosStek ? 1 : 0,
-          }}>
-            <div style={{
-              background: C.panel,
-              border: `1px solid ${C.border}`,
-              borderRadius: 8,
-              width: "100%",
-              flex: mobilniUnosStek ? "none" : 1,
-              height: mobilniUnosStek
-                ? visinaCrtezaMob
-                : telefonLandscape
-                  ? Math.max(120, Math.min(180, ekran.h - 80))
-                  : undefined,
-              minHeight: mobilniUnosStek
-                ? visinaCrtezaMob
-                : telefonLandscape
-                  ? Math.max(120, ekran.h - 88)
-                  : 100,
-              maxHeight: mobilniUnosStek ? visinaCrtezaMob : telefonLandscape ? "45vh" : undefined,
-              boxSizing: "border-box",
-              padding: 6,
-              display: "flex",
-              flexDirection: "column",
-            }}>
-              <div style={{ fontSize: 9, color: C.sivi, marginBottom: 2, textAlign: "center", flexShrink: 0 }}>
-                Crtež · klik = ceo ekran
-              </div>
-              {urlSlike ? (
-                <CrtezZoomViewer
-                  url={urlSlike}
+            {P.prikaziCrtezLevo && (
+              <aside style={{
+                flex: `0 0 ${P.sirinaCrtezLevo}px`,
+                width: P.sirinaCrtezLevo,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+                alignSelf: "stretch",
+              }}>
+                <CrtezPregledPanel
+                  modul="merljive"
+                  slikaNaziv={slika}
+                  urlDirect={urlSlike}
+                  idDeo={idDeo}
                   C={C}
-                  onFullscreen={() => setZoomSlika(true)}
+                  punPanel
+                  visina={P.crtezVisina}
+                  akcent={C.zelena}
                 />
-              ) : (
-                <div style={{
-                  flex: 1,
-                  minHeight: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: C.border,
-                  fontSize: 10,
-                  textAlign: "center",
-                  padding: 8,
-                  background: C.input,
-                  borderRadius: 6,
-                  border: `1px solid ${C.border}`,
-                }}>
-                  {idDeo ? (slika ? "Nije učitana" : "Nema crteža") : "Unesi ID"}
-                </div>
-              )}
+              </aside>
+            )}
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <UnosPokaYokeKorak
+                C={C}
+                modul="merljive"
+                akcent={C.zelena}
+                idDeo={idDeo}
+                nazivDela={nazivDela}
+                radniNalog={radniNalog}
+                linija={linija}
+                masina={masina}
+                kontrolor={kontrolor}
+                grupaAB={grupaAB}
+                potrebanBroj={potrebanBroj}
+                kalUpozorenja={kalUpozorenja}
+                kontrolnaListaOk={kontrolnaListaOk}
+                kalibracijaOdobrena={kalibracijaOdobrena}
+                mozeAdmin={mozeAdmin}
+                urlSlike={P.urlSlikeUPokaKomponenti ? urlSlike : undefined}
+                onToggleKalibracijaOdobrenje={() => {
+                  const novo = !kalibracijaOdobrena;
+                  postaviKalibracijaOdobrena(idDeo, novo);
+                  setKalOdobrenRev(r => r + 1);
+                  addToast(
+                    novo
+                      ? "✓ Admin dozvolio merenje uprkos kalibraciji"
+                      : "Kalibracija: blokada ponovo uključena",
+                    novo ? "uspeh" : "info",
+                  );
+                }}
+                onDalje={() => setUnosKorak("forma")}
+              />
             </div>
-            {dugmadSerije}
-          </aside>
-        </div>
-        </div>
+          </div>
         )}
+
+        {merljiveFormaBlok}
       </div>
       )}
     </div>

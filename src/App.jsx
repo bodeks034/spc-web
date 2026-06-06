@@ -47,6 +47,7 @@ import {
 } from "recharts";
 import VarijabilneForma from "./VarijabilneForma.jsx";
 import UnosPokaYokeKorak from "./components/UnosPokaYokeKorak.jsx";
+import AtrCrtezPregled from "./components/AtrCrtezPregled.jsx";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
 import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid } from "./lib/kontrolaSesije.jsx";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
@@ -70,7 +71,7 @@ import TrasabilitetPanel from "./components/TrasabilitetPanel.jsx";
 import {
   mozeTabAtributivne, opisUloge, podrazumevaniRezim, mozePrebacivanjeRezima,
   mozeAnalitika, jeLinijaUloga, efektivniRezimRada,
-  jeKontrolorLinija, pocetniKorakUnosAtr, preskociAppKontrolnuListu,
+  jeKontrolorLinija, pocetniKorakUnosAtr,
 } from "./lib/uloge.js";
 import { useEkran } from "./lib/useEkran.js";
 import LinijaWizardNav, { KORACI_ATRIB_LINIJA, KORACI_ATRIB_KONTROLOR } from "./components/LinijaWizardNav.jsx";
@@ -1704,6 +1705,8 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const [foto,setFoto]             = useState(null);
   const [pokaziZahtev,setPokaziZahtev] = useState(false);
   const [unosKorakAtr, setUnosKorakAtr] = useState("poka");
+  const kontrolnaListaOk = sessionStorage.getItem("spc_lista_ok_atributivne") === "1"
+    || sessionStorage.getItem("spc_lista_ok") === "1";
   const prethodniIdAtr = useRef("");
   const prethodnaSmenaAtr = useRef(smena);
   const [komentar,setKomentar]     = useState("");
@@ -2288,6 +2291,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           dodajGresku={dodajGresku} snimiDeo={snimiDeo} zapisi={zapisi}
           noviNalog={noviNalog} saving={saving} online={online} offlineQueueTotal={offlineCounts.total} C={C}
           kpiSerija={kpiSerija} setKpiSerija={setKpiSerija}
+          kontrolnaListaOk={kontrolnaListaOk}
           idRef={idRef}
         />
       )}
@@ -2354,6 +2358,15 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                 padding:Math.round(10*H),textAlign:"center",color:C.border,fontSize:Math.round(8*H)}}>Unesi ID</div>
             )}
 
+            {deoInfo && (
+              <AtrCrtezPregled
+                slikaNaziv={deoInfo.slika_naziv}
+                idDeo={String(idDeo || "").toUpperCase()}
+                C={C}
+                visina={Math.round(140 * H)}
+              />
+            )}
+
             {/* Foto */}
             <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:6,padding:Math.round(6*H)}}>
               <div style={{color:C.sivi,fontSize:Math.round(7*H),letterSpacing:1,marginBottom:Math.round(4*H)}}>FOTO</div>
@@ -2393,19 +2406,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                 />
               )}
 
-              {unosKorakAtr === "cek" && (
-                <div style={{ padding: "8px 14px 14px", overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
-                  <KontrolnaLista
-                    korisnik={korisnik}
-                    smena={smena}
-                    naslovModul="Atributivne"
-                    ugradjen
-                    onZavrsena={() => setUnosKorakAtr("poka")}
-                    C={C}
-                  />
-                </div>
-              )}
-
               {unosKorakAtr === "poka" && (
                 <div style={{
                   padding: 14,
@@ -2425,6 +2425,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                     linija={linijaNaziv}
                     masina={masinaNaziv}
                     kontrolor={korisnik?.ime}
+                    kontrolnaListaOk={kontrolnaListaOk}
                     onDalje={() => setUnosKorakAtr("forma")}
                     daljeLabel="Unos OK/NOK →"
                   />
@@ -2582,7 +2583,22 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           </div>
 
           {/* Desna */}
-          <div style={{padding:14,display:"flex",flexDirection:"column",gap:10,overflowY:"auto"}}>
+          <div style={{padding:14,display:"flex",flexDirection:"column",gap:10,overflowY:"auto",position:"relative"}}>
+            {listaP.length > 0 && (
+              <button onClick={zapisi} disabled={saving}
+                style={{
+                  ...BTN("#7c3aed", !listaP.length || saving),
+                  fontSize: 11,
+                  padding: "10px 12px",
+                  boxShadow: listaP.length ? `0 0 12px #7c3aed50` : "none",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 5,
+                  flexShrink: 0,
+                }}>
+                {saving ? "Snimanje..." : (online ? `💾 ZAPIŠI (${listaP.length})` : "📶 OFFLINE")}
+              </button>
+            )}
             <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:10}}>
               <div style={{color:C.sivi,fontSize:9,letterSpacing:1,marginBottom:5}}>SMENA TOTALI</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:4,textAlign:"center"}}>
@@ -2655,12 +2671,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                 podnaslov="Snima se uz Zapiši u bazu"
               />
             )}
-
-            <button onClick={zapisi} disabled={!listaP.length||saving}
-              style={{...BTN("#7c3aed",!listaP.length||saving),fontSize:11,padding:"10px",
-                boxShadow:listaP.length?`0 0 10px #7c3aed40`:"none"}}>
-              {saving?"Snimanje...":(online?"💾  ZAPIŠI U BAZU":"📶  OFFLINE QUEUE")}
-            </button>
           </div>
           </>
           )}
@@ -2872,14 +2882,15 @@ function MobilniUnos({
   dodajGresku, snimiDeo, zapisi,
   noviNalog, saving, online, offlineQueueTotal, C,
   kpiSerija, setKpiSerija,
+  kontrolnaListaOk = true,
   idRef,
 }) {
   const ekran = useEkran();
   const [korak, setKorak] = useState(1);
-  const ukupnoKoraka = kontrolorLinija ? 5 : linijaMode ? 4 : 3;
-  const korakPoka = kontrolorLinija ? 3 : linijaMode ? 2 : null;
-  const korakUnos = kontrolorLinija ? 4 : linijaMode ? 3 : 2;
-  const korakLista = kontrolorLinija ? 5 : linijaMode ? 4 : 3;
+  const ukupnoKoraka = linijaMode ? 4 : 3;
+  const korakPoka = linijaMode ? 2 : null;
+  const korakUnos = linijaMode ? 3 : 2;
+  const korakLista = linijaMode ? 4 : 3;
   const wizardKoraci = kontrolorLinija ? KORACI_ATRIB_KONTROLOR : KORACI_ATRIB_LINIJA;
 
   useEffect(() => { if (idDeo.length < 3) setKorak(1); }, [idDeo]);
@@ -2889,11 +2900,9 @@ function MobilniUnos({
     setKorak(korakUnos);
   }, [idDeo, voziloMode, korakUnos]);
 
-  const korakWizardId = kontrolorLinija
-    ? (korak === 1 ? "id" : korak === 2 ? "cek" : korak === 3 ? "poka" : korak === 4 ? "unos" : "snimi")
-    : linijaMode
-      ? (korak === 1 ? "id" : korak === 2 ? "poka" : korak === 3 ? "unos" : "lista")
-      : null;
+  const korakWizardId = linijaMode
+    ? (korak === 1 ? "id" : korak === 2 ? "poka" : korak === 3 ? "unos" : kontrolorLinija ? "snimi" : "lista")
+    : null;
 
   const INP = {
     width:"100%", background:C.input, border:`1px solid ${C.border}`,
@@ -3042,9 +3051,9 @@ function MobilniUnos({
 
       <div style={{flex:1}}/>
 
-      <button onClick={()=>setKorak(2)} disabled={!deoInfo}
+      <button onClick={()=>setKorak(linijaMode ? korakPoka : 2)} disabled={!deoInfo}
         style={{...BIG_BTN(C.plava,!deoInfo), fontSize:18}}>
-        {kontrolorLinija ? "Ček lista →" : linijaMode ? "Poka-yoke →" : "Nastavi →"}
+        {linijaMode ? "Poka-yoke →" : "Nastavi →"}
       </button>
       <button onClick={noviNalog}
         style={{background:"none", border:`1px solid ${C.border}`, borderRadius:10,
@@ -3056,23 +3065,7 @@ function MobilniUnos({
     "KORAK 1 / 3 — ID DELA",
   );
 
-  // ─ Korak 2 kontrolor: Ček lista ──────────────────────────
-  if (kontrolorLinija && korak === 2) return omot(
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-      <KontrolnaLista
-        korisnik={korisnik}
-        smena={smena}
-        naslovModul="Atributivne"
-        ugradjen
-        onZavrsena={() => { setUnosKorakAtr?.("poka"); setKorak(3); }}
-        C={C}
-      />
-    </div>,
-    2,
-    "ČEK LISTA",
-  );
-
-  // ─ Korak 2 operator / Korak 3 kontrolor: Poka-yoke ───────
+  // ─ Korak 2 linija: Poka-yoke ─────────────────────────────
   if (linijaMode && korakPoka && korak === korakPoka) return omot(
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       <UnosPokaYokeKorak
@@ -3085,6 +3078,7 @@ function MobilniUnos({
         linija={linijaNaziv}
         masina={masinaNaziv}
         kontrolor={korisnikIme}
+        kontrolnaListaOk={kontrolnaListaOk}
         onDalje={() => { setUnosKorakAtr?.("forma"); setKorak(korakUnos); }}
         daljeLabel="Unos OK/NOK →"
       />
@@ -3285,8 +3279,24 @@ function MobilniUnos({
   // ─ Lista + snimi ─────────────────────────────────────────
   if (korak !== korakLista) return null;
 
+  const dugmeZapisiGore = listaP.length > 0 && (
+    <div style={{ display: "flex", justifyContent: "flex-end", position: "sticky", top: 0, zIndex: 10, marginBottom: 2 }}>
+      <button onClick={zapisi} disabled={saving}
+        style={{
+          ...BIG_BTN("#7c3aed", saving),
+          width: "auto",
+          fontSize: 14,
+          padding: "12px 18px",
+          boxShadow: `0 0 14px #7c3aed45`,
+        }}>
+        {saving ? "Snimanje..." : `💾 Zapiši (${listaP.length})`}
+      </button>
+    </div>
+  );
+
   return linijaMode ? omot(
     <>
+      {dugmeZapisiGore}
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8}}>
         {[
           ["OK",    listaG.filter(s=>s.status==="OK").reduce((s,d)=>s+d.kolicina,0),  C.zelena],
@@ -3329,11 +3339,18 @@ function MobilniUnos({
       </div>
 
       {/* Snimi deo */}
-      <button onClick={()=>{snimiDeo(); setKorak(1);}} disabled={!listaG.length}
+      <button onClick={snimiDeo} disabled={!listaG.length}
         style={{...BIG_BTN(C.zelena,!listaG.length), fontSize:17,
           boxShadow:listaG.length?`0 0 20px ${C.zelena}40`:"none"}}>
         ✓ Snimi deo
       </button>
+
+      {listaP.length > 0 && (
+        <div style={{background:C.ok,border:`1px solid ${C.zelena}40`,borderRadius:10,
+          padding:"10px 14px",fontSize:12,color:C.zelena,textAlign:"center"}}>
+          ✓ {listaP.length} stavki spremno za zapis u bazu
+        </div>
+      )}
 
       {listaP.length > 0 && preostalo>0 && prekidOdobrenId && (
         <div style={{background:C.ok,border:`1px solid ${C.zelena}`,borderRadius:10,
@@ -3359,15 +3376,6 @@ function MobilniUnos({
         />
       )}
 
-      {/* Zapiši u bazu — vidljivo tek kad ima snimljenih */}
-      {listaP.length > 0 && (
-        <button onClick={zapisi} disabled={saving}
-          style={{...BIG_BTN("#7c3aed",saving), fontSize:16,
-            boxShadow:`0 0 16px #7c3aed40`}}>
-          {saving ? "Snimanje..." : `💾 Zapiši u bazu (${listaP.length})`}
-        </button>
-      )}
-
       {/* Offline indikator */}
       {!online && offlineQueueTotal > 0 && (
         <div style={{background:"#3d2c00",border:`1px solid ${C.zuta}40`,
@@ -3391,6 +3399,7 @@ function MobilniUnos({
         {[1,2,3].map(k=>(<div key={k} style={{flex:1,height:4,borderRadius:2,
           background:k<=korak?C.zelena:C.hover}}/>))}
       </div>
+      {dugmeZapisiGore}
       <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
         <button onClick={()=>setKorak(2)}
           style={{background:"none",border:"none",color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>
@@ -3439,18 +3448,11 @@ function MobilniUnos({
           </div>
         ))}
       </div>
-      <button onClick={()=>{snimiDeo(); setKorak(1);}} disabled={!listaG.length}
+      <button onClick={snimiDeo} disabled={!listaG.length}
         style={{...BIG_BTN(C.zelena,!listaG.length), fontSize:17,
           boxShadow:listaG.length?`0 0 20px ${C.zelena}40`:"none"}}>
         ✓ Snimi deo
       </button>
-      {listaP.length > 0 && (
-        <button onClick={zapisi} disabled={saving}
-          style={{...BIG_BTN("#7c3aed",saving), fontSize:16,
-            boxShadow:`0 0 16px #7c3aed40`}}>
-          {saving ? "Snimanje..." : `💾 Zapiši u bazu (${listaP.length})`}
-        </button>
-      )}
     </div>
   );
 }
@@ -3789,9 +3791,16 @@ export default function App() {
     return saved==="svetla"?TEME.svetla:TEME.tamna;
   });
   // Mora biti na vrhu — Rules of Hooks
-  const [listaOk,setListaOk]   = useState(()=>
-    !!sessionStorage.getItem("spc_lista_ok_atributivne") || !!sessionStorage.getItem("spc_lista_ok"));
-  const [listaOkVar,setListaOkVar] = useState(()=>!!sessionStorage.getItem("spc_lista_ok_varijabilne"));
+  const [listaOk,setListaOk]   = useState(false);
+  const [listaOkVar,setListaOkVar] = useState(false);
+
+  useEffect(() => {
+    if (modul === null) {
+      setListaOk(false);
+      setListaOkVar(false);
+    }
+  }, [modul]);
+
   const [loginKey,setLoginKey] = useState(0);
   const [rezimRada, setRezimRada] = useState(() =>
     sessionStorage.getItem("spc_rezim_rada") || "linija",
@@ -3872,8 +3881,8 @@ export default function App() {
     />
   );
 
-  // Kontrolna lista pre atributivnog unosa
-  if(modul==="atributivne"&&!listaOk && !preskociAppKontrolnuListu(korisnik.uloga, aktivniRezim)) return (
+  // Kontrolna lista pre atributivnog unosa (ček lista ili „potvrđena“)
+  if(modul==="atributivne"&&!listaOk) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
         height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>
@@ -3889,7 +3898,7 @@ export default function App() {
     </div>
   );
 
-  if(modul==="varijabilne"&&!listaOkVar && !preskociAppKontrolnuListu(korisnik.uloga, aktivniRezim)) return (
+  if(modul==="varijabilne"&&!listaOkVar) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
         height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:12}}>

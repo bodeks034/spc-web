@@ -66,7 +66,6 @@ export const KORACI_ATRIB_LINIJA = [
 
 export const KORACI_ATRIB_KONTROLOR = [
   { id: "id", label: "ID DELA" },
-  { id: "cek", label: "ČEK LISTA" },
   { id: "poka", label: "POKA-YOKE" },
   { id: "unos", label: "UNOS MERENJA" },
   { id: "snimi", label: "SNIMI" },
@@ -80,7 +79,6 @@ export const KORACI_MERLJIVE_LINIJA = [
 
 export const KORACI_MERLJIVE_KONTROLOR = [
   { id: "id", label: "ID / SERIJA" },
-  { id: "cek", label: "ČEK LISTA" },
   { id: "poka", label: "POKA-YOKE" },
   { id: "unos", label: "UNOS MERENJA" },
 ];
