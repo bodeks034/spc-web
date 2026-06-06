@@ -427,7 +427,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       );
     }
     setKolone(cols);
-    setAktivnaKolona(indeksSledecePrazno(cols, potrebanBroj, 0));
+    setAktivnaKolona(indeksSledecePrazno(cols, br, 0));
     prethodniId.current = id;
     setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
     if (jeLinija) setLinijaKorak(1);
@@ -520,7 +520,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setPoruka("");
   };
 
-  const onIdChange = (v) => {
+  const idUcitajTimer = useRef(null);
+
+  const onIdChange = (v, { potvrdi = false } = {}) => {
     const s = String(v || "").trim().toUpperCase();
     if (prethodniId.current && s !== prethodniId.current && !mozePreskociti) {
       if (!svaMerenjaZavrsena(kolone, potrebanBroj)) {
@@ -530,8 +532,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       }
     }
     setIdDeo(s);
-    if (s) ucitajDeo(s);
-    else {
+    clearTimeout(idUcitajTimer.current);
+    if (!s) {
       prethodniId.current = "";
       prethodniAB.current = "";
       setGrupe([]);
@@ -539,8 +541,22 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       setSacuvaneGrupe([]);
       setPrekidOdobrenId(null);
       resetKolone(5);
+      return;
+    }
+    if (potvrdi && s.length >= 3) {
+      ucitajDeo(s);
+      return;
+    }
+    if (s.length >= 3) {
+      idUcitajTimer.current = setTimeout(() => ucitajDeo(s), 500);
     }
   };
+
+  const potvrdiIdDeo = useCallback((v) => {
+    const s = String(v ?? idDeo ?? "").trim().toUpperCase();
+    clearTimeout(idUcitajTimer.current);
+    if (s.length >= 3) onIdChange(s, { potvrdi: true });
+  }, [idDeo]);
 
   const onGrupaChange = (ab) => prebaciGrupu(ab);
 
@@ -548,7 +564,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     if (tab !== "unos") return;
     const p = parsiBarkod(raw);
     if (!p?.id_deo) return;
-    onIdChange(p.id_deo.toUpperCase());
+    onIdChange(p.id_deo.toUpperCase(), { potvrdi: true });
     addToast(`📷 Barkod: ${p.id_deo}${p.radni_nalog ? ` · ${p.radni_nalog}` : ""}`, "uspeh");
     if (p.smena && [1, 2, 3].includes(p.smena)) setSmena(String(p.smena));
   }, [tab, addToast, onIdChange]), { enabled: tab === "unos", ignoreInputs: true });
@@ -573,22 +589,48 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     [kolone],
   );
 
+  const prikazIndeksKolone = useMemo(() => {
+    if (!indeksiMerljivih.length) return -1;
+    if (indeksiMerljivih.includes(aktivnaKolona)) return aktivnaKolona;
+    return indeksiMerljivih[0];
+  }, [indeksiMerljivih, aktivnaKolona]);
+
   useEffect(() => {
     if (!L.mobTabKarusel || unosKorak !== "forma" || !indeksiMerljivih.length) return;
     if (!indeksiMerljivih.includes(aktivnaKolona)) {
       setAktivnaKolona(indeksiMerljivih[0]);
     }
-  }, [L.mobTabKarusel, indeksiMerljivih, aktivnaKolona, unosKorak, ekran.viewportKey]);
+  }, [L.mobTabKarusel, indeksiMerljivih, aktivnaKolona, unosKorak, kolone]);
 
   const idiPrethodnaKolona = useCallback(() => {
-    const idx = indeksiMerljivih.indexOf(aktivnaKolona);
+    if (!indeksiMerljivih.length) return;
+    const tren = indeksiMerljivih.includes(aktivnaKolona) ? aktivnaKolona : indeksiMerljivih[0];
+    const idx = indeksiMerljivih.indexOf(tren);
     if (idx > 0) setAktivnaKolona(indeksiMerljivih[idx - 1]);
   }, [indeksiMerljivih, aktivnaKolona]);
 
   const idiSledecaKolona = useCallback(() => {
-    const idx = indeksiMerljivih.indexOf(aktivnaKolona);
-    if (idx >= 0 && idx < indeksiMerljivih.length - 1) setAktivnaKolona(indeksiMerljivih[idx + 1]);
+    if (!indeksiMerljivih.length) return;
+    const tren = indeksiMerljivih.includes(aktivnaKolona) ? aktivnaKolona : indeksiMerljivih[0];
+    const idx = indeksiMerljivih.indexOf(tren);
+    if (idx < indeksiMerljivih.length - 1) {
+      setAktivnaKolona(indeksiMerljivih[idx + 1]);
+    }
   }, [indeksiMerljivih, aktivnaKolona]);
+
+  const idiSledecaKolonaMob = useCallback(() => {
+    idiSledecaKolona();
+    if (typeof document !== "undefined") {
+      document.activeElement?.blur?.();
+    }
+  }, [idiSledecaKolona]);
+
+  const idiPrethodnaKolonaMob = useCallback(() => {
+    idiPrethodnaKolona();
+    if (typeof document !== "undefined") {
+      document.activeElement?.blur?.();
+    }
+  }, [idiPrethodnaKolona]);
 
   const dodajMerenje = (idx) => {
     const k = kolone[idx];
@@ -1002,8 +1044,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           style={inp}
           value={idDeo}
           onChange={e => onIdChange(e.target.value)}
+          onBlur={e => potvrdiIdDeo(e.target.value)}
           onKeyDown={e => {
-            if (e.key === "Enter" && idDeo.length >= 3) ucitajDeo(idDeo);
+            if (e.key === "Enter") { e.preventDefault(); potvrdiIdDeo(e.currentTarget.value); }
           }}
           placeholder="5502-A"
           title={digitalniUnos ? "USB barkod čitač" : "Šifra dela"}
@@ -1157,9 +1200,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   );
 
   const merljiveFormaBlok = prikaziMerljiveFormu && (
-    <div
-      key={L.mobTabKarusel ? `lista-${ekran.viewportKey}` : "lista-desk"}
-      style={{
+    <div style={{
       display: "flex",
       flexDirection: "column",
       flex: 1,
@@ -1221,10 +1262,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             <MerljivaMobTabKarusel
               C={C}
               kolone={kolone}
-              aktivnaKolona={aktivnaKolona}
+              aktivnaKolona={prikazIndeksKolone}
               indeksiMerljivih={indeksiMerljivih}
-              onPrethodna={idiPrethodnaKolona}
-              onSledeca={idiSledecaKolona}
+              onPrethodna={L.mobTabKarusel ? idiPrethodnaKolonaMob : idiPrethodnaKolona}
+              onSledeca={L.mobTabKarusel ? idiSledecaKolonaMob : idiSledecaKolona}
               crtezVisina={L.crtezVisinaDno}
               urlSlike={urlSlike}
               slika={slika}
@@ -1232,10 +1273,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               onZoomSlika={() => setZoomSlika(true)}
               dugmadSerije={dugmadSerije}
               CrtezZoomViewer={CrtezZoomViewer}
-              indeksUListe={Math.max(0, indeksiMerljivih.indexOf(aktivnaKolona))}
+              indeksUListe={Math.max(0, indeksiMerljivih.indexOf(prikazIndeksKolone))}
             >
-              {indeksiMerljivih.includes(aktivnaKolona)
-                && renderKolonaKartica(kolone[aktivnaKolona], aktivnaKolona, true)}
+              {prikazIndeksKolone >= 0
+                && renderKolonaKartica(kolone[prikazIndeksKolone], prikazIndeksKolone, true)}
             </MerljivaMobTabKarusel>
           </>
         ) : (
@@ -1604,6 +1645,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           kontrolorLinija={kontrolorLinija}
           idDeo={idDeo}
           onIdChange={onIdChange}
+          onIdPotvrdi={potvrdiIdDeo}
           smena={smena}
           setSmena={setSmena}
           grupe={grupe}
@@ -1753,9 +1795,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       )}
 
       {tab === "unos" && !jeLinija && (
-      <div
-        key={stackVertikalno ? `unos-${ekran.viewportKey}` : "unos-desk"}
-        style={{
+      <div style={{
         flex: 1,
         display: "flex",
         flexDirection: "column",
@@ -1802,8 +1842,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
               style={{ ...inp, fontSize: koristiMobLinija ? 18 : undefined, fontWeight: koristiMobLinija ? 700 : undefined, textAlign: koristiMobLinija ? "center" : undefined }}
               value={idDeo}
               onChange={e => onIdChange(e.target.value)}
+              onBlur={e => potvrdiIdDeo(e.target.value)}
               onKeyDown={e => {
-                if (e.key === "Enter" && idDeo.length >= 3) ucitajDeo(idDeo);
+                if (e.key === "Enter") { e.preventDefault(); potvrdiIdDeo(e.currentTarget.value); }
               }}
               placeholder="5502-A"
               title={digitalniUnos ? "USB barkod čitač" : "Šifra dela"}

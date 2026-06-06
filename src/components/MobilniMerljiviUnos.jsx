@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useEkran } from "../lib/useEkran.js";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
@@ -12,6 +13,7 @@ export default function MobilniMerljiviUnos({
   kontrolorLinija = false,
   idDeo,
   onIdChange,
+  onIdPotvrdi,
   smena,
   setSmena,
   grupe,
@@ -42,6 +44,7 @@ export default function MobilniMerljiviUnos({
   children,
 }) {
   const ekran = useEkran();
+  const idInputRef = useRef(null);
   const wizardKoraci = kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA;
   const korakWizardId = linijaKorak === 1 ? "id" : linijaKorak === 2 ? "poka" : "unos";
 
@@ -77,7 +80,7 @@ export default function MobilniMerljiviUnos({
     display: "block",
   };
 
-  const omot = (content) => (
+  const omot = (content, { skrol = false } = {}) => (
     <div style={{
       padding: "10px 12px 24px",
       display: "flex",
@@ -86,7 +89,8 @@ export default function MobilniMerljiviUnos({
       height: "100dvh",
       maxHeight: "100dvh",
       minHeight: 0,
-      overflow: "hidden",
+      overflow: skrol ? "auto" : "hidden",
+      WebkitOverflowScrolling: skrol ? "touch" : undefined,
       background: C.bg,
       boxSizing: "border-box",
     }}>
@@ -121,8 +125,13 @@ export default function MobilniMerljiviUnos({
         <div>
           <label style={LBL}>ID DELA <span style={{ color: C.border, fontWeight: 400 }}>(ili skeniraj)</span></label>
           <input
+            ref={idInputRef}
             value={idDeo}
             onChange={e => onIdChange(e.target.value.toUpperCase())}
+            onBlur={e => onIdPotvrdi?.(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") { e.preventDefault(); onIdPotvrdi?.(e.currentTarget.value); }
+            }}
             placeholder="npr. 5502-A"
             autoFocus
             style={{
@@ -233,7 +242,13 @@ export default function MobilniMerljiviUnos({
 
         <button
           type="button"
-          onClick={() => { setUnosKorak("poka"); setLinijaKorak(2); }}
+          onClick={() => {
+            if (!mozeDalje) return;
+            const v = idInputRef.current?.value ?? idDeo;
+            onIdPotvrdi?.(v);
+            setUnosKorak("poka");
+            setLinijaKorak(2);
+          }}
           disabled={!mozeDalje}
           style={BIG_BTN(C.zelena, !mozeDalje)}
         >
@@ -256,6 +271,7 @@ export default function MobilniMerljiviUnos({
           ↺ Novi deo
         </button>
       </>,
+      { skrol: true },
     );
   }
 
