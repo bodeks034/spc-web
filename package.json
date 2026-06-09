@@ -9,8 +9,22 @@
     "build": "vite build",
     "preview": "vite preview",
     "import:docs": "node scripts/import-all-docs.mjs",
+    "import:radni-nalozi": "node scripts/import-radni-nalozi.mjs",
     "seed:5501-5503": "node scripts/seed-merljive-5501-5503.mjs",
-    "build:merljive-xlsx": "node scripts/seed-merljive-5501-5503.mjs"
+    "build:merljive-xlsx": "node scripts/seed-merljive-5501-5503.mjs",
+    "barkodi": "node scripts/generisi-barkod-etikete.mjs",
+    "barkodi:sync": "node scripts/sync-barkod-excel.mjs xlsx-to-csv",
+    "barkodi:seed-excel": "node scripts/sync-barkod-excel.mjs csv-to-xlsx",
+    "backup:db": "powershell -ExecutionPolicy Bypass -File scripts/backup-supabase-db.ps1",
+    "backup:storage": "node scripts/download-supabase-storage.mjs",
+    "restore:storage": "node scripts/upload-storage-local.mjs",
+    "pakuj:server": "powershell -ExecutionPolicy Bypass -File scripts/pakuj-za-firminski-server.ps1",
+    "licenca:kljuc": "node scripts/generisi-par-licence.mjs",
+    "licenca:fajl": "node scripts/generisi-licencu.mjs",
+    "licenca:baza": "node scripts/postavi-licencu.mjs",
+    "dokument:checklist-it": "node scripts/generisi-checklist-firma-dokument.mjs",
+    "dokument:checklist-pun": "node scripts/generisi-checklist-firma-dokument.mjs --interno",
+    "pakuj:sifrarnik": "node scripts/pakuj-sifrarnik-folder.mjs"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +33,7 @@
     "@supabase/supabase-js": "^2.106.1",
     "@vitejs/plugin-react": "^6.0.2",
     "html2canvas": "^1.4.1",
+    "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
@@ -28,6 +43,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "eslint-plugin-react-hooks": "^7.1.1"
+    "bwip-js": "^4.11.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "qrcode": "^1.5.4"
   }
 }

@@ -1,0 +1,4 @@
+id,radni nal,id dela*,naziv dela,količina,kupac,datum unosa,rok isporuke,status,operater,napomena
+1,RN-2024-001,5501-A,Nosac,500,Kupac A,2024-01-15,2024-02-15,aktivan,PERA OPERATER,
+2,RN-2024-002,5502-A,Osovina,300,Kupac B,2024-01-16,2024-02-20,aktivan,PERA OPERATER,Hitna isporuka
+3,RN-2024-003,5503-A,Poklopac,200,Kupac A,2024-01-20,2024-03-01,aktivan,PERA OPERATER,

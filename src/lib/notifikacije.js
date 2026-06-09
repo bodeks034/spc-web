@@ -1,5 +1,7 @@
 /** Obaveštenja — browser, Teams webhook, log u bazi. */
 
+import { SUPABASE_ANON, SUPABASE_URL } from "./supabaseConfig.js";
+
 const LS_KEY = "spc_notif_settings";
 const DEDUPE_PREFIX = "spc_notif_sent_";
 const DEDUPE_MS = 60 * 60 * 1000;
@@ -73,13 +75,11 @@ export async function zatraziBrowserDozvolu() {
 }
 
 function edgeProxyUrl() {
-  const base = import.meta.env.VITE_SUPABASE_URL || "https://wzxkcomeurogvfisticq.supabase.co";
-  return `${String(base).replace(/\/$/, "")}/functions/v1/send-webhook`;
+  return `${String(SUPABASE_URL).replace(/\/$/, "")}/functions/v1/send-webhook`;
 }
 
 function edgeHeaders() {
-  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
-    || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
+  const anon = SUPABASE_ANON;
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${anon}`,

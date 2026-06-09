@@ -1,5 +1,7 @@
 /** Zajednička SPC / DPMO / Pareto logika — jedan izvor istine za dashboard, karte i unos. */
 
+import { predloziDodeljenogInzenjera } from "./eskalacijeHelper.js";
+
 export function calcDPMO(nok, n) {
   return n > 0 ? Math.round((nok / n) * 1e6) : 0;
 }
@@ -188,6 +190,7 @@ export function nokPoAqlKlasi(stavke) {
 
 export async function kreirajAutoEskalaciju(supabase, {
   id_deo, opis, prioritet = "visok", kreirao_id, prefiks = "AUTO",
+  korektivna_akcija = null,
 }) {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: existing } = await supabase.from("eskalacije")
@@ -199,12 +202,15 @@ export async function kreirajAutoEskalaciju(supabase, {
     .limit(1);
   if (existing?.length) return existing[0];
 
+  const { dodeljen_id } = await predloziDodeljenogInzenjera(supabase);
   const { data, error } = await supabase.from("eskalacije").insert({
     id_deo,
     opis: `${prefiks}: ${opis}`,
+    korektivna_akcija,
     prioritet,
     status: "otvoren",
     kreirao_id: kreirao_id || null,
+    dodeljen_id: dodeljen_id || null,
     rok: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   }).select("id").single();
   if (error) throw error;

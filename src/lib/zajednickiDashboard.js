@@ -2,6 +2,9 @@ import { aggregateLogRows, calcDPMO, calcRTY } from "./spcStats.js";
 import { fetchKpiUnos, agregirajKpiUnos } from "./kpiUnos.js";
 import { izracunajOeeKpi } from "./oeeKpi.js";
 import { evaluirajAlarme } from "./operativniAlarmi.js";
+import { planiranoKomIzReda, ucitajAktivniRadniNalog } from "./radniNalog.js";
+import { trendKvalitetaPoDanu } from "./varijabilneSpcStats.js";
+import { analizirajProces } from "./spcInteligencija.js";
 
 function datumOd(dana) {
   const od = new Date();
@@ -139,7 +142,32 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   });
 
   const trend = attrAgg.trend || [];
+  const trendMer = trendKvalitetaPoDanu(merData);
   const aktivniNalozi = (nalogRes.data || []).length;
+
+  const inteligencija = analizirajProces({
+    attr: {
+      ukN: attrAgg.ukN || 0,
+      ukNOK: attrAgg.ukNOK || 0,
+      rty: attrAgg.rty || "0",
+      dpmo: attrAgg.dpmo || 0,
+    },
+    merljive: {
+      merenja: merN,
+      nok: merNok,
+      rty: calcRTY(merOk, merN),
+      dpmo: calcDPMO(merNok, merN),
+    },
+    trendAttr: trend,
+    trendMer,
+    topNok,
+    alarmi,
+    eskalacije: {
+      otvorene: eskalacije.filter(e => ["otvoren", "u_toku", "aktivan", "open"].includes((e.status || "").toLowerCase())).length,
+    },
+    oee: { prosek: oeeProsek },
+    period,
+  });
 
   return {
     period,
@@ -181,18 +209,13 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     aktivniNalozi,
     alarmi,
     trend,
+    trendMer,
+    inteligencija,
   };
 }
 
 /** Planirana količina iz aktivnog radnog naloga za deo. */
 export async function fetchPlaniranoKomZaDeo(supabase, idDeo) {
-  if (!idDeo) return 0;
-  const { data } = await supabase.from("radni_nalozi")
-    .select("kom_ukupno,kom_za_kontrolu")
-    .eq("id_deo", String(idDeo).toUpperCase())
-    .eq("status", "aktivan")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data?.kom_ukupno || data?.kom_za_kontrolu || 0;
+  const nalog = await ucitajAktivniRadniNalog(supabase, idDeo);
+  return planiranoKomIzReda(nalog);
 }

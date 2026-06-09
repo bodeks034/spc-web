@@ -164,6 +164,33 @@ export function koristiUgaoUnosKolone(k) {
   return prepoznajUgaoKarakteristiku(k) || isUgao(k?.jedinica);
 }
 
+/** Korak za +/- stepper na liniji (null = bez steppera, npr. uglovi). */
+export function korakUnosaMerenja(k) {
+  if (koristiUgaoUnosKolone(k)) return null;
+  const nom = k?.nominalDec;
+  if (Number.isFinite(nom)) {
+    const s = String(nom);
+    const tacka = s.indexOf(".");
+    if (tacka >= 0) {
+      const dec = s.length - tacka - 1;
+      return Math.pow(10, -Math.min(Math.max(dec, 1), 3));
+    }
+  }
+  const lsl = k?.lslDec;
+  const usl = k?.uslDec;
+  if (Number.isFinite(lsl) && Number.isFinite(usl)) {
+    const span = Math.abs(usl - lsl);
+    if (span > 0 && span < 1) return 0.01;
+    if (span >= 1 && span < 10) return 0.1;
+  }
+  return 0.01;
+}
+
+/** inputMode za ugrađenu tastaturu na telefonu/tabletu. */
+export function inputModeMerenja(k) {
+  return koristiUgaoUnosKolone(k) ? "numeric" : "decimal";
+}
+
 /** Unos merenja: ugao ako je jedinica Ugao ili pakovani DMS u opsegu LSL/USL. */
 export function unosKaoUgao(jedinica, raw, lslDec, uslDec) {
   if (isUgao(jedinica)) return true;

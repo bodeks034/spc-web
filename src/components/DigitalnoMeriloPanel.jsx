@@ -9,6 +9,7 @@ import {
 import MeriloBarkodUputstvo from "./MeriloBarkodUputstvo.jsx";
 
 const BAUD_OPCIJE = [4800, 9600, 19200, 38400, 115200];
+const TEST_MERENJA = ["12.340", "12.355", "12.348", "12.362", "12.351", "12.338", "12.345"];
 
 export default function DigitalnoMeriloPanel({
   C,
@@ -19,9 +20,14 @@ export default function DigitalnoMeriloPanel({
   setAktivnaKolona,
   addToast,
   kompakt,
+  onPovezanChange,
+  registerStop,
+  registerSimuliraj,
 }) {
   const [paste, setPaste] = useState("");
   const [serialAktivan, setSerialAktivan] = useState(false);
+  const [simulacijaAktivan, setSimulacijaAktivan] = useState(false);
+  const testIdxRef = useRef(0);
   const [baud, setBaud] = useState(9600);
   const [poslednje, setPoslednje] = useState([]);
   const [pomoc, setPomoc] = useState(false);
@@ -111,10 +117,43 @@ export default function DigitalnoMeriloPanel({
     }
   };
 
-  const stopSerial = () => {
+  const stopSerial = useCallback(() => {
     abortRef.current?.abort();
     setSerialAktivan(false);
-  };
+  }, []);
+
+  const stopSve = useCallback(() => {
+    stopSerial();
+    setSimulacijaAktivan(false);
+  }, [stopSerial]);
+
+  const startSimulacija = useCallback(() => {
+    stopSerial();
+    setSimulacijaAktivan(true);
+    addToast?.("Simulacija merila — koristi 📤 u headeru za test vrednosti", "info");
+  }, [stopSerial, addToast]);
+
+  const posaljiTestMerenje = useCallback(() => {
+    const v = TEST_MERENJA[testIdxRef.current % TEST_MERENJA.length];
+    testIdxRef.current += 1;
+    onLinija({ vrednost: v });
+  }, [onLinija]);
+
+  const povezan = serialAktivan || simulacijaAktivan;
+
+  useEffect(() => {
+    onPovezanChange?.(povezan, { simulacija: simulacijaAktivan });
+  }, [povezan, simulacijaAktivan, onPovezanChange]);
+
+  useEffect(() => {
+    registerStop?.(stopSve);
+    return () => registerStop?.(null);
+  }, [registerStop, stopSve]);
+
+  useEffect(() => {
+    registerSimuliraj?.(simulacijaAktivan ? posaljiTestMerenje : null);
+    return () => registerSimuliraj?.(null);
+  }, [registerSimuliraj, simulacijaAktivan, posaljiTestMerenje]);
 
   const btn = {
     background: C.hover,
@@ -126,6 +165,8 @@ export default function DigitalnoMeriloPanel({
     cursor: "pointer",
     fontWeight: 600,
   };
+
+  if (povezan) return null;
 
   return (
     <div style={{
@@ -185,15 +226,17 @@ export default function DigitalnoMeriloPanel({
         >
           {BAUD_OPCIJE.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
-        {!serialAktivan ? (
-          <button type="button" style={{ ...btn, borderColor: C.zelena, color: C.zelena }} onClick={startSerial}>
-            ▶ Poveži serial
-          </button>
-        ) : (
-          <button type="button" style={{ ...btn, borderColor: C.crvena, color: C.crvena }} onClick={stopSerial}>
-            ■ Prekini serial
-          </button>
-        )}
+        <button type="button" style={{ ...btn, borderColor: C.zelena, color: C.zelena }} onClick={startSerial}>
+          ▶ Poveži serial
+        </button>
+        <button
+          type="button"
+          title="Test bez pravog merila — panel se sklanja kao kod seriala"
+          style={{ ...btn, borderColor: C.narandzasta || C.zuta, color: C.narandzasta || C.zuta }}
+          onClick={startSimulacija}
+        >
+          ▶ Simulacija
+        </button>
         <label style={{ ...btn, display: "inline-block" }}>
           📄 Fajl
           <input type="file" accept=".txt,.csv,.dat" onChange={onFajl} style={{ display: "none" }} />

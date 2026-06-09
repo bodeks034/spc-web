@@ -73,6 +73,8 @@ export const IMPORT_SHEETS = [
       podkategorija: pick(r, "podkategorija"),
       defekt: pick(r, "defekt") || pick(r, "podkategorija"),
       opis: pick(r, "opis") || null,
+      id_deo: pick(r, "id_deo", "id dela") ? pick(r, "id_deo", "id dela").toUpperCase() : null,
+      katalog_id: pick(r, "katalog_id", "katalog id") || null,
     }),
     valid: (r) => r.id && r.kategorija,
   },
@@ -108,6 +110,7 @@ export const IMPORT_SHEETS = [
         napomena: pick(r, "napomena") || null,
         tip_kontrole: tip === "vozilo" ? "vozilo" : "deo",
         vozilo_katalog_id: pick(r, "vozilo katalog id", "vozilo_katalog_id") || (tip === "vozilo" ? "FINAL-001" : null),
+        greska_katalog_id: pick(r, "greska katalog id", "greska_katalog_id") || null,
       };
     },
     valid: (r) => r.id_deo,

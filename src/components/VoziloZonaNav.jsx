@@ -223,7 +223,7 @@ function ZonaChips({ izabranaZona, onZonaChange, C }) {
 function resolveDiagramSrc(diagramSrc) {
   const src = diagramSrc ?? VOZILO_DIAGRAM_SRC;
   if (!src) return { src: null, isPhoto: false };
-  const isPhoto = /\.(png|jpe?g|webp)$/i.test(src);
+  const isPhoto = /\.(png|jpe?g|webp|svg)$/i.test(src);
   return { src, isPhoto };
 }
 

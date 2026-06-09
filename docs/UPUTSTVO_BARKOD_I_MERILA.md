@@ -67,6 +67,9 @@ To je „direktno u aplikaciju“ u smislu: **nema MeasurLink / posebnog SPC age
 
 ## 1. Barkod / QR čitač (ID dela)
 
+> **Gotove etikete i kompletno uputstvo za pravljenje:** [UPUTSTVO_PRAVLJENJE_BARKODOVA.md](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md)  
+> Excel registar: `excel-rad/Barkod_etikete.xlsx` · slike: `docs/barkodi/` · `npm run barkodi`
+
 ### Kako se povezuje
 
 | Korak | Šta uraditi |

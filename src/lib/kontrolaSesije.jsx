@@ -1,12 +1,22 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = "https://wzxkcomeurogvfisticq.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+import { obavestiAdminZahtev } from "./adminZahtevNotifikacije.js";
+import { supabase } from "./supabaseClient.js";
+import { kontrolnaListaObavezna, normalizujIdDeo } from "./kontrolaLista.js";
+import LicencaStatusPanel from "../components/LicencaStatusPanel.jsx";
 
 /** Kontrolna lista pre smene (atributivne i merljive). */
-export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "", akcent, ugradjen = false }) {
+export function KontrolnaLista({
+  korisnik,
+  smena,
+  idDeo = null,
+  onZavrsena,
+  C,
+  naslovModul = "",
+  akcent,
+  ugradjen = false,
+  licenca = null,
+  prikaziLicencu = false,
+}) {
   const boja = akcent || C.plava;
   const [stavke, setStavke] = useState([]);
   const [checklist, setChecklist] = useState({});
@@ -16,14 +26,24 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
   const [greska, setGreska] = useState("");
   const [vecUradjena, setVecUradjena] = useState(false);
 
+  const idNorm = normalizujIdDeo(idDeo);
+
   useEffect(() => {
+    setVecUradjena(false);
+    setLoading(true);
     (async () => {
       try {
         const danas = new Date().toISOString().split("T")[0];
         if (korisnik?.radnikId) {
-          const { data: log } = await supabase.from("kontrolna_lista_log")
-            .select("id,zavrsena").eq("radnik_id", korisnik.radnikId)
-            .eq("smena", smena).eq("datum", danas).eq("zavrsena", true).maybeSingle();
+          const { data: logs } = await supabase.from("kontrolna_lista_log")
+            .select("id,stavke_json,zavrsena")
+            .eq("radnik_id", korisnik.radnikId)
+            .eq("smena", smena)
+            .eq("datum", danas)
+            .eq("zavrsena", true);
+          const log = idNorm
+            ? (logs || []).find((l) => normalizujIdDeo(l.stavke_json?.id_deo) === idNorm)
+            : logs?.[0];
           if (log) { setVecUradjena(true); return; }
         }
         const { data, error } = await supabase.from("kontrolna_lista_stavke")
@@ -37,7 +57,7 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
         setLoading(false);
       }
     })();
-  }, [korisnik?.radnikId, smena]);
+  }, [korisnik?.radnikId, smena, idNorm]);
 
   const toggle = (id) => {
     const key = String(id);
@@ -57,7 +77,12 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
       radnik_id: korisnik?.radnikId ?? null,
       smena,
       datum: danas,
-      stavke_json: { items: checklist, napomena: napomena || null, modul: naslovModul || null },
+      stavke_json: {
+        items: checklist,
+        napomena: napomena || null,
+        modul: naslovModul || null,
+        id_deo: idNorm || null,
+      },
       zavrsena: true,
     };
     const { error } = await supabase.from("kontrolna_lista_log").insert(payload);
@@ -79,34 +104,47 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
     );
   }
 
+  const licencaFooter = prikaziLicencu && licenca ? (
+    <div style={{ width: "100%", maxWidth: ugradjen ? "100%" : 600, margin: ugradjen ? 0 : "0 auto" }}>
+      <LicencaStatusPanel licenca={licenca} C={C} kompakt />
+    </div>
+  ) : null;
+
   if (vecUradjena) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", minHeight: ugradjen ? "auto" : "60vh", gap: ugradjen ? 10 : 16, padding: ugradjen ? 12 : 24 }}>
+        justifyContent: "center", minHeight: ugradjen ? "auto" : "60vh", gap: ugradjen ? 10 : 16,
+        padding: ugradjen ? "12px 0" : "24px 16px 100px", width: "100%" }}>
         <div style={{ fontSize: ugradjen ? 36 : 60 }}>✅</div>
-        <div style={{ color: C.zelena, fontSize: ugradjen ? 14 : 20, fontWeight: 700 }}>Lista potvrđena</div>
-        <div style={{ color: C.sivi, fontSize: ugradjen ? 10 : 13 }}>Kontrolna lista za Smenu {smena} je već popunjena danas.</div>
+        <div style={{ color: C.zelena, fontSize: ugradjen ? 14 : 20, fontWeight: 700, textAlign: "center" }}>
+          Ček lista je popunjena — nastavi dalje
+        </div>
+        <div style={{ color: C.sivi, fontSize: ugradjen ? 10 : 13, textAlign: "center" }}>
+          Smena {smena}{idNorm ? ` · ID ${idNorm}` : ""} · {new Date().toLocaleDateString("sr-RS")}
+        </div>
         <button type="button" onClick={onZavrsena} style={{ background: boja, border: "none", borderRadius: ugradjen ? 8 : 10,
           color: "#fff", fontSize: ugradjen ? 12 : 14, fontWeight: 700, padding: ugradjen ? "10px 20px" : "12px 28px", cursor: "pointer" }}>
-          Nastavi →
+          Nastavi dalje →
         </button>
+        {licencaFooter}
       </div>
     );
   }
 
   if (stavke.length === 0) {
+    const obavezna = kontrolnaListaObavezna();
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
         justifyContent: "center", minHeight: "60vh", gap: 16, padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 48 }}>📋</div>
-        <div style={{ color: C.tekst, fontSize: 16, fontWeight: 700 }}>Nema stavki u kontrolnoj listi</div>
-        <div style={{ color: C.sivi, fontSize: 12, maxWidth: 360, lineHeight: 1.6 }}>
-          Uvezi stavke komandom <code>node scripts/import-all-docs.mjs</code> ili SQL seed, pa osveži stranicu.
+        <div style={{ fontSize: 48 }}>⛔</div>
+        <div style={{ color: C.crvena, fontSize: 16, fontWeight: 700 }}>
+          {obavezna ? "Unos nije dozvoljen" : "Nema stavki u kontrolnoj listi"}
         </div>
-        <button type="button" onClick={onZavrsena} style={{ background: boja, border: "none", borderRadius: 10,
-          color: "#fff", fontSize: 14, fontWeight: 700, padding: "12px 28px", cursor: "pointer" }}>
-          Nastavi bez liste →
-        </button>
+        <div style={{ color: C.sivi, fontSize: 12, maxWidth: 400, lineHeight: 1.6 }}>
+          {obavezna
+            ? "Kontrolna lista nije podešena u sistemu. Obavestite administratora da uveze stavke (Admin → Excel ili SQL seed `04_kontrolna_lista_policies.sql`), pa osvežite stranicu."
+            : "Uvezi stavke komandom `node scripts/import-all-docs.mjs` ili SQL seed, pa osveži stranicu."}
+        </div>
       </div>
     );
   }
@@ -119,7 +157,9 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
           📋 {ugradjen ? "Ček lista" : "Kontrolna lista pre smene"}
           {naslovModul ? <span style={{ color: C.sivi, fontWeight: 400, fontSize: ugradjen ? 11 : 14 }}> · {naslovModul}</span> : null}
         </div>
-        <div style={{ color: C.sivi, fontSize: ugradjen ? 9 : 12 }}>Smena {smena} · {new Date().toLocaleDateString("sr-RS")}</div>
+        <div style={{ color: C.sivi, fontSize: ugradjen ? 9 : 12 }}>
+          Smena {smena}{idNorm ? ` · ID ${idNorm}` : ""} · {new Date().toLocaleDateString("sr-RS")}
+        </div>
       </div>
 
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
@@ -192,6 +232,7 @@ export function KontrolnaLista({ korisnik, smena, onZavrsena, C, naslovModul = "
           : potvrdjeno === ukupno ? "✓ Potvrdi i nastavi sa radom"
             : `Potvrdi još ${ukupno - potvrdjeno} stavki`}
       </button>
+      {licencaFooter}
     </div>
   );
 }
@@ -205,7 +246,7 @@ export function ZahtevPrekid({ korisnik, idDeo, nazivDela, preostalo, cilj, onUs
     if (!razlog.trim()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("prekidi_zahtevi").insert({
+      const { data, error } = await supabase.from("prekidi_zahtevi").insert({
         operater_id: korisnik.radnikId,
         id_deo: String(idDeo || "").trim().toUpperCase(),
         naziv_dela: nazivDela,
@@ -213,8 +254,13 @@ export function ZahtevPrekid({ korisnik, idDeo, nazivDela, preostalo, cilj, onUs
         cilj,
         razlog: razlog.trim(),
         status: "ceka",
-      });
+      }).select("id,id_deo,naziv_dela,preostalo,cilj,razlog,status").single();
       if (error) throw error;
+      obavestiAdminZahtev(supabase, {
+        tip: "prekid",
+        kanali: "remote",
+        zahtev: { ...data, operater_ime: korisnik.ime },
+      }).catch(() => {});
       onUspeh();
     } catch (e) {
       alert(e.message);

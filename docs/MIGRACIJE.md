@@ -23,6 +23,9 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 17 | `17_notifikacije.sql` | obaveštenja (Teams, log, app_podesavanja) |
 | 18 | `18_karakteristike_revizija.sql` | revizija LSL/USL/nominala |
 | 19 | `19_fix_merenja_varijabilna_sequence.sql` | Sekvenca ID posle demo/CSV merenja (greška `merenja_varijabilna_pkey`) |
+| 20 | `09_kalibracija_zahtevi.sql` | Zahtevi za odobrenje kalibracije (realtime) |
+| 21 | `20_radnici_uloge_kvalitet_sef.sql` | Uloge kvalitet / šef |
+| 22 | `21_licenca_gate.sql` | Licenca / uključivanje programa (`proveri_licencu`) |
 
 ## Provera u aplikaciji
 
@@ -35,6 +38,22 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 - **Uloge** — operator (unos/log), kontrolor (+karte), kvalitet/admin (sve)
 - **Trasabilitet** — tab TRASABILITET + PDF
 - **Revizija granica** — Admin merljive → Revizija granica
+
+## Lokalna kopija baze i rad offline
+
+Kompletno uputstvo (backup cloud-a, Docker, `.env.local`): **`docs/UPUTSTVO_LOKALNA_BAZA.md`**
+
+## Deploy na server firme (on‑premise)
+
+Podaci samo u LAN-u — prenos sa računara na firminski server: **`docs/UPUTSTVO_FIRMINSKI_SERVER.md`** · IT checklist: **`deploy/IT_CHECKLIST.md`**
+
+## Roadmap Faza 2 (šta dodati posle pilota)
+
+**`docs/ROADMAP_FAZA2.md`** — RN/ERP, kontrolna lista, SPC baseline, alarmi, CAPA; mapa fajlova i procena sati.
+
+## Zaštita koda i licenca (uključi / isključi program)
+
+**`docs/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md`** — zaštita `dist/`, potpisana licenca, `21_licenca_gate.sql`
 
 ## Barkod i digitalna merila
 

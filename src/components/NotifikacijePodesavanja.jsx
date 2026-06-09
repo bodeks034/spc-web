@@ -69,6 +69,8 @@ export default function NotifikacijePodesavanja({ C, addToast }) {
         Teams: Incoming Webhook URL iz kanala. Šalje se preko Supabase Edge proxy-a (zaobilazi CORS).
         Deploy: docs/SUPABASE_EDGE_WEBHOOK.md. Email: JSON webhook (Power Automate, n8n).
         Alarmi visokog i srednjeg prioriteta — max 1× po satu po alarmu.
+        Admin dobija browser obaveštenje za zahteve operatera (prekid serije, kalibracija istekla)
+        dok je aplikacija otvorena — uključi „Dozvoli“ iznad.
       </p>
 
       <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 11 }}>

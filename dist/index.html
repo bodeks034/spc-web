@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <link rel="manifest" href="/assets/manifest-DsVVCFVz.json"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#0d1117"/>
   <title>SPC Kontrola Kvaliteta</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,13 +11,39 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; padding: 0; }
+    html, body, #root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+    }
+    html {
+      height: -webkit-fill-available;
+    }
+    body {
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+    }
+    #root {
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+    }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.85; }
     }
+    /* Ugrađena tastatura — polje ostaje iznad tastature pri fokusu */
+    @media (max-width: 1023px) {
+      input, select, textarea {
+        scroll-margin-top: 12px;
+        scroll-margin-bottom: 28vh;
+      }
+    }
   </style>
-  <script type="module" crossorigin src="/assets/index-DG5XyviS.js"></script>
+  <script type="module" crossorigin src="/assets/index-BYY24WsF.js"></script>
 </head>
 <body>
   <div id="root"></div>

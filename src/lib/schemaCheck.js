@@ -10,6 +10,7 @@ export const MIGRACIJE_LISTA = [
   { id: "merenja", naziv: "Merljive merenja", fajl: "11_varijabilne_schema.sql" },
   { id: "gage", naziv: "Gage R&R", fajl: "12_gage_rr_schema.sql" },
   { id: "kontrolni_log", naziv: "Kontrolni log", fajl: "01_supabase_schema.sql" },
+  { id: "spc_baseline", naziv: "SPC baseline (PPAP)", fajl: "22_spc_baseline_merljive.sql" },
 ];
 
 const PROBES = [
@@ -25,6 +26,7 @@ const PROBES = [
   { id: "notifikacije", table: "app_podesavanja", select: "kljuc,vrednost" },
   { id: "notif_log", table: "notifikacije_log", select: "id,kanal" },
   { id: "kar_revizija", table: "karakteristike_revizija", select: "id,id_deo,polje" },
+  { id: "spc_baseline", table: "spc_baseline", select: "id,id_deo,tip_karte,pozicija" },
 ];
 
 function greskaNedostaje(error) {
@@ -64,6 +66,7 @@ export async function proveriSemu(supabase) {
     kontrolni_log: byId.kontrolni_log?.ok,
     notifikacije: byId.notifikacije?.ok && byId.notif_log?.ok,
     kar_revizija: byId.kar_revizija?.ok,
+    spc_baseline: byId.spc_baseline?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({

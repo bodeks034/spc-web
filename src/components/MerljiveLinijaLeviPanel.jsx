@@ -1,10 +1,15 @@
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
+import { useMemo } from "react";
+import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
+import { idBarkodInputHandleri } from "../lib/barkod.js";
 
 /** Levi panel — modul linija merljive (ID / poka; crtež ispod generalija). */
 export default function MerljiveLinijaLeviPanel({
   C,
   idDeo,
   onIdChange,
+  onIdPotvrdi,
+  onBarkodSken,
   smena,
   setSmena,
   grupe,
@@ -25,6 +30,15 @@ export default function MerljiveLinijaLeviPanel({
   slikaNaziv,
   urlSlike,
 }) {
+  const idBarkodPolje = useMemo(
+    () => idBarkodInputHandleri(onBarkodSken, {
+      postaviId: (v) => onIdChange(v.toUpperCase()),
+      potvrdiId: (v) => onIdPotvrdi?.(v),
+      upperCase: true,
+    }),
+    [onBarkodSken, onIdChange, onIdPotvrdi],
+  );
+
   const LBL = { color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 4, display: "block" };
   const INP = {
     width: "100%",
@@ -61,12 +75,22 @@ export default function MerljiveLinijaLeviPanel({
       flexDirection: "column",
       gap: 10,
     }}>
-      <div>
-        <label style={LBL}>ID DELA</label>
+      <IdDeoBarkodRed
+        C={C}
+        akcent={C.zelena}
+        onBarkodSken={onBarkodSken}
+        lblStyle={LBL}
+        idLabel="ID deo"
+        kompaktRed
+        sirinaBarkod={32}
+        unosStil={{ borderRadius: 6, padding: "9px 11px", fontSize: 12 }}
+      >
         <input
           value={idDeo}
-          onChange={e => onIdChange(e.target.value.toUpperCase())}
+          {...idBarkodPolje}
+          onBlur={e => onIdPotvrdi?.(e.target.value)}
           placeholder="5502-A"
+          title="Ručni unos, USB čitač ili veb kamera"
           style={{
             ...INP,
             borderColor: idUcitano ? C.zelena : idDeo.length > 2 ? C.crvena : C.border,
@@ -76,6 +100,8 @@ export default function MerljiveLinijaLeviPanel({
             textAlign: "center",
           }}
         />
+      </IdDeoBarkodRed>
+      <div>
         {idUcitano && (
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
             {[["Linija", linija], ["Mašina", masina || "-"]].map(([l, v]) => (
@@ -113,7 +139,7 @@ export default function MerljiveLinijaLeviPanel({
         </select>
       </label>
 
-      {idUcitano ? (
+      {idUcitano && (
         <div style={{ background: C.ok, border: `1px solid ${C.zelena}26`, borderRadius: 6, padding: 8 }}>
           <div style={{ color: C.zelena, fontWeight: 700, fontSize: 10, marginBottom: 6, lineHeight: 1.3 }}>
             {nazivDela}
@@ -130,18 +156,6 @@ export default function MerljiveLinijaLeviPanel({
               </span>
             </div>
           )}
-        </div>
-      ) : (
-        <div style={{
-          background: C.panel,
-          border: `1px dashed ${C.border}`,
-          borderRadius: 6,
-          padding: 14,
-          textAlign: "center",
-          color: C.border,
-          fontSize: 9,
-        }}>
-          Unesi ID
         </div>
       )}
 

@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
+import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
 import {
-  toDec, isStepen, koristiUgaoUnosKolone, validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
+  proveriKontrolnaListaDanas,
+  setListaOkSession,
+  getListaOkSession,
+  kontrolnaListaSpremna,
+  procitajSmenuIzStorage,
+} from "./lib/kontrolaLista.js";
+import {
+  toDec, isStepen, koristiUgaoUnosKolone, inputModeMerenja,
+  validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
   formatOpsegPlausibilnosti,
   svaMerenjaZavrsena, imaBiloSta, grupeMerenja, koloneZaGrupu,
   filterKeyUnos, sanitizujInputMerenja,
@@ -17,21 +25,35 @@ import {
   IzvestajSmeneMerljive, CiljeviMerljive, KupacMerljive, StabilnostMerljive, HeatmapTabMerljive,
 } from "./components/MerljiveOplTabovi.jsx";
 import { supabase, supabase as supabaseShared } from "./lib/supabaseClient.js";
-import { useEkran, layoutListaMerljive, layoutPokaYokeMerljive } from "./layout/index.js";
+import {
+  useEkran,
+  resetSkrolPosleRotacije,
+  layoutListaMerljive,
+  layoutPokaYokeMerljive,
+  DIM_GENERALIJE_RED,
+  flexPolje,
+  dimKolonaUnos,
+  onFocusTastatura,
+} from "./layout/index.js";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
+import InteligencijaDeoPanel from "./components/InteligencijaDeoPanel.jsx";
 import { podrazumevaniKpiIzMerenja } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, porukaKpiGreske } from "./lib/kpiUnos.js";
 import { useOfflineQueue } from "./lib/offlineQueue.js";
-import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezima, jeKontrolorLinija, pocetniKorakUnosMer } from "./lib/uloge.js";
+import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezima, jeKontrolorLinija, jeLinijaUloga, pocetniKorakUnosMer } from "./lib/uloge.js";
 import {
   mapaMerila,
   upozorenjaInstrumentaZaKolone,
   kalibracijaBlokiraUnos,
 } from "./lib/meriloStatus.js";
 import {
-  jeKalibracijaOdobrena,
-  postaviKalibracijaOdobrena,
+  ucitajOdobrenuKalibraciju,
+  ucitajCekaKalibraciju,
+  adminPostaviOdobrenjeKalibracije,
+  zatvoriKalibracijaOdobrenje,
 } from "./lib/kalibracijaOdobrenje.js";
+import ZahtevKalibracija from "./components/ZahtevKalibracija.jsx";
+import AdminKalibracijaPanel from "./components/AdminKalibracijaPanel.jsx";
 import UnosPokaYokeKorak from "./components/UnosPokaYokeKorak.jsx";
 import OfflineSyncPanel from "./components/OfflineSyncPanel.jsx";
 import KarakteristikeGraniceEditor from "./components/KarakteristikeGraniceEditor.jsx";
@@ -44,12 +66,22 @@ import DigitalnoMeriloPanel from "./components/DigitalnoMeriloPanel.jsx";
 import CrtezZoomViewer from "./components/CrtezZoomViewer.jsx";
 import CrtezPregledPanel from "./components/CrtezPregledPanel.jsx";
 import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
-import { parsiBarkod, useBarcodeScanner } from "./lib/barkod.js";
+import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "./lib/barkod.js";
+import {
+  ucitajAktivniRadniNalog,
+  izaberiRadniNalog,
+  proveriRadniNalogUpozorenje,
+  formatNalogToast,
+} from "./lib/radniNalog.js";
+import IdDeoBarkodRed from "./components/IdDeoBarkodRed.jsx";
+import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./components/LinijaWizardNav.jsx";
 import MobilniMerljiviUnos from "./components/MobilniMerljiviUnos.jsx";
+import SpcBaselinePanel from "./components/SpcBaselinePanel.jsx";
 import MerljiveLinijaLeviPanel from "./components/MerljiveLinijaLeviPanel.jsx";
+import AppHeader from "./components/AppHeader.jsx";
 import MerljivaMobTabKarusel from "./components/MerljivaMobTabKarusel.jsx";
 
 function danasSr() {
@@ -61,20 +93,39 @@ function prazneKolone(n) {
   return koloneZaGrupu([], "", "", n);
 }
 
-export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosRezim = "rucni", rezimRada = "analitika", onPromeniRezim }) {
+export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onToggleTema, temaTamna, unosRezim = "rucni", rezimRada = "analitika", onPromeniRezim, onOtvori8D, licenca = null }) {
   const digitalniUnos = unosRezim === "digital";
   const ekran = useEkran();
+  const { viewportKey } = ekran;
+
   const jeLinija = rezimRada === "linija";
   const kontrolorLinija = jeKontrolorLinija(korisnik?.uloga, rezimRada);
   const koristiMobLinija = jeLinija && ekran.linijaUredjaj;
   const L = layoutListaMerljive(ekran, { koristiMobLinija });
   const P = layoutPokaYokeMerljive(ekran);
   const [tab, setTab] = useState("unos");
+  const [meriloPovezano, setMeriloPovezano] = useState(false);
+  const [meriloSimulacija, setMeriloSimulacija] = useState(false);
+  const meriloStopRef = useRef(null);
+  const meriloSimulirajRef = useRef(null);
   const [toasts, setToasts] = useState([]);
   const [logD, setLogD] = useState([]);
   const [loadLog, setLoadLog] = useState(false);
   const mozeAdmin = jeAdmin(korisnik?.uloga);
   const mozeAnalitika = mozeAnalitikaUloga(korisnik?.uloga);
+
+  const registerMeriloStop = useCallback((fn) => {
+    meriloStopRef.current = fn;
+  }, []);
+
+  const registerMeriloSimuliraj = useCallback((fn) => {
+    meriloSimulirajRef.current = fn;
+  }, []);
+
+  const onMeriloPovezanChange = useCallback((povezan, opts = {}) => {
+    setMeriloPovezano(povezan);
+    setMeriloSimulacija(!!opts.simulacija);
+  }, []);
 
   const addToast = useCallback((tekst, tip = "info") => {
     const id = Date.now();
@@ -131,6 +182,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   const TABOVI = [
     ["unos", "UNOS"],
     ["karte", "SPC KARTE"],
+    ["stanje", "STANJE"],
     ["smena", "SMENA"],
     ["msa", "MSA / Gage R&R"],
     ["merila", "MERILA"],
@@ -147,6 +199,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
   const bojaTaba = (id) => {
     if (id === "karte") return C.narandzasta;
+    if (id === "stanje") return C.ljubicasta;
     if (id === "admin") return C.zuta;
     if (id === "msa") return C.ljubicasta;
     if (id === "smena") return C.zuta;
@@ -161,9 +214,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     return C.zelena;
   };
   const [datum, setDatum] = useState(danasSr());
-  const [smena, setSmena] = useState("1");
+  const [smena, setSmena] = useState(() => String(procitajSmenuIzStorage()));
   const [idDeo, setIdDeo] = useState("");
   const [radniNalog, setRadniNalog] = useState("");
+  const [nalogInfo, setNalogInfo] = useState(null);
+  const [nalogUcitava, setNalogUcitava] = useState(false);
   const [nazivDela, setNazivDela] = useState("");
   const [kontrolor, setKontrolor] = useState("");
   const [linija, setLinija] = useState("");
@@ -182,25 +237,29 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   const [sacuvaneGrupe, setSacuvaneGrupe] = useState([]);
   const [urlSlike, setUrlSlike] = useState(null);
   const [zoomSlika, setZoomSlika] = useState(false);
+
+  useEffect(() => {
+    resetSkrolPosleRotacije();
+    setZoomSlika(false);
+  }, [viewportKey]);
+
   const [prekidOdobrenId, setPrekidOdobrenId] = useState(null);
   const [pokaziZahtev, setPokaziZahtev] = useState(false);
+  const [pokaziZahtevKal, setPokaziZahtevKal] = useState(false);
+  const [kalibracijaOdobrenId, setKalibracijaOdobrenId] = useState(null);
+  const [kalibracijaCekaId, setKalibracijaCekaId] = useState(null);
   const [fotoPoPoziciji, setFotoPoPoziciji] = useState({});
   const [komentarPoPoziciji, setKomentarPoPoziciji] = useState({});
   const [merenjaHeatmap, setMerenjaHeatmap] = useState([]);
   const [kpiSerija, setKpiSerija] = useState(() => podrazumevaniKpiIzMerenja({ kolone: [], potrebanBroj: 5, brojKolona: 0 }));
   const [aktivnaKolona, setAktivnaKolona] = useState(-1);
   const [merilaLista, setMerilaLista] = useState([]);
-  const [kontrolnaListaOk, setKontrolnaListaOk] = useState(
-    () => sessionStorage.getItem("spc_lista_ok_varijabilne") === "1",
-  );
-  const [kalOdobrenRev, setKalOdobrenRev] = useState(0);
+  const [kontrolnaListaOk, setKontrolnaListaOk] = useState(false);
   const [unosKorak, setUnosKorak] = useState("poka");
   const [linijaKorak, setLinijaKorak] = useState(1);
-  const kalibracijaOdobrena = useMemo(
-    () => jeKalibracijaOdobrena(idDeo),
-    [idDeo, kalOdobrenRev],
-  );
+  const kalibracijaOdobrena = !!kalibracijaOdobrenId;
   const mozeUpRikosKalibracije = mozeAdmin || kalibracijaOdobrena;
+  const prethodniKalOdobren = useRef(null);
 
   const deloviLista = useMemo(
     () => Object.values(sopMap).map(s => ({ id_deo: s.id_deo, naziv_dela: s.naziv_dela })),
@@ -211,6 +270,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   const prethodniAB = useRef("");
   const prethodnaSmenaPoka = useRef(smena);
   const inputRefs = useRef([]);
+  const idUcitano = !!(idDeo && nazivDela && grupe.length && grupaAB);
 
   useEffect(() => {
     const noviDeo = idDeo && idDeo !== prethodniId.current;
@@ -226,6 +286,49 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     sessionStorage.setItem("spc_smena", String(smena));
   }, [smena]);
 
+  useEffect(() => {
+    const sm = Number(smena);
+    const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
+    let alive = true;
+
+    if (jeLinija && !idZaListu) {
+      setKontrolnaListaOk(false);
+      return () => { alive = false; };
+    }
+
+    if (getListaOkSession("varijabilne", sm, idZaListu)) {
+      setKontrolnaListaOk(true);
+      return () => { alive = false; };
+    }
+
+    if (!korisnik?.radnikId) {
+      setKontrolnaListaOk(false);
+      return () => { alive = false; };
+    }
+
+    (async () => {
+      const r = await proveriKontrolnaListaDanas(supabase, {
+        radnikId: korisnik.radnikId,
+        smena: sm,
+        idDeo: idZaListu,
+      });
+      if (!alive) return;
+      const spremna = kontrolnaListaSpremna("varijabilne", sm, r.zavrsena, idZaListu);
+      setKontrolnaListaOk(spremna);
+      if (!spremna && jeLinija && linijaKorak >= 3) {
+        setLinijaKorak(2);
+        setUnosKorak("poka");
+      }
+    })();
+    return () => { alive = false; };
+  }, [korisnik?.radnikId, smena, idDeo, idUcitano, jeLinija, linijaKorak]);
+
+  const zavrsiKontrolnuListu = useCallback(() => {
+    const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
+    setKontrolnaListaOk(true);
+    setListaOkSession("varijabilne", Number(smena), idZaListu);
+  }, [smena, jeLinija, idDeo, idUcitano]);
+
   const proveriPrekid = useCallback(async () => {
     try {
       const id = await ucitajOdobrenPrekid(supabase, {
@@ -239,6 +342,50 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   }, [idDeo, korisnik?.radnikId]);
 
   useEffect(() => { proveriPrekid(); }, [proveriPrekid]);
+
+  const proveriKalibraciju = useCallback(async () => {
+    try {
+      const [odobrenId, cekaId] = await Promise.all([
+        ucitajOdobrenuKalibraciju(supabase, { radnikId: korisnik?.radnikId, idDeo }),
+        ucitajCekaKalibraciju(supabase, { radnikId: korisnik?.radnikId, idDeo }),
+      ]);
+      setKalibracijaOdobrenId(odobrenId);
+      setKalibracijaCekaId(cekaId);
+    } catch {
+      setKalibracijaOdobrenId(null);
+      setKalibracijaCekaId(null);
+    }
+  }, [idDeo, korisnik?.radnikId]);
+
+  useEffect(() => { proveriKalibraciju(); }, [proveriKalibraciju]);
+
+  useEffect(() => {
+    if (kalibracijaOdobrenId && !prethodniKalOdobren.current) {
+      addToast("✓ Admin je odobrio merenje uprkos kalibraciji", "uspeh");
+    }
+    prethodniKalOdobren.current = kalibracijaOdobrenId;
+  }, [kalibracijaOdobrenId, addToast]);
+
+  useEffect(() => {
+    const osvezi = () => {
+      if (document.visibilityState === "visible") proveriKalibraciju();
+    };
+    document.addEventListener("visibilitychange", osvezi);
+    window.addEventListener("focus", proveriKalibraciju);
+    return () => {
+      document.removeEventListener("visibilitychange", osvezi);
+      window.removeEventListener("focus", proveriKalibraciju);
+    };
+  }, [proveriKalibraciju]);
+
+  useEffect(() => {
+    if (!korisnik?.radnikId) return;
+    const ch = supabase.channel("kalibracija_merljive")
+      .on("postgres_changes", { event: "*", schema: "public", table: "kalibracija_zahtevi" },
+        () => proveriKalibraciju())
+      .subscribe();
+    return () => supabase.removeChannel(ch);
+  }, [korisnik?.radnikId, proveriKalibraciju]);
 
   const brojKolonaMer = useMemo(
     () => kolone.filter(k => k.naziv !== "-").length,
@@ -365,15 +512,60 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     [kolone, merilaMap],
   );
 
+  const kalBlokAktivan = useMemo(
+    () => kalUpozorenja.some(k => kalibracijaBlokiraUnos(k.status)) && !kalibracijaOdobrena,
+    [kalUpozorenja, kalibracijaOdobrena],
+  );
+
+  useEffect(() => {
+    if (!idDeo || !kalBlokAktivan) return;
+    const t = setInterval(() => proveriKalibraciju(), 4000);
+    return () => clearInterval(t);
+  }, [idDeo, kalBlokAktivan, proveriKalibraciju]);
+
+  const instrumentiKalTekst = useMemo(
+    () => kalUpozorenja
+      .filter(k => kalibracijaBlokiraUnos(k.status))
+      .map(k => k.instrument)
+      .join(", "),
+    [kalUpozorenja],
+  );
+
+  const toggleKalibracijaOdobrenje = useCallback(async () => {
+    const novo = !kalibracijaOdobrena;
+    const res = await adminPostaviOdobrenjeKalibracije(supabase, {
+      adminId: korisnik?.radnikId,
+      idDeo,
+      nazivDela,
+      instrumenti: instrumentiKalTekst,
+      odobreno: novo,
+    });
+    if (!res.ok) {
+      addToast(res.greska || "Greška pri čuvanju odobrenja", "greska");
+      return;
+    }
+    await proveriKalibraciju();
+    addToast(
+      novo ? "✓ Merenje dozvoljeno na svim uređajima" : "Kalibracija: blokada ponovo uključena",
+      novo ? "uspeh" : "info",
+    );
+  }, [
+    kalibracijaOdobrena, korisnik?.radnikId, idDeo, nazivDela,
+    instrumentiKalTekst, proveriKalibraciju, addToast,
+  ]);
+
   useEffect(() => {
     if (!mozeTabMerljive(tab, korisnik?.uloga, rezimRada)) {
       setTab("unos");
     }
   }, [tab, korisnik?.uloga, rezimRada]);
 
+  const punPristupTabovima = mozeAdmin || jeKvalitetIliVise(korisnik?.uloga);
+
   useEffect(() => {
-    if (jeLinija && tab !== "unos" && tab !== "log") setTab("unos");
-  }, [jeLinija, tab]);
+    if (!jeLinija || punPristupTabovima) return;
+    if (tab !== "unos" && tab !== "log") setTab("unos");
+  }, [jeLinija, tab, punPristupTabovima]);
 
   const resetKolone = useCallback((broj) => {
     setKolone(prazneKolone(broj));
@@ -381,17 +573,18 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     setKomentarPoPoziciji({});
   }, []);
 
-  const ucitajDeo = useCallback((sID) => {
+  const ucitajDeo = useCallback(async (sID, { radniNalogEksplicitni } = {}) => {
     const id = String(sID || "").trim().toUpperCase();
     if (!id) return;
+    if (!radniNalogEksplicitni && id === prethodniId.current) return;
 
     const sop = sopMap[id];
     if (!sop) {
       setPoruka(`ID ${id} nije u SOP listi varijabilnih delova.`);
+      setNalogInfo(null);
       return;
     }
     setPoruka("");
-    setRadniNalog(sop.radni_nalog || "");
     setNazivDela(sop.naziv_dela || "");
     setKontrolor(sop.kontrolor_ime || korisnik?.ime || "");
     setLinija(sop.linija || "");
@@ -414,6 +607,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       setGrupaAB("");
       resetKolone(br);
       prethodniId.current = id;
+      setNalogInfo(null);
       return;
     }
     setGrupe(gs);
@@ -431,13 +625,31 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     prethodniId.current = id;
     setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
     if (jeLinija) setLinijaKorak(1);
+
+    setNalogUcitava(true);
+    let dbNalog = null;
+    try {
+      dbNalog = await ucitajAktivniRadniNalog(supabase, id);
+    } finally {
+      setNalogUcitava(false);
+    }
+    setNalogInfo(dbNalog);
+    const rn = izaberiRadniNalog({
+      eksplicitni: radniNalogEksplicitni,
+      izBaze: dbNalog,
+      izSop: sop.radni_nalog,
+    });
+    setRadniNalog(rn);
+    if (dbNalog && !radniNalogEksplicitni && rn === dbNalog.broj_naloga) {
+      addToast(`📋 ${formatNalogToast(dbNalog)}`, "info");
+    }
     ensureSesija({
       modul: "merljive",
       idDeo: id,
       smena,
-      radniNalog: sop.radni_nalog || radniNalog,
+      radniNalog: rn,
     });
-  }, [sopMap, karakteristike, korisnik, smena, radniNalog, rezimRada]);
+  }, [sopMap, karakteristike, korisnik, smena, rezimRada, jeLinija, resetKolone, addToast]);
 
   useEffect(() => {
     if (!slika) { setUrlSlike(null); return; }
@@ -507,8 +719,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     return true;
   };
 
-  const idUcitano = !!(idDeo && nazivDela && grupe.length && grupaAB);
-
   useEffect(() => {
     if (!idDeo || idDeo.length < 3) setLinijaKorak(1);
   }, [idDeo]);
@@ -522,7 +732,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
 
   const idUcitajTimer = useRef(null);
 
-  const onIdChange = (v, { potvrdi = false } = {}) => {
+  const onIdChange = (v, { potvrdi = false, radniNalogEksplicitni } = {}) => {
     const s = String(v || "").trim().toUpperCase();
     if (prethodniId.current && s !== prethodniId.current && !mozePreskociti) {
       if (!svaMerenjaZavrsena(kolone, potrebanBroj)) {
@@ -540,15 +750,20 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       setGrupaAB("");
       setSacuvaneGrupe([]);
       setPrekidOdobrenId(null);
+      setRadniNalog("");
+      setNalogInfo(null);
       resetKolone(5);
       return;
     }
     if (potvrdi && s.length >= 3) {
-      ucitajDeo(s);
+      ucitajDeo(s, { radniNalogEksplicitni });
       return;
     }
     if (s.length >= 3) {
-      idUcitajTimer.current = setTimeout(() => ucitajDeo(s), 500);
+      idUcitajTimer.current = setTimeout(
+        () => ucitajDeo(s, { radniNalogEksplicitni }),
+        500,
+      );
     }
   };
 
@@ -558,16 +773,37 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     if (s.length >= 3) onIdChange(s, { potvrdi: true });
   }, [idDeo]);
 
+  const obradiBarkodSken = useCallback((raw) => {
+    const p = parsiBarkod(raw);
+    const eksplicitniRn = p?.radni_nalog
+      ? String(p.radni_nalog).trim().toUpperCase()
+      : "";
+    const res = primeniParsiraniBarkod(p, {
+      postaviId: (id) => onIdChange(id, { potvrdi: true, radniNalogEksplicitni: eksplicitniRn }),
+      postaviSmena: setSmena,
+    });
+    if (!res) return;
+    addToast(
+      `📷 Barkod: ${res.id}${res.radni_nalog ? ` · ${res.radni_nalog}` : ""}`,
+      "uspeh",
+    );
+    window._vibrirajOK?.();
+  }, [onIdChange, addToast]);
+
   const onGrupaChange = (ab) => prebaciGrupu(ab);
 
   useBarcodeScanner(useCallback((raw) => {
     if (tab !== "unos") return;
-    const p = parsiBarkod(raw);
-    if (!p?.id_deo) return;
-    onIdChange(p.id_deo.toUpperCase(), { potvrdi: true });
-    addToast(`📷 Barkod: ${p.id_deo}${p.radni_nalog ? ` · ${p.radni_nalog}` : ""}`, "uspeh");
-    if (p.smena && [1, 2, 3].includes(p.smena)) setSmena(String(p.smena));
-  }, [tab, addToast, onIdChange]), { enabled: tab === "unos", ignoreInputs: true });
+    obradiBarkodSken(raw);
+  }, [tab, obradiBarkodSken]), { enabled: tab === "unos", ignoreInputs: true });
+
+  const idBarkodPolje = useMemo(
+    () => idBarkodInputHandleri(obradiBarkodSken, {
+      postaviId: (v) => onIdChange(v),
+      potvrdiId: potvrdiIdDeo,
+    }),
+    [obradiBarkodSken, onIdChange, potvrdiIdDeo],
+  );
 
   const mozeSacuvati = useMemo(() => {
     if (!idDeo) return false;
@@ -727,6 +963,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       setPoruka("Nema merenja za snimanje.");
       return;
     }
+    const rnUpoz = await proveriRadniNalogUpozorenje(supabase, { idDeo, radniNalog });
+    if (rnUpoz) addToast(`⚠ ${rnUpoz}`, "greska");
+
     setSnima(true);
     setPoruka("");
     const sesija_id = ensureSesija({
@@ -816,6 +1055,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       await zatvoriPrekidZahtev(supabase, prekidOdobrenId);
       setPrekidOdobrenId(null);
     }
+    if (kalibracijaOdobrenId) {
+      await zatvoriKalibracijaOdobrenje(supabase, kalibracijaOdobrenId);
+      setKalibracijaOdobrenId(null);
+    }
     setSacuvaneGrupe(prev => [...prev, grupaAB]);
 
     if (prebaciNaSledecuSerijuPosleSnimanja(grupaAB)) {
@@ -843,83 +1086,95 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
   const { stackVertikalno, desktopUnos } = L;
   const { telefon, telefonLandscape, uspravnoMobTab } = ekran;
 
-  const metaRed = (naslov, vrednost, accent) => (
-    <div style={{ fontSize: 10, marginBottom: 3, lineHeight: 1.25, flexShrink: 0 }}>
-      <span style={{ color: C.border, fontSize: 8, display: "block", textTransform: "uppercase", letterSpacing: 0.4 }}>
-        {naslov}
-      </span>
-      <span style={{ color: accent || C.tekst, fontWeight: accent ? 600 : 400, fontSize: 10 }}>{vrednost || "—"}</span>
-    </div>
-  );
-
-  const metaLevoDesno = (levoNaslov, levoVal, desnoNaslov, desnoVal, levoBoja, desnoBoja) => (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-      gap: 6, marginBottom: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.25,
-    }}>
-      <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-        <span style={{ color: C.border, fontSize: 8, display: "block", textTransform: "uppercase", letterSpacing: 0.4 }}>
-          {levoNaslov}
-        </span>
-        <span style={{ color: levoBoja || C.tekst, fontWeight: 500, fontSize: 10 }}>{levoVal ?? "—"}</span>
-      </div>
-      <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
-        <span style={{ color: C.border, fontSize: 8, display: "block", textTransform: "uppercase", letterSpacing: 0.4 }}>
-          {desnoNaslov}
-        </span>
-        <span style={{ color: desnoBoja || C.tekst, fontWeight: 500, fontSize: 10 }}>{desnoVal ?? "—"}</span>
-      </div>
-    </div>
-  );
-
-  const metaBrojaciOkNok = (nok, ok) => (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 5,
-      marginBottom: 5,
-      flexShrink: 0,
-    }}>
+  const metaRed = (naslov, vrednost, accent, K) => {
+    const M = K.metaRed;
+    return (
       <div style={{
-        background: `${C.crvena}14`,
-        border: `1px solid ${C.crvena}40`,
-        borderRadius: 5,
-        padding: "4px 4px",
-        textAlign: "center",
-        minHeight: 36,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
+        fontSize: M.vrednostFont,
+        marginBottom: M.marginBottom,
+        lineHeight: M.lineHeight,
+        flexShrink: 0,
       }}>
-        <span style={{ color: C.border, fontSize: 8, letterSpacing: 0.8, marginBottom: 2 }}>NOK</span>
         <span style={{
-          color: C.crvena, fontSize: 16, fontWeight: 800, lineHeight: 1,
-          fontVariantNumeric: "tabular-nums",
+          color: C.border,
+          fontSize: M.naslovFont,
+          display: "block",
+          textTransform: "uppercase",
+          letterSpacing: M.naslovLetterSpacing,
         }}>
-          {nok ?? 0}
+          {naslov}
+        </span>
+        <span style={{
+          color: accent || C.tekst,
+          fontWeight: accent ? M.vrednostFontWeightAccent : M.vrednostFontWeight,
+          fontSize: M.vrednostFont,
+        }}>
+          {vrednost || "—"}
         </span>
       </div>
+    );
+  };
+
+  const mobMetaCelija = (naslov, vrednost, accent, poravnanje = "left", K) => {
+    const M = K.metaRed;
+    return (
+      <div style={{ flex: 1, minWidth: 0, textAlign: poravnanje }}>
+        <div style={{
+          color: C.border, fontSize: M.naslovFont, textTransform: "uppercase",
+          letterSpacing: M.naslovLetterSpacing, lineHeight: 1.2, marginBottom: 1,
+        }}>
+          {naslov}
+        </div>
+        <div style={{
+          color: accent || C.tekst,
+          fontSize: M.vrednostFont,
+          fontWeight: accent ? M.vrednostFontWeightAccent : M.vrednostFontWeight,
+          lineHeight: 1.2,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {vrednost || "—"}
+        </div>
+      </div>
+    );
+  };
+
+  const metaLevoDesno = (levoNaslov, levoVal, desnoNaslov, desnoVal, levoBoja, desnoBoja, K) => {
+    const M = K.metaRed;
+    const lslUsl = K.metaLslUsl;
+    const naslovStil = {
+      color: C.border,
+      fontSize: M.naslovFont,
+      display: "block",
+      textTransform: "uppercase",
+      letterSpacing: M.naslovLetterSpacing,
+    };
+    const vrednostStil = (boja) => ({
+      color: boja || C.tekst,
+      fontWeight: lslUsl.vrednostFontWeight,
+      fontSize: M.vrednostFont,
+    });
+    return (
       <div style={{
-        background: `${C.zelena}14`,
-        border: `1px solid ${C.zelena}40`,
-        borderRadius: 5,
-        padding: "4px 4px",
-        textAlign: "center",
-        minHeight: 36,
         display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: lslUsl.gap,
+        marginBottom: lslUsl.marginBottom,
+        flexShrink: 0,
+        fontSize: M.vrednostFont,
+        lineHeight: M.lineHeight,
       }}>
-        <span style={{ color: C.border, fontSize: 8, letterSpacing: 0.8, marginBottom: 2 }}>OK</span>
-        <span style={{
-          color: C.zelena, fontSize: 16, fontWeight: 800, lineHeight: 1,
-          fontVariantNumeric: "tabular-nums",
-        }}>
-          {ok ?? 0}
-        </span>
+        <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+          <span style={naslovStil}>{levoNaslov}</span>
+          <span style={vrednostStil(levoBoja)}>{levoVal ?? "—"}</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+          <span style={naslovStil}>{desnoNaslov}</span>
+          <span style={vrednostStil(desnoBoja)}>{desnoVal ?? "—"}</span>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const lbl = { display: "block", fontSize: L.fontLabel, color: C.sivi, marginBottom: 3 };
 
@@ -935,12 +1190,17 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     boxSizing: "border-box",
   };
 
-  const inpMerenje = {
-    ...inp,
-    padding: L.mobTabKarusel ? "10px 12px" : "7px 8px",
-    minHeight: L.mobTabKarusel ? 42 : 34,
-    fontSize: L.mobTabKarusel ? 15 : 13,
-    fontWeight: 600,
+  const inpMerenjeBaza = (kompakt) => {
+    const K = dimKolonaUnos({ kompakt });
+    return {
+      ...inp,
+      fontSize: K.inputMerenje.fontSize,
+      fontWeight: K.inputMerenje.fontWeight,
+      padding: K.inputMerenje.padding,
+      minHeight: K.inputMerenje.minHeight,
+      borderRadius: K.inputMerenje.borderRadius,
+      boxSizing: "border-box",
+    };
   };
 
   const padGlavni = L.padGlavni;
@@ -966,33 +1226,35 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           ⚠ Zahtev za prekid ({preostaloSesije} serija)
         </button>
       )}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 6,
-        width: "100%",
-      }}>
-        <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
-          style={{
-            background: C.panel, border: `1px solid ${C.border}`, borderRadius: 6,
-            color: C.tekst,
-            padding: L.mobTabKarusel ? "12px 10px" : "9px 8px",
-            cursor: mozeObrisati ? "pointer" : "not-allowed",
-            fontSize: L.mobTabKarusel ? 12 : 10, fontWeight: 600, boxSizing: "border-box",
-          }}>
-          Obriši poslednje
-        </button>
-        <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
-          style={{
-            background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
-            color: "#fff",
-            padding: L.mobTabKarusel ? "12px 10px" : "9px 8px",
-            cursor: mozeSacuvati ? "pointer" : "not-allowed",
-            fontWeight: 700, fontSize: L.mobTabKarusel ? 13 : 11, boxSizing: "border-box",
-          }}>
-          {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju")}
-        </button>
-      </div>
+      {!L.mobTabKarusel && (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 6,
+          width: "100%",
+        }}>
+          <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
+            style={{
+              background: C.panel, border: `1px solid ${C.border}`, borderRadius: 6,
+              color: C.tekst,
+              padding: "9px 8px",
+              cursor: mozeObrisati ? "pointer" : "not-allowed",
+              fontSize: 10, fontWeight: 600, boxSizing: "border-box",
+            }}>
+            Obriši poslednje
+          </button>
+          <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
+            style={{
+              background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
+              color: "#fff",
+              padding: "9px 8px",
+              cursor: mozeSacuvati ? "pointer" : "not-allowed",
+              fontWeight: 700, fontSize: 11, boxSizing: "border-box",
+            }}>
+            {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju")}
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -1000,6 +1262,64 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     !jeLinija || (koristiMobLinija && linijaKorak === 3) || (jeLinija && !koristiMobLinija)
   );
   const linijaListaDesktop = jeLinija && !koristiMobLinija && unosKorak === "forma" && idUcitano;
+
+  const mobDugmadAkcije = L.mobTabKarusel && (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
+      flexShrink: 0, marginBottom: 4,
+    }}>
+      <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
+        style={{
+          background: C.panel, border: `1px solid ${C.border}`, borderRadius: 6,
+          color: C.tekst, padding: "5px 8px", minHeight: 30,
+          cursor: mozeObrisati ? "pointer" : "not-allowed",
+          fontSize: 9, fontWeight: 600, whiteSpace: "nowrap", flex: 1, maxWidth: "48%",
+        }}>
+        {ekran.w < 340 ? "Obriši" : "Obriši poslednje"}
+      </button>
+      <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
+        style={{
+          background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
+          color: "#fff", padding: "5px 8px", minHeight: 30,
+          cursor: mozeSacuvati ? "pointer" : "not-allowed",
+          fontWeight: 700, fontSize: 9, flex: 1, maxWidth: "48%", whiteSpace: "nowrap",
+        }}>
+        {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna
+          ? (ekran.w < 360 ? "Sačuvaj*" : "Sačuvaj (prekid)")
+          : (ekran.w < 360 ? "Sačuvaj" : "Sačuvaj seriju"))}
+      </button>
+    </div>
+  );
+
+  const mobSerijaStatus = L.mobTabKarusel && grupe.length > 0 && (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+      flexShrink: 0, padding: "4px 0 6px",
+    }}>
+      {grupe.map((g, gi) => {
+        const idx = grupe.indexOf(g);
+        const aktivna = g === grupaAB;
+        const zavrsena = sacuvaneGrupe.includes(g);
+        const buduca = idx > indeksAktivne && !zavrsena;
+        return (
+          <span key={g} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {gi > 0 && (
+              <span style={{ color: C.border, fontSize: 9, opacity: 0.45 }}>|</span>
+            )}
+            <span style={{
+              fontSize: aktivna ? 10 : 9,
+              fontWeight: aktivna ? 700 : 500,
+              letterSpacing: 0.6,
+              color: aktivna ? C.zelena : zavrsena ? C.plava : C.sivi,
+              opacity: aktivna ? 1 : buduca ? 0.28 : zavrsena ? 0.85 : 0.55,
+            }}>
+              Serija {g}{zavrsena && !aktivna ? " ✓" : ""}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
 
   const serijaDugmad = (
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -1035,51 +1355,145 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     </div>
   );
 
+  const G = DIM_GENERALIJE_RED;
+  const lblGen = { ...lbl, ...G.label, letterSpacing: 0.6 };
+  const inpGen = {
+    ...inp,
+    fontSize: G.input.fontSize,
+    padding: G.input.padding,
+    borderRadius: G.input.borderRadius,
+    lineHeight: G.input.lineHeight,
+    height: G.input.visina,
+    minHeight: G.input.visina,
+    maxHeight: G.input.visina,
+    boxSizing: "border-box",
+  };
+
   const generalijeGornjiRed = desktopUnos && (
     <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
-      gap: 8,
+      display: "flex",
+      flexWrap: "nowrap",
+      gap: G.gap,
+      alignItems: "flex-end",
       marginBottom: 6,
       flexShrink: 0,
       width: "100%",
+      overflowX: "auto",
+      WebkitOverflowScrolling: "touch",
     }}>
-      <label style={lbl}>Datum<input style={inp} value={datum} onChange={e => setDatum(e.target.value)} /></label>
-      <label style={lbl}>Smena
-        <select style={inp} value={smena} onChange={e => setSmena(e.target.value)}>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.datum) }}>
+        Datum
+        <input style={inpGen} value={datum} onChange={e => setDatum(e.target.value)} />
+      </label>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.smena) }}>
+        Smena
+        <select style={inpGen} value={smena} onChange={e => setSmena(e.target.value)}>
           {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </label>
-      <label style={lbl}>ID deo *
-        <input
-          style={inp}
-          value={idDeo}
-          onChange={e => onIdChange(e.target.value)}
-          onBlur={e => potvrdiIdDeo(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") { e.preventDefault(); potvrdiIdDeo(e.currentTarget.value); }
+      <div style={flexPolje(G.polja.idDeo)}>
+        <IdDeoBarkodRed
+          C={C}
+          akcent={C.zelena}
+          onBarkodSken={obradiBarkodSken}
+          lblStyle={lblGen}
+          idLabel="ID deo *"
+          kompaktRed
+          sirinaBarkod={G.kamera.sirina}
+          razmakKolona={G.kamera.razmakOdId}
+          unosStil={{
+            borderRadius: G.input.borderRadius,
+            padding: G.input.padding,
+            fontSize: G.input.fontSize,
           }}
-          placeholder="5502-A"
-          title={digitalniUnos ? "USB barkod čitač" : "Šifra dela"}
+        >
+          <input
+            style={{
+              ...inpGen,
+              letterSpacing: 0.5,
+              textAlign: "center",
+            }}
+            value={idDeo}
+            {...idBarkodPolje}
+            onBlur={e => potvrdiIdDeo(e.target.value)}
+            placeholder="5502-A"
+            title="Ručni unos, USB čitač ili 📷 kamera"
+          />
+        </IdDeoBarkodRed>
+      </div>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.radniNalog) }}>
+        Radni nalog
+        <input
+          style={inpGen}
+          value={nalogUcitava ? "…" : (radniNalog || "—")}
+          readOnly
+          title={nalogInfo?.kupac ? `Kupac: ${nalogInfo.kupac}` : undefined}
         />
       </label>
-      <label style={lbl}>Radni nalog<input style={inp} value={radniNalog} readOnly /></label>
-      <label style={lbl}>Naziv dela<input style={inp} value={nazivDela} readOnly /></label>
-      <label style={lbl}>Linija<input style={inp} value={linija} readOnly /></label>
-      <label style={lbl}>Kontrolor<input style={inp} value={kontrolor} readOnly /></label>
-      <label style={lbl}>Mašina<input style={inp} value={masina || "-"} readOnly /></label>
-      <label style={lbl}>Serija{serijaDugmad}</label>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.nazivDela) }}>
+        Naziv dela
+        <input style={inpGen} value={nazivDela} readOnly />
+      </label>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.linija) }}>
+        Linija
+        <input style={inpGen} value={linija} readOnly />
+      </label>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.kontrolor) }}>
+        Kontrolor
+        <input style={inpGen} value={kontrolor} readOnly />
+      </label>
+      <label style={{ ...lblGen, ...flexPolje(G.polja.masina) }}>
+        Mašina
+        <input style={inpGen} value={masina || "-"} readOnly />
+      </label>
+      <label style={{ ...lblGen, flex: "0 0 auto", minWidth: 0 }}>
+        Serija
+        <div style={{ display: "flex", gap: 3, flexWrap: "nowrap" }}>
+          {grupe.map((g) => {
+            const idx = grupe.indexOf(g);
+            const aktivna = g === grupaAB;
+            const zavrsena = sacuvaneGrupe.includes(g);
+            const zakljucana = idx > indeksAktivne && !zavrsena;
+            return (
+              <button
+                key={g}
+                type="button"
+                disabled={zakljucana}
+                onClick={() => !zakljucana && onGrupaChange(g)}
+                title={zakljucana ? `Prvo završi seriju ${grupe[idx - 1] || "prethodnu"}` : g}
+                style={{
+                  ...inpGen,
+                  width: "auto",
+                  minWidth: 26,
+                  padding: "4px 6px",
+                  cursor: zakljucana ? "not-allowed" : "pointer",
+                  opacity: zakljucana ? 0.4 : 1,
+                  borderColor: aktivna ? C.zelena : zavrsena ? C.plava : C.border,
+                  background: aktivna ? `${C.zelena}22` : C.input,
+                  fontWeight: aktivna ? 700 : 400,
+                }}
+              >
+                {g}{zavrsena ? " ✓" : ""}
+              </button>
+            );
+          })}
+          {!grupe.length && <span style={{ color: C.sivi, fontSize: 10 }}>—</span>}
+        </div>
+      </label>
     </div>
   );
 
-  const renderKolonaKartica = (k, i, kompakt = false) => (
+  const renderKolonaKartica = (k, i, kompakt = false) => {
+    const K = dimKolonaUnos({ kompakt });
+    const inpMerenje = inpMerenjeBaza(kompakt);
+    return (
     <div style={{
       background: C.panel,
       border: aktivnaKolona === i && k.naziv !== "-"
-        ? `2px solid ${C.zelena}`
-        : `1px solid ${C.border}`,
-      borderRadius: 8,
-      padding: kompakt ? 8 : (ekran.mob ? 6 : 8),
+        ? `${K.kartica.borderAktivna}px solid ${C.zelena}`
+        : `${K.kartica.borderObicna}px solid ${C.border}`,
+      borderRadius: K.kartica.borderRadius,
+      padding: K.kartica.padding,
       boxSizing: "border-box",
       width: "100%",
       height: kompakt ? undefined : "100%",
@@ -1090,83 +1504,238 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     }}>
       {k.naziv !== "-" ? (
         <>
-          {metaRed("Šta se meri", k.naziv, C.plava)}
-          {k.nazivMere ? metaRed("Nominala / oznaka", k.nazivMere) : null}
-          {metaRed("Merni instrument", k.instrument)}
-          {metaRed("Broj merenja", k.ukupnoLabel, C.zuta)}
-          {metaLevoDesno("LSL", k.lslText, "USL", k.uslText)}
-          {k.plausibilnost && (
-            <div style={{ color: C.sivi, fontSize: 8, marginTop: 2, marginBottom: 1, lineHeight: 1.35 }}>
+          {!kompakt && (
+            <>
+              {metaRed("Šta se meri", k.naziv, C.plava, K)}
+              {k.nazivMere ? metaRed("Nominala / oznaka", k.nazivMere, undefined, K) : null}
+              {metaRed("Merni instrument", k.instrument, undefined, K)}
+              {metaRed("Broj merenja", k.ukupnoLabel, C.zuta, K)}
+            </>
+          )}
+          {!kompakt && metaLevoDesno("LSL", k.lslText, "USL", k.uslText, undefined, undefined, K)}
+          {!kompakt && k.plausibilnost && (
+            <div style={{
+              color: C.sivi,
+              fontSize: K.plausibilnost.fontSize,
+              marginTop: K.plausibilnost.marginTop,
+              marginBottom: K.plausibilnost.marginBottom,
+              lineHeight: 1.35,
+            }}>
               Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
             </div>
           )}
+          {kompakt ? (
+            <>
+              <div style={{
+                background: C.input,
+                border: `1px solid ${C.border}`,
+                borderRadius: K.kartica.borderRadius,
+                padding: "6px 8px",
+                marginBottom: 4,
+                flexShrink: 0,
+              }}>
+                <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                  {mobMetaCelija("Šta se meri", k.naziv, C.plava, "left", K)}
+                  {mobMetaCelija("Broj merenja", k.ukupnoLabel, C.zuta, "center", K)}
+                  {mobMetaCelija("Merni instrument", k.instrument, undefined, "right", K)}
+                </div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                  {mobMetaCelija("LSL", k.lslText, undefined, "left", K)}
+                  {mobMetaCelija("Nominala / oznaka", k.nazivMere || "—", undefined, "center", K)}
+                  {mobMetaCelija("USL", k.uslText, undefined, "right", K)}
+                </div>
+                <input
+                  ref={el => { inputRefs.current[i] = el; }}
+                  type="text"
+                  inputMode={inputModeMerenja(k)}
+                  enterKeyHint="done"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  style={{
+                    ...inpMerenje,
+                    width: "100%",
+                    marginBottom: 0,
+                    background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
+                    outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
+                    border: `1px solid ${C.border}`,
+                  }}
+                  value={k.input}
+                  onFocus={(e) => { onFocusTastatura(e); setAktivnaKolona(i); }}
+                  onChange={e => {
+                    const v = sanitizujInputMerenja(e.target.value, k);
+                    setKolone(prev => {
+                      const next = [...prev];
+                      next[i] = { ...next[i], input: v };
+                      return next;
+                    });
+                  }}
+                  onBlur={() => {
+                    const inpVal = String(k.input || "").trim();
+                    if (!inpVal) return;
+                    const v = validirajUnos(inpVal, k.jedinica, {
+                      lslDec: k.lslDec,
+                      uslDec: k.uslDec,
+                      nominalDec: k.nominalDec,
+                    });
+                    if (!v.ok) {
+                      setKolone(prev => {
+                        const next = [...prev];
+                        next[i] = { ...next[i], input: "" };
+                        return next;
+                      });
+                    }
+                  }}
+                  onKeyDown={e => {
+                    const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
+                    if (f === null && e.key.length === 1) e.preventDefault();
+                    if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
+                  }}
+                  placeholder={koristiUgaoUnosKolone(k)
+                    ? "440000 = 44°00′00″"
+                    : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
+                />
+              </div>
+              {k.plausibilnost && (
+                <div style={{
+                  color: C.sivi,
+                  fontSize: K.plausibilnost.fontSize,
+                  marginTop: 1,
+                  marginBottom: 3,
+                  lineHeight: 1.3,
+                }}>
+                  Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
+                </div>
+              )}
+              <button type="button" onClick={() => dodajMerenje(i)}
+                style={{
+                  width: K.dugmeDodaj.width,
+                  background: C.plava,
+                  border: "none",
+                  borderRadius: K.dugmeDodaj.borderRadius,
+                  color: "#fff",
+                  padding: K.dugmeDodaj.padding,
+                  minHeight: K.dugmeDodaj.minHeight,
+                  cursor: "pointer",
+                  fontSize: K.dugmeDodaj.fontSize,
+                  fontWeight: K.dugmeDodaj.fontWeight,
+                  marginBottom: K.dugmeDodaj.marginBottom,
+                  flexShrink: 0,
+                  boxSizing: "border-box",
+                }}>
+                + Dodaj
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{
+                color: C.border,
+                fontSize: K.labelUnos.fontSize,
+                textTransform: "uppercase",
+                letterSpacing: K.labelUnos.letterSpacing,
+                marginTop: K.labelUnos.marginTop,
+                marginBottom: K.labelUnos.marginBottom,
+                flexShrink: 0,
+              }}>
+                Unos merenja
+              </div>
+              <input
+                ref={el => { inputRefs.current[i] = el; }}
+                style={{
+                  ...inpMerenje,
+                  marginBottom: K.inputMerenje.marginBottom,
+                  flexShrink: 0,
+                  width: "100%",
+                  background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
+                  outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
+                }}
+                value={k.input}
+                onFocus={() => setAktivnaKolona(i)}
+                onChange={e => {
+                  const v = sanitizujInputMerenja(e.target.value, k);
+                  setKolone(prev => {
+                    const next = [...prev];
+                    next[i] = { ...next[i], input: v };
+                    return next;
+                  });
+                }}
+                onBlur={() => {
+                  const inpVal = String(k.input || "").trim();
+                  if (!inpVal) return;
+                  const v = validirajUnos(inpVal, k.jedinica, {
+                    lslDec: k.lslDec,
+                    uslDec: k.uslDec,
+                    nominalDec: k.nominalDec,
+                  });
+                  if (!v.ok) {
+                    setKolone(prev => {
+                      const next = [...prev];
+                      next[i] = { ...next[i], input: "" };
+                      return next;
+                    });
+                  }
+                }}
+                onKeyDown={e => {
+                  const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
+                  if (f === null && e.key.length === 1) e.preventDefault();
+                  if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
+                }}
+                title={k.plausibilnost
+                  ? `Dozvoljen opseg: ${formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}`
+                  : undefined}
+                placeholder={koristiUgaoUnosKolone(k)
+                  ? "440000 = 44°00′00″"
+                  : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
+              />
+              <button type="button" onClick={() => dodajMerenje(i)}
+                style={{
+                  width: K.dugmeDodaj.width,
+                  background: C.plava,
+                  border: "none",
+                  borderRadius: K.dugmeDodaj.borderRadius,
+                  color: "#fff",
+                  padding: K.dugmeDodaj.padding,
+                  minHeight: K.dugmeDodaj.minHeight,
+                  cursor: "pointer",
+                  fontSize: K.dugmeDodaj.fontSize,
+                  fontWeight: K.dugmeDodaj.fontWeight,
+                  marginBottom: K.dugmeDodaj.marginBottom,
+                  flexShrink: 0,
+                  boxSizing: "border-box",
+                }}>
+                + Dodaj
+              </button>
+            </>
+          )}
           <div style={{
-            color: C.border, fontSize: 8, textTransform: "uppercase",
-            letterSpacing: 0.4, marginTop: 4, marginBottom: 3, flexShrink: 0,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: K.okNok.gap,
+            marginBottom: K.okNok.marginBottom,
+            flexShrink: 0,
           }}>
-            Unos merenja
+            {[["NOK", k.cntNOK, C.crvena], ["OK", k.cntOK, C.zelena]].map(([lblOk, br, boja]) => (
+              <div key={lblOk} style={{
+                background: `${boja}14`,
+                border: `1px solid ${boja}40`,
+                borderRadius: K.okNok.borderRadius,
+                padding: K.okNok.padding,
+                textAlign: "center",
+                minHeight: K.okNok.minHeight,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}>
+                <span style={{ color: C.border, fontSize: K.okNok.labelFont, letterSpacing: 0.8, marginBottom: 2 }}>{lblOk}</span>
+                <span style={{
+                  color: boja, fontSize: K.okNok.brojFont, fontWeight: 800, lineHeight: 1,
+                  fontVariantNumeric: "tabular-nums",
+                }}>
+                  {br ?? 0}
+                </span>
+              </div>
+            ))}
           </div>
-          <input
-            ref={el => { inputRefs.current[i] = el; }}
-            style={{
-              ...inpMerenje,
-              marginBottom: 5,
-              flexShrink: 0,
-              background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
-              outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
-            }}
-            value={k.input}
-            onFocus={() => setAktivnaKolona(i)}
-            onChange={e => {
-              const v = sanitizujInputMerenja(e.target.value, k);
-              setKolone(prev => {
-                const next = [...prev];
-                next[i] = { ...next[i], input: v };
-                return next;
-              });
-            }}
-            onBlur={() => {
-              const inpVal = String(k.input || "").trim();
-              if (!inpVal) return;
-              const v = validirajUnos(inpVal, k.jedinica, {
-                lslDec: k.lslDec,
-                uslDec: k.uslDec,
-                nominalDec: k.nominalDec,
-              });
-              if (!v.ok) {
-                setKolone(prev => {
-                  const next = [...prev];
-                  next[i] = { ...next[i], input: "" };
-                  return next;
-                });
-              }
-            }}
-            onKeyDown={e => {
-              const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
-              if (f === null && e.key.length === 1) e.preventDefault();
-              if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
-            }}
-            title={k.plausibilnost
-              ? `Dozvoljen opseg: ${formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}`
-              : undefined}
-            placeholder={koristiUgaoUnosKolone(k)
-              ? "440000 = 44°00′00″"
-              : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
-          />
-          <button type="button" onClick={() => dodajMerenje(i)}
-            style={{
-              width: "100%", background: C.plava, border: "none",
-              borderRadius: kompakt ? 6 : 5,
-              color: "#fff",
-              padding: kompakt ? "10px 0" : "5px 0",
-              cursor: "pointer",
-              fontSize: kompakt ? 14 : 11,
-              fontWeight: kompakt ? 700 : 400,
-              marginBottom: 5, flexShrink: 0,
-            }}>
-            + Dodaj
-          </button>
-          {metaBrojaciOkNok(k.cntNOK, k.cntOK)}
           <FotoNokUnos
             C={C}
             kompakt
@@ -1182,21 +1751,26 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             onGreska={m => setPoruka(m)}
           />
           <div style={{
-            color: C.border, fontSize: 8, textTransform: "uppercase",
-            letterSpacing: 0.4, marginBottom: 2, flexShrink: 0,
+            color: C.border,
+            fontSize: K.lista.labelFont,
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+            marginBottom: K.lista.marginBottom,
+            flexShrink: 0,
           }}>
             Lista merenja
           </div>
           <ul style={{
             listStyle: "none", padding: 0, margin: 0, flex: 1,
-            minHeight: kompakt ? 48 : 0,
-            maxHeight: kompakt ? 120 : undefined,
-            overflow: "auto", fontSize: 11,
+            minHeight: K.lista.minHeight,
+            maxHeight: K.lista.maxHeight ?? undefined,
+            overflow: "auto",
+            fontSize: K.lista.fontSize,
             fontVariantNumeric: "tabular-nums",
           }}>
             {k.merenja.map((m, j) => (
               <li key={j} style={{
-                padding: "2px 5px",
+                padding: K.lista.itemPadding,
                 marginBottom: 1,
                 borderRadius: 3,
                 background: proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica) === "OK"
@@ -1213,7 +1787,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         <div style={{ color: C.border, fontSize: 11, textAlign: "center", margin: "auto" }}>—</div>
       )}
     </div>
-  );
+    );
+  };
 
   const merljiveFormaBlok = prikaziMerljiveFormu && (
     <div style={{
@@ -1234,14 +1809,19 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           setAktivnaKolona={setAktivnaKolona}
           addToast={addToast}
           kompakt={ekran.telefon}
+          onPovezanChange={onMeriloPovezanChange}
+          registerStop={registerMeriloStop}
+          registerSimuliraj={registerMeriloSimuliraj}
         />
       )}
-      <div style={{ fontSize: 10, color: C.zuta, marginBottom: 4, flexShrink: 0, flex: "0 0 auto" }}>
-        Serija {grupaAB}: unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
-        {ciljSesije > 0 && (
-          <span style={{ color: C.sivi }}> · Preostalo serija: {preostaloSesije} / {ciljSesije}</span>
-        )}
-      </div>
+      {!L.mobTabKarusel && (
+        <div style={{ fontSize: 10, color: C.zuta, marginBottom: 4, flexShrink: 0, flex: "0 0 auto" }}>
+          Serija {grupaAB}: unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
+          {ciljSesije > 0 && (
+            <span style={{ color: C.sivi }}> · Preostalo serija: {preostaloSesije} / {ciljSesije}</span>
+          )}
+        </div>
+      )}
       {prekidOdobrenId && imaNepotpunuSesiju && (
         <div style={{
           background: C.ok, border: `1px solid ${C.zelena}`, borderRadius: 6,
@@ -1264,30 +1844,31 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
-        gap: 8,
+        gap: L.mobTabKarusel ? 4 : 8,
         overflow: "hidden",
       }}>
         {L.mobTabKarusel ? (
           <>
+            {mobDugmadAkcije}
             {dugmadSerije}
             {idDeo && serijaPotpuna && (
-              <div style={{ flexShrink: 0, overflowY: "auto", marginBottom: 4 }}>
+              <div style={{ flexShrink: 0, overflowY: "auto", marginBottom: 2 }}>
                 <SkartDoradaOeePanel C={C} kompakt vrednosti={kpiSerija} onChange={setKpiSerija}
                   podnaslov={`Serija ${grupaAB || "—"} · popunite pre Sačuvaj`} />
               </div>
             )}
             <MerljivaMobTabKarusel
+              key={viewportKey}
               C={C}
               brojKolona={kolone.length}
               aktivnaKolona={prikazIndeksKolone}
               onPrethodna={idiPrethodnaKolonaMob}
               onSledeca={idiSledecaKolonaMob}
-              crtezVisina={L.crtezVisinaDno}
               urlSlike={urlSlike}
               slika={slika}
               idDeo={idDeo}
               onZoomSlika={() => setZoomSlika(true)}
-              CrtezZoomViewer={CrtezZoomViewer}
+              sredinaZaglavlje={mobSerijaStatus}
             >
               {renderKolonaKartica(kolone[prikazIndeksKolone], prikazIndeksKolone, true)}
             </MerljivaMobTabKarusel>
@@ -1396,17 +1977,77 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
     </div>
   );
 
+  const trebaCekListaMer = tab === "unos" && (
+    (jeLinija && idDeo && idUcitano && !kontrolnaListaOk)
+    || (!jeLinija && !getListaOkSession("varijabilne", Number(smena)))
+  );
+
+  if (trebaCekListaMer) {
+    const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
+    return (
+      <div style={{
+        minHeight: "100dvh",
+        background: C.bg,
+        fontFamily: "'IBM Plex Mono', monospace",
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        <AppHeader
+          korisnik={korisnik}
+          onOdjava={onOdjava}
+          onNazad={onNazad}
+          C={C}
+          onToggleTema={onToggleTema}
+          temaTamna={temaTamna}
+        />
+        <KontrolnaLista
+          korisnik={korisnik}
+          smena={Number(smena)}
+          idDeo={idZaListu}
+          naslovModul="Merljive"
+          akcent={C.zelena}
+          onZavrsena={zavrsiKontrolnuListu}
+          licenca={licenca}
+          prikaziLicencu={jeLinijaUloga(korisnik?.uloga)}
+          C={C}
+        />
+      </div>
+    );
+  }
+
+  const mobVisina = stackVertikalno || ekran.linijaUredjaj;
+
   return (
-    <div style={{
-      height: stackVertikalno ? "100dvh" : "100vh",
-      minHeight: stackVertikalno ? "100dvh" : "100vh",
+    <div
+      key={viewportKey}
+      style={{
+      height: mobVisina ? `${ekran.visinaLayout}px` : "100vh",
+      minHeight: mobVisina ? `${ekran.visinaLayout}px` : "100vh",
+      maxHeight: mobVisina ? `${ekran.visinaLayout}px` : undefined,
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
+      overflow: mobVisina && ekran.tastaturaOtvorena ? "auto" : "hidden",
+      WebkitOverflowScrolling: mobVisina && ekran.tastaturaOtvorena ? "touch" : undefined,
       background: C.bg,
       fontFamily: "'IBM Plex Mono', monospace",
       color: C.tekst,
     }}>
+      {pokaziZahtevKal && idDeo && (
+        <ZahtevKalibracija
+          korisnik={korisnik}
+          idDeo={idDeo}
+          nazivDela={nazivDela}
+          instrumenti={instrumentiKalTekst}
+          onUspeh={() => {
+            setPokaziZahtevKal(false);
+            proveriKalibraciju();
+            addToast("✓ Zahtev poslat adminu — čeka odobrenje kalibracije", "uspeh");
+          }}
+          onOtkazati={() => setPokaziZahtevKal(false)}
+          C={C}
+        />
+      )}
+
       {pokaziZahtev && idDeo && (
         <ZahtevPrekid
           korisnik={korisnik}
@@ -1439,93 +2080,161 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         </div>
       )}
 
-      <div style={{
-        background: C.panel, borderBottom: `1px solid ${C.border}`,
-        flexShrink: 0,
-      }}>
-        <div style={{
-          padding: ekran.mob ? "0 6px" : ekran.wide ? "0 8px" : "0 12px",
-          minHeight: 48,
-          height: "auto",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 8,
-          paddingTop: 8,
-          paddingBottom: 8,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <button type="button" onClick={onNazad} style={{ background: "none", border: "none", color: C.sivi, cursor: "pointer", fontSize: ekran.mob ? 16 : 14 }}>←</button>
-            <span style={{ color: C.zelena, fontWeight: 700, fontSize: ekran.mob ? 12 : 13 }}>
-              {digitalniUnos ? "± DIGITALNI UNOS" : "± RUČNI UNOS"}
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0, flexWrap: "wrap" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: C.sivi }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: "50%",
-                background: online ? C.zelena : C.crvena, display: "inline-block",
-              }} />
-              {online ? "Online" : `Offline (${offlineCounts.total})`}
-            </span>
-            {getAktivnaSesija("merljive")?.sesija_id && (
-              <span style={{ color: C.border, fontSize: 8 }} title="ID sesije serije">
-                {getAktivnaSesija("merljive").sesija_id.slice(0, 18)}…
+      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <AppHeader
+          korisnik={korisnik}
+          onOdjava={onOdjava}
+          onNazad={onNazad}
+          C={C}
+          onToggleTema={onToggleTema}
+          temaTamna={temaTamna}
+          desnoExtra={(
+            <>
+              {digitalniUnos && meriloPovezano && meriloSimulacija && (
+                <button
+                  type="button"
+                  onClick={() => meriloSimulirajRef.current?.()}
+                  title="Pošalji test merenje (simulacija)"
+                  style={{
+                    background: `${C.zuta}22`,
+                    border: `1px solid ${C.zuta}`,
+                    borderRadius: 5,
+                    color: C.zuta,
+                    fontSize: 8,
+                    padding: "1px 6px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  📤
+                </button>
+              )}
+              {digitalniUnos && meriloPovezano && (
+                <button
+                  type="button"
+                  onClick={() => meriloStopRef.current?.()}
+                  title={meriloSimulacija ? "Prekini simulaciju" : "Merilo povezano — klik za prekid"}
+                  style={{
+                    background: meriloSimulacija ? `${C.zuta}22` : `${C.zelena}22`,
+                    border: `1px solid ${meriloSimulacija ? C.zuta : C.zelena}`,
+                    borderRadius: 5,
+                    color: meriloSimulacija ? C.zuta : C.zelena,
+                    fontSize: 8,
+                    padding: "1px 6px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: meriloSimulacija ? C.zuta : C.zelena,
+                    display: "inline-block",
+                  }} />
+                  {(ekran.mob || ekran.tablet)
+                    ? (meriloSimulacija ? "Sim" : "Merilo")
+                    : (meriloSimulacija ? "Simulacija" : "Merilo povezano")}
+                </button>
+              )}
+              {(ekran.mob || ekran.tablet) && (
+                <>
+                  <span title={digitalniUnos ? "Digitalni unos" : "Ručni unos"}
+                    style={{ color: C.zelena, fontSize: 8, fontWeight: 700, flexShrink: 0 }}>±</span>
+                  <span title={online ? "Online" : `Offline (${offlineCounts.total})`} style={{ flexShrink: 0, display: "flex" }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: online ? C.zelena : C.crvena, display: "inline-block",
+                    }} />
+                  </span>
+                  {!online && offlineCounts.total > 0 && (
+                    <button type="button" onClick={() => flushQueue()} title="Sync"
+                      style={{
+                        background: C.zuta, border: "none", borderRadius: 5, color: "#000",
+                        fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
+                      }}>↻</button>
+                  )}
+                </>
+              )}
+              {mozePrebacivanjeRezima(korisnik?.uloga) && typeof onPromeniRezim === "function" && (
+                <button
+                  type="button"
+                  onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
+                  title={jeLinija ? "Analitika" : "Linija"}
+                  style={{
+                    background: jeLinija ? `${C.zelena}22` : `${C.plava}22`,
+                    border: `1px solid ${jeLinija ? C.zelena : C.plava}`,
+                    borderRadius: 5, color: jeLinija ? C.zelena : C.plava,
+                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
+                  }}
+                >
+                  {(ekran.mob || ekran.tablet) ? (jeLinija ? "📊" : "🏭") : (jeLinija ? "📊 Analitika" : "🏭 Linija")}
+                </button>
+              )}
+              {jeLinija && koristiMobLinija && mozeTabMerljive("log", korisnik?.uloga, rezimRada) && (
+                <button
+                  type="button"
+                  onClick={() => setTab(tab === "log" ? "unos" : "log")}
+                  style={{
+                    background: tab === "log" ? `${C.zelena}22` : C.hover,
+                    border: `1px solid ${tab === "log" ? C.zelena : C.border}`,
+                    borderRadius: 5, color: tab === "log" ? C.zelena : C.sivi,
+                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
+                  }}
+                >
+                  {tab === "log" ? "←" : "LOG"}
+                </button>
+              )}
+            </>
+          )}
+          trakaIspod={(ekran.mob || ekran.tablet) ? null : (
+            <div style={{
+              background: C.panel, borderBottom: `1px solid ${C.border}`,
+              padding: "6px 20px", display: "flex", alignItems: "center",
+              gap: 10, fontSize: 10, flexWrap: "wrap",
+            }}>
+              <span style={{ color: C.zelena, fontWeight: 700, fontSize: 10 }}>
+                {digitalniUnos
+                  ? (meriloPovezano
+                    ? (meriloSimulacija ? "± Digitalni · simulacija" : "± Digitalni · merilo povezano")
+                    : "± Digitalni unos")
+                  : "± Ručni unos"}
               </span>
-            )}
-            {!online && offlineCounts.total > 0 && (
-              <button type="button" onClick={() => flushQueue()}
-                style={{
-                  background: C.zuta, border: "none", borderRadius: 5, color: "#000",
-                  fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
-                }}>
-                ↻ Sync
-              </button>
-            )}
-            {!ekran.mob && (
-              <span style={{ color: C.sivi, fontSize: 10 }} title={opisUloge(korisnik?.uloga, rezimRada)}>
-                {korisnik?.ime} · {korisnik?.uloga}
+              <span style={{ color: C.border }}>|</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4, color: C.sivi }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: online ? C.zelena : C.crvena, display: "inline-block",
+                }} />
+                {online ? "Online" : `Offline (${offlineCounts.total})`}
               </span>
-            )}
-            {mozePrebacivanjeRezima(korisnik?.uloga) && typeof onPromeniRezim === "function" && (
-              <button
-                type="button"
-                onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
-                style={{
-                  background: jeLinija ? `${C.zelena}22` : `${C.plava}22`,
-                  border: `1px solid ${jeLinija ? C.zelena : C.plava}`,
-                  borderRadius: 5, color: jeLinija ? C.zelena : C.plava,
-                  fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
-                }}
-              >
-                {jeLinija ? "📊 Analitika" : "🏭 Linija"}
-              </button>
-            )}
-            {jeLinija && koristiMobLinija && mozeTabMerljive("log", korisnik?.uloga, rezimRada) && (
-              <button
-                type="button"
-                onClick={() => setTab(tab === "log" ? "unos" : "log")}
-                style={{
-                  background: tab === "log" ? `${C.zelena}22` : C.hover,
-                  border: `1px solid ${tab === "log" ? C.zelena : C.border}`,
-                  borderRadius: 5, color: tab === "log" ? C.zelena : C.sivi,
-                  fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
-                }}
-              >
-                {tab === "log" ? "← Unos" : "LOG"}
-              </button>
-            )}
-            <button type="button" onClick={onOdjava} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, color: C.sivi, fontSize: 10, padding: "3px 10px", cursor: "pointer" }}>Odjava</button>
-          </div>
-        </div>
-        {(!jeLinija || !ekran.linijaUredjaj) && TABOVI.length > 1 && (
+              {getAktivnaSesija("merljive")?.sesija_id && (
+                <span style={{ color: C.border, fontSize: 8 }} title="ID sesije serije">
+                  {getAktivnaSesija("merljive").sesija_id.slice(0, 18)}…
+                </span>
+              )}
+              {!online && offlineCounts.total > 0 && (
+                <button type="button" onClick={() => flushQueue()}
+                  style={{
+                    background: C.zuta, border: "none", borderRadius: 5, color: "#000",
+                    fontSize: 9, padding: "3px 8px", cursor: "pointer", fontWeight: 700,
+                  }}>
+                  ↻ Sync
+                </button>
+              )}
+            </div>
+          )}
+        />
+        {(punPristupTabovima || !jeLinija || !ekran.linijaUredjaj) && TABOVI.length > 1 && (
         <div style={{
           display: "flex",
           borderTop: `1px solid ${C.border}`,
-          padding: ekran.mob ? "0 6px" : "0 12px",
-          flexWrap: "wrap",
-          overflowX: ekran.mob ? "auto" : "visible",
+          padding: (ekran.mob || ekran.tablet) ? "0 6px" : "0 12px",
+          flexWrap: "nowrap",
+          overflowX: (ekran.mob || ekran.tablet) ? "auto" : "visible",
           WebkitOverflowScrolling: "touch",
         }}>
           {TABOVI.map(([id, naziv]) => (
@@ -1544,7 +2253,15 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
       </div>
 
       {tab === "karte" && (
-        <MerljiveSpcKarte C={C} addToast={addToast} korisnik={korisnik} />
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}>
+          <MerljiveSpcKarte C={C} addToast={addToast} korisnik={korisnik} />
+        </div>
       )}
 
       {tab === "msa" && (
@@ -1589,6 +2306,17 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         <OeeKpiTab C={C} modul="merljive" addToast={addToast} idDeoFilter={idDeo || undefined} />
       )}
 
+      {tab === "stanje" && (
+        <InteligencijaDeoPanel
+          C={C}
+          korisnik={korisnik}
+          addToast={addToast}
+          sviDelovi={deloviLista}
+          defaultIdDeo={idDeo || ""}
+          onOtvori8D={onOtvori8D}
+        />
+      )}
+
       {tab === "trasabilitet" && mozeAnalitika && (
         <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
           <TrasabilitetPanel C={C} addToast={addToast} modul="merljive" />
@@ -1599,10 +2327,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         <div style={{ flex: 1, overflow: "auto", padding: 20, maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 20 }}>
           <OfflineSyncPanel supabase={supabase} C={C} addToast={addToast} online={online} onSync={onFlushed} />
           <SchemaStatusPanel C={C} />
+          <SpcBaselinePanel C={C} korisnik={korisnik} modul="merljive" addToast={addToast} />
           <KarakteristikeGraniceEditor C={C} korisnik={korisnik} addToast={addToast} />
           <MeriloBarkodUputstvo C={C} />
           <NotifikacijePodesavanja C={C} addToast={addToast} />
           <MerljiveExcelPanel C={C} addToast={addToast} />
+          <AdminKalibracijaPanel korisnik={korisnik} C={C} addToast={addToast} />
         </div>
       )}
 
@@ -1659,6 +2389,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           idDeo={idDeo}
           onIdChange={onIdChange}
           onIdPotvrdi={potvrdiIdDeo}
+          onBarkodSken={obradiBarkodSken}
           smena={smena}
           setSmena={setSmena}
           grupe={grupe}
@@ -1670,8 +2401,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           linija={linija}
           masina={masina}
           radniNalog={radniNalog}
+          nalogInfo={nalogInfo}
           potrebanBroj={potrebanBroj}
-          ucitava={ucitava}
+          ucitava={ucitava || nalogUcitava}
           poruka={poruka}
           idUcitano={idUcitano}
           unosKorak={unosKorak}
@@ -1681,15 +2413,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
           kalUpozorenja={kalUpozorenja}
           kalibracijaOdobrena={kalibracijaOdobrena}
           mozeAdmin={mozeAdmin}
-          onToggleKalibracijaOdobrenje={() => {
-            const novo = !kalibracijaOdobrena;
-            postaviKalibracijaOdobrena(idDeo, novo);
-            setKalOdobrenRev(r => r + 1);
-            addToast(
-              novo ? "✓ Admin dozvolio merenje uprkos kalibraciji" : "Kalibracija: blokada ponovo uključena",
-              novo ? "uspeh" : "info",
-            );
-          }}
+          onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
+          kalibracijaCeka={!!kalibracijaCekaId}
+          onZahtevKalibracija={() => setPokaziZahtevKal(true)}
           onNoviDeo={noviDeoLinija}
           slikaNaziv={slika}
           urlSlike={urlSlike}
@@ -1740,6 +2466,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
             C={C}
             idDeo={idDeo}
             onIdChange={onIdChange}
+            onBarkodSken={obradiBarkodSken}
+            onIdPotvrdi={potvrdiIdDeo}
             smena={smena}
             setSmena={setSmena}
             grupe={grupe}
@@ -1789,15 +2517,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                   kontrolnaListaOk={kontrolnaListaOk}
                   kalibracijaOdobrena={kalibracijaOdobrena}
                   mozeAdmin={mozeAdmin}
-                  onToggleKalibracijaOdobrenje={() => {
-                    const novo = !kalibracijaOdobrena;
-                    postaviKalibracijaOdobrena(idDeo, novo);
-                    setKalOdobrenRev(r => r + 1);
-                    addToast(
-                      novo ? "✓ Admin dozvolio merenje uprkos kalibraciji" : "Kalibracija: blokada ponovo uključena",
-                      novo ? "uspeh" : "info",
-                    );
-                  }}
+                  kalibracijaCeka={!!kalibracijaCekaId}
+                  onZahtevKalibracija={() => setPokaziZahtevKal(true)}
+                  onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
                   onDalje={() => setUnosKorak("forma")}
                   daljeLabel="Unos merenja →"
                 />
@@ -1835,44 +2557,74 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
         )}
 
         {desktopUnos ? generalijeGornjiRed : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: koristiMobLinija
-            ? "repeat(2, minmax(0, 1fr))"
-            : L.gridGeneralije,
-          gap: koristiMobLinija ? 10 : L.gridGeneralijeGap,
-          marginBottom: 6,
-          flexShrink: 0,
-          width: "100%",
-        }}>
-          <label style={lbl}>Smena
-            <select style={inp} value={smena} onChange={e => setSmena(e.target.value)}>
-              {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </label>
-          <label style={{ ...lbl, gridColumn: koristiMobLinija ? "1 / -1" : undefined }}>ID deo *
+        <div style={{ marginBottom: 6, flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
+          <SmenaIdUnosRed
+            C={C}
+            akcent={C.zelena}
+            smena={smena}
+            setSmena={setSmena}
+            onBarkodSken={obradiBarkodSken}
+            lblStyle={lbl}
+            idLabel="ID deo *"
+            prikaziCrtez={false}
+            sirinaSmena={ekran.tablet ? 52 : 44}
+            sirinaBarkod={ekran.tablet ? 40 : 36}
+            inpStyle={{
+              borderRadius: 6,
+              padding: L.inpPadding,
+              fontSize: L.fontInput,
+            }}
+          >
             <input
-              style={{ ...inp, fontSize: koristiMobLinija ? 18 : undefined, fontWeight: koristiMobLinija ? 700 : undefined, textAlign: koristiMobLinija ? "center" : undefined }}
-              value={idDeo}
-              onChange={e => onIdChange(e.target.value)}
-              onBlur={e => potvrdiIdDeo(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") { e.preventDefault(); potvrdiIdDeo(e.currentTarget.value); }
+              style={{
+                ...inp,
+                fontWeight: 700,
+                textAlign: "center",
               }}
+              value={idDeo}
+              {...idBarkodPolje}
+              onBlur={e => potvrdiIdDeo(e.target.value)}
               placeholder="5502-A"
-              title={digitalniUnos ? "USB barkod čitač" : "Šifra dela"}
+              title="Ručni unos, USB čitač (fokus u polje) ili kamera"
             />
-          </label>
-          {koristiMobLinija && nazivDela && (
+          </SmenaIdUnosRed>
+          <div style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            width: "100%",
+            minWidth: 0,
+          }}>
             <div style={{
-              gridColumn: "1 / -1", background: `${C.zelena}18`, border: `1px solid ${C.zelena}40`,
-              borderRadius: 8, padding: "8px 10px", fontSize: 12, fontWeight: 700, color: C.zelena,
+              flex: 1,
+              minWidth: 0,
+              background: nazivDela ? `${C.zelena}18` : C.panel,
+              border: `1px solid ${nazivDela ? `${C.zelena}40` : C.border}`,
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 11,
+              fontWeight: nazivDela ? 700 : 400,
+              color: nazivDela ? C.zelena : C.sivi,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}>
-              {nazivDela}
-              {linija && <span style={{ color: C.sivi, fontWeight: 400, marginLeft: 8, fontSize: 10 }}>{linija}</span>}
+              {nazivDela || "Naziv dela"}
+              {linija && nazivDela && (
+                <span style={{ color: C.sivi, fontWeight: 400, marginLeft: 8, fontSize: 10 }}>{linija}</span>
+              )}
             </div>
-          )}
-          <label style={{ ...lbl, gridColumn: koristiMobLinija ? "1 / -1" : undefined }}>Serija{serijaDugmad}</label>
+            <div style={{
+              flex: "0 0 auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              minWidth: 0,
+            }}>
+              <span style={{ fontSize: L.fontLabel, color: C.sivi, flexShrink: 0 }}>Serija</span>
+              {serijaDugmad}
+            </div>
+          </div>
         </div>
         )}
 
@@ -1925,18 +2677,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, unosR
                 kontrolnaListaOk={kontrolnaListaOk}
                 kalibracijaOdobrena={kalibracijaOdobrena}
                 mozeAdmin={mozeAdmin}
+                kalibracijaCeka={!!kalibracijaCekaId}
+                onZahtevKalibracija={() => setPokaziZahtevKal(true)}
                 urlSlike={P.urlSlikeUPokaKomponenti ? urlSlike : undefined}
-                onToggleKalibracijaOdobrenje={() => {
-                  const novo = !kalibracijaOdobrena;
-                  postaviKalibracijaOdobrena(idDeo, novo);
-                  setKalOdobrenRev(r => r + 1);
-                  addToast(
-                    novo
-                      ? "✓ Admin dozvolio merenje uprkos kalibraciji"
-                      : "Kalibracija: blokada ponovo uključena",
-                    novo ? "uspeh" : "info",
-                  );
-                }}
+                onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
                 onDalje={() => setUnosKorak("forma")}
               />
             </div>

@@ -13,8 +13,10 @@ export default function PokaYokeUnosStrip({
   kontrolnaListaOk,
   sacuvaneGrupe = [],
   kalibracijaOdobrena = false,
+  kalibracijaCeka = false,
   mozeAdmin = false,
   onToggleKalibracijaOdobrenje,
+  onZahtevKalibracija,
 }) {
   const sledeca = useMemo(
     () => sledecaPraznaDimenzija(kolone, potrebanBroj),
@@ -85,6 +87,26 @@ export default function PokaYokeUnosStrip({
           </div>
         )}
 
+        {kalibracijaCeka && !kalibracijaOdobrena && (
+          <div style={{ color: C.zuta, fontSize: 10 }}>
+            ⏳ Čeka odobrenje admina (sinhronizacija automatski)
+          </div>
+        )}
+
+        {!mozeAdmin && blokirajucaKal.length > 0 && !kalibracijaOdobrena && !kalibracijaCeka
+          && typeof onZahtevKalibracija === "function" && (
+          <button
+            type="button"
+            onClick={onZahtevKalibracija}
+            style={{
+              marginTop: 8, background: C.zuta, border: "none", borderRadius: 6, color: "#000",
+              fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
+            }}
+          >
+            📤 Zahtev adminu (kalibracija)
+          </button>
+        )}
+
         {mozeAdmin && blokirajucaKal.length > 0 && typeof onToggleKalibracijaOdobrenje === "function" && (
           <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
             <button
@@ -101,7 +123,7 @@ export default function PokaYokeUnosStrip({
                 : "Admin: dozvoli merenje (kalibracija istekla)"}
             </button>
             <span style={{ color: C.sivi, fontSize: 9 }}>
-              Važi za {idDeo} u ovoj sesiji (do odjave / promene ID)
+              Važi na svim uređajima za {idDeo}
             </span>
           </div>
         )}

@@ -3,7 +3,9 @@ import { supabase } from "../lib/supabaseClient.js";
 import { fetchZajednickiDashboard } from "../lib/zajednickiDashboard.js";
 import { queueCounts, loadQueue, ensureQueueReady } from "../lib/offlineQueue.js";
 import OperativniAlarmiStrip from "./OperativniAlarmiStrip.jsx";
+import StanjePredikcijaPanel from "./StanjePredikcijaPanel.jsx";
 import { bojaNivoa } from "../lib/operativniAlarmi.js";
+import { mozeInteligencijaProcesa } from "../lib/uloge.js";
 import {
   ucitajPodesavanjaNotifikacija,
   obradiAlarmeNotifikacije,
@@ -23,11 +25,25 @@ function KpiKartica({ label, value, boja, C, sub }) {
   );
 }
 
-export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula }) {
+export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula, korisnik, onOtvori8D }) {
   const [period, setPeriod] = useState(kompakt ? "1" : "7");
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sakrijAlarme, setSakrijAlarme] = useState(false);
+  const [sviDelovi, setSviDelovi] = useState([]);
+  const [lokalniToast, setLokalniToast] = useState(null);
+
+  useEffect(() => {
+    supabase.from("delovi").select("id_deo,naziv_dela").order("id_deo")
+      .then(({ data }) => setSviDelovi(data || []));
+  }, []);
+
+  const vidiInteligenciju = mozeInteligencijaProcesa(korisnik?.uloga);
+
+  const toastFn = addToast || ((msg, tip) => {
+    setLokalniToast({ msg, tip });
+    setTimeout(() => setLokalniToast(null), 4000);
+  });
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -109,6 +125,17 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
         />
       )}
 
+      {lokalniToast && (
+        <div style={{
+          marginBottom: 10, padding: "8px 12px", borderRadius: 8, fontSize: 11,
+          background: lokalniToast.tip === "uspeh" ? C.zelena + "22" : C.crvena + "22",
+          color: lokalniToast.tip === "uspeh" ? C.zelena : C.crvena,
+          border: `1px solid ${lokalniToast.tip === "uspeh" ? C.zelena : C.crvena}40`,
+        }}>
+          {lokalniToast.msg}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ color: C.sivi, fontSize: 12, padding: 24, textAlign: "center" }}>Učitavanje…</div>
       ) : !podaci ? (
@@ -138,6 +165,18 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
               Danas merljive: {podaci.merljive.danasUk} merenja · {podaci.merljive.danasNok} NOK
               {podaci.aktivniNalozi > 0 && ` · ${podaci.aktivniNalozi} aktivnih naloga`}
             </div>
+          )}
+
+          {vidiInteligenciju && (
+            <StanjePredikcijaPanel
+              podaci={podaci}
+              C={C}
+              kompakt={kompakt}
+              korisnik={korisnik}
+              addToast={toastFn}
+              sviDelovi={sviDelovi}
+              onOtvori8D={onOtvori8D}
+            />
           )}
 
           {podaci.topNok.length > 0 && (

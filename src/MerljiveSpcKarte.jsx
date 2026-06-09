@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
 import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ReferenceLine, Legend,
@@ -34,9 +33,12 @@ import {
 import { histogramIGaus, proceniNormalnost } from "./lib/normalnost.js";
 import { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 
-const SUPABASE_URL = "https://wzxkcomeurogvfisticq.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+import { supabase } from "./lib/supabaseClient.js";
+import {
+  ucitajAktivniBaseline,
+  primeniBaselineNaPodatke,
+  formatBaselineBadge,
+} from "./lib/spcBaseline.js";
 
 const KARTE_TIPOVI = new Set(["xbar", "r", "i", "mr"]);
 
@@ -149,6 +151,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   const [rawData, setRawData] = useState([]);
   const [vodicSakrij, setVodicSakrij] = useState(false);
   const [osmdPrefill, setOsmdPrefill] = useState(null);
+  const [baselineAktivan, setBaselineAktivan] = useState(null);
   const kartaRef = useRef(null);
   const alarmPoslat = useRef(new Set());
   const prevIdDeoRef = useRef("");
@@ -203,6 +206,23 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   }, [idDeo, pozicija, datumOd, datumDo, smena, addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (!idDeo || !pozicija || !KARTE_TIPOVI.has(tip)) {
+      setBaselineAktivan(null);
+      return undefined;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const b = await ucitajAktivniBaseline(supabase, { idDeo, tipKarte: tip, pozicija });
+        if (alive) setBaselineAktivan(b);
+      } catch {
+        if (alive) setBaselineAktivan(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [idDeo, pozicija, tip]);
 
   const podgrupe = useMemo(() => podgrupeMerenja(rawData, nPodgrupa, jedinica), [rawData, nPodgrupa, jedinica]);
   const deoInfo = useMemo(() => delovi.find(d => d.id_deo === idDeo), [delovi, idDeo]);
@@ -262,12 +282,17 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   const agregat = useMemo(() => agregatKvaliteta(rawData), [rawData]);
   const poPoziciji = useMemo(() => nokPoPozicijiDashboard(rawData), [rawData]);
 
-  const aktPodaci = useMemo(() => {
+  const aktPodaciSirovi = useMemo(() => {
     if (tip === "r") return spc.rPodaci;
     if (tip === "i") return imr.iPodaci;
     if (tip === "mr") return imr.mrPodaci;
     return spc.xbarPodaci;
   }, [tip, spc, imr]);
+
+  const aktPodaci = useMemo(
+    () => primeniBaselineNaPodatke(aktPodaciSirovi, baselineAktivan).podaci,
+    [aktPodaciSirovi, baselineAktivan],
+  );
 
   const upozoreni = aktPodaci.filter(d => d.upoz);
   const trebaDimenzija = KARTE_TIPOVI.has(tip) || tip === "cpk" || tip === "hist";
@@ -496,6 +521,23 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
         <>
           {KARTE_TIPOVI.has(tip) && (
             <>
+              {baselineAktivan && (
+                <div style={{
+                  background: `${C.zuta}18`,
+                  border: `1px solid ${C.zuta}50`,
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  marginBottom: 12,
+                  color: C.zuta,
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}>
+                  📌 {formatBaselineBadge(baselineAktivan)}
+                  {baselineAktivan.napomena ? (
+                    <span style={{ color: C.sivi, fontWeight: 400 }}> · {baselineAktivan.napomena}</span>
+                  ) : null}
+                </div>
+              )}
               <KpiRed C={C} items={[
                 ["CL", fmt(aktPodaci[0]?.cl, jedinica), C.zuta],
                 ["UCL", fmt(aktPodaci[0]?.ucl, jedinica), C.crvena],

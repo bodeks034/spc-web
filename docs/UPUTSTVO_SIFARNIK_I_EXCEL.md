@@ -40,6 +40,8 @@ C:\mix\spc-web\
 │   ├── radnici.csv
 │   ├── radni_nalozi.csv
 │   ├── kontrolna_lista_stavke.csv
+│   ├── barkodi_sadrzaj.csv            ← izvoz iz Barkod_etikete.xlsx
+│   ├── barkodi\                       ← generisane PNG + etikete-stampa.html
 │   │
 │   ├── Varijabilne_SPC.xlsm           ← GLAVNI Excel za MERLJIVE
 │   ├── sop_deo_varijabilni.csv        ← izvoz iz merljivog Excela
@@ -49,6 +51,7 @@ C:\mix\spc-web\
 ├── excel-rad\                         ← radna kopija master fajlova
 │   ├── SPC_master_atributivne.xlsx    ← 9 tabova (§3) — ceo SPC šifrarnik
 │   ├── Katalog_vozilo_9_komponenti.xlsx  ← NOVI: 9 sheetova po komponentama (§4)
+│   ├── Barkod_etikete.xlsx            ← registar barkod etiketa (§5)
 │   └── Varijabilne_SPC.xlsm           ← kopija merljivog fajla
 │
 └── sifarnik celo vozilo\              ← samo dijagram / dokumentacija (NE uvoz)
@@ -62,6 +65,7 @@ C:\mix\spc-web\
 | **Atributivne (9 tabova)** | `SPC_master_atributivne.xlsx` | 8 CSV + `katalog_gresaka_vozilo.csv` | Admin ili `npm run import:docs` |
 | **Katalog vozila (9 komponenti)** | `Katalog_vozilo_9_komponenti.xlsx` | samo **`katalog_gresaka_vozilo.csv`** (spojeno) | isto — uvozi se jedan CSV |
 | **Merljive veličine** | `docs\Varijabilne_SPC.xlsm` | 3 CSV | Modul Merljive → Uvezi Excel |
+| **Barkod etikete** | `excel-rad\Barkod_etikete.xlsx` | `barkodi_sadrzaj.csv` | `npm run barkodi` (nije Supabase) |
 | **Unosi kontrole (log)** | — | `kontrolni_log.csv` (opciono) | Automatski iz aplikacije → Supabase |
 
 Aplikacija **ne čita automatski** folder sa diska. Pri uvozu u Admin panelu **ručno izabereš** Excel fajl.
@@ -183,22 +187,42 @@ Kolone **ne moraju** da se zovu identično kao u starom fajlu. Dozvoljeno je:
 
 ---
 
-## 6. Stari vs novi šifrarnik — kako aplikacija bira
+## 6. Filter kataloga po delu / modelu vozila
+
+Pokreni SQL: **`24_katalog_filter_po_delu.sql`** (jednom).
 
 ```
 Unos ID dela
      │
-     ├─ 5501-A, 5502-A …  →  greske_katalog  (stari katalog delova)
+     ├─ 5501-A, 5502-A …  →  greske_katalog
+     │                        filter: id_deo ili katalog_id = delovi.greska_katalog_id
      │
-     └─ AUTO-001, AUTO-* …  →  katalog_gresaka_vozilo  (novi katalog vozila)
-                              + dijagram 6 zona
-                              + filter po zoni (voziloZoneConfig.js)
+     └─ AUTO-001, AUTO-SUV …  →  katalog_gresaka_vozilo
+                                 filter: vozilo_id = SUV ili SUV-KAROS-001…
+                                 + dijagram zona
 ```
 
-- **Ne moraš** da prilagođavaš novi katalog starom formatu `greske_katalog`.
-- **Moraš** da imaš red u `delovi` za AUTO-001 sa `tip_kontrole = vozilo`.
-- **Novi format (9 komponenti):** svaki sheet → kolona `id` = KAROS-001, MOTOR-001… Aplikacija pri kliku na zonu dijagrama prikazuje samo defekte te komponente.
-- **Stari format (1 sheet):** svi redovi `id = FINAL-001` — i dalje radi; zona se filtrira po kategoriji.
+### Pojedinačni delovi (`greske_katalog`)
+
+| Kolona u Excel/CSV | U bazi | Primer |
+|--------------------|--------|--------|
+| `id_deo` | samo za taj deo | `5502-A` |
+| `katalog_id` | grupa delova | `GRUPA-NOSAC` |
+| *(prazno)* | zajednički katalog | svi delovi bez posebnog |
+
+U **`delovi`**: kolona `greska katalog id` = `5502-A` ili `GRUPA-NOSAC`.
+
+### Vozila (`katalog_gresaka_vozilo`)
+
+| delovi | katalog grešaka (kolona `id` → vozilo_id) |
+|--------|-------------------------------------------|
+| `vozilo katalog id` = `SUV` | `SUV-KAROS-001`, `SUV-MOTOR-001`… |
+| `AUTO-SUV` + `vozilo katalog id` = `SUV` | isto |
+
+Ako nema posebnih redova za model → koristi se legacy (`KAROS-001`, `FINAL-001`).
+
+- **Moraš** imati red u `delovi` sa `tip_kontrole = vozilo`.
+- **Novi format (9 komponenti):** `SUV-KAROS-001` — zona KAROS-001 i dalje radi.
 
 ---
 
@@ -238,12 +262,32 @@ Unos ID dela
 |--------|-----|-------|
 | Katalog grešaka vozila | `katalog_gresaka_vozilo.csv` | Da → Supabase |
 | Deo AUTO-001 | `delovi.csv` | Da → Supabase |
-| Slika / dijagram vozila | `public/vozilo/` ili ugrađeni SVG | Ne (fajl u projektu, ne CSV) |
-| Mapiranje 6 zona | `src/lib/voziloZoneConfig.js` | Ručno u kodu ako menjaš zone |
+| Slika / dijagram vozila | `public/vozilo/dijagrami/*.svg` | Zameni fajl + mapa u `voziloDijagramConfig.js` |
+| Mapiranje 6 zona (K,M,T…) | `src/lib/voziloZoneConfig.js` | Samo ako pomeriš hotspot koordinate |
+| Više tipova vozila (auto, kamion…) | 1 SVG po tipu u `dijagrami/` | `vozilo katalog id` u `delovi` |
 
 ---
 
-## 8. Provera posle uvoza
+## 8. Barkod etikete (Excel — nije Supabase)
+
+Registar svih etiketa za štampu:
+
+| Fajl | Namena |
+|------|--------|
+| `excel-rad\Barkod_etikete.xlsx` | Glavni radni fajl (sheet `barkodi`) |
+| `docs\barkodi_sadrzaj.csv` | Izvoz za git i skriptu |
+| `docs\barkodi\` | Generisane PNG slike + `etikete-stampa.html` |
+
+```bash
+npm run barkodi:seed-excel   # prvi put: CSV → Excel
+npm run barkodi              # Excel → CSV → PNG + HTML za štampu
+```
+
+Detaljno: [UPUTSTVO_PRAVLJENJE_BARKODOVA.md](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md)
+
+---
+
+## 9. Provera posle uvoza
 
 1. Supabase → `katalog_gresaka_vozilo` — redovi sa `KAROS-001`, `MOTOR-001`… (novi) ili `FINAL-001` (stari).
 2. Supabase → `delovi` — postoji `AUTO-001`, `tip_kontrole = vozilo`.
@@ -252,31 +296,35 @@ Unos ID dela
 
 ---
 
-## 9. Preporučeni radni tok (praksa)
+## 10. Preporučeni radni tok (praksa)
 
 ```
 1. Radi u Excelu:
    excel-rad\Katalog_vozilo_9_komponenti.xlsx   ← 9 komponenti vozila
    excel-rad\SPC_master_atributivne.xlsx         ← ostali šifrarnici
    docs\Varijabilne_SPC.xlsm                   ← merljive
+   excel-rad\Barkod_etikete.xlsx               ← barkod etikete
 
 2. Kad si zadovoljan → izvezi CSV u docs\
 
 3. Uvezi u Supabase (Admin ili npm run import:docs)
 
-4. Testiraj AUTO-001 i jedan običan deo
+4. Za etikete: npm run barkodi → štampaj docs\barkodi\etikete-stampa.html
 
-5. Master Excel čuvaj u excel-rad\ ili docs\ — git ne mora da drži pun Excel ako ne želiš
+5. Testiraj AUTO-001 i jedan običan deo
+
+6. Master Excel čuvaj u excel-rad\ ili docs\ — git ne mora da drži pun Excel ako ne želiš
 ```
 
 Preuzeti master iz aplikacije (Admin → **Preuzmi master Excel**) možeš sačuvati kao **`SPC_master_atributivne.xlsx`** i koristiti kao šablon za novih 9 tabova.
 
 ---
 
-## 10. Povezana dokumentacija
+## 11. Povezana dokumentacija
 
 - `docs\UVOZ_UPUTSTVO.md` — SQL migracije + mapiranje CSV tabela  
-- `docs\EXCEL_I_PUTANJE.md` — putanje, izvoz loga, merljive tabove  
+- `docs\EXCEL_I_PUTANJE.md` — putanje, izvoz loga, merljive tabove
+- `docs\UPUTSTVO_PRAVLJENJE_BARKODOVA.md` — Excel registar etiketa + štampa  
 - `src/lib/excelSync.js` — tačno mapiranje kolona u kodu (`IMPORT_SHEETS`)
 
 ---

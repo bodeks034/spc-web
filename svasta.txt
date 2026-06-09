@@ -43,3 +43,17 @@ npm run build
 git add .
 git commit -m "Osvežen build pre slanja"
 git push origin main
+
+
+
+
+licenca za cloud
+set SUPABASE_URL=https://wzxkcomeurogvfisticq.supabase.co
+set SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTUzMzUwNiwiZXhwIjoyMDk1MTA5NTA2fQ.Y9qBfJ9pZWgQX_ZrmCewvbtmKLYDKGQ5zGR4b1ORUFU
+node scripts/postavi-licencu.mjs --do 2027-12-31 --enable --napomena "Cloud dev"
+
+
+
+set SUPABASE_URL=...
+set SUPABASE_SERVICE_ROLE_KEY=...
+node scripts/postavi-licencu.mjs --do 2027-12-31 --enable --napomena "Cloud dev"

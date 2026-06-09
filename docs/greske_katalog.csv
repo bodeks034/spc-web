@@ -1,4 +1,4 @@
-id,kategorija,podkategorija,defekt,opis
+id,kategorija,podkategorija,defekt,opis,id_deo,katalog_id
 1,LOS VAR,Rupa u varu,Rupa u varu,Otvor u zavarenom spoju
 2,LOS VAR,Nema vara,Nema vara,Nedostaje zavareni spoj
 3,LOS VAR,Slab var,Slab var,Nedovoljna cvrstoca

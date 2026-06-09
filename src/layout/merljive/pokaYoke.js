@@ -28,13 +28,22 @@ export function layoutPokaYokeMerljive(ekran) {
       ? dp(TELEFON.crtezVisinaLandscape, ekran)
       : dp(TELEFON.headerOdbitak, ekran);
     visinaGlavneOblasti = Math.max(dp(220, ekran), ekran.h - odbitak);
+  } else if (ekran.tablet) {
+    const odbitak = ekran.tabletLandscape
+      ? dp(TABLET.crtezVisinaLandscape, ekran) + dp(48, ekran)
+      : dp(TABLET.headerOdbitak, ekran);
+    visinaGlavneOblasti = Math.max(dp(260, ekran), ekran.h - odbitak);
   }
 
   return {
     desktopUnos,
     stackVertikalno,
     sirinaCrtezLevo: null,
-    crtezVisina: ekran.telefon ? dp(TELEFON.crtezVisina, ekran) : dp(TABLET.crtezVisina, ekran),
+    crtezVisina: ekran.telefon
+      ? dp(TELEFON.crtezVisina, ekran)
+      : (ekran.tabletLandscape
+        ? dp(TABLET.crtezVisinaLandscape, ekran)
+        : dp(TABLET.crtezVisina, ekran)),
     redGap: 0,
     prikaziCrtezLevo: false,
     urlSlikeUPokaKomponenti: true,

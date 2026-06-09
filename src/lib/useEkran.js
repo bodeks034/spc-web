@@ -1,2 +1,2 @@
 /** @deprecated import from ../layout/useEkran.js — re-export radi kompatibilnosti */
-export { useEkran } from "../layout/useEkran.js";
+export { useEkran, resetSkrolPosleRotacije } from "../layout/useEkran.js";

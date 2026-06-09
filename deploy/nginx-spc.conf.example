@@ -1,0 +1,82 @@
+# Primer Nginx konfiguracije — SPC na firminskom serveru
+# Kopija: /etc/nginx/sites-available/spc
+#
+# Zameni:
+#   spc.firma.local  → vaš interni DNS
+#   /opt/spc-web/dist → putanja do npm run build
+#   127.0.0.1:8000   → Supabase Kong gateway (docker compose)
+
+# HTTP → HTTPS redirect
+server {
+    listen 80;
+    server_name spc.firma.local;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name spc.firma.local;
+
+    # SSL — interni sertifikat (putanje prilagoditi IT-u)
+    ssl_certificate     /etc/ssl/certs/spc.firma.local.crt;
+    ssl_certificate_key /etc/ssl/private/spc.firma.local.key;
+
+    root /opt/spc-web/dist;
+    index index.html;
+
+    # React SPA — sve nepoznate rute na index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Supabase Auth
+    location /auth/v1/ {
+        proxy_pass http://127.0.0.1:8000/auth/v1/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # PostgREST API
+    location /rest/v1/ {
+        proxy_pass http://127.0.0.1:8000/rest/v1/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Storage
+    location /storage/v1/ {
+        proxy_pass http://127.0.0.1:8000/storage/v1/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        client_max_body_size 50M;
+    }
+
+    # Realtime (WebSocket)
+    location /realtime/v1/ {
+        proxy_pass http://127.0.0.1:8000/realtime/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 86400;
+    }
+
+    # Edge funkcije (opciono — Teams webhook)
+    location /functions/v1/ {
+        proxy_pass http://127.0.0.1:8000/functions/v1/;
+        proxy_set_header Host $host;
+    }
+
+    # Keš statike
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# Ako Nginx NE proxy-uje API, aplikacija mora VITE_SUPABASE_URL=https://spc.firma.local:8000
+# i firewall mora dozvoliti tabletima port 8000 — manje preporučeno.

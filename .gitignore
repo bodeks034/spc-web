@@ -1,5 +1,11 @@
 node_modules
 .env
 .env.local
+.env.production
+license-keys/
+public/license.json
+backup/
+deploy-paket/
+deploy-paket_*.zip
 dist
 

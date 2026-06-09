@@ -10,6 +10,9 @@ export const TABLET = {
   kolonaGridDelilac: 3.2,
   crtezVisina: 220,
   crtezVisinaDno: 130,
+  /** Landscape — manja slika ispod kolone */
+  crtezVisinaLandscape: 110,
+  headerOdbitak: 160,
   fontLabel: 11,
   fontInput: 13,
   inpPadV: 8,

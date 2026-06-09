@@ -38,8 +38,10 @@ export default function UnosPokaYokeKorak({
   kalUpozorenja = [],
   kontrolnaListaOk = true,
   kalibracijaOdobrena = false,
+  kalibracijaCeka = false,
   mozeAdmin = false,
   onToggleKalibracijaOdobrenje,
+  onZahtevKalibracija,
   urlSlike,
   onDalje,
   onNazad,
@@ -47,16 +49,21 @@ export default function UnosPokaYokeKorak({
   daljeLabel = "Unos merenja →",
 }) {
   const ekran = useEkran();
-  const { telefon, telefonLandscape, uspravnoMobTab } = ekran;
-  const kompakt = uspravnoMobTab;
+  const { telefon, telefonLandscape, tabletLandscape, uspravnoMobTab } = ekran;
+  const kompakt = uspravnoMobTab || telefon || ekran.tablet;
+  const landscapeMobTab = telefonLandscape || tabletLandscape;
   /** Portrait telefon/tablet: checklista gore, slika ispod */
-  const stekPortrait = kompakt && !telefonLandscape;
+  const stekPortrait = uspravnoMobTab;
   const stavke = modul === "atributivne" ? STAVKE_ATRIBUTIVNE : STAVKE_MERLJIVE;
   const boja = akcent || (modul === "merljive" ? C.zelena : C.plava);
   /** Atributivne: crtež samo u levom panelu, ne u poka koraku */
   const prikaziCrtez = modul !== "atributivne" && urlSlike;
   const [checks, setChecks] = useState(() => initChecks(stavke));
   const [zoomSlika, setZoomSlika] = useState(false);
+
+  useEffect(() => {
+    setZoomSlika(false);
+  }, [ekran.viewportKey]);
 
   useEffect(() => {
     setChecks(initChecks(stavke));
@@ -95,7 +102,7 @@ export default function UnosPokaYokeKorak({
           flex: stekPortrait
             ? "0 0 auto"
             : prikaziCrtez
-              ? (telefonLandscape ? "1 1 58%" : kompakt ? "1 1 58%" : "1 1 52%")
+              ? (landscapeMobTab ? "1 1 58%" : kompakt ? "1 1 58%" : "1 1 52%")
               : "1 1 100%",
           background: `${boja}12`,
           border: `1px solid ${boja}55`,
@@ -112,7 +119,7 @@ export default function UnosPokaYokeKorak({
 
           <div style={{
             display: "grid",
-            gridTemplateColumns: telefonLandscape
+            gridTemplateColumns: landscapeMobTab
               ? "repeat(2, minmax(0, 1fr))"
               : kompakt
                 ? "repeat(auto-fit, minmax(110px, 1fr))"
@@ -146,6 +153,34 @@ export default function UnosPokaYokeKorak({
             </div>
           )}
 
+          {kalibracijaCeka && !kalibracijaOdobrena && (
+            <div style={{ color: C.zuta, fontSize: 11, marginBottom: 10 }}>
+              ⏳ Zahtev poslat adminu — čeka odobrenje (osvežava se automatski)
+            </div>
+          )}
+
+          {kalibracijaOdobrena && blokirajucaKal.length > 0 && (
+            <div style={{ color: C.zelena, fontSize: 11, marginBottom: 10 }}>
+              ✓ Admin je odobrio merenje uprkos kalibraciji
+            </div>
+          )}
+
+          {!mozeAdmin && blokirajucaKal.length > 0 && !kalibracijaOdobrena && !kalibracijaCeka
+            && typeof onZahtevKalibracija === "function" && (
+            <div style={{ marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={onZahtevKalibracija}
+                style={{
+                  background: C.zuta, border: "none", borderRadius: 6, color: "#000",
+                  fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
+                }}
+              >
+                📤 Pošalji zahtev adminu (kalibracija)
+              </button>
+            </div>
+          )}
+
           {mozeAdmin && blokirajucaKal.length > 0 && typeof onToggleKalibracijaOdobrenje === "function" && (
             <div style={{ marginBottom: 12 }}>
               <button
@@ -161,6 +196,9 @@ export default function UnosPokaYokeKorak({
                   ? "✓ Merenje dozvoljeno (ukloni dozvolu)"
                   : "Admin: dozvoli merenje (kalibracija istekla)"}
               </button>
+              <div style={{ color: C.sivi, fontSize: 9, marginTop: 6 }}>
+                Važi na svim uređajima za {idDeo}
+              </div>
             </div>
           )}
 
@@ -204,16 +242,18 @@ export default function UnosPokaYokeKorak({
           <aside style={{
             flex: stekPortrait
               ? "0 0 auto"
-              : telefonLandscape ? "0 0 38%" : kompakt ? "0 0 38%" : "1 1 42%",
+              : landscapeMobTab ? "0 0 38%" : kompakt ? "0 0 38%" : "1 1 42%",
             width: stekPortrait ? "100%" : undefined,
-            minWidth: stekPortrait ? undefined : (telefonLandscape ? 110 : kompakt ? 100 : 220),
+            minWidth: stekPortrait ? undefined : (landscapeMobTab ? 110 : kompakt ? 100 : 220),
             maxWidth: stekPortrait ? "100%" : (kompakt ? "38%" : undefined),
             display: "flex",
             flexDirection: "column",
             minHeight: stekPortrait ? 0 : (kompakt ? 0 : 280),
             maxHeight: stekPortrait
-              ? Math.min(240, Math.round(ekran.h * 0.32))
-              : (kompakt ? Math.min(200, Math.round(ekran.h * 0.28)) : undefined),
+              ? Math.min(280, Math.round(ekran.visinaLayout * 0.34))
+              : (landscapeMobTab
+                ? Math.min(220, Math.round(ekran.visinaLayout * 0.42))
+                : (kompakt ? Math.min(200, Math.round(ekran.visinaLayout * 0.28)) : undefined)),
             alignSelf: stekPortrait ? "stretch" : (kompakt ? "flex-start" : "stretch"),
             flexShrink: 0,
             background: C.panel,

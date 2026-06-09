@@ -1,0 +1,10 @@
+<svg viewBox="0 0 682 520" xmlns="http://www.w3.org/2000/svg">
+  <title>SUV  pozadina</title>
+  <rect width="682" height="520" fill="#faf9f5"/>
+  <rect x="90" y="220" width="460" height="115" rx="14" fill="#e8e6df" stroke="#5a5854" stroke-width="1.4"/>
+  <path d="M190 220 Q230 140 300 125 L400 125 Q470 140 510 220 Z" fill="#eceae3" stroke="#5a5854" stroke-width="1.4"/>
+  <path d="M205 218 Q250 155 310 145 L390 145 Q450 155 495 218 Z" fill="#d8e8f4" stroke="#6a8fa8" stroke-width="1" opacity="0.75"/>
+  <circle cx="185" cy="345" r="48" fill="#f5f4ed" stroke="#5a5854" stroke-width="1.5"/>
+  <circle cx="465" cy="345" r="48" fill="#f5f4ed" stroke="#5a5854" stroke-width="1.5"/>
+  <line x1="60" y1="395" x2="620" y2="395" stroke="rgba(31,30,29,0.15)" stroke-width="0.8"/>
+</svg>

@@ -1,0 +1,5 @@
+id_deo*,naziv,tip_kontrole,format,sadrzaj_barkoda*,radni_nalog,tip_koda,aktivna,napomena
+5502-A,Osovina,deo,id,5502-A,,oba,DA,Samo ID dela
+5502-A,Osovina,deo,id_rn,5502-A|RN-2024-002,RN-2024-002,oba,DA,ID + radni nalog
+AUTO-001,Automobil-komplet,vozilo,id,AUTO-001,,oba,DA,Samo ID dela
+AUTO-001,Automobil-komplet,vozilo,id_rn,AUTO-001|FINAL-001,FINAL-001,oba,DA,ID + radni nalog

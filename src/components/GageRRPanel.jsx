@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
 import {
   praznaMatrica,
   normalizujMatricu,
@@ -12,9 +11,7 @@ import {
 } from "../lib/gageRRStore.js";
 import { exportGageRRExcel, downloadWorkbook } from "../lib/excelSync.js";
 
-const SUPABASE_URL = "https://wzxkcomeurogvfisticq.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+import { supabase } from "../lib/supabaseClient.js";
 
 const BOJA = { zelena: "#22c55e", zuta: "#eab308", crvena: "#ef4444", sivi: "#94a3b8" };
 

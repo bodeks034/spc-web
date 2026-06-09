@@ -255,6 +255,20 @@ CREATE TABLE prekidi_zahtevi (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE kalibracija_zahtevi (
+  id            SERIAL PRIMARY KEY,
+  operater_id   INT REFERENCES radnici(id),
+  id_deo        TEXT NOT NULL,
+  naziv_dela    TEXT,
+  instrumenti   TEXT,
+  razlog        TEXT,
+  status        TEXT NOT NULL DEFAULT 'ceka',
+  admin_id      INT REFERENCES radnici(id),
+  napomena      TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE kontrolna_lista_stavke (
   id         SERIAL PRIMARY KEY,
   kategorija TEXT,

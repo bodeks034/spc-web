@@ -139,13 +139,22 @@ export function filtrirajKatalogPoZoni(gr, df, zonaId) {
  * @param {{ vozilo_id?: string, kategorija: string, podkategorija: string }[]} rows
  * @param {string|null} zonaId
  */
+export function voziloIdOdgovaraZoni(voziloId, zonaId) {
+  const vid = (voziloId || "").toUpperCase();
+  const zid = (zonaId || "").toUpperCase();
+  if (!vid || !zid) return false;
+  if (vid === zid) return true;
+  return vid.endsWith(`-${zid}`) || vid.endsWith(`_${zid}`);
+}
+
 export function filtrirajVoziloRedove(rows, zonaId) {
   const zona = zonaPoId(zonaId);
   if (!zona) return rows || [];
 
   return (rows || []).filter((r) => {
-    if (r.vozilo_id === zonaId) return true;
-    if (r.vozilo_id && r.vozilo_id !== "FINAL-001") return false;
+    if (voziloIdOdgovaraZoni(r.vozilo_id, zonaId)) return true;
+    const vid = (r.vozilo_id || "").toUpperCase();
+    if (vid && vid !== "FINAL-001") return false;
     return zona.odgovaraKategorija(r.kategorija)
       && zona.odgovaraPodkategorija(r.kategorija, r.podkategorija);
   });

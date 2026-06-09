@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { SpcOkNokBarGraf } from "./SpcAnalitikaGrafovi.jsx";
 import { statPoGrupi, korelacijaPozicijaMasina } from "../lib/varijabilneSpcStats.js";
 import { formatVrednostKarte } from "../lib/varijabilneUtils.js";
 
-const SUPABASE_URL = "https://wzxkcomeurogvfisticq.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6eGtjb21ldXJvZ3ZmaXN0aWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzM1MDYsImV4cCI6MjA5NTEwOTUwNn0.Oa17CJOr-Zep2UsG5n8N7kehuoJmHanNYaNy4VriDBk";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+import { supabase } from "../lib/supabaseClient.js";
 
 const BOJE_GRUPE = (C) => [C.plava, C.narandzasta, C.ljubicasta, C.zelena, "#22d3ee", "#f472b6"];
 
@@ -639,7 +636,9 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
     if (!prefill) return;
     setAktivni({
       id_deo: prefill.id_deo || "",
-      d2_opis_problema: prefill.opis || "",
+      d2_opis_problema: prefill.opis || prefill.d2_opis_problema || "",
+      d3_privremena_akcija: prefill.d3_privremena_akcija || "",
+      d5_korektivna: prefill.d5_korektivna || prefill.korektivna_akcija || "",
     });
     onPrefillUsed?.();
   }, [prefill, onPrefillUsed]);

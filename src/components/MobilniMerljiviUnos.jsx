@@ -1,5 +1,8 @@
-import { useRef } from "react";
-import { useEkran } from "../lib/useEkran.js";
+import { useEffect, useRef, useMemo } from "react";
+import { idBarkodInputHandleri } from "../lib/barkod.js";
+import { useEkran, resetSkrolPosleRotacije } from "../lib/useEkran.js";
+import { stilOmotLinija, onFocusTastatura } from "../layout/tastaturaMobil.js";
+import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
@@ -14,6 +17,7 @@ export default function MobilniMerljiviUnos({
   idDeo,
   onIdChange,
   onIdPotvrdi,
+  onBarkodSken,
   smena,
   setSmena,
   grupe,
@@ -25,6 +29,7 @@ export default function MobilniMerljiviUnos({
   linija,
   masina,
   radniNalog,
+  nalogInfo = null,
   potrebanBroj,
   ucitava,
   poruka,
@@ -35,8 +40,10 @@ export default function MobilniMerljiviUnos({
   kontrolnaListaOk,
   kalUpozorenja,
   kalibracijaOdobrena,
+  kalibracijaCeka,
   mozeAdmin,
   onToggleKalibracijaOdobrenje,
+  onZahtevKalibracija,
   onNoviDeo,
   slikaNaziv,
   urlSlike,
@@ -44,7 +51,21 @@ export default function MobilniMerljiviUnos({
   children,
 }) {
   const ekran = useEkran();
+  const { viewportKey } = ekran;
   const idInputRef = useRef(null);
+
+  const idBarkodPolje = useMemo(
+    () => idBarkodInputHandleri(onBarkodSken, {
+      postaviId: (v) => onIdChange(v.toUpperCase()),
+      potvrdiId: (v) => onIdPotvrdi?.(v),
+      upperCase: true,
+    }),
+    [onBarkodSken, onIdChange, onIdPotvrdi],
+  );
+
+  useEffect(() => {
+    resetSkrolPosleRotacije();
+  }, [viewportKey]);
   const wizardKoraci = kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA;
   const korakWizardId = linijaKorak === 1 ? "id" : linijaKorak === 2 ? "poka" : "unos";
 
@@ -81,19 +102,10 @@ export default function MobilniMerljiviUnos({
   };
 
   const omot = (content, { skrol = false } = {}) => (
-    <div style={{
-      padding: "10px 12px 24px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-      height: "100dvh",
-      maxHeight: "100dvh",
-      minHeight: 0,
-      overflow: skrol ? "auto" : "hidden",
-      WebkitOverflowScrolling: skrol ? "touch" : undefined,
-      background: C.bg,
-      boxSizing: "border-box",
-    }}>
+    <div
+      key={viewportKey}
+      style={{ ...stilOmotLinija(ekran, { skrol }), background: C.bg }}
+    >
       <LinijaWizardNav
         korak={korakWizardId}
         koraci={wizardKoraci}
@@ -122,20 +134,27 @@ export default function MobilniMerljiviUnos({
           </div>
         )}
 
-        <div>
-          <label style={LBL}>ID DELA <span style={{ color: C.border, fontWeight: 400 }}>(ili skeniraj)</span></label>
+        <IdDeoBarkodRed
+          C={C}
+          akcent={C.zelena}
+          onBarkodSken={onBarkodSken}
+          lblStyle={LBL}
+          idLabel="ID deo"
+          kompaktRed
+          sirinaBarkod={52}
+          unosStil={{ borderRadius: 12, padding: "22px 14px", fontSize: 28 }}
+        >
           <input
             ref={idInputRef}
             value={idDeo}
-            onChange={e => onIdChange(e.target.value.toUpperCase())}
+            {...idBarkodPolje}
+            onFocus={onFocusTastatura}
             onBlur={e => onIdPotvrdi?.(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter") { e.preventDefault(); onIdPotvrdi?.(e.currentTarget.value); }
-            }}
             placeholder="npr. 5502-A"
             autoFocus
             style={{
               ...INP,
+              width: "100%",
               fontSize: 28,
               fontWeight: 700,
               letterSpacing: 4,
@@ -145,12 +164,13 @@ export default function MobilniMerljiviUnos({
               background: idUcitano ? C.ok : idDeo.length > 2 ? C.nok : C.input,
             }}
           />
-        </div>
+        </IdDeoBarkodRed>
 
         <label style={LBL}>Smena
           <select
             value={smena}
             onChange={e => setSmena(e.target.value)}
+            onFocus={onFocusTastatura}
             style={{ ...INP, fontSize: 16, padding: "14px" }}
           >
             {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
@@ -163,26 +183,21 @@ export default function MobilniMerljiviUnos({
               ✓ {nazivDela}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {[["Linija", linija], ["Mašina", masina || "-"], ["RN", radniNalog || "-"], ["Merenja/kol.", potrebanBroj]].map(([l, v]) => (
+              {[["Linija", linija], ["Mašina", masina || "-"], ["RN", radniNalog || "—"], ["Merenja/kol.", potrebanBroj]].map(([l, v]) => (
                 <div key={l} style={{ background: C.panel, borderRadius: 8, padding: "10px 12px" }}>
                   <div style={{ color: C.sivi, fontSize: 10, marginBottom: 3 }}>{l}</div>
                   <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>{v}</div>
                 </div>
               ))}
             </div>
+            {nalogInfo?.kupac && (
+              <div style={{ color: C.sivi, fontSize: 11, marginTop: 8 }}>
+                Kupac: {nalogInfo.kupac}
+                {nalogInfo.rok_isporuke ? ` · rok ${nalogInfo.rok_isporuke}` : ""}
+              </div>
+            )}
           </div>
-        ) : (
-          <div style={{
-            background: C.panel,
-            border: `2px dashed ${C.border}`,
-            borderRadius: 14,
-            padding: 36,
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: 48, marginBottom: 8 }}>📷</div>
-            <div style={{ color: C.sivi, fontSize: 13 }}>Skeniraj barkod ili unesi ID dela</div>
-          </div>
-        )}
+        ) : null}
 
         {grupe.length > 0 && (
           <div>
@@ -233,7 +248,7 @@ export default function MobilniMerljiviUnos({
             idDeo={String(idDeo || "").toUpperCase()}
             C={C}
             kompakt
-            visina={Math.min(240, Math.max(180, Math.round(ekran.h * 0.24)))}
+            visina={Math.min(280, Math.max(180, Math.round(ekran.visinaLayout * 0.26)))}
             akcent={C.zelena}
           />
         )}
@@ -277,7 +292,7 @@ export default function MobilniMerljiviUnos({
 
   if (linijaKorak === 2) {
     return omot(
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <div key={viewportKey} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
         <UnosPokaYokeKorak
           C={C}
           modul="merljive"
@@ -293,13 +308,37 @@ export default function MobilniMerljiviUnos({
           kalUpozorenja={kalUpozorenja}
           kontrolnaListaOk={kontrolnaListaOk}
           kalibracijaOdobrena={kalibracijaOdobrena}
+          kalibracijaCeka={kalibracijaCeka}
           mozeAdmin={mozeAdmin}
           onToggleKalibracijaOdobrenje={onToggleKalibracijaOdobrenje}
-          onDalje={() => { setUnosKorak("forma"); setLinijaKorak(3); }}
+          onZahtevKalibracija={onZahtevKalibracija}
+          onDalje={() => {
+            if (!kontrolnaListaOk) return;
+            setUnosKorak("forma");
+            setLinijaKorak(3);
+          }}
           daljeLabel="Unos merenja →"
           prikaziNazad
           onNazad={() => setLinijaKorak(1)}
         />
+      </div>,
+      { skrol: true },
+    );
+  }
+
+  if (!kontrolnaListaOk) {
+    return omot(
+      <div style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        textAlign: "center",
+        color: C.zuta,
+        fontSize: 13,
+      }}>
+        Završite kontrolnu listu smene pre unosa merenja.
       </div>,
     );
   }
@@ -310,10 +349,12 @@ export default function MobilniMerljiviUnos({
       display: "flex",
       flexDirection: "column",
       minHeight: 0,
-      overflow: "hidden",
+      overflow: ekran.tastaturaOtvorena ? "auto" : "hidden",
+      WebkitOverflowScrolling: ekran.tastaturaOtvorena ? "touch" : undefined,
       gap: 8,
     }}>
       {children}
     </div>,
+    { skrol: ekran.tastaturaOtvorena },
   );
 }

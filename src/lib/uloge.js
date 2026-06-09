@@ -36,6 +36,11 @@ export function mozePrebacivanjeRezima(uloga) {
   return mozeAnalitika(uloga);
 }
 
+/** Stanje · predikcija · korektivne mere · eskalacija iz predloga — samo inženjer / šef / admin */
+export function mozeInteligencijaProcesa(uloga) {
+  return mozeAnalitika(uloga);
+}
+
 /** Kontrolor na liniji — prošireni tok pre poka-yoke */
 export function jeKontrolorLinija(uloga, rezimRada) {
   return rezimRada === "linija" && normalizujUlogu(uloga) === "kontrolor";
@@ -73,12 +78,13 @@ const TAB_ATRIB_KONTROLOR = new Set([
 
 export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {
   const t = String(tab || "").toLowerCase();
+  if (t === "stanje" && !mozeInteligencijaProcesa(uloga)) return false;
+  if (jeAdmin(uloga) || jeKvalitetIliVise(uloga)) return true;
   if (rezimRada === "linija") {
     const u = normalizujUlogu(uloga);
     if (u === "operator") return TAB_LINIJA_MERLJIVE_OPERATOR.has(t);
     return TAB_LINIJA_MERLJIVE_KONTROLOR.has(t);
   }
-  if (jeAdmin(uloga) || jeKvalitetIliVise(uloga)) return true;
   const u = normalizujUlogu(uloga);
   if (u === "operator") return TAB_MERLJIVE_OPERATOR.has(t);
   return TAB_MERLJIVE_KONTROLOR.has(t);
@@ -86,13 +92,14 @@ export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {
 
 export function mozeTabAtributivne(tab, uloga, rezimRada = "analitika") {
   const t = String(tab || "").toLowerCase();
+  if (t === "stanje" && !mozeInteligencijaProcesa(uloga)) return false;
+  if (jeAdmin(uloga)) return true;
+  if (jeKvalitetIliVise(uloga)) return t !== "admin";
   if (rezimRada === "linija") {
     const u = normalizujUlogu(uloga);
     if (u === "operator") return TAB_LINIJA_ATRIB_OPERATOR.has(t);
     return TAB_LINIJA_ATRIB_KONTROLOR.has(t);
   }
-  if (jeAdmin(uloga)) return true;
-  if (jeKvalitetIliVise(uloga)) return t !== "admin";
   const u = normalizujUlogu(uloga);
   if (u === "operator") return TAB_ATRIB_OPERATOR.has(t);
   return TAB_ATRIB_KONTROLOR.has(t);

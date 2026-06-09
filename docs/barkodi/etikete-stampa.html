@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPC Web — etikete barkod</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 16px; color: #111; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    p.note { font-size: 12px; color: #444; margin: 0 0 16px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 16px; }
+    .etiketa {
+      width: 90mm;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 8px;
+      page-break-inside: avoid;
+    }
+    .zaglavlje { text-align: center; margin-bottom: 8px; }
+    .id { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+    .naziv { font-size: 11px; color: #333; }
+    .tip { font-size: 9px; color: #666; text-transform: uppercase; }
+    .kodovi { display: flex; gap: 8px; align-items: flex-start; justify-content: center; }
+    .blok { text-align: center; flex: 1; min-width: 0; }
+    .blok img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+    .blok img.code128 { max-height: 52px; }
+    .lbl { font-size: 8px; color: #666; margin-top: 4px; text-transform: uppercase; }
+    .sadrzaj { font-size: 9px; margin-top: 8px; word-break: break-all; }
+    .sadrzaj code { font-family: Consolas, monospace; background: #f4f4f4; padding: 1px 4px; }
+    .opis { font-size: 8px; color: #666; margin-top: 2px; }
+    @media print {
+      body { margin: 0; }
+      .no-print { display: none; }
+      .etiketa { margin: 4mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <h1>SPC Web — štampane etikete (5502-A, AUTO-001)</h1>
+    <p class="note">Izvor: excel-rad/Barkod_etikete.xlsx · Ctrl+P → štampač etiketa (90×50 mm).</p>
+  </div>
+  <div class="grid">
+    
+  <div class="etiketa">
+    <div class="zaglavlje">
+      <div class="id">5502-A</div>
+      <div class="naziv">Osovina</div>
+      <div class="tip">Kontrola dela</div>
+    </div>
+    <div class="kodovi">
+      <div class="blok">
+        <img src="5502-A/5502-A-id-qr.png" alt="QR 5502-A" />
+        <div class="lbl">QR kod</div>
+      </div>
+      <div class="blok">
+        <img src="5502-A/5502-A-id-code128.png" alt="Code128 5502-A" class="code128" />
+        <div class="lbl">Code 128</div>
+      </div></div>
+    <div class="sadrzaj"><strong>Sadržaj:</strong> <code>5502-A</code></div>
+    <div class="opis">Samo ID dela</div>
+  </div>
+
+  <div class="etiketa">
+    <div class="zaglavlje">
+      <div class="id">5502-A</div>
+      <div class="naziv">Osovina</div>
+      <div class="tip">Kontrola dela</div>
+    </div>
+    <div class="kodovi">
+      <div class="blok">
+        <img src="5502-A/5502-A-id_rn-qr.png" alt="QR 5502-A" />
+        <div class="lbl">QR kod</div>
+      </div>
+      <div class="blok">
+        <img src="5502-A/5502-A-id_rn-code128.png" alt="Code128 5502-A" class="code128" />
+        <div class="lbl">Code 128</div>
+      </div></div>
+    <div class="sadrzaj"><strong>Sadržaj:</strong> <code>5502-A|RN-2024-002</code></div>
+    <div class="opis">ID + radni nalog</div>
+  </div>
+
+  <div class="etiketa">
+    <div class="zaglavlje">
+      <div class="id">AUTO-001</div>
+      <div class="naziv">Automobil-komplet</div>
+      <div class="tip">Kontrola vozila</div>
+    </div>
+    <div class="kodovi">
+      <div class="blok">
+        <img src="AUTO-001/AUTO-001-id-qr.png" alt="QR AUTO-001" />
+        <div class="lbl">QR kod</div>
+      </div>
+      <div class="blok">
+        <img src="AUTO-001/AUTO-001-id-code128.png" alt="Code128 AUTO-001" class="code128" />
+        <div class="lbl">Code 128</div>
+      </div></div>
+    <div class="sadrzaj"><strong>Sadržaj:</strong> <code>AUTO-001</code></div>
+    <div class="opis">Samo ID dela</div>
+  </div>
+
+  <div class="etiketa">
+    <div class="zaglavlje">
+      <div class="id">AUTO-001</div>
+      <div class="naziv">Automobil-komplet</div>
+      <div class="tip">Kontrola vozila</div>
+    </div>
+    <div class="kodovi">
+      <div class="blok">
+        <img src="AUTO-001/AUTO-001-id_rn-qr.png" alt="QR AUTO-001" />
+        <div class="lbl">QR kod</div>
+      </div>
+      <div class="blok">
+        <img src="AUTO-001/AUTO-001-id_rn-code128.png" alt="Code128 AUTO-001" class="code128" />
+        <div class="lbl">Code 128</div>
+      </div></div>
+    <div class="sadrzaj"><strong>Sadržaj:</strong> <code>AUTO-001|FINAL-001</code></div>
+    <div class="opis">ID + radni nalog</div>
+  </div>
+  </div>
+</body>
+</html>

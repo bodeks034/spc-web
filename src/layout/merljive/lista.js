@@ -65,7 +65,10 @@ export function layoutListaMerljive(ekran, { koristiMobLinija = false } = {}) {
     );
   }
 
-  const crtezVisinaDno = dp(tok.crtezVisinaDno, ekran);
+  const landscapeMobTab = ekran.telefonLandscape || ekran.tabletLandscape;
+  const crtezVisinaDno = landscapeMobTab && tok.crtezVisinaLandscape != null
+    ? dp(tok.crtezVisinaLandscape, ekran)
+    : dp(tok.crtezVisinaDno, ekran);
 
   return {
     stackVertikalno,
@@ -90,7 +93,9 @@ export function layoutListaMerljive(ekran, { koristiMobLinija = false } = {}) {
       ? "repeat(2, minmax(0, 1fr))"
       : ekran.telefonLandscape
         ? "repeat(4, minmax(72px, 1fr))"
-        : "repeat(3, minmax(0, 1fr))",
+        : ekran.tabletLandscape
+          ? "repeat(4, minmax(88px, 1fr))"
+          : "repeat(3, minmax(0, 1fr))",
     gridGeneralijeGap: dp(tok.gridGap, ekran),
   };
 }
