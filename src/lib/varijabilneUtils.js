@@ -435,6 +435,32 @@ export function bojaUnosMerenja(raw, lslDec, uslDec, nominalDec, jedinica, C) {
   return bojaMerenja(s, lslDec, uslDec, jedinica, C);
 }
 
+/** Da li je unos dovoljno potpun za automatsko dodavanje (blur / serial). */
+export function unosMerenjaSpremanZaDodavanje(raw, k) {
+  const s = String(raw ?? "").trim();
+  if (!s) return false;
+
+  const granice = { lslDec: k.lslDec, uslDec: k.uslDec, nominalDec: k.nominalDec };
+
+  if (koristiUgaoUnosKolone(k) || unosKaoUgao(k.jedinica, s, k.lslDec, k.uslDec)) {
+    return false;
+  }
+
+  if (s.includes(",")) {
+    const posle = s.split(",")[1];
+    if (!posle?.length) return false;
+    return validirajUnos(s, k.jedinica, granice).ok;
+  }
+
+  const maxLen = maxDuzinaUnosaBroja(k.plausibilnost);
+  const digitLen = s.replace(/[^\d]/g, "").length;
+  if (digitLen >= maxLen) {
+    return validirajUnos(s, k.jedinica, granice).ok;
+  }
+
+  return false;
+}
+
 /** Validacija pre dodavanja u listu */
 export function validirajUnos(raw, jedinica, granice = {}) {
   const s = String(raw ?? "").trim();

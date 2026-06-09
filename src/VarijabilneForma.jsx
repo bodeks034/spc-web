@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
 import {
-  proveriKontrolnaListaDanas,
   setListaOkSession,
   getListaOkSession,
-  kontrolnaListaSpremna,
   procitajSmenuIzStorage,
 } from "./lib/kontrolaLista.js";
 import {
@@ -12,7 +10,7 @@ import {
   validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
   formatOpsegPlausibilnosti,
   svaMerenjaZavrsena, imaBiloSta, grupeMerenja, koloneZaGrupu,
-  filterKeyUnos, sanitizujInputMerenja,
+  filterKeyUnos, sanitizujInputMerenja, unosMerenjaSpremanZaDodavanje,
 } from "./lib/varijabilneUtils.js";
 import { ucitajUrlSlike, lokalnaPutanjaSlike } from "./lib/slikePaths.js";
 import MerljiveSpcKarte from "./MerljiveSpcKarte.jsx";
@@ -270,6 +268,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const prethodniAB = useRef("");
   const prethodnaSmenaPoka = useRef(smena);
   const inputRefs = useRef([]);
+  const koloneRef = useRef(kolone);
+  koloneRef.current = kolone;
   const idUcitano = !!(idDeo && nazivDela && grupe.length && grupaAB);
 
   useEffect(() => {
@@ -289,39 +289,20 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   useEffect(() => {
     const sm = Number(smena);
     const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
-    let alive = true;
 
     if (jeLinija && !idZaListu) {
       setKontrolnaListaOk(false);
-      return () => { alive = false; };
+      return;
     }
 
-    if (getListaOkSession("varijabilne", sm, idZaListu)) {
-      setKontrolnaListaOk(true);
-      return () => { alive = false; };
-    }
+    const sessionOk = getListaOkSession("varijabilne", sm, idZaListu);
+    setKontrolnaListaOk(sessionOk);
 
-    if (!korisnik?.radnikId) {
-      setKontrolnaListaOk(false);
-      return () => { alive = false; };
+    if (!sessionOk && jeLinija && idZaListu && linijaKorak >= 3) {
+      setLinijaKorak(2);
+      setUnosKorak("poka");
     }
-
-    (async () => {
-      const r = await proveriKontrolnaListaDanas(supabase, {
-        radnikId: korisnik.radnikId,
-        smena: sm,
-        idDeo: idZaListu,
-      });
-      if (!alive) return;
-      const spremna = kontrolnaListaSpremna("varijabilne", sm, r.zavrsena, idZaListu);
-      setKontrolnaListaOk(spremna);
-      if (!spremna && jeLinija && linijaKorak >= 3) {
-        setLinijaKorak(2);
-        setUnosKorak("poka");
-      }
-    })();
-    return () => { alive = false; };
-  }, [korisnik?.radnikId, smena, idDeo, idUcitano, jeLinija, linijaKorak]);
+  }, [smena, idDeo, idUcitano, jeLinija, linijaKorak]);
 
   const zavrsiKontrolnuListu = useCallback(() => {
     const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
@@ -807,18 +788,43 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const mozeSacuvati = useMemo(() => {
     if (!idDeo) return false;
-    if (svaMerenjaZavrsena(kolone, potrebanBroj)) return true;
-    return mozePreskociti && imaBiloSta(kolone);
-  }, [kolone, potrebanBroj, idDeo, mozePreskociti]);
+    return imaBiloSta(kolone);
+  }, [idDeo, kolone]);
   const mozeObrisati = useMemo(() => imaBiloSta(kolone), [kolone]);
+
+  const kolonaJePuna = useCallback((k) => (
+    k?.naziv !== "-" && (k?.merenja?.length || 0) >= potrebanBroj
+  ), [potrebanBroj]);
+
+  const fokusirajKolonu = useCallback((idx) => {
+    if (idx < 0) return;
+    const f = () => inputRefs.current[idx]?.focus?.({ preventScroll: false });
+    requestAnimationFrame(() => requestAnimationFrame(f));
+    setTimeout(f, 60);
+  }, []);
+
+  const prebaciNaSledecuPraznuKolonu = useCallback((odIdx = 0) => {
+    const sledeca = indeksSledecePrazno(koloneRef.current, potrebanBroj, odIdx);
+    if (sledeca >= 0) {
+      setAktivnaKolona(sledeca);
+      fokusirajKolonu(sledeca);
+    }
+    return sledeca;
+  }, [potrebanBroj, fokusirajKolonu]);
 
   useEffect(() => {
     if (unosKorak !== "forma" || aktivnaKolona < 0) return;
-    const id = requestAnimationFrame(() => {
-      inputRefs.current[aktivnaKolona]?.focus?.();
-    });
-    return () => cancelAnimationFrame(id);
-  }, [aktivnaKolona, unosKorak]);
+    const k = koloneRef.current[aktivnaKolona];
+    if (kolonaJePuna(k)) {
+      const sledeca = indeksSledecePrazno(koloneRef.current, potrebanBroj, aktivnaKolona + 1);
+      if (sledeca >= 0 && sledeca !== aktivnaKolona) {
+        setAktivnaKolona(sledeca);
+        return;
+      }
+      return;
+    }
+    fokusirajKolonu(aktivnaKolona);
+  }, [aktivnaKolona, unosKorak, kolone, potrebanBroj, kolonaJePuna, fokusirajKolonu]);
 
   const indeksiMerljivih = useMemo(
     () => kolone.map((k, i) => (k.naziv !== "-" ? i : -1)).filter(i => i >= 0),
@@ -861,10 +867,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const idiSledecaKolonaMob = useCallback(() => {
     setAktivnaKolona((i) => {
       const tren = i < 0 ? 0 : i;
+      const prazna = indeksSledecePrazno(koloneRef.current, potrebanBroj, tren + 1);
+      if (prazna >= 0) return prazna;
       return tren < kolone.length - 1 ? tren + 1 : tren;
     });
     document.activeElement?.blur?.();
-  }, [kolone.length]);
+  }, [kolone.length, potrebanBroj]);
 
   const idiPrethodnaKolonaMob = useCallback(() => {
     setAktivnaKolona((i) => {
@@ -874,28 +882,29 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     document.activeElement?.blur?.();
   }, []);
 
-  const dodajMerenje = (idx) => {
-    const k = kolone[idx];
-    if (!k || k.naziv === "-") return;
-    if (k.merenja.length >= potrebanBroj) {
-      setPoruka(`Već ste uneli maksimalan broj merenja (${potrebanBroj})!`);
-      return;
+  const dodajMerenje = useCallback((idx, rawOverride) => {
+    const k0 = koloneRef.current[idx];
+    if (!k0 || k0.naziv === "-") return false;
+    if (k0.merenja.length >= potrebanBroj) {
+      prebaciNaSledecuPraznuKolonu(idx + 1);
+      return false;
     }
-    const kalBlok = kalUpozorenja.find(u => u.pozicija === k.naziv && kalibracijaBlokiraUnos(u.status));
+    const kalBlok = kalUpozorenja.find(u => u.pozicija === k0.naziv && kalibracijaBlokiraUnos(u.status));
     if (kalBlok && !mozeUpRikosKalibracije) {
       setPoruka(
-        `Merilo „${k.instrument}” — kalibracija istekla. `
+        `Merilo „${k0.instrument}” — kalibracija istekla. `
         + (mozeAdmin
           ? "Klikni „Admin: dozvoli merenje“ ispod ili kalibriši merilo u tabu MERILA."
           : "Obavesti admina ili kalibriši merilo."),
       );
-      return;
+      return false;
     }
 
-    const val = validirajUnos(k.input, k.jedinica, {
-      lslDec: k.lslDec,
-      uslDec: k.uslDec,
-      nominalDec: k.nominalDec,
+    const inp = rawOverride !== undefined ? String(rawOverride) : k0.input;
+    const val = validirajUnos(inp, k0.jedinica, {
+      lslDec: k0.lslDec,
+      uslDec: k0.uslDec,
+      nominalDec: k0.nominalDec,
     });
     if (!val.ok) {
       if (val.poruka) setPoruka(val.poruka);
@@ -904,10 +913,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         next[idx] = { ...next[idx], input: "" };
         return next;
       });
-      return;
+      return false;
     }
+
     setPoruka("");
-    const status = proveriOkNok(val.vrednost, k.lslDec, k.uslDec, k.jedinica);
+    const status = proveriOkNok(val.vrednost, k0.lslDec, k0.uslDec, k0.jedinica);
     let sledecaIdx = idx;
     setKolone(prev => {
       const next = [...prev];
@@ -923,11 +933,54 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       }
       return next;
     });
-    setAktivnaKolona(sledecaIdx);
+
     if (sledecaIdx >= 0) {
-      requestAnimationFrame(() => inputRefs.current[sledecaIdx]?.focus?.());
+      setAktivnaKolona(sledecaIdx);
+      fokusirajKolonu(sledecaIdx);
+    } else {
+      setAktivnaKolona(-1);
     }
-  };
+    return true;
+  }, [potrebanBroj, kalUpozorenja, mozeUpRikosKalibracije, mozeAdmin, fokusirajKolonu, prebaciNaSledecuPraznuKolonu]);
+
+  const promeniInputMerenja = useCallback((i, v, k) => {
+    if (kolonaJePuna(k)) return;
+    setKolone(prev => {
+      const next = [...prev];
+      next[i] = { ...next[i], input: v };
+      return next;
+    });
+    if (unosMerenjaSpremanZaDodavanje(v, k)) {
+      queueMicrotask(() => dodajMerenje(i, v));
+    }
+  }, [dodajMerenje, kolonaJePuna]);
+
+  const blurInputMerenja = useCallback((i) => {
+    const k = koloneRef.current[i];
+    if (kolonaJePuna(k)) return;
+    const inpVal = String(k?.input || "").trim();
+    if (!inpVal) return;
+    dodajMerenje(i, inpVal);
+  }, [dodajMerenje, kolonaJePuna]);
+
+  const keyDownInputMerenja = useCallback((e, i, k) => {
+    if (kolonaJePuna(k)) {
+      e.preventDefault();
+      prebaciNaSledecuPraznuKolonu(i + 1);
+      return;
+    }
+    const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
+    if (f === null && e.key.length === 1) e.preventDefault();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      dodajMerenje(i);
+      return;
+    }
+    if (e.key === "Tab" && !e.shiftKey && String(k.input || "").trim()) {
+      e.preventDefault();
+      dodajMerenje(i);
+    }
+  }, [dodajMerenje, kolonaJePuna, prebaciNaSledecuPraznuKolonu]);
 
   const obrisiPoslednje = () => {
     setKolone(prev => prev.map(k => {
@@ -951,16 +1004,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const sacuvaj = async () => {
     if (snima || !idDeo) return;
-    const potpuna = svaMerenjaZavrsena(kolone, potrebanBroj);
-    if (!potpuna && !mozePreskociti) {
-      setPoruka(
-        `Serija ${grupaAB} nije završena (${potrebanBroj} merenja po koloni). Pošalji zahtev adminu za prekid sesije.`
-      );
-      setPokaziZahtev(true);
-      return;
-    }
     if (!imaBiloSta(kolone)) {
       setPoruka("Nema merenja za snimanje.");
+      return;
+    }
+    const potpuna = svaMerenjaZavrsena(kolone, potrebanBroj);
+    if (!potpuna && !mozePreskociti) {
+      setPoruka("");
+      setPokaziZahtev(true);
       return;
     }
     const rnUpoz = await proveriRadniNalogUpozorenje(supabase, { idDeo, radniNalog });
@@ -1205,56 +1256,34 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const padGlavni = L.padGlavni;
 
-  const prikaziZahtevPrekid = imaNepotpunuSesiju && !prekidOdobrenId && !mozeAdmin && imaBiloSta(kolone);
-
-  const dugmadSerije = (
+  const dugmadSerije = !L.mobTabKarusel && (
     <div style={{
-      display: "flex",
-      flexDirection: "column",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
       gap: 6,
       flexShrink: 0,
       width: "100%",
-      ...(L.mobTabKarusel ? { marginBottom: 2 } : {}),
     }}>
-      {prikaziZahtevPrekid && (
-        <button type="button" onClick={() => setPokaziZahtev(true)}
-          style={{
-            background: C.zuta, border: "none", borderRadius: 6, color: "#000",
-            padding: "10px 12px", cursor: "pointer", fontWeight: 700, fontSize: 11,
-            width: "100%", boxSizing: "border-box", lineHeight: 1.3,
-          }}>
-          ⚠ Zahtev za prekid ({preostaloSesije} serija)
-        </button>
-      )}
-      {!L.mobTabKarusel && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 6,
-          width: "100%",
+      <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
+        style={{
+          background: C.panel, border: `1px solid ${C.border}`, borderRadius: 6,
+          color: C.tekst,
+          padding: "9px 8px",
+          cursor: mozeObrisati ? "pointer" : "not-allowed",
+          fontSize: 10, fontWeight: 600, boxSizing: "border-box",
         }}>
-          <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
-            style={{
-              background: C.panel, border: `1px solid ${C.border}`, borderRadius: 6,
-              color: C.tekst,
-              padding: "9px 8px",
-              cursor: mozeObrisati ? "pointer" : "not-allowed",
-              fontSize: 10, fontWeight: 600, boxSizing: "border-box",
-            }}>
-            Obriši poslednje
-          </button>
-          <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
-            style={{
-              background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
-              color: "#fff",
-              padding: "9px 8px",
-              cursor: mozeSacuvati ? "pointer" : "not-allowed",
-              fontWeight: 700, fontSize: 11, boxSizing: "border-box",
-            }}>
-            {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju")}
-          </button>
-        </div>
-      )}
+        Obriši poslednje
+      </button>
+      <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
+        style={{
+          background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
+          color: "#fff",
+          padding: "9px 8px",
+          cursor: mozeSacuvati ? "pointer" : "not-allowed",
+          fontWeight: 700, fontSize: 11, boxSizing: "border-box",
+        }}>
+        {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju")}
+      </button>
     </div>
   );
 
@@ -1266,7 +1295,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const mobDugmadAkcije = L.mobTabKarusel && (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
-      flexShrink: 0, marginBottom: 4,
+      flexShrink: 0, marginBottom: 2,
     }}>
       <button type="button" disabled={!mozeObrisati} onClick={obrisiPoslednje}
         style={{
@@ -1483,15 +1512,43 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     </div>
   );
 
+  const renderKolonaKompletna = (k, K, kompakt) => (
+    <div style={{
+      width: "100%",
+      flexShrink: 0,
+      background: `${C.zelena}14`,
+      border: `1px solid ${C.zelena}55`,
+      borderRadius: K.kartica.borderRadius,
+      padding: kompakt ? "10px 8px" : K.inputMerenje.padding,
+      minHeight: kompakt ? 40 : K.inputMerenje.minHeight,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginBottom: kompakt ? 0 : K.inputMerenje.marginBottom,
+      color: C.zelena,
+      fontSize: kompakt ? 11 : 12,
+      fontWeight: 700,
+      boxSizing: "border-box",
+    }}>
+      <span>✓</span>
+      <span>Kompletno · {k.ukupnoLabel}</span>
+    </div>
+  );
+
   const renderKolonaKartica = (k, i, kompakt = false) => {
     const K = dimKolonaUnos({ kompakt });
     const inpMerenje = inpMerenjeBaza(kompakt);
+    const kolonaPuna = kolonaJePuna(k);
     return (
     <div style={{
       background: C.panel,
-      border: aktivnaKolona === i && k.naziv !== "-"
+      border: kolonaPuna
+        ? `2px solid ${C.zelena}`
+        : aktivnaKolona === i && k.naziv !== "-"
         ? `${K.kartica.borderAktivna}px solid ${C.zelena}`
         : `${K.kartica.borderObicna}px solid ${C.border}`,
+      opacity: kolonaPuna ? 0.92 : 1,
       borderRadius: K.kartica.borderRadius,
       padding: K.kartica.padding,
       boxSizing: "border-box",
@@ -1544,59 +1601,43 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   {mobMetaCelija("Nominala / oznaka", k.nazivMere || "—", undefined, "center", K)}
                   {mobMetaCelija("USL", k.uslText, undefined, "right", K)}
                 </div>
-                <input
-                  ref={el => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode={inputModeMerenja(k)}
-                  enterKeyHint="done"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  style={{
-                    ...inpMerenje,
-                    width: "100%",
-                    marginBottom: 0,
-                    background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
-                    outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
-                    border: `1px solid ${C.border}`,
-                  }}
-                  value={k.input}
-                  onFocus={(e) => { onFocusTastatura(e); setAktivnaKolona(i); }}
-                  onChange={e => {
-                    const v = sanitizujInputMerenja(e.target.value, k);
-                    setKolone(prev => {
-                      const next = [...prev];
-                      next[i] = { ...next[i], input: v };
-                      return next;
-                    });
-                  }}
-                  onBlur={() => {
-                    const inpVal = String(k.input || "").trim();
-                    if (!inpVal) return;
-                    const v = validirajUnos(inpVal, k.jedinica, {
-                      lslDec: k.lslDec,
-                      uslDec: k.uslDec,
-                      nominalDec: k.nominalDec,
-                    });
-                    if (!v.ok) {
-                      setKolone(prev => {
-                        const next = [...prev];
-                        next[i] = { ...next[i], input: "" };
-                        return next;
-                      });
-                    }
-                  }}
-                  onKeyDown={e => {
-                    const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
-                    if (f === null && e.key.length === 1) e.preventDefault();
-                    if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
-                  }}
-                  placeholder={koristiUgaoUnosKolone(k)
-                    ? "440000 = 44°00′00″"
-                    : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
-                />
+                {kolonaPuna ? renderKolonaKompletna(k, K, true) : (
+                  <input
+                    ref={el => { inputRefs.current[i] = el; }}
+                    type="text"
+                    inputMode={inputModeMerenja(k)}
+                    enterKeyHint="done"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    style={{
+                      ...inpMerenje,
+                      width: "100%",
+                      marginBottom: 0,
+                      background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
+                      outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
+                      border: `1px solid ${C.border}`,
+                    }}
+                    value={k.input}
+                    onFocus={(e) => {
+                      if (kolonaJePuna(k)) {
+                        e.target.blur();
+                        prebaciNaSledecuPraznuKolonu(i + 1);
+                        return;
+                      }
+                      onFocusTastatura(e);
+                      setAktivnaKolona(i);
+                    }}
+                    onChange={e => promeniInputMerenja(i, sanitizujInputMerenja(e.target.value, k), k)}
+                    onBlur={() => blurInputMerenja(i)}
+                    onKeyDown={e => keyDownInputMerenja(e, i, k)}
+                    placeholder={koristiUgaoUnosKolone(k)
+                      ? "440000 = 44°00′00″"
+                      : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
+                  />
+                )}
               </div>
-              {k.plausibilnost && (
+              {k.plausibilnost && !kolonaPuna && (
                 <div style={{
                   color: C.sivi,
                   fontSize: K.plausibilnost.fontSize,
@@ -1607,6 +1648,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
                 </div>
               )}
+              {!kolonaPuna && (
               <button type="button" onClick={() => dodajMerenje(i)}
                 style={{
                   width: K.dugmeDodaj.width,
@@ -1625,6 +1667,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 }}>
                 + Dodaj
               </button>
+              )}
             </>
           ) : (
             <>
@@ -1639,54 +1682,37 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               }}>
                 Unos merenja
               </div>
-              <input
-                ref={el => { inputRefs.current[i] = el; }}
-                style={{
-                  ...inpMerenje,
-                  marginBottom: K.inputMerenje.marginBottom,
-                  flexShrink: 0,
-                  width: "100%",
-                  background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
-                  outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
-                }}
-                value={k.input}
-                onFocus={() => setAktivnaKolona(i)}
-                onChange={e => {
-                  const v = sanitizujInputMerenja(e.target.value, k);
-                  setKolone(prev => {
-                    const next = [...prev];
-                    next[i] = { ...next[i], input: v };
-                    return next;
-                  });
-                }}
-                onBlur={() => {
-                  const inpVal = String(k.input || "").trim();
-                  if (!inpVal) return;
-                  const v = validirajUnos(inpVal, k.jedinica, {
-                    lslDec: k.lslDec,
-                    uslDec: k.uslDec,
-                    nominalDec: k.nominalDec,
-                  });
-                  if (!v.ok) {
-                    setKolone(prev => {
-                      const next = [...prev];
-                      next[i] = { ...next[i], input: "" };
-                      return next;
-                    });
-                  }
-                }}
-                onKeyDown={e => {
-                  const f = filterKeyUnos(e.key, k.input, k.jedinica, k.plausibilnost);
-                  if (f === null && e.key.length === 1) e.preventDefault();
-                  if (e.key === "Enter") { e.preventDefault(); dodajMerenje(i); }
-                }}
-                title={k.plausibilnost
-                  ? `Dozvoljen opseg: ${formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}`
-                  : undefined}
-                placeholder={koristiUgaoUnosKolone(k)
-                  ? "440000 = 44°00′00″"
-                  : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
-              />
+              {kolonaPuna ? renderKolonaKompletna(k, K, false) : (
+                <input
+                  ref={el => { inputRefs.current[i] = el; }}
+                  style={{
+                    ...inpMerenje,
+                    marginBottom: K.inputMerenje.marginBottom,
+                    flexShrink: 0,
+                    width: "100%",
+                    background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
+                    outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
+                  }}
+                  value={k.input}
+                  onFocus={() => {
+                    if (kolonaJePuna(k)) {
+                      prebaciNaSledecuPraznuKolonu(i + 1);
+                      return;
+                    }
+                    setAktivnaKolona(i);
+                  }}
+                  onChange={e => promeniInputMerenja(i, sanitizujInputMerenja(e.target.value, k), k)}
+                  onBlur={() => blurInputMerenja(i)}
+                  onKeyDown={e => keyDownInputMerenja(e, i, k)}
+                  title={k.plausibilnost
+                    ? `Dozvoljen opseg: ${formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}`
+                    : undefined}
+                  placeholder={koristiUgaoUnosKolone(k)
+                    ? "440000 = 44°00′00″"
+                    : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
+                />
+              )}
+              {!kolonaPuna && (
               <button type="button" onClick={() => dodajMerenje(i)}
                 style={{
                   width: K.dugmeDodaj.width,
@@ -1705,6 +1731,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 }}>
                 + Dodaj
               </button>
+              )}
             </>
           )}
           <div style={{
@@ -1850,7 +1877,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         {L.mobTabKarusel ? (
           <>
             {mobDugmadAkcije}
-            {dugmadSerije}
             {idDeo && serijaPotpuna && (
               <div style={{ flexShrink: 0, overflowY: "auto", marginBottom: 2 }}>
                 <SkartDoradaOeePanel C={C} kompakt vrednosti={kpiSerija} onChange={setKpiSerija}
@@ -1977,10 +2003,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     </div>
   );
 
-  const trebaCekListaMer = tab === "unos" && (
-    (jeLinija && idDeo && idUcitano && !kontrolnaListaOk)
-    || (!jeLinija && !getListaOkSession("varijabilne", Number(smena)))
-  );
+  const trebaCekListaMer = tab === "unos" && !kontrolnaListaOk && (jeLinija ? !!(idDeo && idUcitano) : true);
 
   if (trebaCekListaMer) {
     const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
@@ -2007,8 +2030,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           naslovModul="Merljive"
           akcent={C.zelena}
           onZavrsena={zavrsiKontrolnuListu}
-          licenca={licenca}
-          prikaziLicencu={jeLinijaUloga(korisnik?.uloga)}
           C={C}
         />
       </div>
@@ -2682,6 +2703,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 urlSlike={P.urlSlikeUPokaKomponenti ? urlSlike : undefined}
                 onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
                 onDalje={() => setUnosKorak("forma")}
+                stekListaDugmeSlika
               />
             </div>
           </div>

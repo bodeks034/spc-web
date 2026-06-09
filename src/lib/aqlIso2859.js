@@ -184,6 +184,75 @@ export function snimiAqlLotVelicina(n) {
   return v;
 }
 
+const AQL_PREFS_KEY = "spc_aql_prefs";
+
+export function podrazumevanaAqlPodesavanja() {
+  return {
+    nivo: "II",
+    tipInspekcije: "Normalna",
+    aqlPoKlasi: Object.fromEntries(DEFECT_KLASE.map((k) => [k.id, k.defaultAql])),
+  };
+}
+
+/** Podešavanja iz AQL taba (kalkulator) — nivo, tip, AQL po klasi. */
+export function ucitajAqlPodesavanja() {
+  try {
+    const raw = localStorage.getItem(AQL_PREFS_KEY);
+    if (!raw) return podrazumevanaAqlPodesavanja();
+    const p = JSON.parse(raw);
+    const def = podrazumevanaAqlPodesavanja();
+    return {
+      nivo: p.nivo || def.nivo,
+      tipInspekcije: p.tipInspekcije || def.tipInspekcije,
+      aqlPoKlasi: { ...def.aqlPoKlasi, ...(p.aqlPoKlasi || {}) },
+    };
+  } catch {
+    return podrazumevanaAqlPodesavanja();
+  }
+}
+
+export function snimiAqlPodesavanja(prefs) {
+  const def = podrazumevanaAqlPodesavanja();
+  const merged = {
+    nivo: prefs?.nivo || def.nivo,
+    tipInspekcije: prefs?.tipInspekcije || def.tipInspekcije,
+    aqlPoKlasi: { ...def.aqlPoKlasi, ...(prefs?.aqlPoKlasi || {}) },
+  };
+  try {
+    localStorage.setItem(AQL_PREFS_KEY, JSON.stringify(merged));
+  } catch { /* ignore */ }
+  return merged;
+}
+
+function kolicinaIzNaloga(nalog) {
+  if (!nalog) return 0;
+  return Math.round(Number(nalog.kolicina || nalog.kom_ukupno || nalog.kom_za_kontrolu || 0)) || 0;
+}
+
+/**
+ * Veličina lota za AQL unos — prioritet:
+ * RN količina → planirano kom (KPI/nalog) → kom_za_kontrolu dela → ručni/podrazumevani.
+ */
+export function lotVelicinaZaAql({ nalog, deo, planiranoKom } = {}) {
+  const izRn = kolicinaIzNaloga(nalog);
+  if (izRn >= 2) {
+    return {
+      velicina: izRn,
+      izvor: "rn",
+      radniNalog: nalog?.broj_naloga || nalog?.radni_nalog || null,
+    };
+  }
+  const plan = Math.round(Number(planiranoKom || 0)) || 0;
+  if (plan >= 2) {
+    return { velicina: plan, izvor: "plan", radniNalog: nalog?.broj_naloga || null };
+  }
+  const izDeo = Math.round(Number(deo?.kom_za_kontrolu || 0)) || 0;
+  if (izDeo >= 2) {
+    return { velicina: izDeo, izvor: "deo", radniNalog: null };
+  }
+  return { velicina: ucitajAqlLotVelicina(), izvor: "rucno", radniNalog: null };
+}
+
 export const DEFECT_KLASE = [
   {
     id: "critical",

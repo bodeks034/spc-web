@@ -40,10 +40,10 @@ export function layoutPokaYokeMerljive(ekran) {
     stackVertikalno,
     sirinaCrtezLevo: null,
     crtezVisina: ekran.telefon
-      ? dp(TELEFON.crtezVisina, ekran)
+      ? dp(TELEFON.crtezVisinaDno, ekran)
       : (ekran.tabletLandscape
         ? dp(TABLET.crtezVisinaLandscape, ekran)
-        : dp(TABLET.crtezVisina, ekran)),
+        : dp(TABLET.crtezVisinaDno, ekran)),
     redGap: 0,
     prikaziCrtezLevo: false,
     urlSlikeUPokaKomponenti: true,

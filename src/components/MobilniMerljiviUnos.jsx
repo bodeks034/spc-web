@@ -2,6 +2,9 @@ import { useEffect, useRef, useMemo } from "react";
 import { idBarkodInputHandleri } from "../lib/barkod.js";
 import { useEkran, resetSkrolPosleRotacije } from "../lib/useEkran.js";
 import { stilOmotLinija, onFocusTastatura } from "../layout/tastaturaMobil.js";
+import { dp } from "../layout/dp.js";
+import { TELEFON } from "../layout/tokens/telefon.js";
+import { TABLET } from "../layout/tokens/tablet.js";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
@@ -248,7 +251,7 @@ export default function MobilniMerljiviUnos({
             idDeo={String(idDeo || "").toUpperCase()}
             C={C}
             kompakt
-            visina={Math.min(280, Math.max(180, Math.round(ekran.visinaLayout * 0.26)))}
+            visina={dp(ekran.tablet ? TABLET.crtezVisinaDno : TELEFON.crtezVisinaDno, ekran)}
             akcent={C.zelena}
           />
         )}

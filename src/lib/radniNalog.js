@@ -84,6 +84,36 @@ async function nadjiNalogPoBroju(supabase, broj) {
   return poLegacy || [];
 }
 
+/** Nalog za par id_deo + broj RN (količina lota za AQL). */
+export async function ucitajNalogZaDeoIRn(supabase, idDeo, radniNalog) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  const rn = String(radniNalog || "").trim().toUpperCase();
+  if (!id || !rn) return null;
+
+  const polja = "broj_naloga,radni_nalog,kolicina,kom_ukupno,kom_za_kontrolu,kupac,rok_isporuke,status,id_deo,created_at";
+
+  const { data: poBroju } = await supabase
+    .from("radni_nalozi")
+    .select(polja)
+    .eq("broj_naloga", rn)
+    .eq("id_deo", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const izBroja = normalizujNalog(poBroju);
+  if (izBroja) return izBroja;
+
+  const { data: poLegacy } = await supabase
+    .from("radni_nalozi")
+    .select(polja)
+    .eq("radni_nalog", rn)
+    .eq("id_deo", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return normalizujNalog(poLegacy);
+}
+
 /** Mekano upozorenje — ne blokira snimanje. */
 export async function proveriRadniNalogUpozorenje(supabase, { idDeo, radniNalog }) {
   const rn = String(radniNalog || "").trim().toUpperCase();

@@ -42,6 +42,7 @@ export default function DigitalnoMeriloPanel({
   }, []);
 
   const onLinija = useCallback((p) => {
+    let sledecaIdx = aktivnaRef.current;
     setKolone(prev => {
       const idx = aktivnaRef.current >= 0
         ? aktivnaRef.current
@@ -55,11 +56,18 @@ export default function DigitalnoMeriloPanel({
         addToast?.(res.greska, "greska");
         return prev;
       }
+      const col = res.kolone[idx];
+      sledecaIdx = col?.merenja?.length >= potrebanBroj
+        ? indeksSledecePrazno(res.kolone, potrebanBroj, idx + 1)
+        : idx;
       setPoslednje(q => [{ kolona: res.kolona, v: p.vrednost, t: Date.now() }, ...q].slice(0, 8));
       addToast?.(`+ ${res.kolona}: ${p.vrednost}`, "uspeh");
       return res.kolone;
     });
-  }, [potrebanBroj, setKolone, addToast]);
+    if (sledecaIdx >= 0 && sledecaIdx !== aktivnaRef.current) {
+      setAktivnaKolona(sledecaIdx);
+    }
+  }, [potrebanBroj, setKolone, setAktivnaKolona, addToast]);
 
   const uvozPaste = () => {
     const lista = parsirajTekstMerila(paste);
@@ -67,6 +75,7 @@ export default function DigitalnoMeriloPanel({
       addToast?.("Nema prepoznatih vrednosti", "greska");
       return;
     }
+    let sledecaIdx = aktivnaKolona;
     setKolone(prev => {
       const { kolone: k, uneto, greske } = uvozListeUKolone(
         prev,
@@ -74,10 +83,12 @@ export default function DigitalnoMeriloPanel({
         potrebanBroj,
         aktivnaKolona >= 0 ? aktivnaKolona : 0,
       );
+      sledecaIdx = indeksSledecePrazno(k, potrebanBroj, 0);
       addToast?.(`Uvezeno ${uneto.length} merenja${greske.length ? ` (${greske.length} grešaka)` : ""}`, "uspeh");
       setPoslednje(uneto.map(u => ({ kolona: u.kolona, v: u.vrednost, t: Date.now() })));
       return k;
     });
+    if (sledecaIdx >= 0) setAktivnaKolona(sledecaIdx);
     setPaste("");
   };
 

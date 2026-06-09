@@ -19,6 +19,7 @@ import {
 import {
   INSPECTION_LEVELS, INSPECTION_TYPES, DEFECT_KLASE, planUzorka, planZaKlasu, aqlOdluka, kombinovanaOdluka,
   DEFAULT_AQL_LOT_SIZE, ucitajAqlLotVelicina, snimiAqlLotVelicina,
+  ucitajAqlPodesavanja, snimiAqlPodesavanja, lotVelicinaZaAql,
 } from "./lib/aqlIso2859.js";
 import {
   westernElectric, aggregateLogRows, groupSpcRows, buildParetoFromLog,
@@ -50,11 +51,9 @@ import AtrCrtezPregled from "./components/AtrCrtezPregled.jsx";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
 import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid } from "./lib/kontrolaSesije.jsx";
 import {
-  proveriKontrolnaListaDanas,
   setListaOkSession,
   clearListaOkSession,
   getListaOkSession,
-  kontrolnaListaSpremna,
   procitajSmenuIzStorage,
 } from "./lib/kontrolaLista.js";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
@@ -70,6 +69,7 @@ import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
 import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "./lib/barkod.js";
 import {
   ucitajAktivniRadniNalog,
+  ucitajNalogZaDeoIRn,
   izaberiRadniNalog,
   proveriRadniNalogUpozorenje,
   formatNalogToast,
@@ -101,6 +101,9 @@ import {
 } from "./lib/uloge.js";
 import { useEkran } from "./lib/useEkran.js";
 import { stilOmotLinija, onFocusTastatura } from "./layout/tastaturaMobil.js";
+import { dp } from "./layout/dp.js";
+import { TELEFON } from "./layout/tokens/telefon.js";
+import { TABLET } from "./layout/tokens/tablet.js";
 import LinijaDonjaTraka, { DugmeTraka } from "./components/LinijaDonjaTraka.jsx";
 import LinijaWizardNav, { KORACI_ATRIB_LINIJA, KORACI_ATRIB_KONTROLOR } from "./components/LinijaWizardNav.jsx";
 import VoziloZonaNav from "./components/VoziloZonaNav.jsx";
@@ -1599,7 +1602,9 @@ function Login({onLogin,C}) {
           {load?"Prijavljivanje...":"PRIJAVA"}
         </button>
         </form>
-        <div style={{ textAlign: "center" }}><AppFooter C={C}/></div>
+        <div style={{ textAlign: "center" }}>
+          <AppFooter C={C} prikaziAutora />
+        </div>
       </div>
     </div>
   );
@@ -1649,20 +1654,50 @@ function UnosCiljBanner({ idDeo, listaP, C }) {
   );
 }
 
-function UnosAqlPanel({ lotVelicina, onLotVelicinaChange, listaG, listaP, C }) {
-  const [nivo, setNivo] = useState("II");
-  const [tipInspekcije, setTipInspekcije] = useState("Normalna");
+function UnosAqlPanel({
+  lotVelicina,
+  onLotVelicinaChange,
+  listaG,
+  listaP,
+  C,
+  kompakt = false,
+  uskiPanel = false,
+  lotIzvor = "rucno",
+  radniNalog = "",
+  idDeo = "",
+  onOtvoriAqlTab,
+}) {
+  const [podesavanja, setPodesavanja] = useState(() => ucitajAqlPodesavanja());
+  const { nivo, tipInspekcije, aqlPoKlasi } = podesavanja;
+
+  useEffect(() => {
+    setPodesavanja(ucitajAqlPodesavanja());
+  }, [idDeo, radniNalog]);
+
+  const azurirajPodesavanja = useCallback((patch) => {
+    setPodesavanja((prev) => snimiAqlPodesavanja({ ...prev, ...patch }));
+  }, []);
+
   const stavke = useMemo(() => [...(listaG || []), ...(listaP || [])], [listaG, listaP]);
   const nokKlase = useMemo(() => nokPoAqlKlasi(stavke), [stavke]);
   const velicina = Math.max(2, lotVelicina || DEFAULT_AQL_LOT_SIZE);
+  const lotIzRn = lotIzvor === "rn";
+  const lotLabel = lotIzRn
+    ? `RN ${radniNalog || "—"}`
+    : lotIzvor === "plan"
+      ? "planirano"
+      : lotIzvor === "deo"
+        ? `deo ${idDeo || "—"}`
+        : "ručno";
+  const lotReadonly = lotIzRn || lotIzvor === "plan" || lotIzvor === "deo";
 
   const inpAql = {
     background: C.input,
     border: `1px solid ${C.border}`,
-    borderRadius: 5,
+    borderRadius: uskiPanel ? 4 : 5,
     color: C.tekst,
-    fontSize: 10,
-    padding: "4px 6px",
+    fontSize: uskiPanel ? 9 : 10,
+    padding: uskiPanel ? "3px 4px" : "4px 6px",
     fontFamily: "inherit",
     width: "100%",
     boxSizing: "border-box",
@@ -1670,10 +1705,11 @@ function UnosAqlPanel({ lotVelicina, onLotVelicinaChange, listaG, listaP, C }) {
 
   const planovi = useMemo(() =>
     DEFECT_KLASE.map(k => {
-      const plan = planZaKlasu(velicina, nivo, k.defaultAql, tipInspekcije);
+      const aql = aqlPoKlasi[k.id] ?? k.defaultAql;
+      const plan = planZaKlasu(velicina, nivo, aql, tipInspekcije);
       const nok = nokKlase[k.id] || 0;
-      return { ...k, plan, nok, odluka: aqlOdluka(nok, plan.ac, plan.re, plan.fullInspection, tipInspekcije === "Smanjena") };
-    }), [velicina, nivo, tipInspekcije, nokKlase]);
+      return { ...k, aql, plan, nok, odluka: aqlOdluka(nok, plan.ac, plan.re, plan.fullInspection, tipInspekcije === "Smanjena") };
+    }), [velicina, nivo, tipInspekcije, aqlPoKlasi, nokKlase]);
 
   const konacna = kombinovanaOdluka(Object.fromEntries(planovi.map(p => [p.id, p.odluka])));
   const boja = konacna.boja === "zelena" ? C.zelena : konacna.boja === "crvena" ? C.crvena
@@ -1681,50 +1717,173 @@ function UnosAqlPanel({ lotVelicina, onLotVelicinaChange, listaG, listaP, C }) {
   const uzorak = planUzorka(velicina, nivo);
   const ukNok = Object.values(nokKlase).reduce((a, b) => a + b, 0);
 
-  if (!stavke.length && ukNok === 0) {
-    return (
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: 10, fontSize: 10, color: C.sivi }}>
-        AQL serija · lot {velicina.toLocaleString()} · kod {uzorak.slovo} · n={uzorak.n}
+  const pad = uskiPanel ? 6 : kompakt ? 10 : 10;
+  const fsLab = uskiPanel ? 7 : kompakt ? 8 : 9;
+  const fsVal = uskiPanel ? 9 : kompakt ? 10 : 11;
+  const gridGap = uskiPanel ? 3 : kompakt ? 6 : 8;
+  const omotAql = {
+    marginLeft: uskiPanel ? -8 : 0,
+    width: uskiPanel ? "calc(100% + 8px)" : "100%",
+    boxSizing: "border-box",
+  };
+
+  const lotPolje = lotReadonly ? (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>LOT</span>
+      <div style={{
+        ...inpAql,
+        background: C.panel,
+        color: C.tekst,
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        minHeight: 24,
+      }}>
+        {velicina.toLocaleString()}
       </div>
-    );
-  }
+    </div>
+  ) : (
+    <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>LOT</span>
+      <input
+        type="number"
+        min={2}
+        value={velicina}
+        onChange={e => onLotVelicinaChange?.(snimiAqlLotVelicina(e.target.value))}
+        style={inpAql}
+      />
+    </label>
+  );
+
+  const bojaKlase = { critical: C.crvena, major: C.narandzasta, minor: C.plava };
+  const odlukaBoja = (o) => (
+    o.boja === "zelena" ? C.zelena : o.boja === "crvena" ? C.crvena : o.boja === "zuta" ? C.zuta : C.sivi
+  );
 
   return (
-    <div style={{ background: C.panel, border: `1px solid ${boja}40`, borderRadius: 8, padding: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-        flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-        <span style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2 }}>AQL SERIJA</span>
-        <span style={{ color: boja, fontWeight: 700, fontSize: 11 }}>{konacna.tekst}</span>
+    <div style={{
+      ...omotAql,
+      background: C.panel,
+      border: `1px solid ${boja}40`,
+      borderRadius: kompakt || uskiPanel ? 8 : 10,
+      padding: uskiPanel ? "8px 4px 8px 2px" : kompakt ? 10 : pad,
+    }}>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: kompakt ? 6 : 8,
+        marginBottom: uskiPanel ? 6 : kompakt ? 8 : 10,
+      }}>
+        <div>
+          <div style={{ color: C.sivi, fontSize: fsLab, letterSpacing: uskiPanel ? 0.6 : 1.2 }}>AQL · {lotLabel}</div>
+          <div style={{ color: C.tekst, fontSize: uskiPanel ? 9 : kompakt ? 10 : 11, marginTop: 2 }}>
+            Lot {velicina.toLocaleString()} · kod {uzorak.slovo} · ref. n={uzorak.n}
+          </div>
+        </div>
+        <div style={{
+          background: `${boja}18`,
+          border: `1px solid ${boja}50`,
+          borderRadius: 8,
+          padding: uskiPanel ? "4px 6px" : kompakt ? "6px 10px" : "8px 12px",
+          color: boja,
+          fontWeight: 700,
+          fontSize: uskiPanel ? 9 : kompakt ? 11 : 13,
+        }}>
+          {konacna.tekst}
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: gridGap,
+        marginBottom: uskiPanel ? 6 : kompakt ? 8 : 10,
+      }}>
+        {lotPolje}
         <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>LOT</span>
-          <input
-            type="number"
-            min={2}
-            value={velicina}
-            onChange={e => onLotVelicinaChange?.(snimiAqlLotVelicina(e.target.value))}
-            style={inpAql}
-          />
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>NIVO</span>
-          <select value={nivo} onChange={e => setNivo(e.target.value)} style={inpAql}>
+          <span style={{ color: C.sivi, fontSize: uskiPanel ? 7 : kompakt ? 9 : 8, letterSpacing: 0.8 }}>NIVO</span>
+          <select value={nivo} onChange={e => azurirajPodesavanja({ nivo: e.target.value })} style={inpAql}>
             {INSPECTION_LEVELS.filter(l => l.grupa === "general").map(l =>
               <option key={l.id} value={l.id}>{l.id}</option>)}
           </select>
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>TIP</span>
-          <select value={tipInspekcije} onChange={e => setTipInspekcije(e.target.value)} style={inpAql}>
+          <span style={{ color: C.sivi, fontSize: uskiPanel ? 7 : kompakt ? 9 : 8, letterSpacing: 0.8 }}>TIP</span>
+          <select value={tipInspekcije} onChange={e => azurirajPodesavanja({ tipInspekcije: e.target.value })} style={inpAql}>
             {INSPECTION_TYPES.map(t => <option key={t.id} value={t.id}>{t.id}</option>)}
           </select>
         </label>
       </div>
-      <div style={{ fontSize: 9, color: C.sivi, lineHeight: 1.5 }}>
-        Lot {velicina.toLocaleString()} · NOK {ukNok} (C:{nokKlase.critical} M:{nokKlase.major} m:{nokKlase.minor})
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: gridGap,
+        marginBottom: onOtvoriAqlTab ? (uskiPanel ? 6 : kompakt ? 8 : 10) : 0,
+      }}>
+        {planovi.map((p) => {
+          const bk = bojaKlase[p.id];
+          const ob = odlukaBoja(p.odluka);
+          return (
+            <div
+              key={p.id}
+              style={{
+                background: C.bg,
+                border: `1px solid ${bk}45`,
+                borderRadius: uskiPanel ? 6 : 8,
+                padding: uskiPanel ? "6px 2px" : kompakt ? "8px 6px" : "10px 8px",
+                textAlign: "center",
+                minWidth: 0,
+              }}
+            >
+              <div style={{ color: bk, fontSize: uskiPanel ? 8 : kompakt ? 10 : 11, fontWeight: 700 }}>{p.naziv}</div>
+              <div style={{ color: C.sivi, fontSize: uskiPanel ? 7 : kompakt ? 8 : 9, marginTop: 2 }}>AQL {p.aql}%</div>
+              <div style={{ color: C.tekst, fontSize: uskiPanel ? 11 : kompakt ? 13 : 15, fontWeight: 700, margin: uskiPanel ? "4px 0 2px" : "6px 0 2px" }}>
+                n={p.plan.n}
+              </div>
+              <div style={{ color: C.sivi, fontSize: uskiPanel ? 7 : kompakt ? 9 : 10, lineHeight: 1.25 }}>
+                {p.plan.fullInspection ? "100%" : `Ac${p.plan.ac} Re${p.plan.re}`}
+              </div>
+              <div style={{
+                color: p.nok > 0 ? C.crvena : C.tekst,
+                fontSize: uskiPanel ? 11 : kompakt ? 14 : 16,
+                fontWeight: 700,
+                marginTop: uskiPanel ? 4 : 6,
+              }}>
+                NOK {p.nok}
+              </div>
+              <div style={{ color: ob, fontSize: uskiPanel ? 7 : kompakt ? 9 : 10, fontWeight: 700, marginTop: uskiPanel ? 2 : 4 }}>
+                {p.odluka.tekst}
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {stavke.length > 0 && (
+        <div style={{ fontSize: kompakt ? 8 : 9, color: C.sivi, textAlign: "center", marginBottom: onOtvoriAqlTab ? 6 : 0 }}>
+          NOK iz {stavke.length} stavki liste (C/M/m po kategoriji greške)
+        </div>
+      )}
+
+      {onOtvoriAqlTab && (
+        <button type="button" onClick={onOtvoriAqlTab}
+          style={{
+            background: C.hover,
+            border: `1px solid ${C.border}`,
+            borderRadius: 6,
+            color: C.plava,
+            fontSize: kompakt ? 9 : 10,
+            fontWeight: 700,
+            padding: kompakt ? "8px 10px" : "8px 12px",
+            cursor: "pointer",
+            width: "100%",
+          }}>
+          🧮 Ručni AQL kalkulator (bez ID/RN) →
+        </button>
+      )}
     </div>
   );
 }
@@ -1818,11 +1977,36 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const smenaNOK = smenaStat.nok;
   const smenaTotal = smenaStat.merenja;
   const [lotAql, setLotAql] = useState(() => ucitajAqlLotVelicina());
+  const [lotAqlIzvor, setLotAqlIzvor] = useState("rucno");
   const promeniLotAql = useCallback((n) => {
     const v = snimiAqlLotVelicina(n);
     setLotAql(v);
+    setLotAqlIzvor("rucno");
     return v;
   }, []);
+
+  useEffect(() => {
+    if (idDeo.length < 3) return;
+    let alive = true;
+
+    (async () => {
+      let nalog = nalogInfo;
+      const rn = String(radniNalog || "").trim().toUpperCase();
+      if (rn && (!nalog || nalog.broj_naloga !== rn)) {
+        nalog = await ucitajNalogZaDeoIRn(supabase, idDeo, rn);
+      }
+      if (!alive) return;
+      const { velicina, izvor } = lotVelicinaZaAql({
+        nalog,
+        deo: deoInfo,
+        planiranoKom: kpiSerija?.planirano_kom,
+      });
+      setLotAql(velicina);
+      setLotAqlIzvor(izvor);
+    })();
+
+    return () => { alive = false; };
+  }, [idDeo, radniNalog, nalogInfo, deoInfo, kpiSerija?.planirano_kom]);
 
   useEffect(() => {
     if (!listaP.length) return;
@@ -1978,34 +2162,14 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   useEffect(() => {
     const sm = Number(smena);
     const idZaListu = jeLinija && deoInfo ? String(idDeo || "").trim().toUpperCase() : null;
-    let alive = true;
 
     if (jeLinija && !idZaListu) {
       setKontrolnaListaOk(false);
-      return () => { alive = false; };
+      return;
     }
 
-    if (getListaOkSession("atributivne", sm, idZaListu)) {
-      setKontrolnaListaOk(true);
-      return () => { alive = false; };
-    }
-
-    if (!korisnik?.radnikId) {
-      setKontrolnaListaOk(false);
-      return () => { alive = false; };
-    }
-
-    (async () => {
-      const r = await proveriKontrolnaListaDanas(supabase, {
-        radnikId: korisnik.radnikId,
-        smena: sm,
-        idDeo: idZaListu,
-      });
-      if (!alive) return;
-      setKontrolnaListaOk(kontrolnaListaSpremna("atributivne", sm, r.zavrsena, idZaListu));
-    })();
-    return () => { alive = false; };
-  }, [korisnik?.radnikId, smena, idDeo, deoInfo, jeLinija]);
+    setKontrolnaListaOk(getListaOkSession("atributivne", sm, idZaListu));
+  }, [smena, idDeo, deoInfo, jeLinija]);
 
   const obradiBarkodSken = useCallback((raw) => {
     const parsed = parsiBarkod(raw);
@@ -2281,10 +2445,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     setListaOkSession("atributivne", Number(smena), idZaListu);
   };
 
-  const trebaCekListaAtr = tab === "unos" && (
-    (jeLinija && deoInfo && !kontrolnaListaOk)
-    || (!jeLinija && !getListaOkSession("atributivne", Number(smena)))
-  );
+  const trebaCekListaAtr = tab === "unos" && !kontrolnaListaOk && (jeLinija ? !!deoInfo : true);
 
   if (trebaCekListaAtr) {
     const idZaListu = jeLinija && deoInfo ? String(idDeo || "").trim().toUpperCase() : null;
@@ -2304,8 +2465,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           idDeo={idZaListu}
           naslovModul="Atributivne"
           onZavrsena={zavrsiKontrolnuListuAtr}
-          licenca={licenca}
-          prikaziLicencu={jeLinijaUloga(korisnik?.uloga)}
           C={C}
         />
       </div>
@@ -2462,7 +2621,9 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           korisnik={korisnik}
           smenaOK={smenaOK} smenaNOK={smenaNOK} smenaTotal={smenaTotal}
           lotVelicina={lotAql}
+          lotIzvor={lotAqlIzvor}
           onLotVelicinaChange={promeniLotAql}
+          onOtvoriAqlTab={mozeTabAtributivne("aql", korisnik.uloga, rezimRada) ? () => setTab("aql") : undefined}
           setSmena={setSmena}
           dodajGresku={dodajGresku} snimiDeo={snimiDeo} zapisi={zapisi}
           noviNalog={noviNalog} saving={saving} online={online} offlineQueueTotal={offlineCounts.total} C={C}
@@ -2536,24 +2697,23 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                   {[1, 2, 3].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </label>
-              {deoInfo && prikaziLokaciju && (
-                <div style={{display:"flex",flexDirection:"column",gap:Math.round(4*H),marginTop:Math.round(6*H)}}>
-                  {[["Linija", linijaNaziv], ["Mašina", masinaNaziv]].map(([l, v]) => (
-                    <div key={l} style={{background:C.panel,border:`1px solid ${C.zelena}30`,
-                      borderRadius:5,padding:`${Math.round(4*H)}px ${Math.round(6*H)}px`,fontSize:Math.round(9*H)}}>
-                      <span style={{color:C.sivi}}>{l}: </span>
-                      <span style={{color:C.tekst,fontWeight:700}}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {upoz&&<div style={{color:C.crvena,fontSize:Math.round(8*H),marginTop:Math.round(4*H),padding:`${Math.round(4*H)}px ${Math.round(6*H)}px`,background:C.nok,borderRadius:4,lineHeight:1.3}}>{upoz}</div>}
-              <UnosCiljBanner idDeo={idDeo} listaP={[...listaP,...listaG]} C={C}/>
             </div>
 
             {deoInfo && (
               <div style={{background:C.ok,border:`1px solid ${C.zelena}26`,borderRadius:6,padding:Math.round(6*H)}}>
                 <div style={{color:C.zelena,fontWeight:700,fontSize:Math.round(9*H),marginBottom:Math.round(4*H),lineHeight:1.3}}>{deoInfo.naziv_dela}</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:Math.round(4*H),marginBottom:Math.round(4*H)}}>
+                  {[
+                    ...(prikaziLokaciju ? [["Linija", linijaNaziv], ["Mašina", masinaNaziv]] : []),
+                    ["Kontrola", deoInfo.karakteristika || "-"],
+                    ["Napomena", deoInfo.napomena || "-"],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{background:C.panel,borderRadius:4,padding:`${Math.round(4*H)}px ${Math.round(5*H)}px`}}>
+                      <div style={{color:C.sivi,fontSize:Math.round(7*H),marginBottom:2}}>{l}</div>
+                      <div style={{color:C.tekst,fontSize:Math.round(8*H),fontWeight:700,lineHeight:1.3}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
                 <div style={{marginTop:Math.round(4*H)}}>
                   <div style={{color:C.sivi,fontSize:Math.round(7*H),letterSpacing:1,marginBottom:2}}>RN</div>
                   <input value={radniNalog} onChange={e=>setRadniNalog(e.target.value.toUpperCase())}
@@ -2562,7 +2722,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                       color:C.tekst,fontSize:Math.round(9*H),padding:`${Math.round(4*H)}px ${Math.round(5*H)}px`,boxSizing:"border-box",
                       outline:"none",fontFamily:"inherit"}}/>
                 </div>
-
                 <div style={{marginTop:Math.round(6*H)}}>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:Math.round(8*H),marginBottom:2}}>
                     <span style={{color:C.sivi}}>PREOST.</span>
@@ -2573,7 +2732,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                       height:Math.round(4*H),borderRadius:3,transition:"width 0.3s"}}/>
                   </div>
                 </div>
-                <UnosAqlPanel lotVelicina={lotAql} onLotVelicinaChange={promeniLotAql} listaG={listaG} listaP={listaP} C={C}/>
               </div>
             )}
 
@@ -2582,9 +2740,26 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                 slikaNaziv={deoInfo.slika_naziv}
                 idDeo={String(idDeo || "").toUpperCase()}
                 C={C}
-                visina={Math.round(140 * H)}
+                kompakt
+                visina={Math.round(120 * H)}
               />
             )}
+
+            {upoz&&<div style={{color:C.crvena,fontSize:Math.round(8*H),padding:`${Math.round(4*H)}px ${Math.round(6*H)}px`,background:C.nok,borderRadius:4,lineHeight:1.3}}>{upoz}</div>}
+            <UnosCiljBanner idDeo={idDeo} listaP={[...listaP,...listaG]} C={C}/>
+            <UnosAqlPanel
+              lotVelicina={lotAql}
+              lotIzvor={lotAqlIzvor}
+              radniNalog={radniNalog}
+              idDeo={idDeo}
+              onLotVelicinaChange={promeniLotAql}
+              onOtvoriAqlTab={mozeTabAtributivne("aql", korisnik.uloga, rezimRada) ? () => setTab("aql") : undefined}
+              listaG={listaG}
+              listaP={listaP}
+              C={C}
+              kompakt
+              uskiPanel
+            />
 
             <button onClick={noviNalog}
               style={{...BTN(C.hover),border:`1px solid ${C.border}`,color:C.sivi,fontSize:Math.round(8*H),padding:`${Math.round(6*H)}px ${Math.round(4*H)}px`,marginTop:"auto"}}>
@@ -3089,7 +3264,7 @@ function MobilniUnos({
   preostalo, cilj,
   prekidOdobrenId, onZahtevPrekid, korisnik,
   smenaOK, smenaNOK, smenaTotal,
-  lotVelicina, onLotVelicinaChange,
+  lotVelicina, lotIzvor = "rucno", onLotVelicinaChange, onOtvoriAqlTab,
   dodajGresku, snimiDeo, zapisi,
   noviNalog, saving, online, offlineQueueTotal, C,
   kpiSerija, setKpiSerija,
@@ -3125,28 +3300,35 @@ function MobilniUnos({
     : null;
 
   const analitikaKompakt = !linijaMode && (ekran.mob || ekran.tablet);
+  const prikaziCrtezMob = ekran.mob || ekran.tablet || ekran.linijaUredjaj;
+  const unosIdKompakt = analitikaKompakt || (linijaMode && prikaziCrtezMob);
   const analitikaInpStil = {
-    borderRadius: 10,
-    padding: ekran.tablet ? "10px 8px" : "8px 6px",
-    fontSize: ekran.tablet ? 16 : 14,
+    borderRadius: unosIdKompakt && linijaMode ? 12 : 10,
+    padding: linijaMode && ekran.linijaUredjaj
+      ? "18px 12px"
+      : ekran.tablet ? "10px 8px" : "8px 6px",
+    fontSize: linijaMode && ekran.linijaUredjaj
+      ? 22
+      : ekran.tablet ? 16 : 14,
   };
   const analitikaSirine = {
-    smena: ekran.tablet ? 52 : 44,
-    barkod: ekran.tablet ? 40 : 36,
-    crtez: ekran.tablet ? 40 : 36,
+    smena: ekran.tablet || ekran.linijaUredjaj ? 52 : 44,
+    barkod: ekran.tablet || ekran.linijaUredjaj ? 44 : 36,
+    crtez: ekran.tablet || ekran.linijaUredjaj ? 44 : 36,
   };
 
   const analitikaUnosRed = ({ autoFocus = false, bezRef = false } = {}) => (
     <SmenaIdUnosRed
       C={C}
       akcent={C.plava}
-      smena={smena}
-      onSmenaChange={(v) => setSmena?.(Number(v))}
+      smena={String(smena)}
+      setSmena={(v) => setSmena?.(Number(v))}
       onBarkodSken={onBarkodSken}
-      lblStyle={{ fontSize: ekran.tablet ? 10 : 9, marginBottom: 2 }}
+      lblStyle={{ fontSize: ekran.tablet || ekran.linijaUredjaj ? 10 : 9, marginBottom: 2 }}
       inpStyle={analitikaInpStil}
       sirinaSmena={analitikaSirine.smena}
       sirinaBarkod={analitikaSirine.barkod}
+      sirinaCrtez={analitikaSirine.crtez}
       prikaziCrtez={false}
       idLabel="ID deo"
     >
@@ -3206,10 +3388,10 @@ function MobilniUnos({
       ...stilOmotLinija(ekran, { skrol: true }),
       background: C.bg,
     } : {
-      padding: "16px 16px 100px",
+      padding: unosIdKompakt ? "10px 12px 80px" : "16px 16px 100px",
       display: "flex",
       flexDirection: "column",
-      gap: 16,
+      gap: unosIdKompakt ? 8 : 16,
       minHeight: "calc(100dvh - 89px)",
       background: C.bg,
       boxSizing: "border-box",
@@ -3236,7 +3418,7 @@ function MobilniUnos({
   // ─ Korak 1: ID dela ─────────────────────────────────────
   if (korak === 1) return omot(
     <>
-      {analitikaKompakt ? analitikaUnosRed({ autoFocus: true }) : (
+      {unosIdKompakt ? analitikaUnosRed({ autoFocus: true }) : (
         <>
           <IdDeoBarkodRed
             C={C}
@@ -3286,73 +3468,79 @@ function MobilniUnos({
         </>
       )}
 
-      <div>
-        {deoInfo && prikaziLokaciju && (
-          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginTop:10}}>
-            {[["Linija", linijaNaziv], ["Mašina", masinaNaziv]].map(([l, v]) => (
-              <div key={l} style={{background:C.panel, border:`1px solid ${C.zelena}35`,
-                borderRadius:10, padding:"10px 12px", textAlign:"center"}}>
-                <div style={{color:C.sivi, fontSize:10, marginBottom:3}}>{l}</div>
-                <div style={{color:C.tekst, fontSize:15, fontWeight:700}}>{v}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {upoz && (
-          <div style={{color:C.crvena,fontSize:12,marginTop:8,padding:"10px 12px",
-            background:C.nok,borderRadius:8,lineHeight:1.5}}>{upoz}</div>
-        )}
-        <UnosCiljBanner idDeo={idDeo} listaP={listaP} C={C}/>
-      </div>
-
-      {/* Info dela */}
       {deoInfo ? (
-        <div style={{background:C.ok, border:`1px solid ${C.zelena}30`, borderRadius:14, padding:16}}>
-          <div style={{color:C.zelena, fontWeight:700, fontSize:18, marginBottom:12}}>
+        <div style={{
+          background: C.ok,
+          border: `1px solid ${C.zelena}30`,
+          borderRadius: unosIdKompakt ? 10 : 14,
+          padding: unosIdKompakt ? 10 : 16,
+        }}>
+          <div style={{ color: C.zelena, fontWeight: 700, fontSize: unosIdKompakt ? 14 : 18, marginBottom: unosIdKompakt ? 6 : 12 }}>
             ✓ {deoInfo.naziv_dela}
           </div>
-          <div style={{display:"grid", gridTemplateColumns: prikaziLokaciju ? "1fr 1fr" : "1fr", gap:8}}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: unosIdKompakt ? 6 : 8 }}>
             {[
               ...(prikaziLokaciju ? [["Linija", linijaNaziv], ["Mašina", masinaNaziv]] : []),
-              ["Kontrola",  deoInfo.karakteristika||"-"],
-              ["Napomena",  deoInfo.napomena||"-"],
-            ].map(([l,v]) => (
-              <div key={l} style={{background:C.panel, borderRadius:8, padding:"10px 12px"}}>
-                <div style={{color:C.sivi, fontSize:10, marginBottom:3}}>{l}</div>
-                <div style={{color:C.tekst, fontSize:14, fontWeight:700}}>{v}</div>
+              ["Kontrola", deoInfo.karakteristika || "-"],
+              ["Napomena", deoInfo.napomena || "-"],
+            ].map(([l, v]) => (
+              <div key={l} style={{ background: C.panel, borderRadius: 8, padding: unosIdKompakt ? "6px 8px" : "10px 12px" }}>
+                <div style={{ color: C.sivi, fontSize: unosIdKompakt ? 9 : 10, marginBottom: 2 }}>{l}</div>
+                <div style={{ color: C.tekst, fontSize: unosIdKompakt ? 12 : 14, fontWeight: 700 }}>{v}</div>
               </div>
             ))}
           </div>
-          <div style={{marginTop:12}}>
-            <div style={{display:"flex", justifyContent:"space-between",
-              fontSize:11, color:C.sivi, marginBottom:5}}>
+          <div style={{ marginTop: unosIdKompakt ? 8 : 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between",
+              fontSize: unosIdKompakt ? 10 : 11, color: C.sivi, marginBottom: 4 }}>
               <span>Preostalo</span>
-              <span style={{color:preostalo===0?C.zelena:C.zuta, fontWeight:700}}>
+              <span style={{ color: preostalo === 0 ? C.zelena : C.zuta, fontWeight: 700 }}>
                 {preostalo} / {cilj}
               </span>
             </div>
-            <div style={{background:C.hover, borderRadius:4, height:8}}>
+            <div style={{ background: C.hover, borderRadius: 4, height: unosIdKompakt ? 6 : 8 }}>
               <div style={{
-                background:preostalo===0?C.zelena:C.plava,
-                width:`${cilj>0?(cilj-preostalo)/cilj*100:0}%`,
-                height:8, borderRadius:4, transition:"width 0.4s",
+                background: preostalo === 0 ? C.zelena : C.plava,
+                width: `${cilj > 0 ? (cilj - preostalo) / cilj * 100 : 0}%`,
+                height: unosIdKompakt ? 6 : 8,
+                borderRadius: 4,
+                transition: "width 0.4s",
               }}/>
             </div>
           </div>
         </div>
       ) : null}
 
-      {/* Statistike smene — mini */}
-      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8}}>
-        {[["MER",smenaTotal,C.plava],["OK",smenaOK,C.zelena],["NOK",smenaNOK,C.crvena]].map(([l,v,b])=>(
-          <div key={l} style={{background:C.panel,border:`1px solid ${b}20`,
-            borderRadius:10,padding:"12px",textAlign:"center"}}>
-            <div style={{color:b,fontSize:22,fontWeight:700}}>{v}</div>
-            <div style={{color:C.sivi,fontSize:10,marginTop:3}}>{l}</div>
-          </div>
-        ))}
-      </div>
-      <UnosAqlPanel lotVelicina={lotVelicina} onLotVelicinaChange={onLotVelicinaChange} listaG={listaG} listaP={listaP} C={C}/>
+      {deoInfo && prikaziCrtezMob && (
+        <AtrCrtezPregled
+          slikaNaziv={deoInfo.slika_naziv}
+          idDeo={String(idDeo || "").toUpperCase()}
+          C={C}
+          kompakt
+          visina={ekran.tablet
+            ? dp(TABLET.crtezVisinaDno, ekran)
+            : dp(TELEFON.crtezVisinaDno, ekran)}
+        />
+      )}
+
+      {upoz && (
+        <div style={{ color: C.crvena, fontSize: unosIdKompakt ? 11 : 12, padding: unosIdKompakt ? "8px 10px" : "10px 12px",
+          background: C.nok, borderRadius: 8, lineHeight: 1.5 }}>{upoz}</div>
+      )}
+      <UnosCiljBanner idDeo={idDeo} listaP={listaP} C={C}/>
+
+      <UnosAqlPanel
+        lotVelicina={lotVelicina}
+        lotIzvor={lotIzvor}
+        radniNalog={radniNalog}
+        idDeo={idDeo}
+        onLotVelicinaChange={onLotVelicinaChange}
+        onOtvoriAqlTab={onOtvoriAqlTab}
+        listaG={listaG}
+        listaP={listaP}
+        C={C}
+        kompakt={unosIdKompakt}
+      />
 
       <div style={{flex:1}}/>
 
@@ -4545,7 +4733,7 @@ function PocetniEkran({ korisnik, licenca, onIzbor, onOdjava, C, setC, rezimRada
           </div>
         )}
 
-        <AppFooter C={C} kompakt />
+        <AppFooter C={C} kompakt prikaziAutora />
       </div>
     </div>
   );
@@ -5594,11 +5782,12 @@ function registrujPWA() {
 function AQLTabela({ C }) {
   const [velicina, setVelicina] = useState(() => ucitajAqlLotVelicina());
   const promeniVelicinu = (n) => setVelicina(snimiAqlLotVelicina(n));
-  const [nivo, setNivo] = useState("II");
-  const [tipInspekcije, setTipInspekcije] = useState("Normalna");
-  const [aqlPoKlasi, setAqlPoKlasi] = useState(() =>
-    Object.fromEntries(DEFECT_KLASE.map(k => [k.id, k.defaultAql]))
-  );
+  const [podesavanja, setPodesavanja] = useState(() => ucitajAqlPodesavanja());
+  const { nivo, tipInspekcije, aqlPoKlasi } = podesavanja;
+
+  const azurirajPodesavanja = useCallback((patch) => {
+    setPodesavanja((prev) => snimiAqlPodesavanja({ ...prev, ...patch }));
+  }, []);
   const [nokPoKlasi, setNokPoKlasi] = useState(() =>
     Object.fromEntries(DEFECT_KLASE.map(k => [k.id, 0]))
   );
@@ -5632,15 +5821,54 @@ function AQLTabela({ C }) {
     width:"100%", boxSizing:"border-box" };
 
   const setNok = (id, v, maxN) => setNokPoKlasi(p => ({ ...p, [id]: Math.max(0, Math.min(maxN, v)) }));
-  const setAql = (id, v) => setAqlPoKlasi(p => ({ ...p, [id]: v }));
+  const setAql = (id, v) => azurirajPodesavanja({
+    aqlPoKlasi: { ...aqlPoKlasi, [id]: v },
+  });
 
   return (
     <div style={{ padding:18, maxWidth:820, margin:"0 auto" }}>
       <div style={{ color:C.sivi, fontSize:10, letterSpacing:1.5, marginBottom:8 }}>
         AQL KALKULATOR — ANSI/ASQ Z1.4
       </div>
-      <div style={{ color:C.tekst, fontSize:13, marginBottom:20, lineHeight:1.65 }}>
+      <div style={{ color:C.tekst, fontSize:13, marginBottom:14, lineHeight:1.65 }}>
         Isti kalkulator kao Excel workbook AQL_Kalkulator.xlsm — Table I, II-A/II-B, strelice, Critical AQL&nbsp;0 = 100% inspekcija.
+      </div>
+
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 10,
+        alignItems: "center",
+        marginBottom: 16,
+        padding: "12px 14px",
+        background: `${C.plava}12`,
+        border: `1px solid ${C.plava}35`,
+        borderRadius: 10,
+      }}>
+        <div style={{ flex: 1, minWidth: 200, fontSize: 11, color: C.sivi, lineHeight: 1.5 }}>
+          <strong style={{ color: C.tekst }}>Ručni proračun</strong> — nezavisno od ID dela i RN.
+          Na unosu lot dolazi iz naloga; ovde lot i NOK unosite sami za „what-if“ analizu.
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            promeniVelicinu(DEFAULT_AQL_LOT_SIZE);
+            setNokPoKlasi(Object.fromEntries(DEFECT_KLASE.map((k) => [k.id, 0])));
+          }}
+          style={{
+            background: C.plava,
+            border: "none",
+            borderRadius: 8,
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 700,
+            padding: "10px 16px",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          🧮 Novi ručni proračun
+        </button>
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginBottom:20 }}>
@@ -5651,7 +5879,7 @@ function AQLTabela({ C }) {
         </div>
         <div>
           <div style={{ color:C.sivi, fontSize:9, letterSpacing:1.5, marginBottom:6 }}>NIVO INSPEKCIJE</div>
-          <select value={nivo} onChange={e => setNivo(e.target.value)} style={{ ...INP_S, cursor:"pointer" }}>
+          <select value={nivo} onChange={e => azurirajPodesavanja({ nivo: e.target.value })} style={{ ...INP_S, cursor:"pointer" }}>
             <optgroup label="Opšti nivoi">
               {INSPECTION_LEVELS.filter(l => l.grupa === "general").map(l =>
                 <option key={l.id} value={l.id}>{l.label}</option>)}
@@ -5664,7 +5892,7 @@ function AQLTabela({ C }) {
         </div>
         <div>
           <div style={{ color:C.sivi, fontSize:9, letterSpacing:1.5, marginBottom:6 }}>TIP INSPEKCIJE</div>
-          <select value={tipInspekcije} onChange={e => setTipInspekcije(e.target.value)}
+          <select value={tipInspekcije} onChange={e => azurirajPodesavanja({ tipInspekcije: e.target.value })}
             style={{ ...INP_S, cursor:"pointer" }}>
             {INSPECTION_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>

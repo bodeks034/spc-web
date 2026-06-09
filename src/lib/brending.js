@@ -16,7 +16,7 @@ export function getBrending() {
     nazivFirme: (import.meta.env.VITE_NAZIV_FIRME || "").trim(),
     logoUrl,
     razvojNaziv: (import.meta.env.VITE_RAZVOJ_NAZIV || "SPC razvoj").trim(),
-    razvojAutor: (import.meta.env.VITE_RAZVOJ_AUTOR || "").trim(),
+    razvojAutor: (import.meta.env.VITE_RAZVOJ_AUTOR || "Dejan Bogdanovic").trim(),
     razvojEmail: email,
     razvojTel: tel,
     razvojKontakt: kontakt || [email, tel].filter(Boolean).join(" · "),

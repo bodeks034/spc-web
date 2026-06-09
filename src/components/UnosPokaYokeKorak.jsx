@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { kalibracijaBlokiraUnos } from "../lib/meriloStatus.js";
 import { useEkran } from "../lib/useEkran.js";
+import { dp } from "../layout/dp.js";
+import { TELEFON } from "../layout/tokens/telefon.js";
+import { TABLET } from "../layout/tokens/tablet.js";
 import CrtezZoomViewer from "./CrtezZoomViewer.jsx";
 
 const STAVKE_MERLJIVE = [
@@ -47,13 +50,14 @@ export default function UnosPokaYokeKorak({
   onNazad,
   prikaziNazad = false,
   daljeLabel = "Unos merenja →",
+  /** Modul 2 (analitika) portrait: lista → dugme → slika */
+  stekListaDugmeSlika = false,
 }) {
   const ekran = useEkran();
   const { telefon, telefonLandscape, tabletLandscape, uspravnoMobTab } = ekran;
   const kompakt = uspravnoMobTab || telefon || ekran.tablet;
   const landscapeMobTab = telefonLandscape || tabletLandscape;
-  /** Portrait telefon/tablet: checklista gore, slika ispod */
-  const stekPortrait = uspravnoMobTab;
+  const stekPortrait = stekListaDugmeSlika && uspravnoMobTab;
   const stavke = modul === "atributivne" ? STAVKE_ATRIBUTIVNE : STAVKE_MERLJIVE;
   const boja = akcent || (modul === "merljive" ? C.zelena : C.plava);
   /** Atributivne: crtež samo u levom panelu, ne u poka koraku */
@@ -80,24 +84,28 @@ export default function UnosPokaYokeKorak({
     && kontrolnaListaOk !== false
     && (!kalBlok || mozeAdmin);
 
+  const visinaCrtezaMob = useMemo(() => {
+    if (!kompakt) return null;
+    if (stekPortrait) {
+      if (ekran.telefon) return dp(72, ekran);
+      if (ekran.tablet) return dp(88, ekran);
+      return dp(80, ekran);
+    }
+    if (ekran.telefon) return dp(TELEFON.crtezVisinaDno, ekran);
+    if (ekran.tablet) return dp(TABLET.crtezVisinaDno, ekran);
+    return dp(110, ekran);
+  }, [kompakt, stekPortrait, ekran.telefon, ekran.tablet, ekran.kratka]);
+
+  const visinaCrtezaLandscape = useMemo(() => {
+    if (!kompakt) return null;
+    if (ekran.telefonLandscape) return dp(TELEFON.crtezVisinaLandscape, ekran);
+    if (ekran.tabletLandscape) return dp(TABLET.crtezVisinaLandscape, ekran);
+    return dp(88, ekran);
+  }, [kompakt, ekran.telefonLandscape, ekran.tabletLandscape, ekran.kratka]);
+
   const toggle = (id) => setChecks(p => ({ ...p, [id]: !p[id] }));
 
-  return (
-    <div style={{
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      minHeight: 0,
-      gap: kompakt ? 8 : 12,
-    }}>
-      <div style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: stekPortrait ? "column" : "row",
-        gap: kompakt ? 8 : 12,
-        minHeight: 0,
-        alignItems: stekPortrait ? "stretch" : (kompakt ? "flex-start" : "stretch"),
-      }}>
+  const panelListe = (
         <div style={{
           flex: stekPortrait
             ? "0 0 auto"
@@ -110,8 +118,10 @@ export default function UnosPokaYokeKorak({
           padding: kompakt ? "10px 10px" : "14px 16px",
           minHeight: 0,
           minWidth: 0,
-          overflowY: "auto",
-          maxHeight: stekPortrait ? undefined : (kompakt ? Math.min(ekran.h - 130, 420) : undefined),
+          overflowY: stekPortrait ? "visible" : "auto",
+          maxHeight: stekPortrait
+            ? undefined
+            : (kompakt ? Math.min(ekran.h - 130, 420) : undefined),
         }}>
           <div style={{ color: boja, fontSize: 10, letterSpacing: 1.5, marginBottom: 10, fontWeight: 700 }}>
             POKA-YOKE · PROVERA PRE UNOSA
@@ -237,8 +247,9 @@ export default function UnosPokaYokeKorak({
             </div>
           )}
         </div>
+  );
 
-        {prikaziCrtez && (
+  const panelCrteza = prikaziCrtez ? (
           <aside style={{
             flex: stekPortrait
               ? "0 0 auto"
@@ -248,22 +259,22 @@ export default function UnosPokaYokeKorak({
             maxWidth: stekPortrait ? "100%" : (kompakt ? "38%" : undefined),
             display: "flex",
             flexDirection: "column",
-            minHeight: stekPortrait ? 0 : (kompakt ? 0 : 280),
+            minHeight: stekPortrait ? visinaCrtezaMob : (kompakt ? 0 : 280),
             maxHeight: stekPortrait
-              ? Math.min(280, Math.round(ekran.visinaLayout * 0.34))
+              ? visinaCrtezaMob
               : (landscapeMobTab
-                ? Math.min(220, Math.round(ekran.visinaLayout * 0.42))
-                : (kompakt ? Math.min(200, Math.round(ekran.visinaLayout * 0.28)) : undefined)),
+                ? visinaCrtezaLandscape
+                : (kompakt ? visinaCrtezaLandscape : undefined)),
             alignSelf: stekPortrait ? "stretch" : (kompakt ? "flex-start" : "stretch"),
             flexShrink: 0,
             background: C.panel,
             border: `1px solid ${C.border}`,
             borderRadius: 8,
-            padding: kompakt ? 6 : 8,
+            padding: kompakt ? 4 : 8,
             boxSizing: "border-box",
           }}>
-            <div style={{ color: C.sivi, fontSize: 9, marginBottom: 6, textAlign: "center", flexShrink: 0 }}>
-              Crtež · zoom · klik = ceo ekran
+            <div style={{ color: C.sivi, fontSize: 8, marginBottom: 4, textAlign: "center", flexShrink: 0 }}>
+              Crtež · zoom · ⛶
             </div>
             <div style={{ flex: 1, minHeight: 0 }}>
               <CrtezZoomViewer
@@ -273,8 +284,108 @@ export default function UnosPokaYokeKorak({
               />
             </div>
           </aside>
+  ) : null;
+
+  const dugmadAkcije = (
+      <div style={{
+        display: "flex",
+        flexDirection: stekPortrait ? "column" : "row",
+        flexWrap: "wrap",
+        gap: kompakt ? 6 : 10,
+        alignItems: "stretch",
+        justifyContent: stekPortrait ? "stretch" : "flex-end",
+        flexShrink: 0,
+        width: "100%",
+      }}>
+        <button
+          type="button"
+          disabled={!mozeDalje}
+          onClick={() => mozeDalje && onDalje?.()}
+          title={
+            !sviStavke ? "Označite sve stavke"
+              : kalBlok && !mozeAdmin ? "Rešite kalibraciju ili admin dozvolu"
+              : kontrolnaListaOk === false ? "Završite kontrolnu listu smene"
+              : "Pređi na unos merenja"
+          }
+          style={{
+            background: mozeDalje ? boja : C.hover,
+            border: "none",
+            borderRadius: 8,
+            color: mozeDalje ? "#000" : C.sivi,
+            fontSize: kompakt ? 13 : 14,
+            fontWeight: 800,
+            padding: kompakt ? "12px 22px" : "14px 28px",
+            cursor: mozeDalje ? "pointer" : "not-allowed",
+            letterSpacing: 0.5,
+            width: stekPortrait ? "100%" : "auto",
+          }}
+        >
+          {daljeLabel}
+        </button>
+        {prikaziNazad && typeof onNazad === "function" && (
+          <button
+            type="button"
+            onClick={onNazad}
+            style={{
+              background: "none",
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              color: C.sivi,
+              fontSize: kompakt ? 12 : 13,
+              fontWeight: 600,
+              padding: kompakt ? "10px 14px" : "12px 18px",
+              cursor: "pointer",
+              width: stekPortrait ? "100%" : "auto",
+            }}
+          >
+            ← Nazad
+          </button>
         )}
       </div>
+  );
+
+  const hintAkcije = !mozeDalje ? (
+        <div style={{ color: C.sivi, fontSize: 10, textAlign: stekPortrait ? "center" : "right" }}>
+          {!sviStavke && "Označite sve stavke checkliste. "}
+          {kalBlok && !mozeAdmin && "Kalibracija blokira unos. "}
+          {kontrolnaListaOk === false && "Potrebna kontrolna lista smene."}
+        </div>
+  ) : null;
+
+  return (
+    <div style={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0,
+      gap: kompakt ? 6 : 12,
+      overflowY: stekPortrait ? "auto" : "hidden",
+      WebkitOverflowScrolling: "touch",
+    }}>
+      {stekPortrait ? (
+        <>
+          {panelListe}
+          {dugmadAkcije}
+          {hintAkcije}
+          {panelCrteza}
+        </>
+      ) : (
+        <>
+          <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "row",
+            gap: kompakt ? 8 : 12,
+            minHeight: 0,
+            alignItems: kompakt ? "flex-start" : "stretch",
+          }}>
+            {panelListe}
+            {panelCrteza}
+          </div>
+          {dugmadAkcije}
+          {hintAkcije}
+        </>
+      )}
 
       {zoomSlika && prikaziCrtez && (
         <div
@@ -302,50 +413,6 @@ export default function UnosPokaYokeKorak({
         </div>
       )}
 
-      <div style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: kompakt ? 6 : 10,
-        alignItems: "center",
-        justifyContent: "flex-end",
-        flexShrink: 0,
-        paddingTop: kompakt ? 0 : 4,
-        marginTop: kompakt ? -2 : 0,
-      }}>
-        <button
-          type="button"
-          disabled={!mozeDalje}
-          onClick={() => mozeDalje && onDalje?.()}
-          title={
-            !sviStavke ? "Označite sve stavke"
-              : kalBlok && !mozeAdmin ? "Rešite kalibraciju ili admin dozvolu"
-              : kontrolnaListaOk === false ? "Završite kontrolnu listu smene"
-              : "Pređi na unos merenja"
-          }
-          style={{
-            background: mozeDalje ? boja : C.hover,
-            border: "none",
-            borderRadius: 8,
-            color: mozeDalje ? "#000" : C.sivi,
-            fontSize: kompakt ? 13 : 14,
-            fontWeight: 800,
-            padding: kompakt ? "12px 22px" : "14px 28px",
-            cursor: mozeDalje ? "pointer" : "not-allowed",
-            letterSpacing: 0.5,
-            width: kompakt ? "100%" : "auto",
-          }}
-        >
-          {daljeLabel}
-        </button>
-      </div>
-
-      {!mozeDalje && (
-        <div style={{ color: C.sivi, fontSize: 10, textAlign: "right" }}>
-          {!sviStavke && "Označite sve stavke checkliste. "}
-          {kalBlok && !mozeAdmin && "Kalibracija blokira unos. "}
-          {kontrolnaListaOk === false && "Potrebna kontrolna lista smene."}
-        </div>
-      )}
     </div>
   );
 }

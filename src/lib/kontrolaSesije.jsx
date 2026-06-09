@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { obavestiAdminZahtev } from "./adminZahtevNotifikacije.js";
 import { supabase } from "./supabaseClient.js";
 import { kontrolnaListaObavezna, normalizujIdDeo } from "./kontrolaLista.js";
-import LicencaStatusPanel from "../components/LicencaStatusPanel.jsx";
-
 /** Kontrolna lista pre smene (atributivne i merljive). */
 export function KontrolnaLista({
   korisnik,
@@ -14,8 +12,6 @@ export function KontrolnaLista({
   naslovModul = "",
   akcent,
   ugradjen = false,
-  licenca = null,
-  prikaziLicencu = false,
 }) {
   const boja = akcent || C.plava;
   const [stavke, setStavke] = useState([]);
@@ -104,17 +100,11 @@ export function KontrolnaLista({
     );
   }
 
-  const licencaFooter = prikaziLicencu && licenca ? (
-    <div style={{ width: "100%", maxWidth: ugradjen ? "100%" : 600, margin: ugradjen ? 0 : "0 auto" }}>
-      <LicencaStatusPanel licenca={licenca} C={C} kompakt />
-    </div>
-  ) : null;
-
   if (vecUradjena) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
         justifyContent: "center", minHeight: ugradjen ? "auto" : "60vh", gap: ugradjen ? 10 : 16,
-        padding: ugradjen ? "12px 0" : "24px 16px 100px", width: "100%" }}>
+        padding: ugradjen ? "12px 0" : "24px 16px", width: "100%" }}>
         <div style={{ fontSize: ugradjen ? 36 : 60 }}>✅</div>
         <div style={{ color: C.zelena, fontSize: ugradjen ? 14 : 20, fontWeight: 700, textAlign: "center" }}>
           Ček lista je popunjena — nastavi dalje
@@ -126,7 +116,6 @@ export function KontrolnaLista({
           color: "#fff", fontSize: ugradjen ? 12 : 14, fontWeight: 700, padding: ugradjen ? "10px 20px" : "12px 28px", cursor: "pointer" }}>
           Nastavi dalje →
         </button>
-        {licencaFooter}
       </div>
     );
   }
@@ -232,7 +221,6 @@ export function KontrolnaLista({
           : potvrdjeno === ukupno ? "✓ Potvrdi i nastavi sa radom"
             : `Potvrdi još ${ukupno - potvrdjeno} stavki`}
       </button>
-      {licencaFooter}
     </div>
   );
 }
