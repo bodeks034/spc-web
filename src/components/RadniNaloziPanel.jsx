@@ -5,6 +5,7 @@ import {
   upsertRadniNalozi,
   ERP_CSV_KOLONE,
 } from "../lib/radniNaloziUvoz.js";
+import { pogonIzRn } from "../lib/pogonSop.js";
 
 export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   const [nalozi, setNalozi] = useState([]);
@@ -21,6 +22,7 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
     kolicina: "",
     kupac: "",
     rok_isporuke: "",
+    pogon_kod: "",
     napomena: "",
   });
 
@@ -43,10 +45,12 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
 
   const snimi = async () => {
     if (!nov.broj_naloga || !nov.id_deo) return;
+    const broj = nov.broj_naloga.toUpperCase();
     const payload = {
       ...nov,
-      broj_naloga: nov.broj_naloga.toUpperCase(),
+      broj_naloga: broj,
       id_deo: nov.id_deo.toUpperCase(),
+      pogon_kod: String(nov.pogon_kod || "").trim().toUpperCase() || pogonIzRn(broj) || null,
       kolicina: nov.kolicina ? Number(nov.kolicina) : null,
       status: "aktivan",
     };
@@ -66,6 +70,7 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
         kolicina: "",
         kupac: "",
         rok_isporuke: "",
+        pogon_kod: "",
         napomena: "",
       });
     } else addToast(error.message, "greska");
@@ -128,8 +133,10 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
           <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>
             RADNI NALOZI (ERP)
           </div>
-          <div style={{ color: C.sivi, fontSize: 10, marginTop: 4 }}>
+          <div style={{ color: C.sivi, fontSize: 10, marginTop: 4, lineHeight: 1.45 }}>
             Aktivnih: {stat.aktivni} · Ukupno u bazi: {stat.ukupno}
+            <br />
+            Kupac i rok isporuke unosiš ovde (forma ili CSV) — prikazuju se u unosu merenja posle izbora dela.
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -254,7 +261,8 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
         }}>
           <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Novi radni nalog</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            {[["BROJ NALOGA", "broj_naloga", "RN-2026-101"],
+            {[["BROJ NALOGA", "broj_naloga", "RN-2026-NM001-B"],
+              ["POGON (A–H)", "pogon_kod", "B ili iz sufiksa RN"],
               ["KUPAC", "kupac", ""],
               ["KOLIČINA", "kolicina", ""],
               ["ROK ISPORUKE", "rok_isporuke", ""],

@@ -1,3 +1,5 @@
+import { pogonIzRn } from "./pogonSop.js";
+
 /**
  * Uvoz radnih naloga iz ERP CSV — zajednički parser (UI + scripts).
  */
@@ -5,6 +7,7 @@
 export const ERP_CSV_KOLONE = [
   "broj_naloga / radni nal / RN",
   "id_deo / id dela*",
+  "pogon_kod (A–H, opciono — ili sufiks RN npr. -B)",
   "naziv_dela (opciono)",
   "kolicina",
   "kupac",
@@ -130,11 +133,18 @@ export function mapRadniNalogRed(row) {
     };
   }
 
+  const brojNorm = String(broj).trim().toUpperCase();
+  const pogonRaw = pick(row, "pogon_kod", "pogon", "pogon kod");
+  const pogon_kod = pogonRaw
+    ? String(pogonRaw).trim().toUpperCase()
+    : pogonIzRn(brojNorm);
+
   return {
     ok: true,
     row: {
-      broj_naloga: String(broj).trim().toUpperCase(),
+      broj_naloga: brojNorm,
       id_deo: String(idDeo).trim().toUpperCase(),
+      pogon_kod: pogon_kod || null,
       naziv_dela: pick(row, "naziv_dela", "naziv dela", "naziv", "opis") || null,
       kolicina: num(pick(row, "kolicina", "količina", "qty", "quantity", "kom")),
       kupac: pick(row, "kupac", "customer", "klijent") || null,

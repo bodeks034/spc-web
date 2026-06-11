@@ -7,6 +7,8 @@ export function jeKontrolaCelogVozila(deo) {
   const naziv = (deo.naziv_dela || "").toLowerCase();
   const kar = (deo.karakteristika || "").toLowerCase();
   return id.startsWith("AUTO")
+    || id.startsWith("NTV")
+    || id.startsWith("MRAP")
     || naziv.includes("komplet")
     || naziv.includes("celo vozilo")
     || kar.includes("celog vozila")

@@ -1,0 +1,59 @@
+id,kategorija,podkategorija,defekt
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Prednji branik,Loše poravnanje (zazor) sa krilima/farovima
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Prednji branik,labav spoj
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Prednji branik,ogrebotine
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Prednji branik,oštećenja plastike
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Prednji branik,neispravne žabice
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,Nejednak zazor levo/desno
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,visinsko odstupanje u odnosu na krila
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,"oštećenja boje (tačke, prašina u laku)"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,loše zatvaranje bravice.
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,buka
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,"Ogrebotine,,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,ulubljenja (kontura)
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,loš spoj sa pragom i A-stubom.
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,"Ogrebotine,,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,ulubljenja (kontura)
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,loš spoj sa pragom i A-stubom.
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, , , ."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,zvuk škripanja pri otvaranju
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,ogrebotine oko kvake
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,loše nalepljena zaptivna guma (kedera)
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, , , ."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,zvuk škripanja pri otvaranju
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,ogrebotine oko kvake
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,loše nalepljena zaptivna guma (kedera)
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, , , ."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,zvuk škripanja pri otvaranju
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,ogrebotine oko kvake
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,loše nalepljena zaptivna guma (kedera)
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,provera bezbednosne brave za decu (Child lock).
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata,Loš zazor/poravnanje
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata,zvuk škripanja pri otvaranju
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata,ogrebotine oko kvake
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata,loše nalepljena zaptivna guma (kedera)
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata,provera bezbednosne brave za decu (Child lock).
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje levo krilo,Deformacije lima
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje levo krilo,prelazi boja na spojevima
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje levo krilo,loš spoj sa C-stubom i branikom
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,Deformacije lima
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,prelazi boja na spojevima
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,loš spoj sa C-stubom i branikom
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,"poklopac rezervoara/priključka za punjenje (labavost, zazor)"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"Loše poravnanje sa svetlima i krilima, i."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"ogrebotine pri dnu,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,labavi nosač
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"Teško zatvaranje,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,neujednačen zazor sa svetlosnim grupama
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"visinska odstupanja,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,loše zaptivanje gume.
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,Talasi na limu
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,oštećenja boje od transporta
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,loš spoj krovnih lajsni ili panoramskog stakla
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,Pukotine (zvezdice)
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,ogrebotine od brisača
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,loša aplikacija lepka (curenje vode)
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,fabrički mehurići u staklu.
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"Ogrebotine od podizanja/spuštanja,"
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"zazor pri zatvaranju (prolaz vazduha),"
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,oštećenja toniranog filma.

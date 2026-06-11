@@ -1,0 +1,13 @@
+id,kategorija,podkategorija,defekt
+NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,"Greška na instrument tabli, , ,"
+NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,nefunkcionalan USB/12V priključak
+NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,otkaz podizača prozora
+NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,problem sa audio sistemom.
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,"Kondenzacija (vlaga) unutar fara/stop svetla, , ,"
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,nefunkcionalna LED traka
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,loš intenzitet svetla
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,"Labavost parking senzora (upali unutra), ,"
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,prljava ili izgrebana sočiva kamera (rikverc/360)
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,loša kalibracija radara.

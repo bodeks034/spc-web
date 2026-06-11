@@ -41,16 +41,23 @@ Generisano: scripts/pakuj-sifrarnik-folder.mjs
 - greske_katalog.csv
 - katalog_gresaka_vozilo.csv
 - delovi.csv
+- ciljevi.csv
 - radnici.csv
 - radni_nalozi.csv
+- kupci.csv
 - kontrolna_lista_stavke.csv
+- merila.csv
+- kalibracije.csv
 - sop_deo_varijabilni.csv
 - karakteristike_merljive.csv
 - merenja_varijabilna.csv
 - ciljevi.csv
+- kupci.csv
 - merila.csv
+- kalibracije.csv
 - barkodi_sadrzaj.csv
 - erp_radni_nalozi.example.csv
+- deo_rucni.csv
 
 ## Tačni nazivi tabova (mora biti isto!)
 

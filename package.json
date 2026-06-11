@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "import:docs": "node scripts/import-all-docs.mjs",
+    "spoji:katalog-vozilo": "node scripts/spoji-katalog-vozilo.mjs",
     "import:radni-nalozi": "node scripts/import-radni-nalozi.mjs",
     "seed:5501-5503": "node scripts/seed-merljive-5501-5503.mjs",
     "build:merljive-xlsx": "node scripts/seed-merljive-5501-5503.mjs",
@@ -24,7 +25,9 @@
     "licenca:baza": "node scripts/postavi-licencu.mjs",
     "dokument:checklist-it": "node scripts/generisi-checklist-firma-dokument.mjs",
     "dokument:checklist-pun": "node scripts/generisi-checklist-firma-dokument.mjs --interno",
-    "pakuj:sifrarnik": "node scripts/pakuj-sifrarnik-folder.mjs"
+    "sync:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs",
+    "pakuj:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs && node scripts/pakuj-sifrarnik-folder.mjs",
+    "migriraj:nm001": "node scripts/migriraj-nm001-pogon.mjs"
   },
   "keywords": [],
   "author": "",

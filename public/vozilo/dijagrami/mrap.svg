@@ -1,0 +1,6 @@
+<svg viewBox="0 0 682 520" xmlns="http://www.w3.org/2000/svg">
+  <title>MRAP  pozadina (zone crta aplikacija)</title>
+  <rect width="682" height="520" fill="#faf9f5"/>
+  <image href="mrap.png" x="20" y="40" width="640" height="410" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="60" y1="468" x2="620" y2="468" stroke="rgba(31,30,29,0.15)" stroke-width="0.8"/>
+</svg>

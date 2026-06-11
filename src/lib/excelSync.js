@@ -1,4 +1,9 @@
 import * as XLSX from "xlsx";
+import {
+  mapDeloviRedIzExcela,
+  podeliDeloviUvoz,
+  deloviZaExcelEksport,
+} from "./deloviAtributivni.js";
 
 export const EXCEL_BUCKET = "spc-excel-sync";
 export const KONTROLNI_LOG_FILE = "kontrolni_log.xlsx";
@@ -23,6 +28,24 @@ export const KONTROLNI_LOG_COLS = [
   ["ukupno_merenja", "Ukupno N"],
   ["potreban_broj", "Potreban broj"],
   ["komentar", "Komentar"],
+];
+
+/** Kolone taba delovi u SPC_master_atributivne (redosled za Excel). */
+export const DELOVI_EXCEL_COLS = [
+  ["id_deo", "id dela*"],
+  ["pogon_kod", "pogon kod"],
+  ["radni_nalog", "radni nalog"],
+  ["naziv_dela", "naziv dela*"],
+  ["karakteristika", "karakteristika kontrole*"],
+  ["linija_id", "linija id*"],
+  ["masina_id", "masina id*"],
+  ["kom_za_kontrolu", "kom za kontrolu n*"],
+  ["slika_naziv", "slika/crtez"],
+  ["aktivan", "aktivan"],
+  ["napomena", "napomena"],
+  ["tip_kontrole", "tip kontrole"],
+  ["vozilo_katalog_id", "vozilo katalog id"],
+  ["greska_katalog_id", "greska katalog id"],
 ];
 
 /** Mapiranje Excel sheet → Supabase (isti redosled kao docs/*.csv) */
@@ -75,6 +98,7 @@ export const IMPORT_SHEETS = [
       opis: pick(r, "opis") || null,
       id_deo: pick(r, "id_deo", "id dela") ? pick(r, "id_deo", "id dela").toUpperCase() : null,
       katalog_id: pick(r, "katalog_id", "katalog id") || null,
+      pogon_kod: (pick(r, "pogon_kod", "pogon kod", "pogon") || "").toUpperCase() || null,
     }),
     valid: (r) => r.id && r.kategorija,
   },
@@ -95,25 +119,25 @@ export const IMPORT_SHEETS = [
     sheet: "delovi",
     table: "delovi",
     onConflict: "id_deo",
-    map: (r) => {
-      const idDeo = pick(r, "id dela", "id_deo").toUpperCase();
-      const tip = (pick(r, "tip kontrole", "tip_kontrole") || (idDeo.startsWith("AUTO") ? "vozilo" : "deo")).toLowerCase();
-      return {
-        id_deo: idDeo,
-        naziv_dela: pick(r, "naziv dela", "naziv_dela"),
-        karakteristika: pick(r, "karakteristika kontrole", "karakteristika") || null,
-        linija_id: num(pick(r, "linija id", "linija_id")),
-        masina_id: num(pick(r, "masina id", "masina_id")),
-        kom_za_kontrolu: num(pick(r, "kom za kontrolu n", "kom za kontrolu")) ?? 30,
-        slika_naziv: pick(r, "slika/crtez", "slika_naziv") || null,
-        aktivan: daNe(pick(r, "aktivan")),
-        napomena: pick(r, "napomena") || null,
-        tip_kontrole: tip === "vozilo" ? "vozilo" : "deo",
-        vozilo_katalog_id: pick(r, "vozilo katalog id", "vozilo_katalog_id") || (tip === "vozilo" ? "FINAL-001" : null),
-        greska_katalog_id: pick(r, "greska katalog id", "greska_katalog_id") || null,
-      };
-    },
+    dualAtributivniPogon: true,
+    map: (r) => mapDeloviRedIzExcela(r, pick, num, daNe),
     valid: (r) => r.id_deo,
+  },
+  {
+    sheet: "ciljevi",
+    table: "ciljevi",
+    onConflict: "id",
+    map: (r) => ({
+      id: num(r.id) || undefined,
+      id_deo: pick(r, "id dela", "id_deo").toUpperCase() || null,
+      naziv: pick(r, "naziv") || null,
+      rty_cilj: num(pick(r, "rty cilj %", "rty_cilj", "rty cilj")),
+      dpmo_cilj: num(pick(r, "dpmo cilj", "dpmo_cilj")),
+      p_cilj: num(pick(r, "p cilj %", "p_cilj", "p cilj")),
+      vazi_od: pick(r, "vazi od", "vazi_od") || null,
+      napomena: pick(r, "napomena") || null,
+    }),
+    valid: (r) => r.id_deo || r.naziv,
   },
   {
     sheet: "radnici",
@@ -133,20 +157,39 @@ export const IMPORT_SHEETS = [
     sheet: "radni_nalozi",
     table: "radni_nalozi",
     onConflict: "broj_naloga",
-    map: (r) => ({
-      id: num(r.id) || undefined,
-      broj_naloga: pick(r, "radni nal", "broj_naloga").toUpperCase(),
-      id_deo: pick(r, "id dela", "id_deo").toUpperCase(),
-      naziv_dela: pick(r, "naziv dela", "naziv_dela") || null,
-      kolicina: num(pick(r, "kolicina")),
-      kupac: pick(r, "kupac") || null,
-      datum_unosa: pick(r, "datum unosa") || null,
-      rok_isporuke: pick(r, "rok isporuke") || null,
-      status: pick(r, "status") || "aktivan",
-      operater: pick(r, "operater") || null,
-      napomena: pick(r, "napomena") || null,
-    }),
+    map: (r) => {
+      const broj = pick(r, "radni nal", "broj_naloga").toUpperCase();
+      let pogon = (pick(r, "pogon_kod", "pogon kod", "pogon") || "").toUpperCase();
+      if (!pogon) {
+        const m = broj.match(/-([A-H])$/);
+        if (m) pogon = m[1];
+      }
+      return {
+        broj_naloga: broj,
+        id_deo: pick(r, "id dela", "id_deo").toUpperCase(),
+        naziv_dela: pick(r, "naziv dela", "naziv_dela") || null,
+        kolicina: num(pick(r, "kolicina")),
+        kupac: pick(r, "kupac") || null,
+        datum_unosa: pick(r, "datum unosa") || null,
+        rok_isporuke: pick(r, "rok isporuke") || null,
+        status: pick(r, "status") || "aktivan",
+        operater: pick(r, "operater") || null,
+        napomena: pick(r, "napomena") || null,
+        pogon_kod: pogon || null,
+      };
+    },
     valid: (r) => r.broj_naloga,
+  },
+  {
+    sheet: "kupci",
+    table: "kupci",
+    onConflict: "id",
+    map: (r) => ({
+      id: num(r.id),
+      naziv: pick(r, "naziv", "kupac"),
+      aktivan: daNe(pick(r, "aktivan")),
+    }),
+    valid: (r) => r.id && r.naziv,
   },
   {
     sheet: "kontrolna_lista_stavke",
@@ -161,6 +204,43 @@ export const IMPORT_SHEETS = [
     }),
     valid: (r) => r.id && r.stavka,
   },
+  {
+    sheet: "merila",
+    table: "merila",
+    onConflict: "id",
+    map: (r) => ({
+      id: num(r.id) || undefined,
+      naziv: pick(r, "naziv merila", "naziv"),
+      serijski_broj: pick(r, "serijski br.", "serijski_broj", "serijski broj") || null,
+      tip: pick(r, "tip") || null,
+      lokacija: pick(r, "lokacija") || null,
+      opseg: pick(r, "opseg") || null,
+      aktivno: daNe(pick(r, "aktivno", "aktivan")),
+    }),
+    valid: (r) => r.naziv,
+  },
+  {
+    sheet: "kalibracije",
+    table: "kalibracije",
+    onConflict: "id",
+    map: (r) => ({
+      id: num(r.id) || undefined,
+      merilo_id: num(pick(r, "merilo id", "merilo_id", "id merila")),
+      datum_kal: pick(r, "datum kal.", "datum_kal", "datum kalibracije") || null,
+      sledeca_kal: pick(r, "sledeca kal.", "sledeca_kal", "sledeća kal.") || null,
+      izvrsio: pick(r, "izvrsio", "izvršio") || null,
+      sertifikat_br: pick(r, "cert br.", "sertifikat_br", "sertifikat") || null,
+      rezultat: pick(r, "rezultat") || null,
+      napomena: pick(r, "napomena") || null,
+    }),
+    valid: (r) => r.merilo_id,
+  },
+];
+
+/** Kolone za izvoz/uvoz karakteristike_merljive (bez duplikata usl_text/lsl_text). */
+export const KARAKTERISTIKE_MERLJIVE_COLS = [
+  "id", "id_deo", "pogon_kod", "sifra_merenja", "faza_naziv", "linija_faza", "broj_merenja",
+  "pozicija", "naziv_mere", "nominala", "usl", "lsl", "merni_instrument", "jedinica", "napomena",
 ];
 
 /** Merljive / varijabilne tabele — CSV nazivi ili native tabovi iz Varijabilne_SPC.xlsm */
@@ -169,9 +249,10 @@ export const MERLJIVE_IMPORT_SHEETS = [
     sheet: "sop_deo_varijabilni",
     altSheets: ["SOP"],
     table: "sop_deo_varijabilni",
-    onConflict: "id_deo",
+    onConflict: "id_deo,pogon_kod",
     map: (r) => ({
       id_deo: pick(r, "id_deo", "id dela").toUpperCase(),
+      pogon_kod: (pick(r, "pogon_kod", "pogon kod", "pogon") || "A").toUpperCase(),
       radni_nalog: pick(r, "radni_nalog", "radni nal") || null,
       naziv_dela: pick(r, "naziv_dela", "naziv dela") || null,
       slika: pick(r, "slika", "slika/crtez") || null,
@@ -190,14 +271,18 @@ export const MERLJIVE_IMPORT_SHEETS = [
     map: (r) => ({
       id: num(r.id),
       id_deo: pick(r, "id_deo", "id dela").toUpperCase(),
+      pogon_kod: (pick(r, "pogon_kod", "pogon kod", "pogon") || "").toUpperCase() || null,
       sifra_merenja: pick(r, "sifra_merenja", "sifra merenja"),
+      faza_naziv: pick(r, "faza_naziv", "faza naziv") || null,
+      linija_faza: pick(r, "linija_faza", "linija faza") || null,
+      broj_merenja: num(pick(r, "broj_merenja", "broj merenja")) || null,
       pozicija: pick(r, "pozicija", "dimenzija"),
       naziv_mere: pick(r, "naziv_mere", "naziv mere") || null,
       nominala: num(pick(r, "nominala")),
       usl: num(pick(r, "usl")),
       lsl: num(pick(r, "lsl")),
-      usl_text: pick(r, "usl_text") || null,
-      lsl_text: pick(r, "lsl_text") || null,
+      usl_text: pick(r, "usl_text") || (pick(r, "usl") !== "" ? String(pick(r, "usl")) : null),
+      lsl_text: pick(r, "lsl_text") || (pick(r, "lsl") !== "" ? String(pick(r, "lsl")) : null),
       merni_instrument: pick(r, "merni_instrument", "merni instrument") || null,
       jedinica: pick(r, "jedinica") || null,
       napomena: pick(r, "napomena") || null,
@@ -215,6 +300,7 @@ export const MERLJIVE_IMPORT_SHEETS = [
       smena: num(pick(r, "smena")),
       radni_nalog: pick(r, "radni_nalog", "radni nal") || null,
       id_deo: pick(r, "id_deo", "id dela").toUpperCase(),
+      pogon_kod: (pick(r, "pogon_kod", "pogon kod", "pogon") || "").toUpperCase() || null,
       pozicija: pick(r, "pozicija", "dimenzija"),
       vrednost_raw: String(pick(r, "vrednost_raw", "izmereno") ?? ""),
       vrednost_dec: num(pick(r, "vrednost_dec", "izmereno")),
@@ -315,14 +401,12 @@ function sheetPositionalRows(sheet) {
 }
 
 function parseSopDeoPositional(rows) {
-  const out = [];
-  const seen = new Set();
+  const byDeo = new Map();
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     const idDeo = String(r[3] || "").trim().toUpperCase();
-    if (!idDeo || seen.has(idDeo)) continue;
-    seen.add(idDeo);
-    out.push({
+    if (!idDeo) continue;
+    byDeo.set(idDeo, {
       id_deo: idDeo,
       radni_nalog: String(r[2] || "").trim() || null,
       naziv_dela: String(r[4] || "").trim() || null,
@@ -333,7 +417,7 @@ function parseSopDeoPositional(rows) {
       kontrolor_ime: String(r[13] || "").trim() || null,
     });
   }
-  return out.filter(r => r.id_deo);
+  return [...byDeo.values()];
 }
 
 function parseKarakteristikePositional(rows) {
@@ -453,17 +537,107 @@ export function previewMerljiveImport(wb) {
   return previewImport(wb, MERLJIVE_IMPORT_SHEETS);
 }
 
+/** Poslednji red pobedi — upsert u jednom batch-u ne sme dva puta isti conflict ključ. */
+function dedupeRowsForUpsert(rows, onConflict) {
+  if (!onConflict || rows.length < 2) return rows;
+  const keys = onConflict.split(",").map((k) => k.trim());
+  const conflictImaPogon = keys.includes("pogon_kod");
+  const out = new Map();
+  for (const row of rows) {
+    const parts = keys.map((key) => {
+      let v = row[key];
+      if (key === "pogon_kod") {
+        return v === undefined || v === null ? "" : String(v).trim().toUpperCase();
+      }
+      if (v === undefined || v === null || v === "") return null;
+      if (key === "id_deo") v = String(v).toUpperCase();
+      return v;
+    });
+    if (parts.some((p) => p === null)) continue;
+    const normalized = { ...row };
+    if (normalized.id_deo) normalized.id_deo = String(normalized.id_deo).toUpperCase();
+    if (conflictImaPogon) {
+      if (normalized.pogon_kod === undefined || normalized.pogon_kod === null) {
+        normalized.pogon_kod = "";
+      } else {
+        normalized.pogon_kod = String(normalized.pogon_kod).trim().toUpperCase();
+      }
+    } else if ("pogon_kod" in normalized) {
+      delete normalized.pogon_kod;
+    }
+    out.set(parts.join("\0"), normalized);
+  }
+  return out.size ? [...out.values()] : rows;
+}
+
+async function assertDeloviPostoje(supabase, rows, label) {
+  const ids = [...new Set(
+    rows.map((r) => String(r.id_deo || "").trim().toUpperCase()).filter(Boolean),
+  )];
+  if (!ids.length) return;
+
+  const found = new Set();
+  for (let i = 0; i < ids.length; i += 80) {
+    const chunk = ids.slice(i, i + 80);
+    const { data, error } = await supabase.from("delovi").select("id_deo").in("id_deo", chunk);
+    if (error) throw new Error(`${label}: provera delova — ${error.message}`);
+    (data || []).forEach((r) => found.add(String(r.id_deo).toUpperCase()));
+  }
+
+  const missing = ids.filter((id) => !found.has(id));
+  if (missing.length) {
+    throw new Error(
+      `${label}: ID delova nisu u tabeli "delovi". `
+      + `Prvo Admin → uvezi master Excel (tab delovi), pa merljive. Nedostaju: ${missing.join(", ")}`,
+    );
+  }
+}
+
+const MERLJIVE_TABELE_SA_DELOVIMA = new Set([
+  "sop_deo_varijabilni",
+  "karakteristike_merljive",
+  "merenja_varijabilna",
+]);
+
 async function upsertBatches(supabase, table, rows, onConflict) {
+  const deduped = dedupeRowsForUpsert(rows, onConflict);
   const batchSize = 100;
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize);
+  for (let i = 0; i < deduped.length; i += batchSize) {
+    const batch = deduped.slice(i, i + batchSize);
     const opts = onConflict ? { onConflict } : undefined;
     const { error } = await supabase.from(table).upsert(batch, opts);
     if (error) throw new Error(`${table}: ${error.message}`);
   }
+  return deduped.length;
+}
+
+async function importDeloviSheet(supabase, wb, cfg) {
+  const sheet = wb.Sheets[cfg.sheet];
+  if (!sheet) {
+    return { sheet: cfg.sheet, status: "preskoceno", count: 0 };
+  }
+  const mapped = sheetToRows(sheet).map(cfg.map).filter(cfg.valid);
+  if (!mapped.length) {
+    return { sheet: cfg.sheet, status: "prazno", count: 0 };
+  }
+  const { masterRows, pogonRows } = podeliDeloviUvoz(mapped);
+  const masterCount = await upsertBatches(supabase, "delovi", masterRows, "id_deo");
+  let pogonCount = 0;
+  if (pogonRows.length) {
+    pogonCount = await upsertBatches(supabase, "delovi_atributivni_pogon", pogonRows, "id_deo,pogon_kod");
+  }
+  return {
+    sheet: cfg.sheet,
+    table: "delovi + delovi_atributivni_pogon",
+    status: "ok",
+    count: masterCount + pogonCount,
+  };
 }
 
 async function importSheetConfig(supabase, wb, cfg, useMerljiveParser) {
+  if (cfg.dualAtributivniPogon) {
+    return importDeloviSheet(supabase, wb, cfg);
+  }
   let rows;
   if (useMerljiveParser) {
     const parsed = rowsForMerljiveSheet(wb, cfg);
@@ -481,14 +655,17 @@ async function importSheetConfig(supabase, wb, cfg, useMerljiveParser) {
       return { sheet: cfg.sheet, status: "prazno", count: 0 };
     }
   }
+  if (MERLJIVE_TABELE_SA_DELOVIMA.has(cfg.table)) {
+    await assertDeloviPostoje(supabase, rows, cfg.sheet);
+  }
   if (cfg.replace) {
     await supabase.from(cfg.table).delete().neq("id", 0);
     const { error } = await supabase.from(cfg.table).insert(rows);
     if (error) throw new Error(`${cfg.table}: ${error.message}`);
-  } else {
-    await upsertBatches(supabase, cfg.table, rows, cfg.onConflict);
+    return { sheet: cfg.sheet, table: cfg.table, status: "ok", count: rows.length };
   }
-  return { sheet: cfg.sheet, table: cfg.table, status: "ok", count: rows.length };
+  const count = await upsertBatches(supabase, cfg.table, rows, cfg.onConflict);
+  return { sheet: cfg.sheet, table: cfg.table, status: "ok", count };
 }
 
 export async function importWorkbookToSupabase(supabase, wb, onlySheets = null) {
@@ -514,6 +691,22 @@ export async function exportMasterWorkbook(supabase) {
   for (const cfg of IMPORT_SHEETS) {
     const { data, error } = await supabase.from(cfg.table).select("*");
     if (error) throw error;
+    if (cfg.sheet === "delovi") {
+      const { data: pogonData, error: pogonErr } = await supabase
+        .from("delovi_atributivni_pogon")
+        .select("*");
+      if (pogonErr) throw pogonErr;
+      const merged = deloviZaExcelEksport(data || [], pogonData || []).map((r) => ({
+        ...r,
+        aktivan: r.aktivan === false ? "NE" : "DA",
+        pogon_kod: r.pogon_kod || "",
+        radni_nalog: r.radni_nalog || "",
+      }));
+      const mapped = rowsToExportRows(merged, DELOVI_EXCEL_COLS);
+      const sheet = XLSX.utils.json_to_sheet(mapped);
+      XLSX.utils.book_append_sheet(wb, sheet, cfg.sheet.slice(0, 31));
+      continue;
+    }
     const cols = data?.length
       ? Object.keys(data[0])
       : [];
@@ -531,13 +724,24 @@ export async function exportMasterWorkbook(supabase) {
   return wb;
 }
 
+function rowsToExportSheet(rows, cols) {
+  const mapped = (rows || []).map((r) => {
+    const o = {};
+    cols.forEach((c) => { o[c] = r[c] ?? ""; });
+    return o;
+  });
+  return XLSX.utils.json_to_sheet(mapped, { header: cols });
+}
+
 export async function exportMerljiveMasterWorkbook(supabase) {
   const wb = XLSX.utils.book_new();
   for (const cfg of MERLJIVE_IMPORT_SHEETS) {
     const { data, error } = await supabase.from(cfg.table).select("*");
     if (error) throw error;
-    const cols = data?.length ? Object.keys(data[0]) : [];
-    const sheet = XLSX.utils.json_to_sheet(data || [], cols.length ? { header: cols } : undefined);
+    const cols = cfg.table === "karakteristike_merljive"
+      ? KARAKTERISTIKE_MERLJIVE_COLS
+      : (data?.length ? Object.keys(data[0]) : []);
+    const sheet = rowsToExportSheet(data, cols);
     XLSX.utils.book_append_sheet(wb, sheet, cfg.sheet.slice(0, 31));
   }
   return wb;

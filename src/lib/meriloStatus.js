@@ -86,11 +86,23 @@ export function upozorenjaInstrumentaZaKolone(kolone, map, upozorenjeDana = 30) 
       pozicija: k.naziv,
       instrument: inst,
       meriloNaziv: merilo.naziv,
+      meriloBroj: merilo.serijski_broj || null,
       izFallback: !!merilo._fallback,
       ...st,
     });
   }
   return out;
+}
+
+/** Prikaz instrumenta sa inventarskim brojem merila (šeta merila). */
+export function tekstInstrumentaSaBrojem(instrumentTekst, map) {
+  const inst = String(instrumentTekst || "").trim();
+  if (!inst || inst === "-") return inst;
+  const merilo = nadjiMerilo(inst, map);
+  if (merilo?.serijski_broj) {
+    return `${inst} · #${merilo.serijski_broj}`;
+  }
+  return inst;
 }
 
 export function sledecaPraznaDimenzija(kolone, potrebanBroj) {

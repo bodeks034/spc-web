@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { ucitajRevizije, azurirajKarakteristikuSaRevizijom } from "../lib/karakteristikeRevizija.js";
+import { uniqueDeloviIzSop } from "../lib/pogonSop.js";
 
 export default function KarakteristikeGraniceEditor({ C, korisnik, addToast }) {
   const [delovi, setDelovi] = useState([]);
@@ -12,8 +13,8 @@ export default function KarakteristikeGraniceEditor({ C, korisnik, addToast }) {
   const [form, setForm] = useState({});
 
   useEffect(() => {
-    supabase.from("sop_deo_varijabilni").select("id_deo,naziv_dela").order("id_deo")
-      .then(({ data }) => setDelovi(data || []));
+    supabase.from("sop_deo_varijabilni").select("id_deo,pogon_kod,naziv_dela").order("id_deo")
+      .then(({ data }) => setDelovi(uniqueDeloviIzSop(data || [])));
   }, []);
 
   const ucitaj = useCallback(async () => {

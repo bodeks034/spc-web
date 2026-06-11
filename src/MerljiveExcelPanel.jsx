@@ -148,7 +148,7 @@ export default function MerljiveExcelPanel({ C, addToast }) {
       )}
 
       <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.6 }}>
-        1. Pokreni <code>11_varijabilne_schema.sql</code> u Supabase.<br />
+        1. Pokreni <code>11_varijabilne_schema.sql</code> i <code>27_merljive_excel_import_rls.sql</code> u Supabase.<br />
         2. Terminal: <code>npm run seed:5501-5503</code> (CSV + Supabase + demo xlsx).<br />
         3. Dugme <strong style={{ color: C.tekst }}>Demo 5501-A / 5503-A</strong> — 3 sheeta odjednom.<br />
         4. Ili uvezi direktno iz .xlsm bez CSV koraka.

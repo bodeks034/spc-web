@@ -76,6 +76,15 @@ import {
 } from "./lib/radniNalog.js";
 import IdDeoBarkodRed from "./components/IdDeoBarkodRed.jsx";
 import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
+import PogonIzborPanel from "./components/PogonIzborPanel.jsx";
+import {
+  pogoniZaDeoAtributivne,
+  pogonIzRn,
+  deoInfoZaPogon,
+  deloviRedoviZaId,
+  labelPogona,
+  jePogonOmogucen,
+} from "./lib/pogonSop.js";
 import {
   ucitajPodesavanjaNotifikacija,
   obradiAlarmeNotifikacije,
@@ -110,7 +119,7 @@ import VoziloZonaNav from "./components/VoziloZonaNav.jsx";
 import { dijagramSrcZaDeo } from "./lib/voziloDijagramConfig.js";
 import {
   buildGreskeKatalog,
-  filtrirajGreskeZaDeo,
+  filtrirajGreskeZaUnos,
   filtrirajKatalogVozilaZaUnos,
 } from "./lib/katalogFilter.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
@@ -225,12 +234,14 @@ function dPrikaz() { return new Date().toLocaleDateString("sr-RS",{day:"2-digit"
 
 function lokacijaDela(deo, linije, masine) {
   if (!deo) return { linija: "-", masina: "-" };
-  const linija = deo.linija?.linija
-    ?? linije?.find(l => l.id === deo.linija_id)?.linija
-    ?? "-";
-  const masina = deo.masina?.naziv
-    ?? masine?.find(m => m.id === deo.masina_id)?.naziv
-    ?? "-";
+  const linijaIzId = deo.linija_id != null
+    ? linije?.find((l) => l.id === deo.linija_id)?.linija
+    : null;
+  const masinaIzId = deo.masina_id != null
+    ? masine?.find((m) => m.id === deo.masina_id)?.naziv
+    : null;
+  const linija = linijaIzId ?? deo.linija?.linija ?? "-";
+  const masina = masinaIzId ?? deo.masina?.naziv ?? "-";
   return { linija, masina };
 }
 
@@ -1944,6 +1955,10 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const barkodRnRef = useRef("");
   const [komentar,setKomentar]     = useState("");
   const [radniNalog,setRadniNalog] = useState("");
+  const [pogonKod, setPogonKod] = useState("");
+  const [porukaPogon, setPorukaPogon] = useState("");
+  const [naloziZaPogon, setNaloziZaPogon] = useState([]);
+  const [atributivniPogoni, setAtributivniPogoni] = useState([]);
   const [kpiSerija, setKpiSerija] = useState(() => podrazumevaniKpiIzListeP([]));
   const fotoRef = useRef(null);
   const idRef   = useRef(null);
@@ -1966,6 +1981,26 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     mirrorKontrolniLog: mirrorKontrolniLogToExcel,
     onFlushed,
   });
+
+  const dostupniPogoni = useMemo(
+    () => (idDeo.length >= 3 ? pogoniZaDeoAtributivne(atributivniPogoni, idDeo) : []),
+    [atributivniPogoni, idDeo],
+  );
+  const omoguceniPogoni = useMemo(() => {
+    if (idDeo.length < 3) return new Set();
+    return new Set(
+      dostupniPogoni.filter((p) => jePogonOmogucen({
+        naloziRows: naloziZaPogon,
+        deloviRows: sviDelovi,
+        atributivniPogonRows: atributivniPogoni,
+        idDeo,
+        pogonKod: p,
+        modul: "atributivne",
+      })),
+    );
+  }, [dostupniPogoni, naloziZaPogon, sviDelovi, atributivniPogoni, idDeo]);
+  const trebaIzborPogona = !!(idDeo && omoguceniPogoni.size > 1 && !pogonKod);
+  const deoSpreman = !!(deoInfo && !trebaIzborPogona);
 
   const voziloMode = jeKontrolaCelogVozila(deoInfo);
   const voziloDijagramSrc = useMemo(() => dijagramSrcZaDeo(deoInfo), [deoInfo]);
@@ -2030,9 +2065,10 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     setDefekt("");
   }, []);
 
+  const efektivniPogonGreske = trebaIzborPogona ? "" : (pogonKod || deoInfo?.pogon_kod || "");
   const greskeZaDeo = useMemo(
-    () => buildGreskeKatalog(filtrirajGreskeZaDeo(greskeKatalogRows, deoInfo)),
-    [greskeKatalogRows, deoInfo],
+    () => buildGreskeKatalog(filtrirajGreskeZaUnos(greskeKatalogRows, deoInfo, efektivniPogonGreske)),
+    [greskeKatalogRows, deoInfo, efektivniPogonGreske],
   );
 
   const voziloKatPoZoni = useMemo(() => {
@@ -2102,20 +2138,24 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   useEffect(()=>{
     (async()=>{
       try{
-        const [{ data: d }, { data: lin }, { data: mas }, { data: g }, { data: gv }] = await Promise.all([
+        const [{ data: d }, { data: ap }, { data: lin }, { data: mas }, { data: g }, { data: gv }, { data: rn }] = await Promise.all([
           supabase.from("delovi")
-            .select("id_deo,naziv_dela,kom_za_kontrolu,karakteristika,slika_naziv,napomena,linija_id,masina_id,tip_kontrole,vozilo_katalog_id,greska_katalog_id,linija:linije(linija,id),masina:masine(naziv,id)")
+            .select("id_deo,naziv_dela,kom_za_kontrolu,karakteristika,slika_naziv,napomena,linija_id,masina_id,tip_kontrole,vozilo_katalog_id,greska_katalog_id,aktivan,linija:linije(linija,id),masina:masine(naziv,id)")
             .eq("aktivan", true),
+          supabase.from("delovi_atributivni_pogon").select("*").eq("aktivan", true),
           supabase.from("linije").select("id,linija"),
           supabase.from("masine").select("id,naziv"),
-          supabase.from("greske_katalog").select("kategorija,podkategorija,defekt,id_deo,katalog_id").order("kategorija"),
+          supabase.from("greske_katalog").select("kategorija,podkategorija,defekt,id_deo,katalog_id,pogon_kod").order("kategorija"),
           supabase.from("katalog_gresaka_vozilo").select("vozilo_id,kategorija,podkategorija,defekt").order("kategorija"),
+          supabase.from("radni_nalozi").select("id_deo,pogon_kod,broj_naloga,status").eq("status", "aktivan"),
         ]);
         setSviDelovi(d || []);
+        setAtributivniPogoni(ap || []);
         setLinije(lin || []);
         setMasine(mas || []);
         setGreskeKatalogRows(g || []);
         setVoziloKatalogRows(gv || []);
+        setNaloziZaPogon(rn || []);
       }catch(e){addToast(e.message,"greska");}
       finally{setLoadInit(false);setTimeout(()=>idRef.current?.focus(),100);}
 
@@ -2161,7 +2201,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
 
   useEffect(() => {
     const sm = Number(smena);
-    const idZaListu = jeLinija && deoInfo ? String(idDeo || "").trim().toUpperCase() : null;
+    const idZaListu = jeLinija && deoSpreman ? String(idDeo || "").trim().toUpperCase() : null;
 
     if (jeLinija && !idZaListu) {
       setKontrolnaListaOk(false);
@@ -2169,7 +2209,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     }
 
     setKontrolnaListaOk(getListaOkSession("atributivne", sm, idZaListu));
-  }, [smena, idDeo, deoInfo, jeLinija]);
+  }, [smena, idDeo, deoSpreman, jeLinija]);
 
   const obradiBarkodSken = useCallback((raw) => {
     const parsed = parsiBarkod(raw);
@@ -2203,6 +2243,50 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     [obradiBarkodSken],
   );
 
+  const ucitajRnZaDeo = useCallback(async (id, pogon, eksplicitniRn, { toast = false, noviDeo = false } = {}) => {
+    const idU = String(id || "").trim().toUpperCase();
+    if (!idU) return null;
+    const p = String(pogon || "").trim().toUpperCase() || null;
+    const rnEks = String(eksplicitniRn || "").trim().toUpperCase();
+    let nalog = null;
+    if (rnEks) {
+      nalog = await ucitajNalogZaDeoIRn(supabase, idU, rnEks);
+    }
+    if (!nalog && p) {
+      nalog = await ucitajAktivniRadniNalog(supabase, idU, p);
+    }
+    if (!nalog) {
+      nalog = await ucitajAktivniRadniNalog(supabase, idU);
+    }
+    setNalogInfo(nalog || null);
+    const deo = p ? deoInfoZaPogon(sviDelovi, atributivniPogoni, idU, p) : null;
+    const rn = izaberiRadniNalog({ eksplicitni: rnEks, izBaze: nalog, izSop: deo?.radni_nalog });
+    if (rn) setRadniNalog(rn);
+    if (toast && noviDeo && !rnEks && rn) {
+      const tekst = nalog ? formatNalogToast(nalog) : `RN ${rn}`;
+      addToast(`📋 ${tekst}${p ? ` · ${labelPogona(p)}` : ""}`, "info");
+    }
+    return nalog;
+  }, [addToast, sviDelovi, atributivniPogoni]);
+
+  const onPogonChangeAtr = useCallback(async (pogon) => {
+    const p = String(pogon || "").trim().toUpperCase();
+    if (!p) return;
+    setPogonKod(p);
+    setPorukaPogon("");
+    setKategorija("");
+    setPodkat("");
+    setDefekt("");
+    if (idDeo.length < 3) return;
+    const deo = deoInfoZaPogon(sviDelovi, atributivniPogoni, idDeo, p);
+    if (deo) {
+      setDeoInfo(deo);
+      setCilj(deo.kom_za_kontrolu || 30);
+      setPreostalo(deo.kom_za_kontrolu || 30);
+    }
+    await ucitajRnZaDeo(idDeo, p, "", { toast: true });
+  }, [idDeo, sviDelovi, atributivniPogoni, ucitajRnZaDeo]);
+
   useEffect(() => {
     if (!deoInfo) return;
     if (smena !== prethodnaSmenaAtr.current) {
@@ -2211,51 +2295,81 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     }
   }, [smena, deoInfo, korisnik?.uloga, rezimRada, voziloMode]);
 
-  // ID deo lookup + barkod auto-popunjavanje
+  // ID deo lookup + barkod auto-popunjavanje + pogon A–H
   useEffect(()=>{
-    if(idDeo.length<3){setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";return;}
+    if(idDeo.length<3){
+      setDeoInfo(null);setUpoz("");setPogonKod("");setPorukaPogon("");
+      prethodniIdAtr.current="";return;
+    }
     const idNorm = idDeo.toUpperCase();
-    const n=sviDelovi.find(d=>d.id_deo.toUpperCase()===idNorm);
-    if(n){
-      const voziloDeo = jeKontrolaCelogVozila(n);
-      setDeoInfo(prev => (prev?.id_deo?.toUpperCase() === idNorm ? prev : n));
-      setCilj(n.kom_za_kontrolu||30);setPreostalo(n.kom_za_kontrolu||30);
+    const redovi = deloviRedoviZaId(sviDelovi, idNorm);
+    const imaPogone = pogoniZaDeoAtributivne(atributivniPogoni, idNorm).length > 0;
+    if (redovi.length || imaPogone) {
       const noviDeo = idNorm !== prethodniIdAtr.current.toUpperCase();
+      const eksplicitniRn = barkodRnRef.current;
+      barkodRnRef.current = "";
+      const dostupni = pogoniZaDeoAtributivne(atributivniPogoni, idNorm);
+      const omoguceni = dostupni.filter((p) => jePogonOmogucen({
+        naloziRows: naloziZaPogon,
+        deloviRows: sviDelovi,
+        atributivniPogonRows: atributivniPogoni,
+        idDeo: idNorm,
+        pogonKod: p,
+        modul: "atributivne",
+      }));
+      let pogon = pogonIzRn(eksplicitniRn);
+      if (!pogon && omoguceni.length === 1) pogon = omoguceni[0];
+      if (!pogon && !noviDeo && pogonKod && omoguceni.includes(pogonKod)) pogon = pogonKod;
+
       if (noviDeo) {
+        const privremeni = deoInfoZaPogon(sviDelovi, atributivniPogoni, idNorm, pogon) || redovi[0];
+        const voziloDeo = jeKontrolaCelogVozila(privremeni);
         setUnosKorakAtr(pocetniKorakUnosAtr(korisnik?.uloga, rezimRada, { voziloMode: voziloDeo }));
         setVoziloZona(null);
         prethodniIdAtr.current = idDeo;
+        setPogonKod("");
+        setRadniNalog("");
       }
 
-      const eksplicitniRn = barkodRnRef.current;
-      barkodRnRef.current = "";
-      if (noviDeo) setRadniNalog("");
-
-      // Paralelno: najčešće greške + aktivni radni nalog za deo
-      Promise.all([
-        supabase.from("kontrolni_log")
-          .select("greska_naziv").eq("id_deo",idDeo.toUpperCase()).eq("status","NOK")
-          .order("created_at",{ascending:false}).limit(100),
-        ucitajAktivniRadniNalog(supabase, idDeo),
-      ]).then(([{data:greske}, nalog])=>{
-        if(greske?.length){
-          const b={};greske.forEach(r=>{b[r.greska_naziv]=(b[r.greska_naziv]||0)+1;});
-          const mx=Object.entries(b).sort((a,bb)=>bb[1]-a[1])[0];
-          if(mx&&mx[1]>=2) setUpoz(`⚠ ČESTO: ${mx[0]} (${mx[1]}x)`); else setUpoz("");
-        } else setUpoz("");
-        setNalogInfo(nalog || null);
-        const rn = izaberiRadniNalog({ eksplicitni: eksplicitniRn, izBaze: nalog });
-        if (rn) {
-          setRadniNalog(rn);
-          if (noviDeo && nalog && !eksplicitniRn && rn === nalog.broj_naloga) {
-            addToast(`📋 ${formatNalogToast(nalog)}`, "info");
-          }
+      if (omoguceni.length > 1 && !pogon) {
+        const priv = redovi[0] || deoInfoZaPogon(sviDelovi, atributivniPogoni, idNorm, dostupni[0]);
+        if (priv) {
+          setDeoInfo(priv);
+          setCilj(priv.kom_za_kontrolu || 30);
+          setPreostalo(priv.kom_za_kontrolu || 30);
         }
-      });
+        setPogonKod("");
+        setPorukaPogon(`ID ${idNorm}: izaberite pogon za vizuelnu kontrolu (tab delovi u Excelu).`);
+      } else if (dostupni.length > 0 && omoguceni.length === 0) {
+        const priv = redovi[0] || deoInfoZaPogon(sviDelovi, atributivniPogoni, idNorm, dostupni[0]);
+        if (priv) setDeoInfo(priv);
+        setPogonKod("");
+        setPorukaPogon(`ID ${idNorm}: nema RN za izabrane pogone — proveri kolone radni nalog / NALOZI.`);
+      } else {
+        const n = deoInfoZaPogon(sviDelovi, atributivniPogoni, idNorm, pogon) || redovi[0];
+        setDeoInfo(n);
+        setCilj(n.kom_za_kontrolu || 30);
+        setPreostalo(n.kom_za_kontrolu || 30);
+        if (pogon) setPogonKod(pogon);
+        setPorukaPogon("");
+        ucitajRnZaDeo(idNorm, pogon, eksplicitniRn, { toast: true, noviDeo });
+      }
+
+      supabase.from("kontrolni_log")
+        .select("greska_naziv").eq("id_deo",idDeo.toUpperCase()).eq("status","NOK")
+        .order("created_at",{ascending:false}).limit(100)
+        .then(({ data: greske }) => {
+          if(greske?.length){
+            const b={};greske.forEach(r=>{b[r.greska_naziv]=(b[r.greska_naziv]||0)+1;});
+            const mx=Object.entries(b).sort((a,bb)=>bb[1]-a[1])[0];
+            if(mx&&mx[1]>=2) setUpoz(`⚠ ČESTO: ${mx[0]} (${mx[1]}x)`); else setUpoz("");
+          } else setUpoz("");
+        });
     }else if (prethodniIdAtr.current.toUpperCase() !== idNorm) {
-      setDeoInfo(null);setUpoz("");prethodniIdAtr.current="";
+      setDeoInfo(null);setUpoz("");setPogonKod("");setPorukaPogon("");
+      prethodniIdAtr.current="";
     }
-  },[idDeo,sviDelovi,korisnik?.uloga,rezimRada]); // eslint-disable-line
+  },[idDeo,sviDelovi,atributivniPogoni,naloziZaPogon,korisnik?.uloga,rezimRada,ucitajRnZaDeo,pogonKod]); // eslint-disable-line
 
   const dodajGresku=()=>{
     if(!deoInfo){setModal({poruka:"ID dela nije pronađen!",tip:"greska"});return;}
@@ -2306,7 +2420,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     setSaving(true);
     const sesija_id = ensureSesija({ modul: "atributivne", idDeo, smena, radniNalog });
     const redovi=listaP.map(s=>{const j=s.status==="OK";return ocistiRedZaInsert({
-      datum:s.datum,smena,radni_nalog:radniNalog||null,id_deo:s.idDeo,naziv_dela:deoInfo?.naziv_dela||"",
+      datum:s.datum,smena,radni_nalog:radniNalog||null,pogon_kod:pogonKod||null,id_deo:s.idDeo,naziv_dela:deoInfo?.naziv_dela||"",
       linija_id:deoInfo?.linija?.id||null,masina_id:deoInfo?.masina?.id||null,
       kontrolor_id:korisnik.radnikId,operater_id:korisnik.uloga==="operator"?korisnik.radnikId:null,
       status:s.status,
@@ -2397,7 +2511,8 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     setUnosKorakAtr(pocetniKorakUnosAtr(korisnik?.uloga, rezimRada, { voziloMode: false }));
     setKategorija("");setPodkat("");setDefekt("");setKolicina(1);
     setListaG([]);setListaP([]);setPreostalo(0);setCilj(0);setFoto(null);
-    setKomentar("");setRadniNalog("");setNalogInfo(null);setPrekidOdobrenId(null);
+    setKomentar("");setRadniNalog("");setPogonKod("");setPorukaPogon("");
+    setNalogInfo(null);setPrekidOdobrenId(null);
     setVoziloZona(null);
     setKpiSerija(podrazumevaniKpiIzListeP([]));
     setTimeout(()=>idRef.current?.focus(),100);
@@ -2440,7 +2555,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   );
 
   const zavrsiKontrolnuListuAtr = () => {
-    const idZaListu = jeLinija && deoInfo ? String(idDeo || "").trim().toUpperCase() : null;
+    const idZaListu = jeLinija && deoSpreman ? String(idDeo || "").trim().toUpperCase() : null;
     setKontrolnaListaOk(true);
     setListaOkSession("atributivne", Number(smena), idZaListu);
   };
@@ -2448,7 +2563,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const trebaCekListaAtr = tab === "unos" && !kontrolnaListaOk && (jeLinija ? !!deoInfo : true);
 
   if (trebaCekListaAtr) {
-    const idZaListu = jeLinija && deoInfo ? String(idDeo || "").trim().toUpperCase() : null;
+    const idZaListu = jeLinija && deoSpreman ? String(idDeo || "").trim().toUpperCase() : null;
     return (
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'IBM Plex Mono', monospace" }}>
         <AppHeader
@@ -2631,6 +2746,14 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           kontrolnaListaOk={kontrolnaListaOk}
           idRef={idRef}
           onBarkodSken={obradiBarkodSken}
+          dostupniPogoni={dostupniPogoni}
+          omoguceniPogoni={omoguceniPogoni}
+          pogonKod={pogonKod}
+          onPogonChange={onPogonChangeAtr}
+          trebaIzborPogona={trebaIzborPogona}
+          porukaPogon={porukaPogon}
+          deoSpreman={deoSpreman}
+          nalogInfo={nalogInfo}
         />
       )}
       {tab==="unos" && !koristiMobUnos && (
@@ -2668,8 +2791,8 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                   title="Ručni unos, USB čitač (fokus u polje) ili veb kamera"
                   style={{
                     ...INP,
-                    borderColor: deoInfo ? C.zelena : idDeo.length > 2 ? C.crvena : C.border,
-                    background: deoInfo ? C.ok : idDeo.length > 2 ? C.nok : C.input,
+                    borderColor: deoSpreman ? C.zelena : idDeo.length > 2 ? C.crvena : C.border,
+                    background: deoSpreman ? C.ok : idDeo.length > 2 ? C.nok : C.input,
                     fontSize: Math.round(12 * H),
                     fontWeight: 700,
                     letterSpacing: 1,
@@ -2678,6 +2801,65 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                   }}
                 />
               </IdDeoBarkodRed>
+              <label style={{ ...LBL, fontSize: Math.round(8 * H), letterSpacing: 1, marginTop: Math.round(4 * H), display: "block" }}>
+                Radni nalog
+                <input
+                  value={radniNalog}
+                  onChange={e => setRadniNalog(e.target.value.toUpperCase())}
+                  placeholder="RN-2026-NM001-B"
+                  title={[
+                    nalogInfo?.kupac && `Kupac: ${nalogInfo.kupac}`,
+                    nalogInfo?.rok_isporuke && `Rok: ${nalogInfo.rok_isporuke}`,
+                  ].filter(Boolean).join(" · ") || "Automatski iz šifrarnika po ID dela i pogonu"}
+                  style={{
+                    ...INP,
+                    marginTop: 4,
+                    fontSize: Math.round(10 * H),
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    padding: `${Math.round(5 * H)}px ${Math.round(4 * H)}px`,
+                  }}
+                />
+              </label>
+              {(nalogInfo?.kupac || nalogInfo?.rok_isporuke) && (
+                <div style={{
+                  fontSize: Math.round(7 * H),
+                  color: C.sivi,
+                  lineHeight: 1.35,
+                  marginTop: Math.round(2 * H),
+                }}>
+                  {nalogInfo.kupac && <span>Kupac: <strong style={{ color: C.tekst }}>{nalogInfo.kupac}</strong></span>}
+                  {nalogInfo.kupac && nalogInfo.rok_isporuke && " · "}
+                  {nalogInfo.rok_isporuke && (
+                    <span>Rok: <strong style={{ color: C.tekst }}>{nalogInfo.rok_isporuke}</strong></span>
+                  )}
+                </div>
+              )}
+              {dostupniPogoni.length > 1 && (
+                <PogonIzborPanel
+                  C={C}
+                  akcent={C.plava}
+                  pogoni={dostupniPogoni}
+                  omoguceniPogoni={omoguceniPogoni}
+                  pogonKod={pogonKod}
+                  onIzaberi={onPogonChangeAtr}
+                  kompakt
+                  obavezan={trebaIzborPogona}
+                />
+              )}
+              {porukaPogon && (
+                <div style={{
+                  color: C.zuta,
+                  fontSize: Math.round(8 * H),
+                  padding: `${Math.round(4 * H)}px ${Math.round(6 * H)}px`,
+                  background: `${C.zuta}18`,
+                  borderRadius: 4,
+                  lineHeight: 1.3,
+                  marginTop: Math.round(4 * H),
+                }}>
+                  {porukaPogon}
+                </div>
+              )}
               <label style={{ ...LBL, fontSize: Math.round(8 * H), letterSpacing: 1, marginTop: Math.round(6 * H), display: "block" }}>
                 Smena
                 <select
@@ -2699,9 +2881,16 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
               </label>
             </div>
 
-            {deoInfo && (
+            {deoSpreman && (
               <div style={{background:C.ok,border:`1px solid ${C.zelena}26`,borderRadius:6,padding:Math.round(6*H)}}>
-                <div style={{color:C.zelena,fontWeight:700,fontSize:Math.round(9*H),marginBottom:Math.round(4*H),lineHeight:1.3}}>{deoInfo.naziv_dela}</div>
+                <div style={{color:C.zelena,fontWeight:700,fontSize:Math.round(9*H),marginBottom:Math.round(4*H),lineHeight:1.3}}>
+                  {deoInfo.naziv_dela}
+                  {pogonKod && (
+                    <span style={{ color: C.plava, marginLeft: 6, fontSize: Math.round(8 * H) }}>
+                      {labelPogona(pogonKod)}
+                    </span>
+                  )}
+                </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:Math.round(4*H),marginBottom:Math.round(4*H)}}>
                   {[
                     ...(prikaziLokaciju ? [["Linija", linijaNaziv], ["Mašina", masinaNaziv]] : []),
@@ -2713,14 +2902,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                       <div style={{color:C.tekst,fontSize:Math.round(8*H),fontWeight:700,lineHeight:1.3}}>{v}</div>
                     </div>
                   ))}
-                </div>
-                <div style={{marginTop:Math.round(4*H)}}>
-                  <div style={{color:C.sivi,fontSize:Math.round(7*H),letterSpacing:1,marginBottom:2}}>RN</div>
-                  <input value={radniNalog} onChange={e=>setRadniNalog(e.target.value.toUpperCase())}
-                    placeholder="RN-001"
-                    style={{width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:4,
-                      color:C.tekst,fontSize:Math.round(9*H),padding:`${Math.round(4*H)}px ${Math.round(5*H)}px`,boxSizing:"border-box",
-                      outline:"none",fontFamily:"inherit"}}/>
                 </div>
                 <div style={{marginTop:Math.round(6*H)}}>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:Math.round(8*H),marginBottom:2}}>
@@ -2767,7 +2948,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
             </button>
           </div>
 
-          {deoInfo && unosKorakAtr !== "forma" && (
+          {deoSpreman && unosKorakAtr !== "forma" && (
             <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
               {kontrolorLinija && (
                 <LinijaWizardNav
@@ -2806,7 +2987,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
             </div>
           )}
 
-          {deoInfo && unosKorakAtr !== "forma" && voziloMode && (
+          {deoSpreman && unosKorakAtr !== "forma" && voziloMode && (
             <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", borderLeft: `1px solid ${C.border}` }}>
               <label style={LBL}>PREGLED ({listaP.length})</label>
               <div style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "auto", minHeight: 60 }}>
@@ -2824,7 +3005,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
             </div>
           )}
 
-          {deoInfo && unosKorakAtr === "forma" && (
+          {deoSpreman && unosKorakAtr === "forma" && (
           <>
           {voziloFormaEkran && (
             <div style={{
@@ -3247,6 +3428,14 @@ function MobilniUnos({
   setUnosKorakAtr,
   korisnikIme,
   idDeo, setIdDeo, deoInfo, upoz,
+  dostupniPogoni = [],
+  omoguceniPogoni = null,
+  pogonKod = "",
+  onPogonChange,
+  trebaIzborPogona = false,
+  porukaPogon = "",
+  deoSpreman = false,
+  nalogInfo = null,
   linijaNaziv, masinaNaziv, prikaziLokaciju = true,
   status, setStatus,
   kategorija, setKategorija,
@@ -3343,7 +3532,7 @@ function MobilniUnos({
           width: "100%",
           boxSizing: "border-box",
           background: C.input,
-          border: `1px solid ${deoInfo ? C.zelena : idDeo.length > 2 ? C.crvena : C.border}`,
+          border: `1px solid ${deoSpreman ? C.zelena : idDeo.length > 2 ? C.crvena : C.border}`,
           color: C.tekst,
           outline: "none",
           fontFamily: "inherit",
@@ -3445,8 +3634,8 @@ function MobilniUnos({
                 letterSpacing: 4,
                 textAlign: "center",
                 padding: "22px 14px",
-                borderColor: deoInfo ? C.zelena : idDeo.length > 2 ? C.crvena : C.border,
-                background: deoInfo ? C.ok : idDeo.length > 2 ? C.nok : C.input,
+                borderColor: deoSpreman ? C.zelena : idDeo.length > 2 ? C.crvena : C.border,
+                background: deoSpreman ? C.ok : idDeo.length > 2 ? C.nok : C.input,
               }}
             />
           </IdDeoBarkodRed>
@@ -3468,7 +3657,61 @@ function MobilniUnos({
         </>
       )}
 
-      {deoInfo ? (
+      <label style={LBL}>Radni nalog
+        <input
+          value={radniNalog}
+          onChange={e => setRadniNalog?.(e.target.value.toUpperCase())}
+          onFocus={onFocusTastatura}
+          placeholder="RN-2026-NM001-B"
+          style={{
+            ...INP,
+            fontSize: linijaMode ? 16 : 14,
+            padding: linijaMode ? "14px" : "12px",
+            fontWeight: 700,
+            letterSpacing: 0.5,
+          }}
+        />
+      </label>
+      {(nalogInfo?.kupac || nalogInfo?.rok_isporuke) && (
+        <div style={{
+          color: C.sivi,
+          fontSize: unosIdKompakt ? 10 : 11,
+          lineHeight: 1.4,
+          padding: "4px 2px",
+        }}>
+          {nalogInfo.kupac && <span>Kupac: <strong style={{ color: C.tekst }}>{nalogInfo.kupac}</strong></span>}
+          {nalogInfo.kupac && nalogInfo.rok_isporuke && " · "}
+          {nalogInfo.rok_isporuke && (
+            <span>Rok isporuke: <strong style={{ color: C.tekst }}>{nalogInfo.rok_isporuke}</strong></span>
+          )}
+        </div>
+      )}
+
+      {dostupniPogoni.length > 1 && (
+        <PogonIzborPanel
+          C={C}
+          akcent={C.plava}
+          pogoni={dostupniPogoni}
+          omoguceniPogoni={omoguceniPogoni}
+          pogonKod={pogonKod}
+          onIzaberi={onPogonChange}
+          obavezan={trebaIzborPogona}
+        />
+      )}
+      {porukaPogon && (
+        <div style={{
+          color: C.zuta,
+          fontSize: unosIdKompakt ? 11 : 12,
+          padding: unosIdKompakt ? "8px 10px" : "10px 12px",
+          background: `${C.zuta}18`,
+          borderRadius: 8,
+          lineHeight: 1.5,
+        }}>
+          {porukaPogon}
+        </div>
+      )}
+
+      {deoSpreman ? (
         <div style={{
           background: C.ok,
           border: `1px solid ${C.zelena}30`,
@@ -3477,6 +3720,11 @@ function MobilniUnos({
         }}>
           <div style={{ color: C.zelena, fontWeight: 700, fontSize: unosIdKompakt ? 14 : 18, marginBottom: unosIdKompakt ? 6 : 12 }}>
             ✓ {deoInfo.naziv_dela}
+            {pogonKod && (
+              <span style={{ color: C.plava, marginLeft: 8, fontSize: unosIdKompakt ? 11 : 13 }}>
+                {labelPogona(pogonKod)}
+              </span>
+            )}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: unosIdKompakt ? 6 : 8 }}>
             {[
@@ -3544,8 +3792,8 @@ function MobilniUnos({
 
       <div style={{flex:1}}/>
 
-      <button onClick={()=>setKorak(korakPoka)} disabled={!deoInfo}
-        style={{...BIG_BTN(C.plava,!deoInfo), fontSize:18}}>
+      <button onClick={()=>setKorak(korakPoka)} disabled={!deoSpreman}
+        style={{...BIG_BTN(C.plava,!deoSpreman), fontSize:18}}>
         Poka-yoke →
       </button>
       <button onClick={noviNalog}
@@ -4864,7 +5112,7 @@ function AdminExcelPanel({ C, addToast }) {
       )}
 
       <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.6 }}>
-        1. Pokreni <code>06_storage_excel_sync.sql</code> u Supabase (bucket + dozvole).<br/>
+        1. Pokreni <code>26_master_excel_import_rls.sql</code> u Supabase (RLS za uvoz). Ili <code>06_storage_excel_sync.sql</code> (bucket + dozvole).<br/>
         2. Uredi master Excel lokalno → Admin → Uvezi iz Excela.<br/>
         3. CSV skripta (<code>import-all-docs.mjs</code>) i dalje radi paralelno.
       </div>
@@ -6779,7 +7027,9 @@ function KalibracijaMerila({ korisnik, C, addToast }) {
               <div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                   <span style={{color:C.tekst,fontWeight:700,fontSize:14}}>📏 {m.naziv}</span>
-                  {m.serijski_broj && <span style={{color:C.border,fontSize:11}}>S/N: {m.serijski_broj}</span>}
+                  {m.serijski_broj && (
+                    <span style={{color:C.plava,fontSize:11,fontWeight:700}}>#{m.serijski_broj}</span>
+                  )}
                 </div>
                 <div style={{display:"flex",gap:12,fontSize:11,color:C.sivi}}>
                   {m.tip && <span>{m.tip}</span>}
@@ -6813,10 +7063,11 @@ function KalibracijaMerila({ korisnik, C, addToast }) {
 
 function NovoMeriloForma({ onSnimi, onOtkazati, C, INP }) {
   const [f,setF] = useState({naziv:"",serijski_broj:"",tip:"",opseg_min:"",opseg_max:"",jedinica:"mm",lokacija:""});
+  const mozeSnimiti = f.naziv && f.serijski_broj;
   return (
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {[["NAZIV MERILA","naziv","text","npr. Mikrometar 0-25mm"],
-        ["SERIJSKI BROJ","serijski_broj","text",""],
+      {[["BROJ MERILA (inventarski) *","serijski_broj","text","npr. MK-001, POM-002"],
+        ["NAZIV MERILA *","naziv","text","npr. Mikrometar 0-25mm"],
         ["TIP","tip","text","Mikrometar, Čigra, Pomično..."],
         ["LOKACIJA","lokacija","text","Linija 1, Skladište..."]
       ].map(([l,k,t,ph])=>(
@@ -6841,9 +7092,9 @@ function NovoMeriloForma({ onSnimi, onOtkazati, C, INP }) {
         </div>
       </div>
       <div style={{display:"flex",gap:10,marginTop:4}}>
-        <button onClick={()=>onSnimi(f)} disabled={!f.naziv}
-          style={{flex:1,background:f.naziv?C.zelena:C.hover,border:"none",borderRadius:8,
-            color:f.naziv?"#fff":C.sivi,fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
+        <button onClick={()=>onSnimi(f)} disabled={!mozeSnimiti}
+          style={{flex:1,background:mozeSnimiti?C.zelena:C.hover,border:"none",borderRadius:8,
+            color:mozeSnimiti?"#fff":C.sivi,fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
           Snimi merilo
         </button>
         <button onClick={onOtkazati} style={{background:"none",border:`1px solid ${C.border}`,

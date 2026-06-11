@@ -164,6 +164,37 @@ export function koristiUgaoUnosKolone(k) {
   return prepoznajUgaoKarakteristiku(k) || isUgao(k?.jedinica);
 }
 
+/** Da li red ide u merljivi unos (dimenzije/SPC), a ne u atributivni OK/NOK. */
+export function jeMerljivaKarakteristika(k) {
+  if (!k) return false;
+  const poz = String(k.pozicija || "").trim();
+  if (!poz || poz === "-") return false;
+
+  const merljiveFlag = String(k.merljive ?? "").trim().toLowerCase();
+  if (["ne", "0", "false", "no"].includes(merljiveFlag)) return false;
+
+  if (prepoznajUgaoKarakteristiku(k) || isUgao(k.jedinica)) return true;
+
+  const inst = String(k.merni_instrument || "").trim().toLowerCase();
+  const nap = String(k.napomena || "").trim().toLowerCase();
+  const lsl = Number(k.lsl);
+  const usl = Number(k.usl);
+  const imaGranice = Number.isFinite(lsl) && Number.isFinite(usl);
+
+  if (inst === "dokumentacija" || inst === "vizuelno") return false;
+  if (/^vizuelna\s*vt\.?$/i.test(String(k.merni_instrument || "").trim())) return false;
+
+  if (/vizuelna\s*vt/i.test(inst) && (!imaGranice || (lsl === 0 && usl === 0))) return false;
+  if (nap.includes("ok/nok") && (!imaGranice || (lsl === 0 && usl === 0))) return false;
+
+  // npr. Visina vara — vizuelna + šablonska skala sa LSL/USL
+  if (/vizueln/.test(inst) && imaGranice && usl >= lsl && usl !== lsl) return true;
+  if (/vizueln|dokumentacij/.test(inst)) return false;
+
+  if (!imaGranice || usl < lsl) return false;
+  return true;
+}
+
 /** Korak za +/- stepper na liniji (null = bez steppera, npr. uglovi). */
 export function korakUnosaMerenja(k) {
   if (koristiUgaoUnosKolone(k)) return null;
@@ -558,21 +589,74 @@ export function imaBiloSta(kolone) {
   return kolone.some(k => k.naziv !== "-" && (k.merenja?.length || 0) > 0);
 }
 
-/** Jedinstvene A/B grupe za deo */
-export function grupeMerenja(karakteristike, idDeo) {
+function redoviZaDeo(karakteristike, idDeo, pogonKod) {
   const id = String(idDeo || "").trim().toUpperCase();
+  const pogon = String(pogonKod || "").trim().toUpperCase();
+  return (karakteristike || []).filter((k) => {
+    if (String(k.id_deo || "").toUpperCase() !== id) return false;
+    if (!pogon) return true;
+    const pk = String(k.pogon_kod || "").trim().toUpperCase();
+    return !pk || pk === pogon;
+  }).filter(jeMerljivaKarakteristika);
+}
+
+function redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod) {
+  const ab = String(sifraMerenja || "").trim();
+  return redoviZaDeo(karakteristike, idDeo, pogonKod).filter(
+    (k) => String(k.sifra_merenja || "").trim() === ab,
+  );
+}
+
+/** Broj uzoraka za seriju (fazu) — iz karakteristike_merljive.broj_merenja, inače SOP fallback. */
+export function brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallback = 5, pogonKod) {
+  const rows = redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod);
+  for (const k of rows) {
+    const n = Number(k.broj_merenja);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const fb = Number(fallback);
+  return Number.isFinite(fb) && fb > 0 ? fb : 5;
+}
+
+/** Meta po seriji: faza KP, linija (Preseraj/Karoserija…), broj uzoraka. */
+export function metaSerije(karakteristike, idDeo, sifraMerenja, fallbackBroj = 5, pogonKod) {
+  const rows = redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod);
+  const prvi = rows[0];
+  return {
+    sifra: String(sifraMerenja || "").trim(),
+    faza_naziv: prvi?.faza_naziv?.trim() || "",
+    linija_faza: prvi?.linija_faza?.trim() || "",
+    broj_merenja: brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallbackBroj, pogonKod),
+  };
+}
+
+/** Jedinstvene serije (A,B,C…) za deo */
+export function grupeMerenja(karakteristike, idDeo, pogonKod) {
   const set = new Set();
-  for (const k of karakteristike) {
-    if (String(k.id_deo || "").toUpperCase() === id && k.sifra_merenja) {
-      set.add(String(k.sifra_merenja).trim());
-    }
+  for (const k of redoviZaDeo(karakteristike, idDeo, pogonKod)) {
+    if (k.sifra_merenja) set.add(String(k.sifra_merenja).trim());
   }
   return [...set].sort();
 }
 
+/** Serije sa metapodacima za UI (redom A→G). */
+export function grupeMerenjaSaMetom(karakteristike, idDeo, fallbackBroj = 5, pogonKod) {
+  return grupeMerenja(karakteristike, idDeo, pogonKod).map((sifra) =>
+    metaSerije(karakteristike, idDeo, sifra, fallbackBroj, pogonKod),
+  );
+}
+
+/** Kratki naslov serije za dugme / poruku */
+export function labelSerije(meta) {
+  if (!meta) return "—";
+  const faza = meta.faza_naziv || `Serija ${meta.sifra}`;
+  const br = meta.broj_merenja ? ` · ${meta.broj_merenja}×` : "";
+  const lin = meta.linija_faza ? ` (${meta.linija_faza})` : "";
+  return `${meta.sifra} — ${faza}${br}${lin}`;
+}
+
 /** Do 5 kolona za izabranu A/B grupu (kao UcitajKarakteristike) */
-export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj) {
-  const id = String(idDeo || "").trim().toUpperCase();
+export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj, pogonKod) {
   const ab = String(sifraMerenja || "").trim();
   const prazna = () => ({
     id: null,
@@ -594,10 +678,8 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj)
   });
 
   const cols = Array.from({ length: 5 }, prazna);
-  const rows = karakteristike.filter(
-    k => String(k.id_deo || "").toUpperCase() === id
-      && String(k.sifra_merenja || "").trim() === ab
-  ).sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+  const rows = redoviSerije(karakteristike, idDeo, ab, pogonKod)
+    .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
 
   rows.slice(0, 5).forEach((k, i) => {
     const kn = normalizujKarakteristikuRed(k);
@@ -713,4 +795,29 @@ export function filterKeyUnos(key, current, jedinica, plausibilnost = null) {
     return key;
   }
   return null;
+}
+
+/** Jedan pritisak na ugrađenoj numeričkoj tastaturi (tel/tablet). */
+export function primeniTastMerenja(akcija, tekst, k, cifra = "") {
+  const t = String(tekst ?? "");
+  if (akcija === "backspace") {
+    if (koristiUgaoUnosKolone(k) || unosKaoUgao(k.jedinica, t, k.lslDec, k.uslDec)) {
+      const cifre = samoCifre(t);
+      if (!cifre.length) return "";
+      return sanitizujInputMerenja(cifre.slice(0, -1), k);
+    }
+    if (!t.length) return "";
+    return sanitizujInputMerenja(t.slice(0, -1), k);
+  }
+  if (akcija === "zarez") {
+    if (filterKeyUnos(",", t, k.jedinica, k.plausibilnost) === null) return t;
+    return sanitizujInputMerenja(t + ",", k);
+  }
+  if (akcija === "cifra") {
+    const d = String(cifra ?? "");
+    if (!/^\d$/.test(d)) return t;
+    if (filterKeyUnos(d, t, k.jedinica, k.plausibilnost) === null) return t;
+    return sanitizujInputMerenja(t + d, k);
+  }
+  return t;
 }

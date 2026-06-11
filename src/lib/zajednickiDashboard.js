@@ -52,7 +52,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
       .select("id,naziv,serijski_broj,kalibracije(sledeca_kal,datum_kal)")
       .eq("aktivno", true),
     supabase.from("radni_nalozi")
-      .select("id_deo,radni_nalog,kom_ukupno,kom_za_kontrolu,status")
+      .select("id_deo,broj_naloga,kolicina,kom_ukupno,kom_za_kontrolu,status")
       .eq("status", "aktivan"),
   ]);
 

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { mapDeloviRedIzExcela, podeliDeloviUvoz } from "../src/lib/deloviAtributivni.js";
 
 const DOCS = path.resolve("docs");
 
@@ -190,6 +191,7 @@ async function main() {
       opis: pick(r, "opis"),
       id_deo: pick(r, "id_deo", "id dela") ? pick(r, "id_deo", "id dela").toUpperCase() : null,
       katalog_id: pick(r, "katalog_id", "katalog id") || null,
+      pogon_kod: (pick(r, "pogon_kod", "pogon kod", "pogon") || "").toUpperCase() || null,
     })).filter((r) => r.id && r.kategorija),
     "id"
   );
@@ -235,54 +237,63 @@ async function main() {
     "id"
   );
 
-  await upsertBatches(
-    supabase,
-    "delovi",
-    deloviRows.map((r) => {
-      const idDeo = pick(r, "id dela", "id_deo").toUpperCase();
-      const tip = (pick(r, "tip kontrole", "tip_kontrole") || (idDeo.startsWith("AUTO") ? "vozilo" : "deo")).toLowerCase();
-      return {
-        id_deo: idDeo,
-        naziv_dela: pick(r, "naziv dela", "naziv_dela"),
-        karakteristika: pick(r, "karakteristika kontrole", "karakteristika"),
-        linija_id: num(pick(r, "linija id", "linija_id")),
-        masina_id: num(pick(r, "masina id", "masina_id")),
-        kom_za_kontrolu: num(pick(r, "kom za kontrolu n", "kom za kontrolu")) ?? 30,
-        slika_naziv: pick(r, "slika/crtez", "slika_naziv") || null,
-        aktivan: daNe(pick(r, "aktivan")),
-        napomena: pick(r, "napomena") || null,
-        tip_kontrole: tip === "vozilo" ? "vozilo" : "deo",
-        vozilo_katalog_id: pick(r, "vozilo katalog id", "vozilo_katalog_id") || (tip === "vozilo" ? "FINAL-001" : null),
-        greska_katalog_id: pick(r, "greska katalog id", "greska_katalog_id") || null,
-      };
-    }).filter((r) => r.id_deo),
-    "id_deo"
-  );
+  const deloviMapped = deloviRows
+    .map((r) => mapDeloviRedIzExcela(r, pick, num, daNe))
+    .filter((r) => r.id_deo);
+  const { masterRows, pogonRows } = podeliDeloviUvoz(deloviMapped);
+  await upsertBatches(supabase, "delovi", masterRows, "id_deo");
+  if (pogonRows.length) {
+    await upsertBatches(supabase, "delovi_atributivni_pogon", pogonRows, "id_deo,pogon_kod");
+  }
 
-  const kupciSet = [...new Set(naloziRows.map((r) => pick(r, "kupac")).filter(Boolean))];
-  await upsertBatches(
-    supabase,
-    "kupci",
-    kupciSet.map((naziv) => ({ naziv, aktivan: true })),
-    "naziv"
-  );
+  let kupciRows = [];
+  try { kupciRows = await readCsv("kupci.csv"); } catch { /* optional */ }
+  if (kupciRows.length) {
+    await upsertBatches(
+      supabase,
+      "kupci",
+      kupciRows.map((r) => ({
+        id: num(r.id),
+        naziv: pick(r, "naziv", "kupac"),
+        aktivan: daNe(pick(r, "aktivan")),
+      })).filter((r) => r.id && r.naziv),
+      "id"
+    );
+  } else {
+    const kupciSet = [...new Set(naloziRows.map((r) => pick(r, "kupac")).filter(Boolean))];
+    await upsertBatches(
+      supabase,
+      "kupci",
+      kupciSet.map((naziv) => ({ naziv, aktivan: true })),
+      "naziv"
+    );
+  }
 
   await upsertBatches(
     supabase,
     "radni_nalozi",
-    naloziRows.map((r) => ({
-      id: num(r.id),
-      broj_naloga: pick(r, "radni nal", "broj_naloga").toUpperCase(),
-      id_deo: pick(r, "id dela", "id_deo").toUpperCase(),
-      naziv_dela: pick(r, "naziv dela", "naziv_dela"),
-      kolicina: num(pick(r, "količina", "kolicina")),
-      kupac: pick(r, "kupac") || null,
-      datum_unosa: pick(r, "datum unosa") || null,
-      rok_isporuke: pick(r, "rok isporuke") || null,
-      status: pick(r, "status") || "aktivan",
-      operater: pick(r, "operater") || null,
-      napomena: pick(r, "napomena") || null,
-    })).filter((r) => r.broj_naloga),
+    naloziRows.map((r) => {
+      const broj = pick(r, "radni nal", "broj_naloga").toUpperCase();
+      const pogonRaw = pick(r, "pogon_kod", "pogon");
+      const sufiks = broj.match(/-([A-H])$/);
+      const pogon_kod = pogonRaw
+        ? String(pogonRaw).trim().toUpperCase()
+        : (sufiks ? sufiks[1] : null);
+      return {
+        id: num(r.id),
+        broj_naloga: broj,
+        id_deo: pick(r, "id dela", "id_deo").toUpperCase(),
+        pogon_kod: pogon_kod || null,
+        naziv_dela: pick(r, "naziv dela", "naziv_dela"),
+        kolicina: num(pick(r, "količina", "kolicina")),
+        kupac: pick(r, "kupac") || null,
+        datum_unosa: pick(r, "datum unosa") || null,
+        rok_isporuke: pick(r, "rok isporuke") || null,
+        status: pick(r, "status") || "aktivan",
+        operater: pick(r, "operater") || null,
+        napomena: pick(r, "napomena") || null,
+      };
+    }).filter((r) => r.broj_naloga),
     "broj_naloga"
   );
 
@@ -352,18 +363,21 @@ async function main() {
   })).filter((r) => r.id);
   await upsertBatches(supabase, "merila", merilaPayload, "id");
 
-  const kalibracijePayload = merilaRows.map((r) => ({
-    merilo_id: num(r.id),
+  let kalibracijeRows = [];
+  try { kalibracijeRows = await readCsv("kalibracije.csv"); } catch { /* optional */ }
+  const kalibracijePayload = (kalibracijeRows.length ? kalibracijeRows : merilaRows).map((r) => ({
+    id: num(r.id) || undefined,
+    merilo_id: num(pick(r, "merilo id", "merilo_id", "id merila", "id")),
     datum_kal: pick(r, "datum kal.", "datum_kal") || null,
     sledeca_kal: pick(r, "sledeca kal.", "sledeca_kal") || null,
     izvrsio: pick(r, "izvrsio") || null,
     sertifikat_br: pick(r, "cert br.", "sertifikat_br") || null,
     rezultat: pick(r, "rezultat") || null,
+    napomena: pick(r, "napomena") || null,
   })).filter((r) => r.merilo_id && r.datum_kal);
 
   if (kalibracijePayload.length) {
-    const { error } = await supabase.from("kalibracije").insert(kalibracijePayload);
-    if (error) throw new Error(`kalibracije: ${error.message}`);
+    await upsertBatches(supabase, "kalibracije", kalibracijePayload, "id");
     console.log(`  kalibracije: ${kalibracijePayload.length}`);
   }
 
@@ -524,6 +538,9 @@ async function main() {
         id: num(r.id),
         id_deo: pick(r, "id_deo").toUpperCase(),
         sifra_merenja: pick(r, "sifra_merenja"),
+        faza_naziv: pick(r, "faza_naziv") || null,
+        linija_faza: pick(r, "linija_faza") || null,
+        broj_merenja: num(pick(r, "broj_merenja")) || null,
         pozicija: pick(r, "pozicija"),
         naziv_mere: pick(r, "naziv_mere"),
         nominala: num(pick(r, "nominala")),

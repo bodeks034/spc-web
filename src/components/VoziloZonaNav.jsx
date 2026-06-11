@@ -103,7 +103,7 @@ function CarBodyDetailed() {
   );
 }
 
-function ZonaLegenda({ zona, aktivan, onClick }) {
+function ZonaLegenda({ zona, aktivan, onClick, jasanOverlay = false }) {
   const { legenda: lg, boja, bojaPozadina, bojaTekst, id, naziv } = zona;
   const cx = lg.x + lg.w / 2;
 
@@ -128,22 +128,23 @@ function ZonaLegenda({ zona, aktivan, onClick }) {
         width={lg.w}
         height={lg.h}
         rx={6}
-        fill={aktivan ? bojaPozadina : "#fff"}
+        fill={aktivan ? bojaPozadina : (jasanOverlay ? "rgba(255,255,255,0.88)" : "#fff")}
         stroke={boja}
-        strokeWidth={aktivan ? 2 : 0.8}
+        strokeWidth={aktivan ? 2.2 : jasanOverlay ? 1.6 : 0.8}
       />
       <text x={cx} y={lg.y + 17} textAnchor="middle" fill={bojaTekst} fontSize={11} fontWeight={600}>
         {id}
       </text>
-      <text x={cx} y={lg.y + 32} textAnchor="middle" fill={boja} fontSize={10}>
+      <text x={cx} y={lg.y + 32} textAnchor="middle" fill={boja} fontSize={10} fontWeight={600}>
         {naziv}
       </text>
     </g>
   );
 }
 
-function ZonaHotspot({ zona, aktivan, onClick }) {
+function ZonaHotspot({ zona, aktivan, onClick, jasanOverlay = false }) {
   const { hotspot, boja, kratko } = zona;
+  const r = hotspot.r + (jasanOverlay ? 3 : 0) + (aktivan ? 3 : 0);
 
   return (
     <g
@@ -160,22 +161,35 @@ function ZonaHotspot({ zona, aktivan, onClick }) {
       }}
       style={{ cursor: "pointer" }}
     >
+      {jasanOverlay && (
+        <circle
+          cx={hotspot.cx}
+          cy={hotspot.cy}
+          r={r + 1.5}
+          fill="#fff"
+          opacity={0.65}
+          stroke="none"
+        />
+      )}
       <circle
         cx={hotspot.cx}
         cy={hotspot.cy}
-        r={hotspot.r + (aktivan ? 4 : 0)}
+        r={r}
         fill={boja}
-        opacity={aktivan ? 0.35 : 0.18}
-        stroke={boja}
-        strokeWidth={aktivan ? 2 : 1.2}
+        opacity={aktivan ? 0.5 : jasanOverlay ? 0.38 : 0.18}
+        stroke={jasanOverlay ? "#fff" : boja}
+        strokeWidth={aktivan ? 2.2 : jasanOverlay ? 1.8 : 1.2}
       />
       <text
         x={hotspot.cx}
         y={hotspot.cy + (kratko === "F" ? 4 : 5)}
         textAnchor="middle"
-        fill={boja}
-        fontSize={kratko === "F" ? 11 : 12}
-        fontWeight={600}
+        fill={jasanOverlay ? "#fff" : boja}
+        fontSize={jasanOverlay ? 13 : (kratko === "F" ? 11 : 12)}
+        fontWeight={700}
+        stroke={jasanOverlay ? "rgba(0,0,0,0.25)" : "none"}
+        strokeWidth={0.35}
+        paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
       >
         {kratko}
@@ -243,6 +257,7 @@ export default function VoziloZonaNav({
   const isVeliki = size === "veliki";
   const isKompakt = size === "kompakt";
   const { src: bgSrc, isPhoto } = resolveDiagramSrc(diagramSrc);
+  const jasanOverlay = isPhoto;
 
   const border = C?.border || "rgba(255,255,255,0.12)";
   const panel = C?.panel || "#1a1a2e";
@@ -290,85 +305,135 @@ export default function VoziloZonaNav({
       </div>
 
       <div style={{
-        flex: isVeliki ? 1 : undefined,
-        position: "relative",
+        flex: isVeliki ? "1 1 auto" : undefined,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: isVeliki ? "8px 12px" : 0,
-        minHeight: isVeliki ? 0 : undefined,
+        minHeight: isVeliki ? 220 : undefined,
         overflow: "hidden",
         background: "#f4f3ee",
       }}>
-        {isPhoto && bgSrc && (
-          <img
-            src={bgSrc}
-            alt=""
-            draggable={false}
-            style={{
-              position: "absolute",
-              inset: isVeliki ? "8px 12px" : 0,
-              width: "calc(100% - 24px)",
-              height: "calc(100% - 16px)",
-              objectFit: "contain",
-              pointerEvents: "none",
-              imageRendering: "auto",
-            }}
-          />
-        )}
+        <div style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "100%",
+          aspectRatio: `${VB_W} / ${VB_H}`,
+          maxHeight: isVeliki ? "min(72vh, 560px)" : undefined,
+        }}>
+          {isPhoto && bgSrc && (
+            <img
+              src={bgSrc}
+              alt=""
+              draggable={false}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                pointerEvents: "none",
+                imageRendering: "auto",
+                zIndex: 0,
+              }}
+            />
+          )}
 
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          role="img"
-          aria-label="Dijagram zona kvalitetne kontrole vozila"
-          shapeRendering="geometricPrecision"
-          textRendering="geometricPrecision"
-          style={{
-            position: "relative",
-            width: "100%",
-            height: isVeliki ? "100%" : "auto",
-            maxHeight: isVeliki ? "100%" : undefined,
-            display: "block",
-            background: isPhoto ? "transparent" : "#f4f3ee",
-          }}
-          preserveAspectRatio="xMidYMid meet"
-        >
+          <svg
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            role="img"
+            aria-label="Dijagram zona kvalitetne kontrole vozila"
+            shapeRendering="geometricPrecision"
+            textRendering="geometricPrecision"
+            style={{
+              position: "relative",
+              width: "100%",
+              height: "100%",
+              display: "block",
+              background: isPhoto ? "transparent" : "#f4f3ee",
+              zIndex: 1,
+            }}
+            preserveAspectRatio="xMidYMid meet"
+          >
           <defs>
-            <marker id={markerId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <marker
+              id={markerId}
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth={jasanOverlay ? 7 : 6}
+              markerHeight={jasanOverlay ? 7 : 6}
+              orient="auto-start-reverse"
+            >
               <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" />
             </marker>
           </defs>
 
           {!isPhoto && !bgSrc && <CarBodyDetailed />}
 
+          {VOZILO_ZONE.map(z => {
+            const aktivna = izabranaZona === z.id;
+            const x1 = z.legenda.strana === "levo" ? z.legenda.x + z.legenda.w : z.legenda.x;
+            const y1 = z.legenda.y + z.legenda.h / 2;
+            const debljina = aktivna
+              ? (jasanOverlay ? 2 : 1.2)
+              : (jasanOverlay ? 1.4 : 0.7);
+            return (
+              <g key={`ln-${z.id}`}>
+                {jasanOverlay && (
+                  <line
+                    x1={x1}
+                    y1={y1}
+                    x2={z.linijaDo.x}
+                    y2={z.linijaDo.y}
+                    stroke="#fff"
+                    strokeWidth={debljina + 1.8}
+                    strokeDasharray="5 4"
+                    opacity={aktivna ? 0.7 : 0.5}
+                    strokeLinecap="round"
+                  />
+                )}
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={z.linijaDo.x}
+                  y2={z.linijaDo.y}
+                  stroke={z.boja}
+                  strokeWidth={debljina}
+                  strokeDasharray="5 4"
+                  opacity={aktivna ? 0.9 : jasanOverlay ? 0.62 : 0.45}
+                  strokeLinecap="round"
+                  markerEnd={`url(#${markerId})`}
+                />
+              </g>
+            );
+          })}
+
           {VOZILO_ZONE.map(z => (
-            <g key={`ln-${z.id}`}>
-              <line
-                x1={z.legenda.strana === "levo" ? z.legenda.x + z.legenda.w : z.legenda.x}
-                y1={z.legenda.y + z.legenda.h / 2}
-                x2={z.linijaDo.x}
-                y2={z.linijaDo.y}
-                stroke={z.boja}
-                strokeWidth={izabranaZona === z.id ? 1.2 : 0.7}
-                strokeDasharray="4 3"
-                opacity={izabranaZona === z.id ? 0.85 : 0.45}
-                markerEnd={`url(#${markerId})`}
-              />
-            </g>
+            <ZonaHotspot
+              key={`hs-${z.id}`}
+              zona={z}
+              aktivan={izabranaZona === z.id}
+              onClick={onZonaChange}
+              jasanOverlay={jasanOverlay}
+            />
           ))}
 
           {VOZILO_ZONE.map(z => (
-            <ZonaHotspot key={`hs-${z.id}`} zona={z} aktivan={izabranaZona === z.id} onClick={onZonaChange} />
-          ))}
-
-          {VOZILO_ZONE.map(z => (
-            <ZonaLegenda key={`lg-${z.id}`} zona={z} aktivan={izabranaZona === z.id} onClick={onZonaChange} />
+            <ZonaLegenda
+              key={`lg-${z.id}`}
+              zona={z}
+              aktivan={izabranaZona === z.id}
+              onClick={onZonaChange}
+              jasanOverlay={jasanOverlay}
+            />
           ))}
 
           <text x={340} y={30} textAnchor="middle" fill="#3d3d3a" fontSize={isVeliki ? 15 : 13} fontWeight={500}>
             Kontrola kvaliteta — celo vozilo
           </text>
         </svg>
+        </div>
       </div>
 
       {isVeliki && (

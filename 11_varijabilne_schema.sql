@@ -85,10 +85,17 @@ CREATE POLICY "auth_insert_merenja_var" ON merenja_varijabilna
 
 DROP POLICY IF EXISTS "auth_all_karakteristike" ON karakteristike_merljive;
 CREATE POLICY "auth_all_karakteristike" ON karakteristike_merljive
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "auth_all_sop_deo_var" ON sop_deo_varijabilni;
 CREATE POLICY "auth_all_sop_deo_var" ON sop_deo_varijabilni
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "auth_upsert_merenja_var" ON merenja_varijabilna;
+CREATE POLICY "auth_upsert_merenja_var" ON merenja_varijabilna
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
 
 NOTIFY pgrst, 'reload schema';

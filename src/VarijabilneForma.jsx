@@ -9,8 +9,10 @@ import {
   toDec, isStepen, koristiUgaoUnosKolone, inputModeMerenja,
   validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
   formatOpsegPlausibilnosti,
-  svaMerenjaZavrsena, imaBiloSta, grupeMerenja, koloneZaGrupu,
-  filterKeyUnos, sanitizujInputMerenja, unosMerenjaSpremanZaDodavanje,
+  svaMerenjaZavrsena, imaBiloSta, grupeMerenja, grupeMerenjaSaMetom,
+  brojMerenjaZaSeriju, labelSerije, metaSerije, koloneZaGrupu,
+  filterKeyUnos, sanitizujInputMerenja, unosMerenjaSpremanZaDodavanje, primeniTastMerenja,
+  unosKaoUgao,
 } from "./lib/varijabilneUtils.js";
 import { ucitajUrlSlike, lokalnaPutanjaSlike } from "./lib/slikePaths.js";
 import MerljiveSpcKarte from "./MerljiveSpcKarte.jsx";
@@ -43,6 +45,7 @@ import {
   mapaMerila,
   upozorenjaInstrumentaZaKolone,
   kalibracijaBlokiraUnos,
+  tekstInstrumentaSaBrojem,
 } from "./lib/meriloStatus.js";
 import {
   ucitajOdobrenuKalibraciju,
@@ -67,12 +70,22 @@ import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
 import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "./lib/barkod.js";
 import {
   ucitajAktivniRadniNalog,
+  ucitajNalogZaDeoIRn,
   izaberiRadniNalog,
   proveriRadniNalogUpozorenje,
   formatNalogToast,
 } from "./lib/radniNalog.js";
+import {
+  buildSopMapPoPogonu,
+  sopZaPogon,
+  pogonIzRn,
+  pogoniZaDeoSvi,
+  labelPogona,
+  jePogonOmogucen,
+} from "./lib/pogonSop.js";
 import IdDeoBarkodRed from "./components/IdDeoBarkodRed.jsx";
 import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
+import PogonIzborPanel from "./components/PogonIzborPanel.jsx";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./components/LinijaWizardNav.jsx";
@@ -81,6 +94,7 @@ import SpcBaselinePanel from "./components/SpcBaselinePanel.jsx";
 import MerljiveLinijaLeviPanel from "./components/MerljiveLinijaLeviPanel.jsx";
 import AppHeader from "./components/AppHeader.jsx";
 import MerljivaMobTabKarusel from "./components/MerljivaMobTabKarusel.jsx";
+import TastaturaBrojeviMerljive from "./components/TastaturaBrojeviMerljive.jsx";
 
 function danasSr() {
   const d = new Date();
@@ -95,6 +109,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const digitalniUnos = unosRezim === "digital";
   const ekran = useEkran();
   const { viewportKey } = ekran;
+  const koristiTastMerenja = ekran.mob || ekran.tablet;
 
   const jeLinija = rezimRada === "linija";
   const kontrolorLinija = jeKontrolorLinija(korisnik?.uloga, rezimRada);
@@ -214,6 +229,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const [datum, setDatum] = useState(danasSr());
   const [smena, setSmena] = useState(() => String(procitajSmenuIzStorage()));
   const [idDeo, setIdDeo] = useState("");
+  const [pogonKod, setPogonKod] = useState("");
   const [radniNalog, setRadniNalog] = useState("");
   const [nalogInfo, setNalogInfo] = useState(null);
   const [nalogUcitava, setNalogUcitava] = useState(false);
@@ -259,12 +275,43 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const mozeUpRikosKalibracije = mozeAdmin || kalibracijaOdobrena;
   const prethodniKalOdobren = useRef(null);
 
-  const deloviLista = useMemo(
-    () => Object.values(sopMap).map(s => ({ id_deo: s.id_deo, naziv_dela: s.naziv_dela })),
-    [sopMap],
+  const deloviLista = useMemo(() => {
+    const out = [];
+    const seen = new Set();
+    for (const id of Object.keys(sopMap)) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const prvi = Object.values(sopMap[id] || {})[0];
+      if (prvi) out.push({ id_deo: id, naziv_dela: prvi.naziv_dela });
+    }
+    return out;
+  }, [sopMap]);
+
+  const [naloziZaPogon, setNaloziZaPogon] = useState([]);
+
+  const dostupniPogoni = useMemo(
+    () => (idDeo ? pogoniZaDeoSvi(sopMap, naloziZaPogon, idDeo) : []),
+    [sopMap, naloziZaPogon, idDeo],
   );
 
+  const omoguceniPogoni = useMemo(() => {
+    if (!idDeo) return new Set();
+    return new Set(
+      dostupniPogoni.filter((p) => jePogonOmogucen({
+        sopMap,
+        naloziRows: naloziZaPogon,
+        karakteristike,
+        idDeo,
+        pogonKod: p,
+        modul: "merljive",
+      })),
+    );
+  }, [dostupniPogoni, sopMap, naloziZaPogon, karakteristike, idDeo]);
+
+  const trebaIzborPogona = !!(idDeo && omoguceniPogoni.size > 1 && !pogonKod);
+
   const prethodniId = useRef("");
+  const prethodniPogon = useRef("");
   const prethodniAB = useRef("");
   const prethodnaSmenaPoka = useRef(smena);
   const inputRefs = useRef([]);
@@ -449,25 +496,25 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     (async () => {
       setUcitava(true);
       setGreskaDb("");
-      const [kRes, sRes] = await Promise.all([
+      const [kRes, sRes, rnRes] = await Promise.all([
         supabase.from("karakteristike_merljive").select("*").order("id"),
         supabase.from("sop_deo_varijabilni").select("*"),
+        supabase.from("radni_nalozi")
+          .select("id_deo,pogon_kod,broj_naloga,status")
+          .eq("status", "aktivan"),
       ]);
       if (!ok) return;
-      if (kRes.error || sRes.error) {
+      if (kRes.error || sRes.error || rnRes.error) {
         setGreskaDb(
-          (kRes.error || sRes.error).message
-          + " — pokreni 11_varijabilne_schema.sql i import CSV."
+          (kRes.error || sRes.error || rnRes.error).message
+          + " — proveri SQL šemu (03_schema / 29_sop_pogon_kod) i uvezi CSV u NALOZI."
         );
         setUcitava(false);
         return;
       }
       setKarakteristike(kRes.data || []);
-      const map = {};
-      for (const s of sRes.data || []) {
-        map[String(s.id_deo).toUpperCase()] = s;
-      }
-      setSopMap(map);
+      setSopMap(buildSopMapPoPogonu(sRes.data || []));
+      setNaloziZaPogon(rnRes.data || []);
       setUcitava(false);
     })();
     return () => { ok = false; };
@@ -554,40 +601,78 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setKomentarPoPoziciji({});
   }, []);
 
-  const ucitajDeo = useCallback(async (sID, { radniNalogEksplicitni } = {}) => {
+  const ucitajDeo = useCallback(async (sID, { radniNalogEksplicitni, pogonEksplicitni } = {}) => {
     const id = String(sID || "").trim().toUpperCase();
     if (!id) return;
-    if (!radniNalogEksplicitni && id === prethodniId.current) return;
 
-    const sop = sopMap[id];
+    let pogon = pogonEksplicitni
+      || (radniNalogEksplicitni ? pogonIzRn(radniNalogEksplicitni) : null);
+    if (!pogon) {
+      const svi = pogoniZaDeoSvi(sopMap, naloziZaPogon, id);
+      const omoguceni = svi.filter((p) => jePogonOmogucen({
+        sopMap,
+        naloziRows: naloziZaPogon,
+        karakteristike,
+        idDeo: id,
+        pogonKod: p,
+        modul: "merljive",
+      }));
+      if (omoguceni.length === 1) pogon = omoguceni[0];
+      else if (omoguceni.length > 1) {
+        setPogonKod("");
+        setPoruka(`ID ${id}: izaberite pogon sa RN i merenjima (sivi = nema podataka).`);
+        prethodniId.current = id;
+        setNalogInfo(null);
+        return;
+      } else if (svi.length > 0) {
+        setPogonKod("");
+        setPoruka(`ID ${id}: nema aktivnog RN / karakteristika po pogonu. Uvezi radne naloge i šifarnik.`);
+        prethodniId.current = id;
+        setNalogInfo(null);
+        return;
+      } else {
+        pogon = "A";
+      }
+    }
+    pogon = String(pogon).trim().toUpperCase();
+
+    if (
+      !radniNalogEksplicitni
+      && !pogonEksplicitni
+      && id === prethodniId.current
+      && pogon === prethodniPogon.current
+    ) return;
+
+    const sop = sopZaPogon(sopMap, id, pogon) || sopZaPogon(sopMap, id, "A");
     if (!sop) {
-      setPoruka(`ID ${id} nije u SOP listi varijabilnih delova.`);
+      setPoruka(`ID ${id} / pogon ${pogon} nije u SOP listi varijabilnih delova.`);
       setNalogInfo(null);
       return;
     }
+    setPogonKod(pogon);
     setPoruka("");
     setNazivDela(sop.naziv_dela || "");
     setKontrolor(sop.kontrolor_ime || korisnik?.ime || "");
     setLinija(sop.linija || "");
     setMasina(sop.masina || "");
     setSlika(sop.slika || "");
-    const br = sop.broj_merenja || 5;
-    setPotrebanBroj(br);
+    const sopFallback = sop.broj_merenja || 5;
     setSacuvaneGrupe([]);
     setPrekidOdobrenId(null);
     setFotoPoPoziciji({});
     setKomentarPoPoziciji({});
 
-    const gs = grupeMerenja(karakteristike, id);
+    const gs = grupeMerenja(karakteristike, id, pogon);
     if (!gs.length) {
       setPoruka(
-        `ID ${id}: nema karakteristika u bazi (tabela karakteristike_merljive). `
+        `ID ${id} / ${labelPogona(pogon)}: nema karakteristika u bazi. `
         + "Admin → uvezi šifarnik (Excel ili docs/karakteristike_merljive.csv).",
       );
       setGrupe([]);
       setGrupaAB("");
-      resetKolone(br);
+      resetKolone(sopFallback);
       prethodniId.current = id;
+      prethodniPogon.current = pogon;
       setNalogInfo(null);
       return;
     }
@@ -595,22 +680,31 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     const ab = gs[0] || "";
     setGrupaAB(ab);
     prethodniAB.current = ab;
-    const cols = koloneZaGrupu(karakteristike, id, ab, br);
+    const br = brojMerenjaZaSeriju(karakteristike, id, ab, sopFallback, pogon);
+    setPotrebanBroj(br);
+    const cols = koloneZaGrupu(karakteristike, id, ab, br, pogon);
     if (!cols.some(c => c.naziv !== "-")) {
       setPoruka(
-        `ID ${id}: nema dimenzija za seriju ${ab}. Proveri karakteristike_merljive (sifra_merenja).`,
+        `ID ${id}: nema dimenzija za seriju ${ab} u pogonu ${pogon}. Proveri karakteristike_merljive.`,
       );
     }
     setKolone(cols);
     setAktivnaKolona(indeksSledecePrazno(cols, br, 0));
     prethodniId.current = id;
+    prethodniPogon.current = pogon;
     setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
     if (jeLinija) setLinijaKorak(1);
 
     setNalogUcitava(true);
     let dbNalog = null;
     try {
-      dbNalog = await ucitajAktivniRadniNalog(supabase, id);
+      const rnPrivremeno = radniNalogEksplicitni || sop.radni_nalog;
+      if (rnPrivremeno) {
+        dbNalog = await ucitajNalogZaDeoIRn(supabase, id, rnPrivremeno);
+      }
+      if (!dbNalog) {
+        dbNalog = await ucitajAktivniRadniNalog(supabase, id, pogon);
+      }
     } finally {
       setNalogUcitava(false);
     }
@@ -622,7 +716,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     });
     setRadniNalog(rn);
     if (dbNalog && !radniNalogEksplicitni && rn === dbNalog.broj_naloga) {
-      addToast(`📋 ${formatNalogToast(dbNalog)}`, "info");
+      addToast(`📋 ${formatNalogToast(dbNalog)} · ${labelPogona(pogon)}`, "info");
     }
     ensureSesija({
       modul: "merljive",
@@ -630,7 +724,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       smena,
       radniNalog: rn,
     });
-  }, [sopMap, karakteristike, korisnik, smena, rezimRada, jeLinija, resetKolone, addToast]);
+  }, [sopMap, karakteristike, naloziZaPogon, korisnik, smena, rezimRada, jeLinija, resetKolone, addToast]);
 
   useEffect(() => {
     if (!slika) { setUrlSlike(null); return; }
@@ -679,16 +773,29 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     prethodniAB.current = ab;
     setFotoPoPoziciji({});
     setKomentarPoPoziciji({});
-    const cols = koloneZaGrupu(karakteristike, idDeo, ab, potrebanBroj);
+    const sopFb = sopZaPogon(sopMap, idDeo, pogonKod)?.broj_merenja || 5;
+    const br = brojMerenjaZaSeriju(karakteristike, idDeo, ab, sopFb, pogonKod);
+    setPotrebanBroj(br);
+    const cols = koloneZaGrupu(karakteristike, idDeo, ab, br, pogonKod);
     const brojK = cols.filter(c => c.naziv !== "-").length;
     setKolone(cols);
-    setKpiSerija(podrazumevaniKpiIzMerenja({ kolone: cols, potrebanBroj, brojKolona: brojK }));
-    setAktivnaKolona(indeksSledecePrazno(cols, potrebanBroj, 0));
+    setKpiSerija(podrazumevaniKpiIzMerenja({ kolone: cols, potrebanBroj: br, brojKolona: brojK }));
+    setAktivnaKolona(indeksSledecePrazno(cols, br, 0));
     if (idDeo) {
       setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
       if (jeLinija && force) setLinijaKorak(koristiMobLinija ? 2 : 1);
     }
   };
+
+  const metaAktivneSerije = idDeo && grupaAB
+    ? metaSerije(
+      karakteristike,
+      idDeo,
+      grupaAB,
+      sopZaPogon(sopMap, idDeo, pogonKod)?.broj_merenja || 5,
+      pogonKod,
+    )
+    : null;
 
   const prebaciNaSledecuSerijuPosleSnimanja = (sacuvanaSerija) => {
     const idx = grupe.indexOf(sacuvanaSerija);
@@ -726,12 +833,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     clearTimeout(idUcitajTimer.current);
     if (!s) {
       prethodniId.current = "";
+      prethodniPogon.current = "";
       prethodniAB.current = "";
       setGrupe([]);
       setGrupaAB("");
       setSacuvaneGrupe([]);
       setPrekidOdobrenId(null);
       setRadniNalog("");
+      setPogonKod("");
       setNalogInfo(null);
       resetKolone(5);
       return;
@@ -753,6 +862,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     clearTimeout(idUcitajTimer.current);
     if (s.length >= 3) onIdChange(s, { potvrdi: true });
   }, [idDeo]);
+
+  const onPogonChange = useCallback((pogon) => {
+    const p = String(pogon || "").trim().toUpperCase();
+    if (!p || !idDeo) return;
+    ucitajDeo(idDeo, { pogonEksplicitni: p, radniNalogEksplicitni: radniNalog });
+  }, [idDeo, radniNalog, ucitajDeo]);
 
   const obradiBarkodSken = useCallback((raw) => {
     const p = parsiBarkod(raw);
@@ -892,7 +1007,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     const kalBlok = kalUpozorenja.find(u => u.pozicija === k0.naziv && kalibracijaBlokiraUnos(u.status));
     if (kalBlok && !mozeUpRikosKalibracije) {
       setPoruka(
-        `Merilo „${k0.instrument}” — kalibracija istekla. `
+        `Merilo „${k0.instrument}”${kalBlok.meriloBroj ? ` (#${kalBlok.meriloBroj})` : ""} — kalibracija istekla. `
         + (mozeAdmin
           ? "Klikni „Admin: dozvoli merenje“ ispod ili kalibriši merilo u tabu MERILA."
           : "Obavesti admina ili kalibriši merilo."),
@@ -982,6 +1097,24 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     }
   }, [dodajMerenje, kolonaJePuna, prebaciNaSledecuPraznuKolonu]);
 
+  const primeniTastaturuMerenja = useCallback((akcija, cifra) => {
+    const i = aktivnaKolona;
+    if (i < 0) return;
+    const k = koloneRef.current[i];
+    if (!k || kolonaJePuna(k) || k.naziv === "-") return;
+    const v = primeniTastMerenja(akcija, k.input, k, cifra);
+    promeniInputMerenja(i, v, k);
+  }, [aktivnaKolona, kolonaJePuna, promeniInputMerenja]);
+
+  const zatvoriTastMerenja = useCallback(() => {
+    const i = aktivnaKolona;
+    if (i >= 0) {
+      blurInputMerenja(i);
+      inputRefs.current[i]?.blur?.();
+    }
+    setAktivnaKolona(-1);
+  }, [aktivnaKolona, blurInputMerenja]);
+
   const obrisiPoslednje = () => {
     setKolone(prev => prev.map(k => {
       if (k.naziv === "-" || !k.merenja.length) return k;
@@ -1035,6 +1168,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           smena: Number(smena) || 1,
           radni_nalog: radniNalog,
           id_deo: idDeo,
+          pogon_kod: pogonKod || null,
           karakteristika_id: k.id,
           sifra_merenja: grupaAB,
           pozicija: k.naziv,
@@ -1119,12 +1253,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setPoruka(`Serija ${grupaAB} sačuvana${labelPrekid}. Sva merenja za ovaj ID su kompletirana — forma se resetuje.`);
     novaSesija({ modul: "merljive", idDeo: "", smena, radniNalog: "" });
     setIdDeo("");
+    setPogonKod("");
     setRadniNalog("");
     setNazivDela("");
     setLinija("");
     setMasina("-");
     setSlika("");
     prethodniId.current = "";
+    prethodniPogon.current = "";
     prethodniAB.current = "";
     setGrupe([]);
     setGrupaAB("");
@@ -1350,20 +1486,33 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     </div>
   );
 
+  const serijeMeta = idDeo
+    ? grupeMerenjaSaMetom(
+      karakteristike,
+      idDeo,
+      sopZaPogon(sopMap, idDeo, pogonKod)?.broj_merenja || 5,
+      pogonKod,
+    )
+    : [];
+
   const serijaDugmad = (
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-      {grupe.map((g) => {
+      {serijeMeta.map((meta) => {
+        const g = meta.sifra;
         const idx = grupe.indexOf(g);
         const aktivna = g === grupaAB;
         const zavrsena = sacuvaneGrupe.includes(g);
         const zakljucana = idx > indeksAktivne && !zavrsena;
+        const kratko = meta.faza_naziv
+          ? `${g} · ${meta.faza_naziv} (${meta.broj_merenja}×)`
+          : `${g} (${meta.broj_merenja}×)`;
         return (
           <button
             key={g}
             type="button"
             disabled={zakljucana}
             onClick={() => !zakljucana && onGrupaChange(g)}
-            title={zakljucana ? `Prvo završi seriju ${grupe[idx - 1] || "prethodnu"}` : g}
+            title={zakljucana ? `Prvo završi seriju ${grupe[idx - 1] || "prethodnu"}` : labelSerije(meta)}
             style={{
               ...inp,
               width: "auto",
@@ -1374,13 +1523,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               borderColor: aktivna ? C.zelena : zavrsena ? C.plava : C.border,
               background: aktivna ? `${C.zelena}22` : C.input,
               fontWeight: aktivna ? 700 : 400,
+              fontSize: 10,
             }}
           >
-            {g}{zavrsena ? " ✓" : ""}
+            {kratko}{zavrsena ? " ✓" : ""}
           </button>
         );
       })}
-      {!grupe.length && <span style={{ color: C.sivi, fontSize: 10 }}>—</span>}
+      {!serijeMeta.length && <span style={{ color: C.sivi, fontSize: 10 }}>—</span>}
     </div>
   );
 
@@ -1456,9 +1606,44 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           style={inpGen}
           value={nalogUcitava ? "…" : (radniNalog || "—")}
           readOnly
-          title={nalogInfo?.kupac ? `Kupac: ${nalogInfo.kupac}` : undefined}
+          title={[
+            nalogInfo?.kupac && `Kupac: ${nalogInfo.kupac}`,
+            nalogInfo?.rok_isporuke && `Rok: ${nalogInfo.rok_isporuke}`,
+          ].filter(Boolean).join(" · ") || undefined}
         />
       </label>
+      {(nalogInfo?.kupac || nalogInfo?.rok_isporuke) && (
+        <div style={{
+          flex: "1 1 100%",
+          fontSize: 9,
+          color: C.sivi,
+          lineHeight: 1.35,
+          padding: "2px 4px",
+        }}>
+          {nalogInfo.kupac && <span>Kupac: <strong style={{ color: C.tekst }}>{nalogInfo.kupac}</strong></span>}
+          {nalogInfo.kupac && nalogInfo.rok_isporuke && " · "}
+          {nalogInfo.rok_isporuke && <span>Rok isporuke: <strong style={{ color: C.tekst }}>{nalogInfo.rok_isporuke}</strong></span>}
+        </div>
+      )}
+      {dostupniPogoni.length > 1 && (
+        <div style={{ flex: "0 0 auto", minWidth: 200, maxWidth: 320 }}>
+          <PogonIzborPanel
+            C={C}
+            pogoni={dostupniPogoni}
+            omoguceniPogoni={omoguceniPogoni}
+            pogonKod={pogonKod}
+            onIzaberi={onPogonChange}
+            kompakt
+            obavezan={trebaIzborPogona}
+          />
+        </div>
+      )}
+      {pogonKod && dostupniPogoni.length <= 1 && (
+        <label style={{ ...lblGen, flex: "0 0 auto", minWidth: 0 }}>
+          Pogon
+          <input style={inpGen} value={labelPogona(pogonKod)} readOnly />
+        </label>
+      )}
       <label style={{ ...lblGen, ...flexPolje(G.polja.nazivDela) }}>
         Naziv dela
         <input style={inpGen} value={nazivDela} readOnly />
@@ -1565,7 +1750,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
             <>
               {metaRed("Šta se meri", k.naziv, C.plava, K)}
               {k.nazivMere ? metaRed("Nominala / oznaka", k.nazivMere, undefined, K) : null}
-              {metaRed("Merni instrument", k.instrument, undefined, K)}
+              {metaRed("Merni instrument", tekstInstrumentaSaBrojem(k.instrument, merilaMap), undefined, K)}
               {metaRed("Broj merenja", k.ukupnoLabel, C.zuta, K)}
             </>
           )}
@@ -1594,7 +1779,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                   {mobMetaCelija("Šta se meri", k.naziv, C.plava, "left", K)}
                   {mobMetaCelija("Broj merenja", k.ukupnoLabel, C.zuta, "center", K)}
-                  {mobMetaCelija("Merni instrument", k.instrument, undefined, "right", K)}
+                  {mobMetaCelija("Merni instrument", tekstInstrumentaSaBrojem(k.instrument, merilaMap), undefined, "right", K)}
                 </div>
                 <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
                   {mobMetaCelija("LSL", k.lslText, undefined, "left", K)}
@@ -1605,7 +1790,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   <input
                     ref={el => { inputRefs.current[i] = el; }}
                     type="text"
-                    inputMode={inputModeMerenja(k)}
+                    readOnly={koristiTastMerenja}
+                    inputMode={koristiTastMerenja ? "none" : inputModeMerenja(k)}
                     enterKeyHint="done"
                     autoComplete="off"
                     autoCorrect="off"
@@ -1617,6 +1803,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                       background: bojaUnosMerenja(k.input, k.lslDec, k.uslDec, k.nominalDec, k.jedinica, C),
                       outline: aktivnaKolona === i ? `2px solid ${C.zelena}55` : "none",
                       border: `1px solid ${C.border}`,
+                      cursor: koristiTastMerenja ? "pointer" : undefined,
                     }}
                     value={k.input}
                     onFocus={(e) => {
@@ -1625,12 +1812,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                         prebaciNaSledecuPraznuKolonu(i + 1);
                         return;
                       }
-                      onFocusTastatura(e);
+                      if (!koristiTastMerenja) onFocusTastatura(e);
                       setAktivnaKolona(i);
                     }}
-                    onChange={e => promeniInputMerenja(i, sanitizujInputMerenja(e.target.value, k), k)}
+                    onChange={koristiTastMerenja
+                      ? undefined
+                      : (e => promeniInputMerenja(i, sanitizujInputMerenja(e.target.value, k), k))}
                     onBlur={() => blurInputMerenja(i)}
-                    onKeyDown={e => keyDownInputMerenja(e, i, k)}
+                    onKeyDown={koristiTastMerenja ? undefined : (e => keyDownInputMerenja(e, i, k))}
                     placeholder={koristiUgaoUnosKolone(k)
                       ? "440000 = 44°00′00″"
                       : (k.plausibilnost ? "u opsegu npr. 33" : "0,00")}
@@ -1817,7 +2006,18 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     );
   };
 
-  const merljiveFormaBlok = prikaziMerljiveFormu && (
+  const merljiveFormaBlok = prikaziMerljiveFormu && (() => {
+    const aktivnaKol = aktivnaKolona >= 0 ? kolone[aktivnaKolona] : null;
+    const prikaziTastMerenja = koristiTastMerenja
+      && aktivnaKol
+      && aktivnaKol.naziv !== "-"
+      && !kolonaJePuna(aktivnaKol);
+    const ugaoTast = aktivnaKol && (
+      koristiUgaoUnosKolone(aktivnaKol)
+      || unosKaoUgao(aktivnaKol.jedinica, aktivnaKol.input, aktivnaKol.lslDec, aktivnaKol.uslDec)
+    );
+
+    return (
     <div style={{
       display: "flex",
       flexDirection: "column",
@@ -1843,7 +2043,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       )}
       {!L.mobTabKarusel && (
         <div style={{ fontSize: 10, color: C.zuta, marginBottom: 4, flexShrink: 0, flex: "0 0 auto" }}>
-          Serija {grupaAB}: unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
+          {metaAktivneSerije ? labelSerije(metaAktivneSerije) : `Serija ${grupaAB}`}
+          : unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
           {ciljSesije > 0 && (
             <span style={{ color: C.sivi }}> · Preostalo serija: {preostaloSesije} / {ciljSesije}</span>
           )}
@@ -2000,8 +2201,18 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           </div>
         )}
       </div>
+      {prikaziTastMerenja && (
+        <TastaturaBrojeviMerljive
+          C={C}
+          ugao={!!ugaoTast}
+          onTaster={primeniTastaturuMerenja}
+          onGotovo={zatvoriTastMerenja}
+          kompakt={ekran.telefon}
+        />
+      )}
     </div>
-  );
+    );
+  })();
 
   const trebaCekListaMer = tab === "unos" && !kontrolnaListaOk && (jeLinija ? !!(idDeo && idUcitano) : true);
 
@@ -2426,6 +2637,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           potrebanBroj={potrebanBroj}
           ucitava={ucitava || nalogUcitava}
           poruka={poruka}
+          dostupniPogoni={dostupniPogoni}
+          omoguceniPogoni={omoguceniPogoni}
+          pogonKod={pogonKod}
+          onPogonChange={onPogonChange}
+          trebaIzborPogona={trebaIzborPogona}
           idUcitano={idUcitano}
           unosKorak={unosKorak}
           setUnosKorak={setUnosKorak}
@@ -2505,6 +2721,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
             preostaloSesije={preostaloSesije}
             ciljSesije={ciljSesije}
             poruka={poruka}
+            dostupniPogoni={dostupniPogoni}
+            omoguceniPogoni={omoguceniPogoni}
+            pogonKod={pogonKod}
+            onPogonChange={onPogonChange}
+            trebaIzborPogona={trebaIzborPogona}
             onNoviDeo={noviDeoLinija}
             slikaNaziv={slika}
             urlSlike={urlSlike}
@@ -2516,8 +2737,34 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               </div>
             )}
             {!idUcitano && (
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.border, fontSize: 13 }}>
-                Unesi ID dela i izaberi seriju
+              <div style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 16,
+                padding: 20,
+                color: C.border,
+                fontSize: 13,
+              }}>
+                <span>
+                  {trebaIzborPogona
+                    ? "Izaberite pogon u levom panelu (A–H)"
+                    : "Unesi ID dela i izaberi seriju"}
+                </span>
+                {trebaIzborPogona && (
+                  <div style={{ width: "100%", maxWidth: 360 }}>
+                    <PogonIzborPanel
+                      C={C}
+                      pogoni={dostupniPogoni}
+                      omoguceniPogoni={omoguceniPogoni}
+                      pogonKod={pogonKod}
+                      onIzaberi={onPogonChange}
+                      obavezan
+                    />
+                  </div>
+                )}
               </div>
             )}
             {idUcitano && unosKorak === "poka" && (
@@ -2576,6 +2823,16 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
             {poruka}
           </div>
         )}
+        {trebaIzborPogona && !desktopUnos && (
+          <PogonIzborPanel
+            C={C}
+            pogoni={dostupniPogoni}
+            omoguceniPogoni={omoguceniPogoni}
+            pogonKod={pogonKod}
+            onIzaberi={onPogonChange}
+            obavezan
+          />
+        )}
 
         {desktopUnos ? generalijeGornjiRed : (
         <div style={{ marginBottom: 6, flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
@@ -2631,10 +2888,28 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               whiteSpace: "nowrap",
             }}>
               {nazivDela || "Naziv dela"}
+              {pogonKod && nazivDela && (
+                <span style={{ color: C.plava, fontWeight: 600, marginLeft: 6, fontSize: 10 }}>
+                  {labelPogona(pogonKod)}
+                </span>
+              )}
               {linija && nazivDela && (
                 <span style={{ color: C.sivi, fontWeight: 400, marginLeft: 8, fontSize: 10 }}>{linija}</span>
               )}
             </div>
+            {dostupniPogoni.length > 1 && (
+              <div style={{ flex: "1 1 100%", width: "100%" }}>
+                <PogonIzborPanel
+                  C={C}
+                  pogoni={dostupniPogoni}
+                  omoguceniPogoni={omoguceniPogoni}
+                  pogonKod={pogonKod}
+                  onIzaberi={onPogonChange}
+                  kompakt
+                  obavezan={trebaIzborPogona}
+                />
+              </div>
+            )}
             <div style={{
               flex: "0 0 auto",
               display: "flex",

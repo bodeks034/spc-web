@@ -9,6 +9,7 @@ import {
   calcCpCpk, bojaKapabiliteta,
 } from "./varijabilneSpcStats.js";
 import { predloziDodeljenogInzenjera } from "./eskalacijeHelper.js";
+import { brojMerenjaIzSop } from "./pogonSop.js";
 
 const STANJE = {
   U_KONTROLI: "u_kontroli",
@@ -383,15 +384,14 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
       .select("pozicija,nominala,lsl,usl,jedinica,sifra_merenja")
       .eq("id_deo", idDeo),
     supabase.from("sop_deo_varijabilni")
-      .select("broj_merenja")
-      .eq("id_deo", idDeo)
-      .maybeSingle(),
+      .select("broj_merenja,pogon_kod")
+      .eq("id_deo", idDeo),
   ]);
 
   const logData = logRes.data || [];
   const merData = merRes.data || [];
   const karakteristike = karRes.data || [];
-  const nPodgrupa = sopRes.data?.broj_merenja || 5;
+  const nPodgrupa = brojMerenjaIzSop(sopRes.data || [], idDeo);
 
   const attrAgg = aggregateLogRows(logData) || {};
   const merN = merData.length;

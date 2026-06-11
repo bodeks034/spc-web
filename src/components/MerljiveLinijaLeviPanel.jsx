@@ -1,6 +1,7 @@
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
 import { useMemo } from "react";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
+import PogonIzborPanel from "./PogonIzborPanel.jsx";
 import { idBarkodInputHandleri } from "../lib/barkod.js";
 
 /** Levi panel — modul linija merljive (ID / poka; crtež ispod generalija). */
@@ -26,6 +27,11 @@ export default function MerljiveLinijaLeviPanel({
   preostaloSesije,
   ciljSesije,
   poruka,
+  dostupniPogoni = [],
+  omoguceniPogoni = null,
+  pogonKod = "",
+  onPogonChange,
+  trebaIzborPogona = false,
   onNoviDeo,
   slikaNaziv,
   urlSlike,
@@ -101,6 +107,31 @@ export default function MerljiveLinijaLeviPanel({
           }}
         />
       </IdDeoBarkodRed>
+      <div>
+        <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1, marginBottom: 4 }}>Radni nalog</div>
+        <input
+          value={radniNalog || "—"}
+          readOnly
+          style={{
+            ...INP,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            textAlign: "center",
+            color: radniNalog ? C.tekst : C.sivi,
+          }}
+        />
+      </div>
+      {dostupniPogoni.length > 1 && (
+        <PogonIzborPanel
+          C={C}
+          pogoni={dostupniPogoni}
+          omoguceniPogoni={omoguceniPogoni}
+          pogonKod={pogonKod}
+          onIzaberi={onPogonChange}
+          kompakt
+          obavezan={trebaIzborPogona}
+        />
+      )}
       <div>
         {idUcitano && (
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>

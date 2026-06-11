@@ -18,9 +18,13 @@ const ATRIBUTIVNI = [
   ["greske_katalog", "greske_katalog.csv"],
   ["katalog_gresaka_vozilo", "katalog_gresaka_vozilo.csv"],
   ["delovi", "delovi.csv"],
+  ["ciljevi", "ciljevi.csv"],
   ["radnici", "radnici.csv"],
   ["radni_nalozi", "radni_nalozi.csv"],
+  ["kupci", "kupci.csv"],
   ["kontrolna_lista_stavke", "kontrolna_lista_stavke.csv"],
+  ["merila", "merila.csv"],
+  ["kalibracije", "kalibracije.csv"],
 ];
 
 const MERLJIVE = [
@@ -33,14 +37,44 @@ const KOPIRAJ_CSV = [
   ...ATRIBUTIVNI.map(([, f]) => f),
   ...MERLJIVE.map(([, f]) => f),
   "ciljevi.csv",
+  "kupci.csv",
   "merila.csv",
+  "kalibracije.csv",
   "barkodi_sadrzaj.csv",
   "erp_radni_nalozi.example.csv",
+  "deo_rucni.csv",
 ];
 
+function parseCsvLine(line) {
+  const out = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i += 1; }
+      else inQuotes = !inQuotes;
+      continue;
+    }
+    if (ch === "," && !inQuotes) { out.push(cur.trim()); cur = ""; continue; }
+    cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+
 function csvToSheet(csvPath) {
-  const wb = XLSX.read(readFileSync(csvPath, "utf8"), { type: "string" });
-  return wb.Sheets[wb.SheetNames[0]];
+  const txt = readFileSync(csvPath, "utf8");
+  const lines = txt.split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return XLSX.utils.aoa_to_sheet([]);
+  const headers = parseCsvLine(lines[0]);
+  const rows = lines.slice(1).map((line) => {
+    const cols = parseCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cols[i] ?? ""; });
+    return row;
+  });
+  return XLSX.utils.json_to_sheet(rows, { header: headers });
 }
 
 async function buildWorkbook(pairs, outName) {
@@ -55,8 +89,19 @@ async function buildWorkbook(pairs, outName) {
     }
   }
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-  await fs.writeFile(path.join(out, outName), buf);
-  console.log(`  ${outName}`);
+  const target = path.join(out, outName);
+  try {
+    await fs.writeFile(target, buf);
+    console.log(`  ${outName}`);
+  } catch (e) {
+    if (e?.code === "EBUSY") {
+      const alt = outName.replace(/\.xlsx$/i, "_novo.xlsx");
+      await fs.writeFile(path.join(out, alt), buf);
+      console.warn(`  ${outName} zaključan — upisano: ${alt}`);
+    } else {
+      throw e;
+    }
+  }
 }
 
 const README = `# SPC — šifrarnik paket (jedan folder)

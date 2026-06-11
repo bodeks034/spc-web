@@ -1,56 +1,56 @@
-id,kategorija,podkategorija,defekt,opis
-1,LOS VAR,Rupa u varu,Rupa u varu,Otvor u zavarenom spoju
-2,LOS VAR,Nema vara,Nema vara,Nedostaje zavareni spoj
-3,LOS VAR,Slab var,Slab var,Nedovoljna cvrstoca
-4,LOS VAR,Prskanje,Prskanje,Metalne kapljice oko vara
-5,LOS VAR,Rasipanje,Rasipanje,Zazor veci od tolerancije
-6,ZAZOR,Prevelik,Prevelik,Zazor manji od tolerancije
-7,ZAZOR,Premali,Premali,Promenljiv zazor po obimu
-8,ZAZOR,Nejednak,Nejednak,Mehanicka ostecenja
-9,ZAZOR,Van tolerancije,Van tolerancije,Deformacija povrsine
-10,POVRSINA,Ogrebotina,Ogrebotina,Korozija
-11,POVRSINA,Udubljenje,Udubljenje,Opsta deformacija oblika
-12,POVRSINA,Rdja,Rdja,Van dimenzionalne tolerancije
-13,POVRSINA,Boja,Boja,Van dimenzionalne tolerancije
-14,POVRSINA,Prevelika,Prevelika,Van dimenzionalne tolerancije
-15,POVRSINA,Premala,Premala,Neobradjena ivica
-16,POVRSINA,Ovalnost,Ovalnost,Vizuelno iskrivljenje
-17,POVRSINA,Konusnost,Konusnost,Funkcionalna smetnja
-18,POVRSINA,Deformacija,Deformacija,Pogresno pozicioniranje
-19,DIMENZIJA,Sirina,Sirina,Ugradjen krivi deo
-20,DIMENZIJA,Duzina,Duzina,Ispod propisane tvrdoce
-21,DIMENZIJA,Precnik,Precnik,Iznad propisane tvrdoce
-22,VIZUELNO,Prljavo,Prljavo,Ostecena ambalaza
-23,VIZUELNO,Ostra ivica,Ostra ivica,Nedostaje komponenta
-24,VIZUELNO,Krivo,Krivo,
-25,VIZUELNO,Boja,Boja,
-26,VIZUELNO,Nijanse,Nijanse,
-27,VIZUELNO,Mrlje,Mrlje,
-28,VIZUELNO,Etiketa,Etiketa,
-29,FUNKCIJA,Ne radi,Ne radi,
-30,FUNKCIJA,Blokira,Blokira,
-31,FUNKCIJA,Tesko radi,Tesko radi,
-32,FUNKCIJA,Zaglavljuje,Zaglavljuje,
-33,FUNKCIJA,Skripi,Skripi,
-34,MONTAZA,Nedostaje deo,Nedostaje deo,
-35,MONTAZA,Los polozaj,Los polozaj,
-36,MONTAZA,Pogresan deo,Pogresan deo,
-37,MONTAZA,Krhko,Krhko,
-38,MONTAZA,Mekano,Mekano,
-39,MONTAZA,Tvrdo,Tvrdo,
-40,MONTAZA,Nehomogeno,Nehomogeno,
-41,MATERIJAL,Pogresan,Pogresan,
-42,MATERIJAL,Krhko,Krhko,
-43,MATERIJAL,Mekano,Mekano,
-44,MATERIJAL,Tvrdo,Tvrdo,
-45,MATERIJAL,Nehomogeno,Nehomogeno,
-46,PAKOVANJE,Osteceno,Osteceno,
-47,PAKOVANJE,Pogresna etiketa,Pogresna etiketa,
-48,PAKOVANJE,Pogresno,Pogresno,
-49,PAKOVANJE,Nedostaje deo,Nedostaje deo,
-50,PAKOVANJE,Visak,Visak,
-51,OZNAKE,Pogresna sifra,Pogresna sifra,
-52,OZNAKE,Nedostaje deo,Nedostaje deo,
-53,OZNAKE,Necitko,Necitko,
-54,OZNAKE,Pogresan dokument,Pogresan dokument,
-55,,Ostalo,Ostalo,
+id,kategorija,podkategorija,defekt,opis,pogon kod
+1,LOS VAR,Rupa u varu,Rupa u varu,Otvor u zavarenom spoju,C
+2,LOS VAR,Nema vara,Nema vara,Nedostaje zavareni spoj,C
+3,LOS VAR,Slab var,Slab var,Nedovoljna cvrstoca,C
+4,LOS VAR,Prskanje,Prskanje,Metalne kapljice oko vara,C
+5,LOS VAR,Rasipanje,Rasipanje,Zazor veci od tolerancije,C
+6,ZAZOR,Prevelik,Prevelik,Zazor manji od tolerancije,C
+7,ZAZOR,Premali,Premali,Promenljiv zazor po obimu,C
+8,ZAZOR,Nejednak,Nejednak,Mehanicka ostecenja,C
+9,ZAZOR,Van tolerancije,Van tolerancije,Deformacija povrsine,C
+10,POVRSINA,Ogrebotina,Ogrebotina,Korozija,C
+11,POVRSINA,Udubljenje,Udubljenje,Opsta deformacija oblika,C
+12,POVRSINA,Rdja,Rdja,Van dimenzionalne tolerancije,C
+13,POVRSINA,Boja,Boja,Van dimenzionalne tolerancije,C
+14,POVRSINA,Prevelika,Prevelika,Van dimenzionalne tolerancije,C
+15,POVRSINA,Premala,Premala,Neobradjena ivica,C
+16,POVRSINA,Ovalnost,Ovalnost,Vizuelno iskrivljenje,C
+17,POVRSINA,Konusnost,Konusnost,Funkcionalna smetnja,C
+18,POVRSINA,Deformacija,Deformacija,Pogresno pozicioniranje,C
+19,DIMENZIJA,Sirina,Sirina,Ugradjen krivi deo,A
+20,DIMENZIJA,Duzina,Duzina,Ispod propisane tvrdoce,A
+21,DIMENZIJA,Precnik,Precnik,Iznad propisane tvrdoce,A
+22,VIZUELNO,Prljavo,Prljavo,Ostecena ambalaza,A
+23,VIZUELNO,Ostra ivica,Ostra ivica,Nedostaje komponenta,A
+24,VIZUELNO,Krivo,Krivo,,A
+25,VIZUELNO,Boja,Boja,,A
+26,VIZUELNO,Nijanse,Nijanse,,A
+27,VIZUELNO,Mrlje,Mrlje,,A
+28,VIZUELNO,Etiketa,Etiketa,,A
+29,FUNKCIJA,Ne radi,Ne radi,,F
+30,FUNKCIJA,Blokira,Blokira,,F
+31,FUNKCIJA,Tesko radi,Tesko radi,,F
+32,FUNKCIJA,Zaglavljuje,Zaglavljuje,,F
+33,FUNKCIJA,Skripi,Skripi,,F
+34,MONTAZA,Nedostaje deo,Nedostaje deo,,F
+35,MONTAZA,Los polozaj,Los polozaj,,F
+36,MONTAZA,Pogresan deo,Pogresan deo,,F
+37,MONTAZA,Krhko,Krhko,,F
+38,MONTAZA,Mekano,Mekano,,F
+39,MONTAZA,Tvrdo,Tvrdo,,F
+40,MONTAZA,Nehomogeno,Nehomogeno,,F
+41,MATERIJAL,Pogresan,Pogresan,,A
+42,MATERIJAL,Krhko,Krhko,,A
+43,MATERIJAL,Mekano,Mekano,,A
+44,MATERIJAL,Tvrdo,Tvrdo,,A
+45,MATERIJAL,Nehomogeno,Nehomogeno,,A
+46,PAKOVANJE,Osteceno,Osteceno,,A
+47,PAKOVANJE,Pogresna etiketa,Pogresna etiketa,,A
+48,PAKOVANJE,Pogresno,Pogresno,,A
+49,PAKOVANJE,Nedostaje deo,Nedostaje deo,,A
+50,PAKOVANJE,Visak,Visak,,A
+51,OZNAKE,Pogresna sifra,Pogresna sifra,,A
+52,OZNAKE,Nedostaje deo,Nedostaje deo,,A
+53,OZNAKE,Necitko,Necitko,,A
+54,OZNAKE,Pogresan dokument,Pogresan dokument,,A
+55,,Ostalo,Ostalo,,A

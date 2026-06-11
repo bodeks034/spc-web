@@ -8,6 +8,7 @@ import {
   snimiBaseline,
   preuzmiGraniceIzGrafa,
 } from "../lib/spcBaseline.js";
+import { uniqueDeloviIzSop, brojMerenjaIzSop } from "../lib/pogonSop.js";
 
 export default function SpcBaselinePanel({ C, korisnik, addToast, modul = "atributivne" }) {
   const tipovi = modul === "merljive" ? TIPOVI_MERLJIVE : TIPOVI_ATRIBUTIVNE;
@@ -31,9 +32,11 @@ export default function SpcBaselinePanel({ C, korisnik, addToast, modul = "atrib
 
   useEffect(() => {
     const tabela = modul === "merljive" ? "sop_deo_varijabilni" : "delovi";
-    const kolone = modul === "merljive" ? "id_deo,naziv_dela" : "id_deo,naziv_dela";
+    const kolone = modul === "merljive" ? "id_deo,pogon_kod,naziv_dela,broj_merenja" : "id_deo,naziv_dela";
     supabase.from(tabela).select(kolone).order("id_deo")
-      .then(({ data }) => setDelovi(data || []));
+      .then(({ data }) => {
+        setDelovi(modul === "merljive" ? uniqueDeloviIzSop(data || []) : (data || []));
+      });
   }, [modul]);
 
   useEffect(() => {
@@ -54,11 +57,11 @@ export default function SpcBaselinePanel({ C, korisnik, addToast, modul = "atrib
   useEffect(() => {
     if (modul !== "merljive" || !idDeo) return;
     supabase.from("sop_deo_varijabilni")
-      .select("broj_merenja")
+      .select("broj_merenja,pogon_kod")
       .eq("id_deo", idDeo)
-      .maybeSingle()
       .then(({ data }) => {
-        if (data?.broj_merenja) setNPodgrupa(Number(data.broj_merenja) || 5);
+        const br = brojMerenjaIzSop(data || [], idDeo);
+        if (br) setNPodgrupa(br);
       });
   }, [modul, idDeo]);
 

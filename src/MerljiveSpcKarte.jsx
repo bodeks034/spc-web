@@ -13,6 +13,7 @@ import {
 import { upisiSpcAlarm, kreirajAutoEskalaciju } from "./lib/spcStats.js";
 import { downloadWorkbook, exportMerenjaVarijabilnaExcel } from "./lib/excelSync.js";
 import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi } from "./lib/varijabilneUtils.js";
+import { uniqueDeloviIzSop } from "./lib/pogonSop.js";
 import { useEkran } from "./lib/useEkran.js";
 import {
   predlogMerljivihKarti,
@@ -160,10 +161,10 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   useEffect(() => {
     (async () => {
       const [dRes, kRes] = await Promise.all([
-        supabase.from("sop_deo_varijabilni").select("id_deo,naziv_dela,broj_merenja").order("id_deo"),
+        supabase.from("sop_deo_varijabilni").select("id_deo,pogon_kod,naziv_dela,broj_merenja").order("id_deo"),
         supabase.from("karakteristike_merljive").select("id_deo,pozicija,lsl,usl,nominala,jedinica").order("pozicija"),
       ]);
-      setDelovi(dRes.data || []);
+      setDelovi(uniqueDeloviIzSop(dRes.data || []));
       setKarakteristike(kRes.data || []);
     })();
   }, []);

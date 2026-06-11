@@ -67,4 +67,28 @@ DROP POLICY IF EXISTS "auth_upsert_kontrolna_stavke" ON kontrolna_lista_stavke;
 CREATE POLICY "auth_upsert_kontrolna_stavke" ON kontrolna_lista_stavke FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "auth_upsert_radnici" ON radnici;
+CREATE POLICY "auth_upsert_radnici" ON radnici FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "auth_upsert_radni_nalozi" ON radni_nalozi;
+CREATE POLICY "auth_upsert_radni_nalozi" ON radni_nalozi FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "auth_upsert_kupci" ON kupci;
+CREATE POLICY "auth_upsert_kupci" ON kupci FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "auth_upsert_ciljevi" ON ciljevi;
+CREATE POLICY "auth_upsert_ciljevi" ON ciljevi FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "auth_upsert_merila" ON merila;
+CREATE POLICY "auth_upsert_merila" ON merila FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "auth_upsert_kalibracije" ON kalibracije;
+CREATE POLICY "auth_upsert_kalibracije" ON kalibracije FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
 NOTIFY pgrst, 'reload schema';

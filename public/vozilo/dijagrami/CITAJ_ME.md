@@ -18,7 +18,10 @@
 
 | Fajl | Tip vozila | Povezuje se preko |
 |------|------------|-------------------|
-| `auto-limuzina.svg` | Limuzina / auto | `vozilo katalog id` = FINAL-001, AUTO-001 |
+| `ntv.png` | NTV (terensko) | NTV-001 |
+| `mrap.png` | MRAP (oklopno) | MRAP-001 |
+| `MRAP1.png` | MRAP1 (6x6) | MRAP1-001 |
+| `auto-limuzina.svg` | Limuzina / auto (legacy) | FINAL-001, AUTO-001 |
 | `suv.svg` | SUV | SUV, AUTO-SUV |
 | `kamion.svg` | Kamion | KAMION, AUTO-KAMION |
 | `dzip.svg` | Džip | DZIP, AUTO-DZIP |

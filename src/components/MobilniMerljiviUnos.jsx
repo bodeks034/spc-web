@@ -9,6 +9,7 @@ import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
+import PogonIzborPanel from "./PogonIzborPanel.jsx";
 
 /**
  * Modul 1 — merljive: punoekranski koraci kao kod atributivnih (ID → poka → unos).
@@ -36,6 +37,11 @@ export default function MobilniMerljiviUnos({
   potrebanBroj,
   ucitava,
   poruka,
+  dostupniPogoni = [],
+  omoguceniPogoni = null,
+  pogonKod = "",
+  onPogonChange,
+  trebaIzborPogona = false,
   idUcitano,
   unosKorak,
   setUnosKorak,
@@ -168,6 +174,34 @@ export default function MobilniMerljiviUnos({
             }}
           />
         </IdDeoBarkodRed>
+
+        <label style={LBL}>Radni nalog
+          <input
+            value={ucitava ? "…" : (radniNalog || "—")}
+            readOnly
+            placeholder="RN-2026-NM001-B"
+            style={{
+              ...INP,
+              fontSize: 16,
+              padding: "14px",
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              color: radniNalog ? C.tekst : C.sivi,
+            }}
+          />
+        </label>
+
+        {dostupniPogoni.length > 1 && (
+          <PogonIzborPanel
+            C={C}
+            akcent={C.zelena}
+            pogoni={dostupniPogoni}
+            omoguceniPogoni={omoguceniPogoni}
+            pogonKod={pogonKod}
+            onIzaberi={onPogonChange}
+            obavezan={trebaIzborPogona}
+          />
+        )}
 
         <label style={LBL}>Smena
           <select

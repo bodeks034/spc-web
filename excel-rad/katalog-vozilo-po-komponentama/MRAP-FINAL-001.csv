@@ -1,0 +1,13 @@
+id,kategorija,podkategorija,defekt
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"Labav pod gepeka, ,"
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,oštećenje bočnih tapacirunga
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica),"
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,neispravno svetlo gepeka.
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), , ."
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,neispravna klima/grejanje
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
+MRAP-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu,, , ."
+MRAP-FINAL-001,OSTALO,Ostalo,tragovi voska za zaštitu
+MRAP-FINAL-001,OSTALO,Ostalo,nedostajuće zaštitne folije
+MRAP-FINAL-001,OSTALO,Ostalo,nepravilna prateća dokumentacija u vozilu

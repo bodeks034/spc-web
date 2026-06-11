@@ -1,0 +1,6 @@
+id dela*,pogon kod,radni nalog,naziv dela*,karakteristika kontrole*,linija id*,masina id*,kom za kontrolu n*,slika/crtez,aktivan,napomena,tip kontrole,vozilo katalog id,greska katalog id
+5504-B,,,Nosac motor,Vizuelna i funkcionalna kontrola,12,1,30,,DA,,deo,
+5505-B,,,Konzola,Kontrola vara i dimenzija,12,2,20,,DA,,deo,
+NTV-001,,,NTV komplet,Finalna vizuelna kontrola celog vozila,48,1,5,NTV_SOP.jpg,DA,NTV — novo terensko vozilo,vozilo,NTV
+MRAP-001,,,MRAP komplet,Finalna vizuelna kontrola celog vozila,48,1,5,MRAP_SOP.jpg,DA,MRAP — oklopno vozilo,vozilo,MRAP
+MRAP1-001,,,MRAP1 komplet,Finalna vizuelna kontrola celog vozila,48,1,5,MRAP1_SOP.jpg,DA,MRAP1 — oklopno vozilo 6x6,vozilo,MRAP1
