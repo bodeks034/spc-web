@@ -6,6 +6,7 @@ import fs from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as XLSX from "xlsx";
+import { KARAKTERISTIKE_MERLJIVE_HEADER } from "../src/lib/karakteristikaMerljive.js";
 
 const root = path.resolve(import.meta.dirname, "..");
 const docs = path.join(root, "docs");
@@ -63,6 +64,19 @@ function parseCsvLine(line) {
   return out;
 }
 
+function csvToObjects(csvPath) {
+  const txt = readFileSync(csvPath, "utf8");
+  const lines = txt.split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const cols = parseCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cols[i] ?? ""; });
+    return row;
+  });
+}
+
 function csvToSheet(csvPath) {
   const txt = readFileSync(csvPath, "utf8");
   const lines = txt.split(/\r?\n/).filter((l) => l.trim());
@@ -77,7 +91,11 @@ function csvToSheet(csvPath) {
   return XLSX.utils.json_to_sheet(rows, { header: headers });
 }
 
-async function buildWorkbook(pairs, outName) {
+function definicijaSheetFromKarCsv() {
+  return null;
+}
+
+async function buildWorkbook(pairs, outName, { extraSheets = [] } = {}) {
   const wb = XLSX.utils.book_new();
   for (const [sheet, file] of pairs) {
     const p = path.join(docs, file);
@@ -87,6 +105,9 @@ async function buildWorkbook(pairs, outName) {
     } catch {
       console.warn(`  preskačem (nema): ${file}`);
     }
+  }
+  for (const [sheetName, sheetObj] of extraSheets) {
+    if (sheetObj) XLSX.utils.book_append_sheet(wb, sheetObj, sheetName.slice(0, 31));
   }
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
   const target = path.join(out, outName);
@@ -136,7 +157,7 @@ Generisano: scripts/pakuj-sifrarnik-folder.mjs
 | Fajl | Tabovi | Namena |
 |------|--------|--------|
 | **SPC_master_atributivne.xlsx** | 9 tabova | Linije, mašine, delovi, RN, radnici, greške, ček lista |
-| **SPC_merljive.xlsx** | 3 taba | SOP dela, **LSL/USL**, istorija merenja |
+| **SPC_merljive.xlsx** | 3 taba | SOP dela, **karakteristike_merljive** (jedini izvor), istorija merenja |
 | **SPC_merljive_demo_5501_5503.xlsx** | demo | Primer merljivog unosa (ako postoji) |
 
 ## CSV kopije (isti sadržaj)
@@ -148,6 +169,11 @@ ${KOPIRAJ_CSV.map((f) => `- ${f}`).join("\n")}
 Atributivne: linije, masine, smene, greske_katalog, katalog_gresaka_vozilo, delovi, radnici, radni_nalozi, kontrolna_lista_stavke
 
 Merljive: sop_deo_varijabilni, karakteristike_merljive, merenja_varijabilna
+
+### karakteristike_merljive — jedini izvor (popuni meta na prvom redu grupe po pogonu)
+${KARAKTERISTIKE_MERLJIVE_HEADER.join(", ")}
+
+**Pravilo:** kolona \`merni_instrument\` = Vizuelno / Dokumentacija → automatski u **atributivne**; ostalo → **merljive**.
 
 ## Kolone koje te zanimaju
 

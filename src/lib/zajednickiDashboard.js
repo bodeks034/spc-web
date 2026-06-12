@@ -52,7 +52,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
       .select("id,naziv,serijski_broj,kalibracije(sledeca_kal,datum_kal)")
       .eq("aktivno", true),
     supabase.from("radni_nalozi")
-      .select("id_deo,broj_naloga,kolicina,kom_ukupno,kom_za_kontrolu,status")
+      .select("id_deo,broj_naloga,kolicina,status")
       .eq("status", "aktivan"),
   ]);
 
@@ -97,7 +97,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     kpiRows.forEach(r => {
       const planKom = r.planirano_kom || nalogRes.data?.find(
         n => n.id_deo === r.id_deo,
-      )?.kom_ukupno || 0;
+      )?.kolicina || 0;
       const k = izracunajOeeKpi({ ...r, planirano_kom: planKom });
       if (k.oee != null) { s += k.oee; n++; }
     });

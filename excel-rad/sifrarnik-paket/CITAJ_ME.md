@@ -30,7 +30,7 @@ Generisano: scripts/pakuj-sifrarnik-folder.mjs
 | Fajl | Tabovi | Namena |
 |------|--------|--------|
 | **SPC_master_atributivne.xlsx** | 9 tabova | Linije, mašine, delovi, RN, radnici, greške, ček lista |
-| **SPC_merljive.xlsx** | 3 taba | SOP dela, **LSL/USL**, istorija merenja |
+| **SPC_merljive.xlsx** | 3 taba | SOP dela, **karakteristike_merljive** (jedini izvor), istorija merenja |
 | **SPC_merljive_demo_5501_5503.xlsx** | demo | Primer merljivog unosa (ako postoji) |
 
 ## CSV kopije (isti sadržaj)
@@ -64,6 +64,11 @@ Generisano: scripts/pakuj-sifrarnik-folder.mjs
 Atributivne: linije, masine, smene, greske_katalog, katalog_gresaka_vozilo, delovi, radnici, radni_nalozi, kontrolna_lista_stavke
 
 Merljive: sop_deo_varijabilni, karakteristike_merljive, merenja_varijabilna
+
+### karakteristike_merljive — jedini izvor (popuni meta na prvom redu grupe po pogonu)
+id, id_deo, pogon_kod, sifra_merenja, radni_nalog, faza_naziv, linija_faza, linija_id, masina_id, naziv_dela, slika, ukupno_kom, kom_za_kontrolu_n, pozicija, naziv_mere, nominala, usl, lsl, merni_instrument, jedinica, napomena, nivo_kontrole
+
+**Pravilo:** kolona `merni_instrument` = Vizuelno / Dokumentacija → automatski u **atributivne**; ostalo → **merljive**.
 
 ## Kolone koje te zanimaju
 

@@ -93,6 +93,11 @@ export function KontrolnaLista({
 
   const kategorije = [...new Set(stavke.map(s => s.kategorija))];
 
+  useEffect(() => {
+    if (loading || stavke.length) return;
+    if (!kontrolnaListaObavezna()) onZavrsena?.();
+  }, [loading, stavke.length, onZavrsena]);
+
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
@@ -122,6 +127,14 @@ export function KontrolnaLista({
 
   if (stavke.length === 0) {
     const obavezna = kontrolnaListaObavezna();
+    if (!obavezna) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+          minHeight: ugradjen ? "auto" : "24vh", color: C.sivi, fontSize: 12, padding: 16 }}>
+          Nema stavki kontrolne liste — nastavljam…
+        </div>
+      );
+    }
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
         justifyContent: "center", minHeight: "60vh", gap: 16, padding: 24, textAlign: "center" }}>

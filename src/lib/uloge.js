@@ -26,19 +26,37 @@ export function mozeAnalitika(uloga) {
   return jeKvalitetIliVise(uloga) || jeAdmin(uloga);
 }
 
-/** Podrazumevani režim po ulozi */
+/** Podrazumevani režim po ulozi — Modul 1 (linija); Modul 2 biraju na početnom ekranu. */
 export function podrazumevaniRezim(uloga) {
-  return jeLinijaUloga(uloga) ? "linija" : "analitika";
+  return "linija";
 }
 
-/** Ko može da bira Modul 1 ↔ Modul 2 (inženjer / menadžment / admin) */
+/** Ko može da bira Modul 1 ↔ Modul 2 (inženjer / menadžment / admin) — samo na početnom ekranu. */
 export function mozePrebacivanjeRezima(uloga) {
   return mozeAnalitika(uloga);
+}
+
+/** Prebacivanje režima iz trake modula (atributivne/merljive) — isključeno; samo početni ekran. */
+export function mozePrebacivanjeRezimaUTacci(uloga) {
+  return false;
 }
 
 /** Stanje · predikcija · korektivne mere · eskalacija iz predloga — samo inženjer / šef / admin */
 export function mozeInteligencijaProcesa(uloga) {
   return mozeAnalitika(uloga);
+}
+
+/** Modul 2 — Excel izvoz za inženjera / šefa (bez admin panela). */
+export function mozeInzenjerExcel(uloga, rezimRada = "analitika") {
+  if (rezimRada === "linija") return false;
+  const u = normalizujUlogu(uloga);
+  return u === "kvalitet" || u === "sef";
+}
+
+/** Ograničen uvoz — samo karakteristike_merljive, samo inženjer (kvalitet). */
+export function mozeInzenjerExcelUvoz(uloga, rezimRada = "analitika") {
+  if (!mozeInzenjerExcel(uloga, rezimRada)) return false;
+  return normalizujUlogu(uloga) === "kvalitet";
 }
 
 /** Kontrolor na liniji — prošireni tok pre poka-yoke */
@@ -78,8 +96,9 @@ const TAB_ATRIB_KONTROLOR = new Set([
 
 export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {
   const t = String(tab || "").toLowerCase();
+  if (t === "excel") return mozeInzenjerExcel(uloga, rezimRada);
   if (t === "stanje" && !mozeInteligencijaProcesa(uloga)) return false;
-  if (jeAdmin(uloga) || jeKvalitetIliVise(uloga)) return true;
+  if (rezimRada !== "linija" && (jeAdmin(uloga) || jeKvalitetIliVise(uloga))) return true;
   if (rezimRada === "linija") {
     const u = normalizujUlogu(uloga);
     if (u === "operator") return TAB_LINIJA_MERLJIVE_OPERATOR.has(t);
@@ -92,9 +111,10 @@ export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {
 
 export function mozeTabAtributivne(tab, uloga, rezimRada = "analitika") {
   const t = String(tab || "").toLowerCase();
+  if (t === "excel") return mozeInzenjerExcel(uloga, rezimRada);
   if (t === "stanje" && !mozeInteligencijaProcesa(uloga)) return false;
-  if (jeAdmin(uloga)) return true;
-  if (jeKvalitetIliVise(uloga)) return t !== "admin";
+  if (rezimRada !== "linija" && jeAdmin(uloga)) return true;
+  if (rezimRada !== "linija" && jeKvalitetIliVise(uloga)) return t !== "admin";
   if (rezimRada === "linija") {
     const u = normalizujUlogu(uloga);
     if (u === "operator") return TAB_LINIJA_ATRIB_OPERATOR.has(t);
@@ -119,8 +139,10 @@ export function opisUloge(uloga, rezimRada) {
     if (u === "operator") return "Modul linija — unos merenja";
     return "Modul linija — unos i log";
   }
-  if (u === "admin") return "Pun pristup + admin";
-  if (u === "kvalitet" || u === "sef") return "Analitika, izveštaji, trasabilitet";
+  if (u === "admin") return rezimRada === "linija" ? "Modul linija — unos i log" : "Pun pristup + admin";
+  if (u === "kvalitet" || u === "sef") {
+    return rezimRada === "linija" ? "Modul linija — unos i log" : "Analitika, izveštaji, trasabilitet";
+  }
   if (u === "operator") return "Samo unos i log";
   return "Unos, karte, smena";
 }

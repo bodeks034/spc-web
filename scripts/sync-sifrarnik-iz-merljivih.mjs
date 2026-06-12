@@ -1,5 +1,5 @@
 /**
- * Iz karakteristike_merljive (+ kolone atributivne/merljive) generiše:
+ * Iz karakteristike_merljive (merni_instrument → atributivne/merljive) generiše:
  *   - docs/sop_deo_varijabilni.csv
  *   - docs/delovi.csv (master + pogon redovi za atributivne)
  *
@@ -10,8 +10,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   generisiIzKarakteristika,
+  generisiRadniNaloge,
   spojiDeloviCsv,
   spojiSopCsv,
+  spojiRadniNalogeCsv,
+  radniNalogIzDeoPogona,
 } from "../src/lib/syncSifrarnikIzMerljivih.js";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -123,6 +126,9 @@ async function main() {
     "NM-001|A": "Atributivne — Ulazna",
     "NM-001|C": "Atributivne — Karoserija",
     "NM-001|F": "Atributivne — Finalna",
+    "NT-001|A": "Atributivne — Ulazna",
+    "NT-001|C": "Atributivne — Karoserija",
+    "NT-001|F": "Atributivne — Finalna",
   };
   for (const m of gen.masterRows) {
     const n = napomeneDeo[m.id_deo];
@@ -135,6 +141,90 @@ async function main() {
 
   const sopMerged = spojiSopCsv(sopObj, gen.sopRows);
   const deloviMerged = spojiDeloviCsv(deloviObj, gen.deloviPogonRows, gen.masterRows);
+
+  const rnPath = path.join(docs, "radni_nalozi.csv");
+  let rnRows = [];
+  try {
+    rnRows = (await readCsvObjects(rnPath)).rows;
+  } catch { /* prazan */ }
+  const rnObj = rnRows.map((r) => ({
+    id: r.id,
+    broj_naloga: r["radni nal"] || r.broj_naloga || r.broj_nalog,
+    id_deo: r["id dela*"] || r.id_deo,
+    naziv_dela: r["naziv dela"] || r.naziv_dela,
+    kolicina: r.količina || r.kolicina,
+    kupac: r.kupac,
+    datum_unosa: r["datum unosa"] || r.datum_unosa,
+    rok_isporuke: r["rok isporuke"] || r.rok_isporuke,
+    status: r.status,
+    operater: r.operater,
+    napomena: r.napomena,
+    pogon_kod: r.pogon_kod,
+  }));
+
+  const ntRnDefaults = {};
+  for (const r of karRows) {
+    if (String(r.id_deo).toUpperCase() === "NT-001" && r.kupac) {
+      ntRnDefaults.kupac = r.kupac;
+    }
+  }
+  const noviRn = generisiRadniNaloge(karRows, {
+    postojeciRn: rnObj,
+    podrazumevano: {
+      kolicina: 50,
+      kupac: ntRnDefaults.kupac || "Kupac NT",
+      datum_unosa: "2026-06-01",
+      rok_isporuke: "2026-09-01",
+      operater: "PERA OPERATER",
+    },
+  });
+  // RN i za SOP pogone bez karakteristika (npr. NT-001 D/E/G/H)
+  const rnKeys = new Set([...rnObj, ...noviRn].map((r) => `${String(r.id_deo).toUpperCase()}|${String(r.pogon_kod).toUpperCase()}`));
+  let maxRnId = [...rnObj, ...noviRn].reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
+  const rnIzSop = [];
+  for (const s of sopObj) {
+    const id = String(s.id_deo || "").toUpperCase();
+    const pk = String(s.pogon_kod || "").toUpperCase();
+    if (!id || !pk) continue;
+    const key = `${id}|${pk}`;
+    if (rnKeys.has(key)) continue;
+    rnKeys.add(key);
+    maxRnId += 1;
+    rnIzSop.push({
+      id: maxRnId,
+      broj_naloga: s.radni_nalog || radniNalogIzDeoPogona(id, pk),
+      id_deo: id,
+      naziv_dela: s.naziv_dela || "",
+      kolicina: 50,
+      kupac: id === "NT-001" ? "Kupac NT" : "Kupac NM",
+      datum_unosa: "2026-06-01",
+      rok_isporuke: "2026-09-01",
+      status: "aktivan",
+      operater: "PERA OPERATER",
+      napomena: "",
+      pogon_kod: pk,
+    });
+  }
+  const rnMerged = spojiRadniNalogeCsv(rnObj, [...noviRn, ...rnIzSop]);
+
+  const RN_HEADERS = [
+    "id", "radni nal", "id dela*", "naziv dela", "količina", "kupac",
+    "datum unosa", "rok isporuke", "status", "operater", "napomena", "pogon_kod",
+  ];
+  const rnCsvRows = rnMerged.map((r) => ({
+    id: r.id,
+    "radni nal": r.broj_naloga,
+    "id dela*": r.id_deo,
+    "naziv dela": r.naziv_dela,
+    količina: r.kolicina,
+    kupac: r.kupac,
+    "datum unosa": r.datum_unosa,
+    "rok isporuke": r.rok_isporuke,
+    status: r.status,
+    operater: r.operater,
+    napomena: r.napomena,
+    pogon_kod: r.pogon_kod,
+  }));
 
   const sopCsvRows = sopMerged.map((r) => ({
     id_deo: r.id_deo,
@@ -151,6 +241,7 @@ async function main() {
   console.log(`Karakteristike: ${karRows.length} redova`);
   console.log(`→ SOP: ${gen.sopRows.length} auto + ručni = ${sopCsvRows.length}`);
   console.log(`→ Delovi (atributivne): ${gen.deloviPogonRows.length} pogon redova`);
+  console.log(`→ Radni nalozi: ${noviRn.length + rnIzSop.length} novih → ukupno ${rnCsvRows.length}`);
 
   for (const p of gen.deloviPogonRows) {
     console.log(`   ${p.id_deo} / ${p.pogon_kod} — ${p.karakteristika}`);
@@ -163,15 +254,17 @@ async function main() {
 
   await fs.writeFile(sopPath, writeCsv(SOP_HEADERS, sopCsvRows));
   await fs.writeFile(deloviPath, writeCsv(DELOVI_HEADERS, deloviMerged));
+  await fs.writeFile(rnPath, writeCsv(RN_HEADERS, rnCsvRows));
 
   const paket = path.join(root, "excel-rad", "sifrarnik-paket", "csv");
   try {
     await fs.mkdir(paket, { recursive: true });
     await fs.writeFile(path.join(paket, "sop_deo_varijabilni.csv"), writeCsv(SOP_HEADERS, sopCsvRows));
     await fs.writeFile(path.join(paket, "delovi.csv"), writeCsv(DELOVI_HEADERS, deloviMerged));
+    await fs.writeFile(path.join(paket, "radni_nalozi.csv"), writeCsv(RN_HEADERS, rnCsvRows));
   } catch { /* optional */ }
 
-  console.log("\nUpisano:", sopPath, deloviPath);
+  console.log("\nUpisano:", sopPath, deloviPath, rnPath);
   console.log("Sledeće: npm run pakuj:sifrarnik  →  Admin uvezi oba Excela");
 }
 

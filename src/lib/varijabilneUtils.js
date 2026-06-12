@@ -1,3 +1,5 @@
+import { pogonKodKarakteristike, propagirajMetaKarakteristika } from "./definicijaKarakteristika.js";
+
 /**
  * Port VBA / Excel DATA logike (ToDec, uglovi, OK/NOK).
  *
@@ -164,35 +166,13 @@ export function koristiUgaoUnosKolone(k) {
   return prepoznajUgaoKarakteristiku(k) || isUgao(k?.jedinica);
 }
 
+import { jeAtributivnaPoInstrumentu, jeMerljivaPoInstrumentu } from "./karakteristikaMerljive.js";
+
 /** Da li red ide u merljivi unos (dimenzije/SPC), a ne u atributivni OK/NOK. */
 export function jeMerljivaKarakteristika(k) {
   if (!k) return false;
-  const poz = String(k.pozicija || "").trim();
-  if (!poz || poz === "-") return false;
-
-  const merljiveFlag = String(k.merljive ?? "").trim().toLowerCase();
-  if (["ne", "0", "false", "no"].includes(merljiveFlag)) return false;
-
-  if (prepoznajUgaoKarakteristiku(k) || isUgao(k.jedinica)) return true;
-
-  const inst = String(k.merni_instrument || "").trim().toLowerCase();
-  const nap = String(k.napomena || "").trim().toLowerCase();
-  const lsl = Number(k.lsl);
-  const usl = Number(k.usl);
-  const imaGranice = Number.isFinite(lsl) && Number.isFinite(usl);
-
-  if (inst === "dokumentacija" || inst === "vizuelno") return false;
-  if (/^vizuelna\s*vt\.?$/i.test(String(k.merni_instrument || "").trim())) return false;
-
-  if (/vizuelna\s*vt/i.test(inst) && (!imaGranice || (lsl === 0 && usl === 0))) return false;
-  if (nap.includes("ok/nok") && (!imaGranice || (lsl === 0 && usl === 0))) return false;
-
-  // npr. Visina vara — vizuelna + šablonska skala sa LSL/USL
-  if (/vizueln/.test(inst) && imaGranice && usl >= lsl && usl !== lsl) return true;
-  if (/vizueln|dokumentacij/.test(inst)) return false;
-
-  if (!imaGranice || usl < lsl) return false;
-  return true;
+  if (jeAtributivnaPoInstrumentu(k)) return false;
+  return jeMerljivaPoInstrumentu(k);
 }
 
 /** Korak za +/- stepper na liniji (null = bez steppera, npr. uglovi). */
@@ -589,14 +569,30 @@ export function imaBiloSta(kolone) {
   return kolone.some(k => k.naziv !== "-" && (k.merenja?.length || 0) > 0);
 }
 
+function deoImaVisePogona(karakteristike, idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  const pogoni = new Set();
+  for (const k of karakteristike || []) {
+    if (String(k.id_deo || "").toUpperCase() !== id) continue;
+    const pk = pogonKodKarakteristike(k, { multiPogon: true });
+    if (pk) pogoni.add(pk);
+  }
+  return pogoni.size > 1;
+}
+
 function redoviZaDeo(karakteristike, idDeo, pogonKod) {
   const id = String(idDeo || "").trim().toUpperCase();
   const pogon = String(pogonKod || "").trim().toUpperCase();
-  return (karakteristike || []).filter((k) => {
-    if (String(k.id_deo || "").toUpperCase() !== id) return false;
+  const normalized = propagirajMetaKarakteristika(karakteristike);
+  const zaDeo = normalized.filter((k) => String(k.id_deo || "").toUpperCase() === id);
+  const multiPogon = deoImaVisePogona(normalized, id);
+  const imaPogonSpec = zaDeo.some((k) => pogonKodKarakteristike(k, { multiPogon: true }));
+
+  return zaDeo.filter((k) => {
     if (!pogon) return true;
-    const pk = String(k.pogon_kod || "").trim().toUpperCase();
-    return !pk || pk === pogon;
+    const pk = pogonKodKarakteristike(k, { multiPogon });
+    if (pk) return pk === pogon;
+    return !imaPogonSpec && !multiPogon;
   }).filter(jeMerljivaKarakteristika);
 }
 
@@ -609,10 +605,15 @@ function redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod) {
 
 /** Broj uzoraka za seriju (fazu) — iz karakteristike_merljive.broj_merenja, inače SOP fallback. */
 export function brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallback = 5, pogonKod) {
-  const rows = redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod);
+  const rows = redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod)
+    .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+  const pogon = String(pogonKod || "").trim().toUpperCase();
   for (const k of rows) {
-    const n = Number(k.broj_merenja);
-    if (Number.isFinite(n) && n > 0) return n;
+    const pk = pogonKodKarakteristike(k, { multiPogon: true });
+    const n = Number(k.broj_merenja) || Number(k.kom_za_kontrolu_n);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (pogon && pk && pk !== pogon) continue;
+    return n;
   }
   const fb = Number(fallback);
   return Number.isFinite(fb) && fb > 0 ? fb : 5;
@@ -628,6 +629,83 @@ export function metaSerije(karakteristike, idDeo, sifraMerenja, fallbackBroj = 5
     linija_faza: prvi?.linija_faza?.trim() || "",
     broj_merenja: brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallbackBroj, pogonKod),
   };
+}
+
+/** Jedinstveni ID delova iz učitanog šifrarnika. */
+export function listaIdDeoIzKarakteristika(karakteristike) {
+  const set = new Set();
+  for (const k of karakteristike || []) {
+    const id = String(k.id_deo || "").trim().toUpperCase();
+    if (id) set.add(id);
+  }
+  return [...set].sort();
+}
+
+/** Slični ID-ovi za poruku greške (NM-000 → NM-001). */
+export function predloziIdDeo(karakteristike, idDeo, limit = 6) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  const svi = listaIdDeoIzKarakteristika(karakteristike);
+  if (!id) return svi.slice(0, limit);
+  const dash = id.indexOf("-");
+  const pref = dash >= 0 ? id.slice(0, dash + 1) : id.slice(0, 2);
+  const istiPrefiks = svi.filter((x) => x.startsWith(pref) && x !== id);
+  if (istiPrefiks.length) return istiPrefiks.slice(0, limit);
+  return svi.filter((x) => x !== id).slice(0, limit);
+}
+
+/** Poruka kad ID nije u karakteristike_merljive (uvoz OK, pogrešan ID). */
+export function porukaNepoznatIdDeo(karakteristike, idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  const predlozi = predloziIdDeo(karakteristike, id);
+  let msg = `ID ${id}: nema u karakteristike_merljive. Proveri unos`;
+  if (/NM-000/i.test(id)) msg += " — u šifrarniku postoji NM-001, ne NM-000";
+  else msg += " (npr. NM-001, NT-001)";
+  if (predlozi.length) msg += `. Poznati ID-ovi: ${predlozi.join(", ")}.`;
+  return msg;
+}
+
+/** Da li je ID dovoljno potpun za učitavanje (ne okidati učitavanje na „NT-“). */
+export function idSpremanZaUcitavanje(id) {
+  const s = String(id || "").trim().toUpperCase();
+  if (s.length < 5) return false;
+  const dash = s.indexOf("-");
+  if (dash < 0) return s.length >= 6;
+  const pre = s.slice(0, dash);
+  const posle = s.slice(dash + 1);
+  if (!pre || !posle) return false;
+  if (/^[A-Z]{2,}$/.test(pre)) return posle.length >= 3;
+  return posle.length >= 1;
+}
+
+/** Pogon sa najviše serija merenja (NM-001 / NT-001 multi-pogon). */
+export function podrazumevaniPogonMerljive(karakteristike, idDeo) {
+  const pogoni = pogoniSaMerenjima(karakteristike, idDeo);
+  if (!pogoni.length) return "A";
+  if (pogoni.length === 1) return pogoni[0];
+  let best = pogoni[0];
+  let bestN = 0;
+  for (const p of pogoni) {
+    const n = grupeMerenja(karakteristike, idDeo, p).length;
+    if (n > bestN) {
+      bestN = n;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** Pogoni koji imaju bar jednu merljivu dimenziju (posle meta propagacije). */
+export function pogoniSaMerenjima(karakteristike, idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  const normalized = propagirajMetaKarakteristika(karakteristike);
+  const set = new Set();
+  for (const k of normalized) {
+    if (String(k.id_deo || "").toUpperCase() !== id) continue;
+    if (!jeMerljivaKarakteristika(k)) continue;
+    const pk = pogonKodKarakteristike(k, { multiPogon: true });
+    if (pk) set.add(pk);
+  }
+  return [...set].sort();
 }
 
 /** Jedinstvene serije (A,B,C…) za deo */

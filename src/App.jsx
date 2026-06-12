@@ -49,6 +49,8 @@ import VarijabilneForma from "./VarijabilneForma.jsx";
 import UnosPokaYokeKorak from "./components/UnosPokaYokeKorak.jsx";
 import AtrCrtezPregled from "./components/AtrCrtezPregled.jsx";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
+import InzenjerExcelPanel from "./InzenjerExcelPanel.jsx";
+import DefinicijaUputstvo from "./components/DefinicijaUputstvo.jsx";
 import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid } from "./lib/kontrolaSesije.jsx";
 import {
   setListaOkSession,
@@ -105,8 +107,9 @@ import TrasabilitetPanel from "./components/TrasabilitetPanel.jsx";
 import useAdminZahtevNotifikacije from "./hooks/useAdminZahtevNotifikacije.js";
 import {
   mozeTabAtributivne, opisUloge, podrazumevaniRezim, mozePrebacivanjeRezima,
+  mozePrebacivanjeRezimaUTacci,
   mozeAnalitika, jeLinijaUloga, efektivniRezimRada, jeAdmin, jeKvalitetIliVise,
-  jeKontrolorLinija, pocetniKorakUnosAtr,
+  jeKontrolorLinija, pocetniKorakUnosAtr, mozeInzenjerExcel, mozeInzenjerExcelUvoz,
 } from "./lib/uloge.js";
 import { useEkran } from "./lib/useEkran.js";
 import { stilOmotLinija, onFocusTastatura } from "./layout/tastaturaMobil.js";
@@ -128,6 +131,7 @@ import useLicencaGate from "./hooks/useLicencaGate.js";
 import LicencaBlokada from "./components/LicencaBlokada.jsx";
 import LicencaUpozorenje from "./components/LicencaUpozorenje.jsx";
 import LicencaStatusPanel from "./components/LicencaStatusPanel.jsx";
+import AdminLozinkaModal from "./components/AdminLozinkaModal.jsx";
 import ModulBlokiran from "./components/ModulBlokiran.jsx";
 import { modulDozvoljen } from "./lib/licenca.js";
 import AppHeader from "./components/AppHeader.jsx";
@@ -2533,6 +2537,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     ["foto","FOTO"],["oee","OEE"],["kalibracija","MERILA"],["ciljevi","CILJEVI"],["nalozi","NALOZI"],
     ["kupac","KUPAC"],["oc","OC KRIVA"],["stabilnost","STABILNOST"],
     ["trasabilitet","TRASABILITET"],
+    ...(mozeInzenjerExcel(korisnik.uloga, rezimRada)?[["excel","EXCEL"]]:[]),
     ...(mozeAdmin(korisnik.uloga)?[["admin","ADMIN"]]:[]),
   ].filter(([id]) => mozeTabAtributivne(id, korisnik.uloga, rezimRada));
 
@@ -2540,7 +2545,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     if (!mozeTabAtributivne(tab, korisnik.uloga, rezimRada)) setTab("unos");
   }, [tab, korisnik.uloga, rezimRada]);
 
-  const punPristupTabovima = mozeAdmin(korisnik.uloga) || jeKvalitetIliVise(korisnik.uloga);
+  const punPristupTabovima = (mozeAdmin(korisnik.uloga) || jeKvalitetIliVise(korisnik.uloga)) && !jeLinija;
 
   useEffect(() => {
     if (!jeLinija || punPristupTabovima) return;
@@ -2628,7 +2633,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                 {tab === "log" ? "←" : "LOG"}
               </button>
             )}
-            {mozePrebacivanjeRezima(korisnik.uloga) && typeof onPromeniRezim === "function" && (
+            {mozePrebacivanjeRezimaUTacci(korisnik.uloga) && typeof onPromeniRezim === "function" && (
               <button
                 type="button"
                 onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
@@ -3356,6 +3361,17 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
       {tab==="trasabilitet" && (
         <div style={{ padding: 20, overflow: "auto" }}>
           <TrasabilitetPanel C={C} addToast={addToast} modul="atributivne" />
+        </div>
+      )}
+      {tab==="excel" && mozeInzenjerExcel(korisnik.uloga, rezimRada) && (
+        <div style={{ padding: 20, overflow: "auto", maxWidth: 720, margin: "0 auto" }}>
+          <InzenjerExcelPanel
+            modul="atributivne"
+            mozeUvoz={false}
+            idDeoFilter={idDeo}
+            C={C}
+            addToast={addToast}
+          />
         </div>
       )}
     </div>
@@ -4712,7 +4728,7 @@ export default function App() {
     </div>
   );
 
-  if(modul==="varijabilne"&&!listaOkVar&&!jeLinijaUloga(korisnik?.uloga)) return (
+  if(modul==="varijabilne"&&!listaOkVar&&!jeLinijaUloga(korisnik?.uloga)&&!jeAdmin(korisnik?.uloga)) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
       <AppHeader
         korisnik={korisnik}
@@ -5078,6 +5094,8 @@ function AdminExcelPanel({ C, addToast }) {
         Šifrarnike uvozi iz Excel fajla sa tabovima: {IMPORT_SHEETS.map(s => s.sheet).join(", ")}.
       </div>
 
+      <DefinicijaUputstvo C={C} variant="admin" />
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
         <button onClick={izvozSve} disabled={!!busy} style={BTN(C.plava)}>
           ⬇ Preuzmi master Excel
@@ -5130,6 +5148,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
   const [novoIme,setNovoIme]   = useState("");
   const [noviEmail,setNoviEmail] = useState("");
   const [novaUloga,setNovaUloga] = useState("kontrolor");
+  const [lozinkaRadnik,setLozinkaRadnik] = useState(null);
   const ekran = useEkran();
 
   useEffect(()=>{
@@ -5163,6 +5182,28 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
     setModal({ poruka: "✓ Auth veza uklonjena — radnik se ponovo povezuje pri sledećoj prijavi.", tip: "uspeh" });
   };
 
+  const onSacuvanaLozinka = (data) => {
+    setLozinkaRadnik(null);
+    if (data.userId) {
+      setRadnici(p => p.map(r => r.id === data.radnikId ? { ...r, user_id: data.userId } : r));
+    }
+    if (data.emailPoslat) {
+      setModal({
+        poruka: `✓ Reset link poslat na ${data.ime} (${radnici.find(r => r.id === data.radnikId)?.email || "email"}).`,
+        tip: "uspeh",
+      });
+      return;
+    }
+    setModal({
+      poruka: data.relinked
+        ? `✓ Lozinka postavljena za ${data.ime}.\nAuth nalog je automatski povezan (email već postojao u Auth).`
+        : data.created
+        ? `✓ Auth nalog kreiran i lozinka postavljena za ${data.ime}.\nRadnik se može odmah ulogovati.`
+        : `✓ Nova lozinka postavljena za ${data.ime}.`,
+      tip: "uspeh",
+    });
+  };
+
   const resetSmenu = async () => {
     setModal({poruka:"Statistika smene se računa iz kontrolni_log po datumu i smeni — nema lokalnog reset-a.",tip:"info"});
   };
@@ -5194,7 +5235,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
     setNovoIme("");
     setNoviEmail("");
     setModal({
-      poruka: `✓ ${data.ime} dodat (${data.uloga}).\nEmail: ${email}\n\nU Supabase Auth kreiraj korisnika sa istim emailom — pri loginu se automatski povezuje.`,
+      poruka: `✓ ${data.ime} dodat (${data.uloga}).\nEmail: ${email}\n\nKlikni „Lozinka“ pored radnika da postaviš lozinku (ili se automatski povezuje pri loginu ako Auth nalog već postoji).`,
       tip: "uspeh",
     });
   };
@@ -5208,6 +5249,15 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace",color:C.tekst}}>
       {modal&&<Modal poruka={modal.poruka} tip={modal.tip} onOK={()=>setModal(null)} C={C}/>}
+      {lozinkaRadnik && (
+        <AdminLozinkaModal
+          radnik={lozinkaRadnik}
+          supabase={supabase}
+          C={C}
+          onClose={() => setLozinkaRadnik(null)}
+          onSacuvano={onSacuvanaLozinka}
+        />
+      )}
 
       {/* Header */}
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,
@@ -5279,6 +5329,10 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
           <div style={{color:C.sivi,fontSize:10,marginTop:8,lineHeight:1.5}}>
             Email mora biti isti u Auth (Authentication → Users) i u tabeli radnici.
             Inženjeri: uloga <strong style={{color:C.tekst}}>kvalitet</strong> ili <strong style={{color:C.tekst}}>sef</strong>.
+            <br />
+            Deaktivacija ovde ostaje u bazi — Excel/CSV uvoz više ne aktivira radnike automatski (kolona „aktivan“ menja status samo ako piše eksplicitno DA ili NE).
+            <br />
+            Lozinku menjaš dugmetom <strong style={{ color: C.tekst }}>Lozinka</strong> pored svakog radnika.
           </div>
         </div>
         )}
@@ -5331,6 +5385,17 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
                     <option value="sef">Šef</option>
                     <option value="admin">Admin</option>
                   </select>
+                  {korisnik.uloga==="admin" && r.email && (
+                    <button type="button" onClick={() => setLozinkaRadnik(r)}
+                      style={{
+                        background: "#0c2d48",
+                        border: `1px solid ${C.plava}55`,
+                        borderRadius: 6, color: C.plava,
+                        fontSize: 9, padding: "4px 8px", cursor: "pointer", fontWeight: 700,
+                      }}>
+                      Lozinka
+                    </button>
+                  )}
                   {korisnik.uloga==="admin" && (
                     <button type="button" onClick={()=>promeniAktivan(r.id, !aktivan)}
                       style={{

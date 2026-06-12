@@ -26,6 +26,8 @@
     "dokument:checklist-it": "node scripts/generisi-checklist-firma-dokument.mjs",
     "dokument:checklist-pun": "node scripts/generisi-checklist-firma-dokument.mjs --interno",
     "sync:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs",
+    "fix:nt-001": "node scripts/fix-nt-001-sifrarnik.mjs && node scripts/sync-sifrarnik-iz-merljivih.mjs && node scripts/pakuj-sifrarnik-folder.mjs",
+    "validiraj:nt-001": "node scripts/validiraj-nt-001-uvoz.mjs",
     "pakuj:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs && node scripts/pakuj-sifrarnik-folder.mjs",
     "migriraj:nm001": "node scripts/migriraj-nm001-pogon.mjs"
   },

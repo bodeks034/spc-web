@@ -8,8 +8,10 @@ import { TABLET } from "../layout/tokens/tablet.js";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
+import { KontrolnaLista } from "../lib/kontrolaSesije.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
+import { idSpremanZaUcitavanje } from "../lib/varijabilneUtils.js";
 
 /**
  * Modul 1 — merljive: punoekranski koraci kao kod atributivnih (ID → poka → unos).
@@ -47,6 +49,7 @@ export default function MobilniMerljiviUnos({
   setUnosKorak,
   korisnik,
   kontrolnaListaOk,
+  onKontrolnaListaZavrsena,
   kalUpozorenja,
   kalibracijaOdobrena,
   kalibracijaCeka,
@@ -127,7 +130,7 @@ export default function MobilniMerljiviUnos({
   );
 
   if (linijaKorak === 1) {
-    const mozeDalje = idUcitano && grupaAB && !ucitava;
+    const mozeDalje = idUcitano && grupaAB && !ucitava && kontrolnaListaOk;
     return omot(
       <>
         {poruka && (
@@ -273,8 +276,32 @@ export default function MobilniMerljiviUnos({
           </div>
         )}
 
-        {ucitava && (
+        {ucitava && !poruka && (
           <div style={{ color: C.sivi, fontSize: 12, textAlign: "center" }}>Učitavam karakteristike…</div>
+        )}
+
+        {idDeo && idSpremanZaUcitavanje(String(idDeo)) && !idUcitano && !ucitava && !poruka && (
+          <div style={{ color: C.sivi, fontSize: 12, textAlign: "center", marginBottom: 12 }}>
+            Učitavam deo…
+          </div>
+        )}
+
+        {idDeo && idSpremanZaUcitavanje(String(idDeo)) && !idUcitano && poruka && (
+          <div style={{
+            background: `${C.crvena}12`,
+            border: `2px solid ${C.crvena}`,
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 12,
+            textAlign: "center",
+          }}>
+            <div style={{ color: C.crvena, fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
+              ⚠ Merljive karakteristike nisu učitane
+            </div>
+            <div style={{ color: C.tekst, fontSize: 11, lineHeight: 1.5 }}>
+              {poruka || "Admin → uvezi SPC_merljive.xlsx (tab karakteristike_merljive), pa Ctrl+F5."}
+            </div>
+          </div>
         )}
 
         {idUcitano && (
@@ -288,6 +315,21 @@ export default function MobilniMerljiviUnos({
             visina={dp(ekran.tablet ? TABLET.crtezVisinaDno : TELEFON.crtezVisinaDno, ekran)}
             akcent={C.zelena}
           />
+        )}
+
+        {idUcitano && !kontrolnaListaOk && (
+          <div style={{ marginBottom: 12 }}>
+            <KontrolnaLista
+              korisnik={korisnik}
+              smena={Number(smena)}
+              idDeo={String(idDeo || "").trim().toUpperCase()}
+              naslovModul="Merljive"
+              akcent={C.zelena}
+              onZavrsena={onKontrolnaListaZavrsena}
+              C={C}
+              ugradjen
+            />
+          </div>
         )}
 
         <div style={{ flex: 1 }} />

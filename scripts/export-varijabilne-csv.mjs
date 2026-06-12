@@ -5,6 +5,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import XLSX from "xlsx";
+import {
+  KARAKTERISTIKE_MERLJIVE_HEADER,
+  mapKarakteristikaMerljiveRow,
+} from "../src/lib/karakteristikaMerljive.js";
+import { parseDefinicijaRed } from "../src/lib/definicijaKarakteristika.js";
 
 const DOCS = path.resolve("docs");
 const XLSM = path.join(DOCS, "Varijabilne_SPC.xlsm");
@@ -67,27 +72,29 @@ function parseSmena(v) {
 async function main() {
   const wb = XLSX.readFile(XLSM);
 
-  // ── karakteristike_merljive ← Definicija_Karakteristika
-  const defRows = sheetRows(wb, "Definicija_Karakteristika");
-  const karHdr = [
-    "id", "id_deo", "sifra_merenja", "pozicija", "naziv_mere", "nominala",
-    "usl", "lsl", "usl_text", "lsl_text", "merni_instrument", "jedinica", "napomena",
-  ];
+  // ── karakteristike_merljive ← tab karakteristike_merljive ili legacy Definicija_Karakteristika
+  const karHdr = KARAKTERISTIKE_MERLJIVE_HEADER;
   const karOut = [karHdr.join(",")];
-  let kid = 0;
-  for (let i = 1; i < defRows.length; i++) {
-    const r = defRows[i];
-    const idDeo = String(r[0] || "").trim().toUpperCase();
-    const dim = String(r[2] || "").trim();
-    if (!idDeo || !dim) continue;
-    kid += 1;
-    karOut.push([
-      kid, idDeo, r[1], r[2], r[3],
-      parseNum(r[4]), parseNum(r[5]), parseNum(r[6]),
-      `"${String(r[5] ?? "").replace(/"/g, '""')}"`,
-      `"${String(r[6] ?? "").replace(/"/g, '""')}"`,
-      r[7], r[8], r[9],
-    ].join(","));
+  const karSheet = sheetRows(wb, "karakteristike_merljive");
+  if (karSheet.length > 1) {
+    const hdr = karSheet[0].map(normHeader);
+    for (let i = 1; i < karSheet.length; i++) {
+      const raw = {};
+      hdr.forEach((h, j) => { raw[h] = karSheet[i][j] ?? ""; });
+      const mapped = mapKarakteristikaMerljiveRow(raw);
+      if (!mapped.id_deo || !mapped.pozicija) continue;
+      karOut.push(karHdr.map((c) => mapped[c] ?? "").join(","));
+    }
+  } else {
+    const defRows = sheetRows(wb, "Definicija_Karakteristika");
+    let kid = 0;
+    for (let i = 1; i < defRows.length; i++) {
+      const parsed = parseDefinicijaRed(defRows[i]);
+      if (!parsed) continue;
+      kid += 1;
+      const mapped = mapKarakteristikaMerljiveRow({ id: kid, ...parsed });
+      karOut.push(karHdr.map((c) => mapped[c] ?? "").join(","));
+    }
   }
 
   // ── merenja_varijabilna ← DATA

@@ -5,10 +5,12 @@ import {
   readWorkbookFromArrayBuffer,
   downloadWorkbook,
   previewMerljiveImport,
+  previewAutoSyncMerljive,
   importMerljiveWorkbookToSupabase,
   exportMerljiveMasterWorkbook,
   MERLJIVE_IMPORT_SHEETS,
 } from "./lib/excelSync.js";
+import DefinicijaUputstvo from "./components/DefinicijaUputstvo.jsx";
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -18,6 +20,7 @@ export default function MerljiveExcelPanel({ C, addToast }) {
   const [wb, setWb] = useState(null);
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState([]);
+  const [autoSync, setAutoSync] = useState(null);
   const [busy, setBusy] = useState("");
   const fileRef = useRef(null);
 
@@ -30,6 +33,7 @@ export default function MerljiveExcelPanel({ C, addToast }) {
       setWb(book);
       setFileName(file.name);
       setPreview(previewMerljiveImport(book));
+      setAutoSync(previewAutoSyncMerljive(book));
     } catch (err) {
       addToast(err.message, "greska");
     } finally {
@@ -44,10 +48,14 @@ export default function MerljiveExcelPanel({ C, addToast }) {
     try {
       const results = await importMerljiveWorkbookToSupabase(supabase, wb);
       const ok = results.filter(r => r.status === "ok");
+      const auto = ok.filter(r => String(r.sheet).includes("(auto)"));
       const msg = ok.length
         ? ok.map(r => `${r.sheet}: ${r.count} redova`).join("\n")
-        : "Nijedan sheet nije uvezen — proveri tabove (sop_deo_varijabilni, karakteristike_merljive, merenja_varijabilna ili SOP / Definicija_Karakteristika / DATA).";
-      addToast(`✓ Uvoz merljivih završen\n${msg}`, ok.length ? "uspeh" : "greska");
+        : "Nijedan sheet nije uvezen — proveri tabove (sop_deo_varijabilni, karakteristike_merljive, merenja_varijabilna ili SOP / DATA).";
+      const autoHint = auto.length
+        ? "\n\nAuto-sync: SOP, delovi i radni_nalozi iz karakteristike_merljive (meta na prvom redu grupe po pogonu)."
+        : "";
+      addToast(`✓ Uvoz merljivih završen\n${msg}${autoHint}`, ok.length ? "uspeh" : "greska");
     } catch (err) {
       addToast(err.message, "greska");
     } finally {
@@ -66,6 +74,7 @@ export default function MerljiveExcelPanel({ C, addToast }) {
       setFileName("SPC_merljive_demo_5501_5503.xlsx");
       const prev = previewMerljiveImport(book);
       setPreview(prev);
+      setAutoSync(previewAutoSyncMerljive(book));
       if (!prev.some(p => p.mappedCount > 0)) {
         addToast("Demo fajl nema očekivane tabove.", "greska");
         return;
@@ -110,9 +119,14 @@ export default function MerljiveExcelPanel({ C, addToast }) {
         MERLJIVE — EXCEL ↔ SUPABASE
       </div>
       <div style={{ color: C.sivi, fontSize: 11, marginBottom: 16, lineHeight: 1.7 }}>
-        Uvoz iz <strong style={{ color: C.tekst }}>Varijabilne_SPC.xlsm</strong> (tabovi SOP, Definicija_Karakteristika, DATA)
-        ili iz master fajla sa tabovima: {sheetList}.
+        Uvoz iz <strong style={{ color: C.tekst }}>Varijabilne_SPC.xlsm</strong> (tabovi SOP, DATA) ili master fajla: {sheetList}.
+        <br />
+        <strong style={{ color: C.tekst }}>Jedan izvor:</strong> popuni samo{" "}
+        <code>karakteristike_merljive</code> — u koloni <code>merni_instrument</code> piši{" "}
+        <em>Vizuelno</em> za atributivne; ostalo ostaje merljivo. SOP, delovi i RN se automatski sinhronizuju pri uvozu.
       </div>
+
+      <DefinicijaUputstvo C={C} variant="full" />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
         <button type="button" onClick={izvozSve} disabled={!!busy} style={BTN(C.zelena)}>
@@ -140,6 +154,32 @@ export default function MerljiveExcelPanel({ C, addToast }) {
               </div>
             ))}
           </div>
+          {autoSync && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 10,
+                borderRadius: 6,
+                background: `${C.zelena}12`,
+                border: `1px solid ${C.zelena}40`,
+                fontSize: 10,
+                color: C.sivi,
+                lineHeight: 1.6,
+              }}
+            >
+              <div style={{ color: C.zelena, fontWeight: 700, marginBottom: 4 }}>Auto-sync pri uvozu</div>
+              Karakteristike: {autoSync.karakteristike}
+              {autoSync.idDeos?.length ? ` (${autoSync.idDeos.join(", ")})` : ""}
+              <br />
+              → SOP: {autoSync.sop}, delovi po pogonu: {autoSync.deloviPogon}, radni nalozi: {autoSync.radniNalozi}
+              {autoSync.pogoni?.length ? (
+                <span> · pogoni: {autoSync.pogoni.join(", ")}</span>
+              ) : null}
+              {(autoSync.upozorenja || []).map((w) => (
+                <div key={w} style={{ color: C.crvena, marginTop: 4 }}>⚠ {w}</div>
+              ))}
+            </div>
+          )}
           <button type="button" onClick={uvoz} disabled={!!busy || !preview.some(p => p.mappedCount > 0)}
             style={{ ...BTN(C.plava), marginTop: 12, width: "100%" }}>
             {busy === "uvoz" ? "Uvoz..." : "✓ Uvezi u Supabase"}

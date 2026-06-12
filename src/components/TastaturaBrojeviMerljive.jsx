@@ -6,11 +6,15 @@ export default function TastaturaBrojeviMerljive({
   C,
   ugao = false,
   onTaster,
-  onGotovo,
-  kompakt = false,
+  onGotovoDodaj,
+  kompakt = true,
 }) {
-  const btnH = kompakt ? 38 : 44;
-  const fontSize = kompakt ? 17 : 19;
+  const btnH = kompakt ? 28 : 34;
+  const fontSize = kompakt ? 14 : 16;
+  const fontSimbol = kompakt ? 12 : 14;
+  const radius = kompakt ? 5 : 7;
+  const gap = kompakt ? 2 : 4;
+  const pad = kompakt ? "3px 5px 5px" : "6px 8px 8px";
 
   const taster = (label, akcija, cifra, { accent = false } = {}) => (
     <button
@@ -23,10 +27,10 @@ export default function TastaturaBrojeviMerljive({
       style={{
         minHeight: btnH,
         border: `1px solid ${C.border}`,
-        borderRadius: 8,
+        borderRadius: radius,
         background: accent ? `${C.sivi}33` : C.input,
         color: C.tekst,
-        fontSize: typeof label === "number" ? fontSize : (kompakt ? 15 : 16),
+        fontSize: typeof label === "number" ? fontSize : fontSimbol,
         fontWeight: 600,
         fontFamily: "inherit",
         fontVariantNumeric: "tabular-nums",
@@ -60,18 +64,18 @@ export default function TastaturaBrojeviMerljive({
         flexShrink: 0,
         borderTop: `1px solid ${C.border}`,
         background: C.panel,
-        padding: kompakt ? "6px 8px 8px" : "8px 10px 10px",
+        padding: pad,
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: kompakt ? 4 : 5 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap }}>
         {redovi.map((red, ri) => (
           <div
             key={ri}
             style={{
               display: "grid",
               gridTemplateColumns: red.length === 2 ? "2fr 1fr" : "repeat(3, 1fr)",
-              gap: kompakt ? 4 : 5,
+              gap,
             }}
           >
             {red.map((lbl) => {
@@ -85,22 +89,23 @@ export default function TastaturaBrojeviMerljive({
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onTouchStart={(e) => e.preventDefault()}
-          onClick={() => onGotovo?.()}
+          onClick={() => onGotovoDodaj?.()}
           style={{
             width: "100%",
-            minHeight: btnH,
+            minHeight: kompakt ? 26 : 32,
             border: "none",
-            borderRadius: 8,
-            background: C.zelena,
+            borderRadius: radius,
+            background: C.plava,
             color: "#fff",
-            fontSize: kompakt ? 14 : 15,
+            fontSize: kompakt ? 11 : 12,
             fontWeight: 700,
             cursor: "pointer",
             touchAction: "manipulation",
             WebkitTapHighlightColor: "transparent",
+            letterSpacing: 0.3,
           }}
         >
-          Gotovo
+          Gotovo + Dodaj
         </button>
       </div>
     </div>

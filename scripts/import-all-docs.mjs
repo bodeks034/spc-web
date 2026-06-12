@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { mapDeloviRedIzExcela, podeliDeloviUvoz } from "../src/lib/deloviAtributivni.js";
+import { mapKarakteristikaMerljiveRow, stripKarakteristikeForDb } from "../src/lib/karakteristikaMerljive.js";
 
 const DOCS = path.resolve("docs");
 
@@ -210,15 +211,18 @@ async function main() {
   }
 
   console.log("Import radnika i delova...");
-  const radniciPayload = radniciRows.map((r) => ({
-    id: num(r.id),
-    ime: pick(r, "ime i prezime", "ime"),
-    uloga: pick(r, "uloga").toLowerCase().replace(/\*+$/, ""),
-    email: pick(r, "email") || null,
-    user_id: null,
-    aktivan: daNe(pick(r, "aktivan")),
-    napomena: pick(r, "napomena") || null,
-  })).filter((r) => r.id && r.ime && r.uloga);
+  const radniciPayload = radniciRows.map((r) => {
+    const row = {
+      id: num(r.id),
+      ime: pick(r, "ime i prezime", "ime"),
+      uloga: pick(r, "uloga").toLowerCase().replace(/\*+$/, ""),
+      email: pick(r, "email") || null,
+      napomena: pick(r, "napomena") || null,
+    };
+    const rawAktivan = pick(r, "aktivan");
+    if (String(rawAktivan ?? "").trim()) row.aktivan = daNe(rawAktivan);
+    return row;
+  }).filter((r) => r.id && r.ime && r.uloga);
   if (!radniciPayload.length && radniciRows.length) {
     throw new Error("radnici: CSV ima redove, ali mapiranje nije uspelo — proveri kolone u radnici.csv");
   }
@@ -534,24 +538,9 @@ async function main() {
     await upsertBatches(
       supabase,
       "karakteristike_merljive",
-      karMerRows.map((r) => ({
-        id: num(r.id),
-        id_deo: pick(r, "id_deo").toUpperCase(),
-        sifra_merenja: pick(r, "sifra_merenja"),
-        faza_naziv: pick(r, "faza_naziv") || null,
-        linija_faza: pick(r, "linija_faza") || null,
-        broj_merenja: num(pick(r, "broj_merenja")) || null,
-        pozicija: pick(r, "pozicija"),
-        naziv_mere: pick(r, "naziv_mere"),
-        nominala: num(pick(r, "nominala")),
-        usl: num(pick(r, "usl")),
-        lsl: num(pick(r, "lsl")),
-        usl_text: pick(r, "usl_text"),
-        lsl_text: pick(r, "lsl_text"),
-        merni_instrument: pick(r, "merni_instrument"),
-        jedinica: pick(r, "jedinica"),
-        napomena: pick(r, "napomena"),
-      })).filter((r) => r.id && r.id_deo && r.pozicija),
+      karMerRows
+        .map((r) => stripKarakteristikeForDb(mapKarakteristikaMerljiveRow(r)))
+        .filter((r) => r.id && r.id_deo && r.pozicija),
       "id"
     );
   }

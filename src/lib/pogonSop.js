@@ -1,6 +1,8 @@
 import { jeValidanPogon, nazivPogona } from "./pogonKodovi.js";
+import { pogonKodKarakteristike, propagirajMetaKarakteristika } from "./definicijaKarakteristika.js";
 import { spojiDeoIPogon } from "./deloviAtributivni.js";
 import { jeMerljivaKarakteristika } from "./varijabilneUtils.js";
+import { radniNalogIzDeoPogona } from "./syncSifrarnikIzMerljivih.js";
 
 /** RN-2026-NM001-B → B; RN-2026-NM001 → null (mora izbor pogona). */
 export function pogonIzRn(brojNaloga) {
@@ -71,7 +73,7 @@ export function deoInfoZaPogon(deloviRows, atributivniPogonRows, idDeo, pogonKod
 }
 
 /** Pogoni iz SOP (merljive) + aktivnih radnih naloga (merljive). */
-export function pogoniZaDeoSvi(sopMap, rnRows, idDeo) {
+export function pogoniZaDeoSvi(sopMap, rnRows, idDeo, karakteristike) {
   const merged = new Set(pogoniZaDeo(sopMap, idDeo));
   const id = String(idDeo || "").trim().toUpperCase();
   for (const r of rnRows || []) {
@@ -79,6 +81,11 @@ export function pogoniZaDeoSvi(sopMap, rnRows, idDeo) {
     const brojRn = String(r.broj_naloga || r.radni_nalog || "").trim().toUpperCase();
     const p = String(r.pogon_kod || "").trim().toUpperCase()
       || pogonIzRn(brojRn);
+    if (p && jeValidanPogon(p)) merged.add(p);
+  }
+  for (const r of propagirajMetaKarakteristika(karakteristike || [])) {
+    if (String(r.id_deo || "").toUpperCase() !== id) continue;
+    const p = pogonKodKarakteristike(r, { multiPogon: true });
     if (p && jeValidanPogon(p)) merged.add(p);
   }
   return [...merged].sort();
@@ -195,24 +202,38 @@ export function jePogonOmogucen({
     });
   }
 
-  if (!imaAktivanRnZaPogon(naloziRows, id, p, {
-    sopMap, deloviRows, atributivniPogonRows, modul,
-  })) return false;
+  if (modul !== "atributivne") {
+    const karMer = filtrirajKarakteristikePoPogonu(karakteristike, idDeo, p)
+      .filter(jeMerljivaKarakteristika);
+    if (!karMer.length) return false;
+    if (imaAktivanRnZaPogon(naloziRows, id, p, {
+      sopMap, deloviRows, atributivniPogonRows, modul,
+    })) return true;
+    if (karMer.some((k) => String(k.radni_nalog || "").trim())) return true;
+    if (sopZaPogon(sopMap, idDeo, p)?.radni_nalog) return true;
+    return !!radniNalogIzDeoPogona(id, p);
+  }
 
-  const imaSopZaDeo = Object.keys(sopMap?.[id] || {}).length > 0;
-  if (imaSopZaDeo && !sopZaPogon(sopMap, idDeo, p)) return false;
-  return filtrirajKarakteristikePoPogonu(karakteristike, idDeo, p)
-    .filter(jeMerljivaKarakteristika).length > 0;
+  return false;
 }
 
 /** Karakteristike za id_deo + pogon. */
 export function filtrirajKarakteristikePoPogonu(rows, idDeo, pogonKod) {
   const id = String(idDeo || "").trim().toUpperCase();
   const pogon = String(pogonKod || "").trim().toUpperCase();
-  return (rows || []).filter((r) => {
-    if (String(r.id_deo || "").toUpperCase() !== id) return false;
+  const normalized = propagirajMetaKarakteristika(rows);
+  const zaDeo = normalized.filter((r) => String(r.id_deo || "").toUpperCase() === id);
+  const multiPogon = zaDeo.reduce((set, r) => {
+    const pk = pogonKodKarakteristike(r, { multiPogon: true });
+    if (pk) set.add(pk);
+    return set;
+  }, new Set()).size > 1;
+  const imaPogonSpec = zaDeo.some((r) => pogonKodKarakteristike(r, { multiPogon: true }));
+
+  return zaDeo.filter((r) => {
     if (!pogon) return true;
-    const pk = String(r.pogon_kod || "").trim().toUpperCase();
-    return !pk || pk === pogon;
+    const pk = pogonKodKarakteristike(r, { multiPogon });
+    if (pk) return pk === pogon;
+    return !imaPogonSpec && !multiPogon;
   });
 }

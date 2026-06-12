@@ -2,15 +2,28 @@
  * Jedan izvor (karakteristike_merljive + opcione kolone) → delovi + sop_deo_varijabilni.
  */
 
+/**
+ * Jedan tab karakteristike_merljive — meta + auto-sync (SOP / delovi / RN).
+ * Vizuelno u merni_instrument → atributivne (v. karakteristikaMerljive.js).
+ */
+import {
+  jeAtributivnaPoInstrumentu,
+  jeMerljivaPoInstrumentu,
+  brojMerenjaIzReda,
+} from "./karakteristikaMerljive.js";
+
 export const SYNC_META_COLS = [
-  "atributivne",
-  "merljive",
-  "kom_za_kontrolu_n",
   "radni_nalog",
-  "slika",
+  "faza_naziv",
+  "linija_faza",
   "linija_id",
   "masina_id",
   "naziv_dela",
+  "slika",
+  "ukupno_kom",
+  "kom_za_kontrolu_n",
+  "nivo_kontrole",
+  "broj_merenja",
 ];
 
 function norm(v) {
@@ -54,9 +67,19 @@ export function metaIzGrupe(rows) {
     }
   }
 
-  const brojMerenja = Number(first.broj_merenja) || 5;
-  const merljive = daNe(meta.merljive, true);
-  const atributivne = daNe(meta.atributivne, false);
+  const brojMerenja = rows.reduce((best, r) => {
+    const n = brojMerenjaIzReda(r);
+    if (Number.isFinite(n) && n > 0 && jeMerljivaPoInstrumentu(r)) return n;
+    return best;
+  }, Number(first.broj_merenja) || Number(first.kom_za_kontrolu_n) || 5);
+
+  const merljive = rows.some((r) => jeMerljivaPoInstrumentu(r));
+  const atributivne = rows.some((r) => jeAtributivnaPoInstrumentu(r));
+
+  const ukupnoKom = rows.reduce((v, r) => {
+    const n = Number(r.ukupno_kom);
+    return Number.isFinite(n) && n > 0 ? n : v;
+  }, null);
 
   const eksplicitanPogon = rows.some((r) => r._eksplicitanPogon) || norm(first.pogon_kod) !== "";
 
@@ -68,13 +91,16 @@ export function metaIzGrupe(rows) {
     linija_faza: first.linija_faza || "",
     broj_merenja: brojMerenja,
     naziv_dela: meta.naziv_dela || "",
-    radni_nalog: meta.radni_nalog ? String(meta.radni_nalog).trim().toUpperCase() : "",
+    radni_nalog: meta.radni_nalog
+      ? String(meta.radni_nalog).trim().toUpperCase()
+      : (eksplicitanPogon ? radniNalogIzDeoPogona(first.id_deo, first.pogon_kod) : ""),
     slika: meta.slika || "",
     linija_id: meta.linija_id !== undefined && meta.linija_id !== "" ? Number(meta.linija_id) : null,
     masina_id: meta.masina_id !== undefined && meta.masina_id !== "" ? Number(meta.masina_id) : null,
     kom_za_kontrolu_n: meta.kom_za_kontrolu_n !== undefined && meta.kom_za_kontrolu_n !== ""
       ? Number(meta.kom_za_kontrolu_n)
       : brojMerenja,
+    ukupno_kom: ukupnoKom,
     atributivne,
     merljive,
   };
@@ -82,6 +108,38 @@ export function metaIzGrupe(rows) {
 
 function deoPogonKey(id, pogon) {
   return `${norm(id)}|${norm(pogon)}`;
+}
+
+/** RN-2026-NM001-A iz id_deo + pogon_kod */
+export function radniNalogIzDeoPogona(idDeo, pogonKod) {
+  const id = String(idDeo || "").trim().toUpperCase().replace(/-/g, "");
+  const p = String(pogonKod || "").trim().toUpperCase();
+  if (!id || !p) return "";
+  return `RN-2026-${id}-${p}`;
+}
+
+/** Mapiranje linija_faza → pogon_kod (NT/NM multi-pogon delovi). */
+export const LINIJA_FAZA_POGON = {
+  "Ulazna kontrola": "A",
+  Preseraj: "B",
+  Karoserija: "C",
+  Lakirnica: "D",
+  "Montaža": "E",
+  Montaza: "E",
+  "Završna": "F",
+  "Masinska obrada": "G",
+  "Mašinska obrada": "G",
+  Alatnica: "H",
+};
+
+export function pogonIzLinijeFaze(linijaFaza) {
+  const s = String(linijaFaza || "").trim();
+  if (LINIJA_FAZA_POGON[s]) return LINIJA_FAZA_POGON[s];
+  const lower = s.toLowerCase();
+  for (const [k, v] of Object.entries(LINIJA_FAZA_POGON)) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  return "";
 }
 
 /** Generiši sop + delovi redove iz karakteristika. */
@@ -232,4 +290,49 @@ export function spojiSopCsv(postojeciSop, sopRows) {
     const c = String(a.id_deo).localeCompare(String(b.id_deo));
     return c !== 0 ? c : String(a.pogon_kod).localeCompare(String(b.pogon_kod));
   });
+}
+
+/** Generiši radni_nalozi redove iz karakteristika (po id_deo + pogon). */
+export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano = {} } = {}) {
+  const groups = grupisiKarakteristike(karRows);
+  const postojeciKeys = new Set(
+    (postojeciRn || []).map((r) => deoPogonKey(r.id_deo || r["id dela*"], r.pogon_kod)),
+  );
+  let maxId = (postojeciRn || []).reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
+
+  const out = [];
+  for (const rows of groups.values()) {
+    const m = metaIzGrupe(rows);
+    if (!m.eksplicitanPogon) continue;
+    const key = deoPogonKey(m.id_deo, m.pogon_kod);
+    if (postojeciKeys.has(key)) continue;
+
+    const rn = m.radni_nalog || radniNalogIzDeoPogona(m.id_deo, m.pogon_kod);
+    if (!rn) continue;
+
+    maxId += 1;
+    out.push({
+      id: maxId,
+      broj_naloga: rn,
+      id_deo: m.id_deo,
+      naziv_dela: m.naziv_dela || "",
+      kolicina: m.ukupno_kom ?? podrazumevano.kolicina ?? 50,
+      kupac: podrazumevano.kupac ?? "",
+      datum_unosa: podrazumevano.datum_unosa ?? new Date().toISOString().slice(0, 10),
+      rok_isporuke: podrazumevano.rok_isporuke ?? null,
+      status: "aktivan",
+      operater: podrazumevano.operater ?? "PERA OPERATER",
+      napomena: podrazumevano.napomena ?? "",
+      pogon_kod: m.pogon_kod,
+    });
+  }
+  return out.sort((a, b) => String(a.broj_naloga).localeCompare(String(b.broj_naloga)));
+}
+
+export function spojiRadniNalogeCsv(postojeciRn, noviRn) {
+  const autoKeys = new Set((noviRn || []).map((r) => deoPogonKey(r.id_deo, r.pogon_kod)));
+  const rucni = (postojeciRn || []).filter(
+    (r) => !autoKeys.has(deoPogonKey(r.id_deo, r.pogon_kod)),
+  );
+  return [...rucni, ...(noviRn || [])].sort((a, b) => Number(a.id) - Number(b.id));
 }

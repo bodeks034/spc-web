@@ -59,34 +59,39 @@ export function storageKandidati(tip, vrednost) {
   return [...new Set(list)];
 }
 
+/** Keš — ne ponavljaj neuspešne storage pozive svaki render. */
+const prikazSlikeCache = new Map();
+
 /** Redosled pokušaja učitavanja slike (bez provere učitavanja). */
 export async function ucitajUrlSlike(supabase, tip, vrednost) {
-  if (!vrednost) return null;
-
-  for (const put of storageKandidati(tip, vrednost)) {
-    const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
-    if (!error && data?.signedUrl) return data.signedUrl;
-  }
-
-  return lokalnaPutanjaSlike(tip, vrednost);
+  const url = await ucitajPrikazSliku(supabase, tip, vrednost);
+  return url;
 }
 
 /**
- * Prvi URL koji stvarno radi (Storage pa public/slike/...).
+ * Prvi URL koji stvarno radi (public/slike pa Storage).
  * Vraća null ako nigde nema fajla — tada prikaži ručni uvoz.
  */
 export async function ucitajPrikazSliku(supabase, tip, vrednost) {
   if (!vrednost) return null;
+  const key = `${tip}|${String(vrednost).trim()}`;
+  if (prikazSlikeCache.has(key)) return prikazSlikeCache.get(key);
+
+  const lokal = lokalnaPutanjaSlike(tip, vrednost);
+  if (lokal && await testUrlSlike(lokal)) {
+    prikazSlikeCache.set(key, lokal);
+    return lokal;
+  }
 
   for (const put of storageKandidati(tip, vrednost)) {
     const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
-    if (!error && data?.signedUrl && await testUrlSlike(data.signedUrl)) {
+    if (error || !data?.signedUrl) continue;
+    if (await testUrlSlike(data.signedUrl)) {
+      prikazSlikeCache.set(key, data.signedUrl);
       return data.signedUrl;
     }
   }
 
-  const lokal = lokalnaPutanjaSlike(tip, vrednost);
-  if (lokal && await testUrlSlike(lokal)) return lokal;
-
+  prikazSlikeCache.set(key, null);
   return null;
 }
