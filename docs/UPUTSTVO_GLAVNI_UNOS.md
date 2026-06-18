@@ -7,12 +7,13 @@ Inženjer unosi **sve u jedan fajl**; skripta razdvaja u merljive i atributivne 
 | Fajl | Ko popunjava |
 |------|----------------|
 | `excel rad izmenjen/glavni unos.xlsx` | **Inženjer** — tabovi `vozilo1`, `vozilo2`, `vozilo3`… |
-| `sifrarnik-paket/SPC_merljive.xlsx` | **Automatski** — `karakteristike_merljive`, `sop_deo_varijabilni` |
-| `sifrarnik-paket/SPC_atributivne.xlsx` | **Automatski** — `delovi`, `radni_nalozi` |
+| `excel rad izmenjen/sifrarnik-paket/SPC_merljive.xlsx` | **Automatski** — `karakteristike_merljive`, `sop_deo_varijabilni` |
+| `excel rad izmenjen/sifrarnik-paket/SPC_atributivne.xlsx` | **Automatski** — `delovi`, `radni_nalozi` |
+| `excel rad izmenjen/sifrarnik-paket/csv/` | **Automatski** — isti sadržaj kao Excel (za pregled / diff) |
 
 Pomoćni tabovi u glavnom unosu (ne diraš svaki dan):
 
-- `pogon_kod` — linija → pogon A–H  
+- **`pogon_kod`** — **izvor istine** za mapiranje kolone `Linija` → pogon A–H (Ulazna kontrola = A, Preseraj = B, …). Sync automatski puni `pogon_kod` u karakteristikama, SOP-u, delovima i radnim nalozima.
 - `Pomocni` — linije, operacije, radnici  
 
 ## Pokretanje
@@ -35,12 +36,13 @@ npm run sync:glavni-unos:import
 1. Čita sve **`vozilo*`** tabove iz `glavni unos.xlsx` (gde ima `id_deo`).
 2. Mapira kolone (Karakteristika, USL, LSL, Linija, Instrument, Tip…).
 3. **`SPC_merljive.xlsx`**
-   - `karakteristike_merljive` — sve dimenzije (merljive + atributivne po instrumentu)
-   - `sop_deo_varijabilni` — auto iz karakteristika
+   - `karakteristike_merljive` — sve dimenzije (`pogon_kod` iz taba `pogon_kod` + kolona `Linija`)
+   - `sop_deo_varijabilni` — auto po **id_deo + pogon**
 4. **`SPC_atributivne.xlsx`**
-   - `delovi` — auto za te ID delova
-   - `radni_nalozi` — iz kolone `Radni_nalog` + auto RN po pogonu
-5. Delovi **van** glavnog unosa (MRAP, vozila…) **ostaju** u Excelu.
+   - `delovi` — master + **jedan red po pogonu** (kolona `pogon kod`) za merljive i atributivne
+   - `radni_nalozi` — iz kolone `Radni_nalog` ili auto `RN-2026-{ID}-{POGON}`
+5. **`sifrarnik-paket/csv/pogon_kod.csv`** — izveštaj mapiranja iz taba `pogon_kod`
+6. Delovi **van** glavnog unosa (MRAP, vozila…) **ostaju** u šifrarniku.
 
 ## Kolone u voziloN tabu (glavni unos)
 
@@ -48,7 +50,7 @@ npm run sync:glavni-unos:import
 |--------|--------|
 | `id_deo` | sve tabele |
 | `Naziv dela`, `Slika`, `Radni_nalog` | delovi, SOP, RN |
-| `Linija`, `Operacija` | pogon, linija_id |
+| `Linija`, `Operacija` | **Linija** → `pogon_kod` (tab `pogon_kod` u glavnom unosu); operacija → serija |
 | `Karakteristika` | pozicija / naziv mere |
 | `Nominal`, `USL`, `LSL`, `Jedinica` | merljive granice |
 | `Instrument`, `Tip` | merljiva vs atributivna |

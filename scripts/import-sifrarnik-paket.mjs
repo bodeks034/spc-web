@@ -13,10 +13,13 @@ import {
   importMerljiveWorkbookToSupabase,
   importWorkbookToSupabase,
 } from "../src/lib/excelSync.js";
+import {
+  merljiveXlsxPath,
+  atributivneXlsxPath,
+} from "../src/lib/sifrarnikPaths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const DEFAULT_BASE = path.join(ROOT, "excel rad izmenjen", "sifrarnik-paket");
 
 function parseArgs(argv) {
   const pick = (flag, envKey, fallback) => {
@@ -28,8 +31,8 @@ function parseArgs(argv) {
     return fallback;
   };
   return {
-    merljivePath: pick("--merljive", "SPC_MERLJIVE_XLSX", path.join(DEFAULT_BASE, "SPC_merljive.xlsx")),
-    atributivnePath: pick("--atributivne", "SPC_ATRIBUTIVNE_XLSX", path.join(DEFAULT_BASE, "SPC_atributivne.xlsx")),
+    merljivePath: pick("--merljive", "SPC_MERLJIVE_XLSX", merljiveXlsxPath(ROOT)),
+    atributivnePath: pick("--atributivne", "SPC_ATRIBUTIVNE_XLSX", atributivneXlsxPath(ROOT)),
   };
 }
 
@@ -40,8 +43,8 @@ function readWb(filePath) {
 
 export async function importSifrarnikPaketToSupabase(supabase, { merljivePath, atributivnePath } = {}) {
   const paths = {
-    merljivePath: merljivePath || path.join(DEFAULT_BASE, "SPC_merljive.xlsx"),
-    atributivnePath: atributivnePath || path.join(DEFAULT_BASE, "SPC_atributivne.xlsx"),
+    merljivePath: merljivePath || merljiveXlsxPath(ROOT),
+    atributivnePath: atributivnePath || atributivneXlsxPath(ROOT),
   };
 
   const merljiveWb = readWb(paths.merljivePath);

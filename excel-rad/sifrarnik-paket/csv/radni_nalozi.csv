@@ -1,4 +1,0 @@
-id,radni nal,id dela*,naziv dela,količina,kupac,datum unosa,rok isporuke,status,operater,napomena,pogon_kod
-1,RN-2026-101,5502-A,Osovina,500,Kupac A,2026-06-01,2026-06-15,aktivan,,,
-2,RN-2026-102,5501-A,Nosac,300,Kupac B,2026-06-01,2026-06-20,aktivan,,,
-3,RN-2026-099,5503-A,Poklopac,200,Kupac A,2026-05-28,2026-06-10,zavrsen,,,

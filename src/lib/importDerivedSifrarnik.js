@@ -12,6 +12,7 @@ import {
   grupisiKarakteristike,
   metaIzGrupe,
 } from "./syncSifrarnikIzMerljivih.js";
+import { purgeStalePogonsForDelove } from "./purgeStalePogons.js";
 
 async function upsertBatches(supabase, table, rows, onConflict) {
   if (!rows?.length) return 0;
@@ -127,6 +128,8 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
   }
   if (!karRows.length) return [];
 
+  const purge = await purgeStalePogonsForDelove(supabase, ids, karRows);
+
   const { sop, deloviPogon, rn } = await ucitajPostojeceZaDelove(supabase, ids);
   const gen = generisiIzKarakteristika(karRows, {
     postojeciSop: sop,
@@ -169,6 +172,14 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
   }
 
   const results = [];
+  if (purge.total > 0) {
+    results.push({
+      sheet: "zastareli pogoni (obrisano)",
+      status: "ok",
+      count: purge.total,
+      detail: purge.detail,
+    });
+  }
 
   const deloviRows = gen.deloviPogonRows.map((p) => ({
     id_deo: p.id_deo,

@@ -2,6 +2,7 @@
  * glavni unos.xlsx (inženjer) → SPC_merljive.xlsx + SPC_atributivne.xlsx
  */
 import fs from "node:fs";
+import path from "node:path";
 import * as XLSX from "xlsx";
 import { KARAKTERISTIKE_MERLJIVE_HEADER } from "./karakteristikaMerljive.js";
 import {
@@ -30,6 +31,11 @@ import {
   GLAVNI_UNOS_BROJ_MERENJA_DEFAULT,
   GLAVNI_UNOS_COL_BROJ_MERENJA,
 } from "./spcDefaults.js";
+import {
+  pogonLinijaMapIzGlavnogUnosa,
+  setPogonLinijaMap,
+} from "./pogonLinijaLookup.js";
+import { sifrarnikCsvDir } from "./sifrarnikPaths.js";
 
 const VOZILO_SHEET_RE = /^vozilo\d+$/i;
 
@@ -132,7 +138,13 @@ export function mapGlavniUnosVoziloRed(raw, lookups) {
   const linijaFaza = pick(raw, "Linija", "linija", "linija_faza");
   const pogonInfo = lookups.pogonByLinija.get(nk(linijaFaza));
   const linijaInfo = lookups.linijaByName.get(nk(linijaFaza));
-  const pogon = pogonInfo?.pogon || pogonIzLinijeFaze(linijaFaza) || "";
+  let pogon = pogonInfo?.pogon || pogonIzLinijeFaze(linijaFaza) || "";
+  if (!pogon && linijaFaza) {
+    // Poslednji pokušaj: sufiks RN (RN-2026-NT001-B)
+    const rnProbe = pick(raw, "Radni_nalog", "radni_nalog", "radni nalog");
+    const m = String(rnProbe || "").trim().toUpperCase().match(/-([A-H])$/);
+    if (m) pogon = m[1];
+  }
 
   const operacija = pick(raw, "Operacija", "operacija", "faza_naziv");
   let masinaId = num(pick(raw, "Masina_id", "masina_id", "masina id"));
@@ -182,6 +194,7 @@ export function mapGlavniUnosVoziloRed(raw, lookups) {
 /** Svi redovi iz vozilo1, vozilo2, … sheeta. */
 export function parseGlavniUnosVoziloSheets(wb) {
   const lookups = buildGlavniUnosLookups(wb);
+  setPogonLinijaMap(pogonLinijaMapIzGlavnogUnosa(lookups.pogonByLinija));
   const sheets = [];
   const karakteristike = [];
 
@@ -205,13 +218,60 @@ export function parseGlavniUnosVoziloSheets(wb) {
 }
 
 function karKey(r) {
-  const pogon = String(r.pogon_kod || "").trim().toUpperCase() || "A";
+  const nr = normalizujKarakteristikuRed(r);
+  const pogon = String(nr.pogon_kod || "").trim().toUpperCase();
   return [
-    String(r.id_deo).toUpperCase(),
+    String(nr.id_deo).toUpperCase(),
     pogon,
-    String(r.sifra_merenja || "").trim(),
-    String(r.pozicija).trim(),
+    String(nr.sifra_merenja || "").trim(),
+    String(nr.pozicija).trim(),
   ].join("|");
+}
+
+function csvEsc(v) {
+  const s = String(v ?? "");
+  return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function writeCsvFile(filePath, headers, rows) {
+  const lines = [headers.join(",")];
+  for (const r of rows || []) {
+    lines.push(headers.map((h) => csvEsc(r[h])).join(","));
+  }
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
+}
+
+/** Upiši generisane tabele u sifrarnik-paket/csv (pored Excela). */
+export function exportSifrarnikCsv(csvDir, {
+  mergedKar,
+  sopExcel,
+  deloviExcel,
+  rnExcel,
+  lookups,
+}) {
+  const karRows = (mergedKar || []).map(karToExcelRow);
+  writeCsvFile(
+    path.join(csvDir, "karakteristike_merljive.csv"),
+    KARAKTERISTIKE_MERLJIVE_HEADER,
+    karRows,
+  );
+  writeCsvFile(
+    path.join(csvDir, "sop_deo_varijabilni.csv"),
+    ["id_deo", "pogon_kod", "radni_nalog", "naziv_dela", "slika", "masina", "linija", "broj_merenja", "kontrolor_ime"],
+    sopExcel || [],
+  );
+  if (deloviExcel?.length) {
+    const deloviHeaders = Object.keys(deloviExcel[0]);
+    writeCsvFile(path.join(csvDir, "delovi.csv"), deloviHeaders, deloviExcel);
+  }
+  if (rnExcel?.length) {
+    const rnHeaders = Object.keys(rnExcel[0]);
+    writeCsvFile(path.join(csvDir, "radni_nalozi.csv"), rnHeaders, rnExcel);
+  }
+  const pogonPath = path.join(csvDir, "pogon_kod.csv");
+  exportPogonKodCsv(lookups, pogonPath);
+  return csvDir;
 }
 
 /** Zameni karakteristike za delove iz glavnog unosa; ostali delovi ostaju. */
@@ -317,6 +377,27 @@ function loadWorkbook(path) {
   }
 }
 
+/** Upiši tab pogon_kod iz glavnog unosa u docs/pogon_kod.csv (referenca + uvoz). */
+export function exportPogonKodCsv(lookups, csvPath) {
+  const rows = [];
+  for (const info of lookups.pogonByLinija?.values() || []) {
+    rows.push({
+      linija_faza: info.linija_faza || "",
+      linija_id: info.linija_id ?? "",
+      pogon_kod: info.pogon || "",
+    });
+  }
+  rows.sort((a, b) => String(a.linija_faza).localeCompare(String(b.linija_faza)));
+  const header = "linija_faza,linija_id,pogon_kod\n";
+  const body = rows.map((r) => [
+    r.linija_faza,
+    r.linija_id ?? "",
+    r.pogon_kod,
+  ].join(",")).join("\n");
+  fs.writeFileSync(csvPath, header + body + (body ? "\n" : ""), "utf8");
+  return rows.length;
+}
+
 function upsertSheet(wb, name, sheet) {
   wb.Sheets[name] = sheet;
   if (!wb.SheetNames.includes(name)) wb.SheetNames.push(name);
@@ -332,7 +413,7 @@ export async function syncGlavniUnosToSpc({
   dryRun = false,
 } = {}) {
   const glavniWb = readWorkbookFile(glavniPath);
-  const { sheets, karakteristike: izGlavnog } = parseGlavniUnosVoziloSheets(glavniWb);
+  const { lookups, sheets, karakteristike: izGlavnog } = parseGlavniUnosVoziloSheets(glavniWb);
 
   if (!izGlavnog.length) {
     return {
@@ -418,6 +499,9 @@ export async function syncGlavniUnosToSpc({
 
   const deloviIds = new Set(izGlavnog.map((r) => String(r.id_deo).toUpperCase()));
 
+  const projectRoot = path.dirname(path.dirname(glavniPath));
+  const csvDir = sifrarnikCsvDir(projectRoot);
+
   if (!dryRun) {
     upsertSheet(
       merljiveWb,
@@ -443,6 +527,14 @@ export async function syncGlavniUnosToSpc({
 
     XLSX.writeFile(merljiveWb, merljivePath);
     XLSX.writeFile(atrWb, atributivnePath);
+
+    exportSifrarnikCsv(csvDir, {
+      mergedKar,
+      sopExcel,
+      deloviExcel,
+      rnExcel,
+      lookups,
+    });
   }
 
   return {
@@ -454,7 +546,11 @@ export async function syncGlavniUnosToSpc({
     izGlavnog: izGlavnog.length,
     sop: sopExcel.length,
     deloviRedova: deloviExcel.length,
+    deloviPogon: deloviPogonRows.length,
     radniNalozi: rnExcel.length,
+    pogonLookup: (lookups.pogonByLinija?.size) || 0,
+    pogonCsvPath: path.join(csvDir, "pogon_kod.csv"),
+    csvDir,
     merljivePath,
     atributivnePath,
   };

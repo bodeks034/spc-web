@@ -11,11 +11,15 @@ import { createClient } from "@supabase/supabase-js";
 import { loadEnvZaSkripte } from "../src/lib/loadEnvFile.js";
 import { syncGlavniUnosToSpc } from "../src/lib/glavniUnosSync.js";
 import { importSifrarnikPaketToSupabase } from "./import-sifrarnik-paket.mjs";
+import {
+  glavniUnosPath,
+  merljiveXlsxPath,
+  atributivneXlsxPath,
+  sifrarnikCsvDir,
+} from "../src/lib/sifrarnikPaths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-
-const DEFAULT_BASE = path.join(ROOT, "excel rad izmenjen");
 
 function abs(p) {
   return path.isAbsolute(p) ? p : path.join(ROOT, p);
@@ -27,13 +31,13 @@ function parseArgs(argv) {
     importDb: argv.includes("--import-db"),
     glavni: abs(argv.find((a, i) => argv[i - 1] === "--glavni")
       || process.env.GLAVNI_UNOS_XLSX
-      || path.join(DEFAULT_BASE, "glavni unos.xlsx")),
+      || glavniUnosPath(ROOT)),
     merljive: abs(argv.find((a, i) => argv[i - 1] === "--merljive")
       || process.env.SPC_MERLJIVE_XLSX
-      || path.join(DEFAULT_BASE, "sifrarnik-paket", "SPC_merljive.xlsx")),
+      || merljiveXlsxPath(ROOT)),
     atributivne: abs(argv.find((a, i) => argv[i - 1] === "--atributivne")
       || process.env.SPC_ATRIBUTIVNE_XLSX
-      || path.join(DEFAULT_BASE, "sifrarnik-paket", "SPC_atributivne.xlsx")),
+      || atributivneXlsxPath(ROOT)),
   };
 }
 
@@ -84,8 +88,12 @@ async function main() {
   console.log(`\nDelovi (id): ${[...res.delovi].join(", ")}`);
   console.log(`Karakteristike u merljive: ${res.karakteristike} (iz glavnog: ${res.izGlavnog})`);
   console.log(`SOP redova: ${res.sop}`);
-  console.log(`Delovi redova (atributivne): ${res.deloviRedova}`);
+  console.log(`Delovi redova (atributivne): ${res.deloviRedova} (po pogonu: ${res.deloviPogon ?? "—"})`);
   console.log(`Radni nalozi: ${res.radniNalozi}`);
+  if (res.pogonLookup != null) {
+    console.log(`Pogon lookup (tab pogon_kod): ${res.pogonLookup} redova`);
+    console.log(`CSV šifrarnik: ${res.csvDir || sifrarnikCsvDir(ROOT)}`);
+  }
 
   if (args.dryRun) {
     console.log("\nGotovo (dry-run).");

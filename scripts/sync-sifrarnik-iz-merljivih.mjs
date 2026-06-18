@@ -1,10 +1,8 @@
 /**
- * Iz karakteristike_merljive (merni_instrument → atributivne/merljive) generiše:
- *   - docs/sop_deo_varijabilni.csv
- *   - docs/delovi.csv (master + pogon redovi za atributivne)
+ * Iz karakteristike_merljive generiše sop, delovi, radni_nalozi u:
+ *   excel rad izmenjen/sifrarnik-paket/csv/
  *
  *   node scripts/sync-sifrarnik-iz-merljivih.mjs
- *   node scripts/sync-sifrarnik-iz-merljivih.mjs --dry-run
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -16,9 +14,10 @@ import {
   spojiRadniNalogeCsv,
   radniNalogIzDeoPogona,
 } from "../src/lib/syncSifrarnikIzMerljivih.js";
+import { sifrarnikCsvDir } from "../src/lib/sifrarnikPaths.js";
 
 const root = path.resolve(import.meta.dirname, "..");
-const docs = path.join(root, "docs");
+const csvBase = sifrarnikCsvDir(root);
 const dryRun = process.argv.includes("--dry-run");
 
 function parseCsvLine(line) {
@@ -74,10 +73,10 @@ const DELOVI_HEADERS = [
 ];
 
 async function main() {
-  const karPath = path.join(docs, "karakteristike_merljive.csv");
-  const sopPath = path.join(docs, "sop_deo_varijabilni.csv");
-  const deloviPath = path.join(docs, "delovi.csv");
-  const rucniPath = path.join(docs, "deo_rucni.csv");
+  const karPath = path.join(csvBase, "karakteristike_merljive.csv");
+  const sopPath = path.join(csvBase, "sop_deo_varijabilni.csv");
+  const deloviPath = path.join(csvBase, "delovi.csv");
+  const rucniPath = path.join(csvBase, "deo_rucni.csv");
 
   const { rows: karRows } = await readCsvObjects(karPath);
   const { rows: sopRows } = await readCsvObjects(sopPath);
@@ -142,7 +141,7 @@ async function main() {
   const sopMerged = spojiSopCsv(sopObj, gen.sopRows);
   const deloviMerged = spojiDeloviCsv(deloviObj, gen.deloviPogonRows, gen.masterRows);
 
-  const rnPath = path.join(docs, "radni_nalozi.csv");
+  const rnPath = path.join(csvBase, "radni_nalozi.csv");
   let rnRows = [];
   try {
     rnRows = (await readCsvObjects(rnPath)).rows;
@@ -256,16 +255,8 @@ async function main() {
   await fs.writeFile(deloviPath, writeCsv(DELOVI_HEADERS, deloviMerged));
   await fs.writeFile(rnPath, writeCsv(RN_HEADERS, rnCsvRows));
 
-  const paket = path.join(root, "excel-rad", "sifrarnik-paket", "csv");
-  try {
-    await fs.mkdir(paket, { recursive: true });
-    await fs.writeFile(path.join(paket, "sop_deo_varijabilni.csv"), writeCsv(SOP_HEADERS, sopCsvRows));
-    await fs.writeFile(path.join(paket, "delovi.csv"), writeCsv(DELOVI_HEADERS, deloviMerged));
-    await fs.writeFile(path.join(paket, "radni_nalozi.csv"), writeCsv(RN_HEADERS, rnCsvRows));
-  } catch { /* optional */ }
-
   console.log("\nUpisano:", sopPath, deloviPath, rnPath);
-  console.log("Sledeće: npm run pakuj:sifrarnik  →  Admin uvezi oba Excela");
+  console.log("Sledeće: npm run pakuj:sifrarnik  →  npm run import:sifrarnik-paket");
 }
 
 main().catch((e) => {

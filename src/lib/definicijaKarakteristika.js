@@ -142,14 +142,27 @@ function metaPrazno(v) {
   return v === undefined || v === null || String(v).trim() === "";
 }
 
-function metaGrupaKey(idDeo, pogonKod, sifraMerenja) {
+function pogonIzRnMeta(radniNalog) {
+  const m = String(radniNalog || "").trim().toUpperCase().match(/-([A-H])$/);
+  return m ? m[1] : "";
+}
+
+function metaGrupaKey(idDeo, pogonKod, sifraMerenja, linijaFaza, rowId) {
   const id = String(idDeo || "").trim().toUpperCase();
   const pogon = String(pogonKod || "").trim().toUpperCase();
   const sifra = String(sifraMerenja || "").trim();
+  const linija = String(linijaFaza || "").trim();
   if (!id) return "";
-  if (pogon) return `${id}|${pogon}`;
-  if (sifra) return `${id}|__${sifra}`;
-  return `${id}|__`;
+  if (pogon) return sifra ? `${id}|${pogon}|${sifra}` : `${id}|${pogon}`;
+  if (linija) {
+    const izLinije = pogonIzLinijeFaze(linija);
+    if (izLinije) return sifra ? `${id}|${izLinije}|${sifra}` : `${id}|${izLinije}`;
+    return sifra ? `${id}|@${linija}|${sifra}` : `${id}|@${linija}`;
+  }
+  const rid = rowId != null && rowId !== "" ? String(rowId) : "";
+  if (sifra && rid) return `${id}|~${rid}|${sifra}`;
+  if (rid) return `${id}|~${rid}`;
+  return `${id}|~?`;
 }
 
 /** Meta sa prvog reda grupe (id_deo + pogon_kod) → ostali redovi iste grupe. */
@@ -158,6 +171,7 @@ export function propagirajMetaKarakteristika(rows) {
     (a, b) => (Number(a.id) || 0) - (Number(b.id) || 0),
   );
   const lastByGrupa = new Map();
+  let prethodniZaDeo = null;
 
   return sorted.map((raw) => {
     const id = String(raw.id_deo || "").trim().toUpperCase();
@@ -165,16 +179,37 @@ export function propagirajMetaKarakteristika(rows) {
 
     const out = { ...raw };
 
+    // Nastavak Excel bloka (prazan pogon) — nasledi prethodni red istog dela.
+    if (
+      metaPrazno(out.pogon_kod)
+      && prethodniZaDeo
+      && String(prethodniZaDeo.id_deo || "").toUpperCase() === id
+      && !metaPrazno(prethodniZaDeo.pogon_kod)
+    ) {
+      out.pogon_kod = prethodniZaDeo.pogon_kod;
+      if (metaPrazno(out.linija_faza) && prethodniZaDeo.linija_faza) {
+        out.linija_faza = prethodniZaDeo.linija_faza;
+      }
+      if (metaPrazno(out.radni_nalog) && prethodniZaDeo.radni_nalog) {
+        out.radni_nalog = prethodniZaDeo.radni_nalog;
+      }
+    }
+
     if (metaPrazno(out.pogon_kod) && out.linija_faza) {
       const izLinije = pogonIzLinijeFaze(out.linija_faza);
       if (izLinije) out.pogon_kod = izLinije;
+    }
+
+    if (metaPrazno(out.pogon_kod) && out.radni_nalog) {
+      const izRn = pogonIzRnMeta(out.radni_nalog);
+      if (izRn) out.pogon_kod = izRn;
     }
 
     if (!metaPrazno(out.pogon_kod)) {
       out.pogon_kod = String(out.pogon_kod).trim().toUpperCase();
     }
 
-    const key = metaGrupaKey(id, out.pogon_kod, out.sifra_merenja);
+    const key = metaGrupaKey(id, out.pogon_kod, out.sifra_merenja, out.linija_faza, out.id);
     if (!lastByGrupa.has(key)) lastByGrupa.set(key, {});
     const state = lastByGrupa.get(key);
 
@@ -191,6 +226,7 @@ export function propagirajMetaKarakteristika(rows) {
       }
     }
 
+    prethodniZaDeo = out;
     return out;
   });
 }
@@ -199,6 +235,9 @@ export function pogonKodKarakteristike(k, { multiPogon = false } = {}) {
   let pk = String(k?.pogon_kod || "").trim().toUpperCase();
   if (!pk && k?.linija_faza) {
     pk = pogonIzLinijeFaze(k.linija_faza) || "";
+  }
+  if (!pk && k?.radni_nalog) {
+    pk = pogonIzRnMeta(k.radni_nalog);
   }
   if (pk) return pk;
   return multiPogon ? "" : null;

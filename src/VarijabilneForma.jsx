@@ -12,10 +12,9 @@ import {
   svaMerenjaZavrsena, imaBiloSta, grupeMerenja, grupeMerenjaSaMetom,
   brojMerenjaZaSeriju, labelSerije, metaSerije, koloneZaGrupu,
   filterKeyUnos, sanitizujInputMerenja, unosMerenjaSpremanZaDodavanje, primeniTastMerenja,
-  unosKaoUgao, jeMerljivaKarakteristika, pogoniSaMerenjima, podrazumevaniPogonMerljive,
+  unosKaoUgao, jeMerljivaKarakteristika,
   idSpremanZaUcitavanje, porukaNepoznatIdDeo,
 } from "./lib/varijabilneUtils.js";
-import { propagirajMetaKarakteristika } from "./lib/definicijaKarakteristika.js";
 import MerljiveSpcKarte from "./MerljiveSpcKarte.jsx";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
 import InzenjerExcelPanel from "./InzenjerExcelPanel.jsx";
@@ -90,6 +89,8 @@ import {
   sopZaPogon,
   pogonIzRn,
   pogoniZaDeoSvi,
+  pogoniZaUcitavanjeMerljive,
+  pogoniIzKarakteristikaSaMerenjima,
   labelPogona,
   jePogonOmogucen,
   filtrirajKarakteristikePoPogonu,
@@ -109,12 +110,6 @@ import AppHeader from "./components/AppHeader.jsx";
 import MerljivaMobTabKarusel from "./components/MerljivaMobTabKarusel.jsx";
 import TastaturaBrojeviMerljive from "./components/TastaturaBrojeviMerljive.jsx";
 import { ucitajPrikazSliku } from "./lib/slikePaths.js";
-
-function podrazumevaniPogon(omoguceni) {
-  if (!omoguceni?.length) return null;
-  if (omoguceni.includes("A")) return "A";
-  return omoguceni[0];
-}
 
 /** Vidljiva greška kad ID nije učitan (linija + analitika). */
 function MerljiveGreskaUcitavanja({
@@ -182,7 +177,7 @@ function MerljiveGreskaUcitavanja({
     <>
       Admin → uvezi <strong style={{ color: C.tekst }}>SPC_merljive.xlsx</strong>
       {" "}(tab <code>karakteristike_merljive</code>), pa Ctrl+F5.
-      {trebaIzborPogona ? " Izaberi pogon B (Preseraj) ako je A prazan." : null}
+      {trebaIzborPogona ? " Izaberi pogon (A = Ulazna kontrola, B = Preseraj, …)." : null}
     </>
   );
   const brojUKesu = (mozeAdmin || karakteristikeBroj > 0) && (
@@ -416,25 +411,28 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const [naloziZaPogon, setNaloziZaPogon] = useState([]);
 
-  const dostupniPogoni = useMemo(
-    () => (idDeo ? pogoniZaDeoSvi(sopMap, naloziZaPogon, idDeo, karakteristike) : []),
-    [sopMap, naloziZaPogon, idDeo, karakteristike],
-  );
+  const dostupniPogoni = useMemo(() => {
+    if (!idDeo) return [];
+    const izKar = pogoniIzKarakteristikaSaMerenjima(karakteristike, idDeo);
+    if (izKar.length) return izKar;
+    return pogoniZaDeoSvi(sopMap, naloziZaPogon, idDeo, karakteristike);
+  }, [sopMap, naloziZaPogon, idDeo, karakteristike]);
 
   const omoguceniPogoni = useMemo(() => {
     if (!idDeo) return new Set();
-    const saMerenjima = pogoniSaMerenjima(karakteristike, idDeo);
-    if (saMerenjima.length) return new Set(saMerenjima);
-    return new Set(
-      dostupniPogoni.filter((p) => jePogonOmogucen({
-        sopMap,
-        naloziRows: naloziZaPogon,
-        karakteristike,
-        idDeo,
-        pogonKod: p,
-        modul: "merljive",
-      })),
+    const jeOmogucen = (p) => jePogonOmogucen({
+      sopMap,
+      naloziRows: naloziZaPogon,
+      karakteristike,
+      idDeo,
+      pogonKod: p,
+      modul: "merljive",
+    });
+    const kandidati = pogoniZaUcitavanjeMerljive(
+      sopMap, naloziZaPogon, karakteristike, idDeo, { jeOmogucen },
     );
+    if (kandidati.length) return new Set(kandidati);
+    return new Set(dostupniPogoni);
   }, [dostupniPogoni, sopMap, naloziZaPogon, karakteristike, idDeo]);
 
   const trebaIzborPogona = !!(idDeo && omoguceniPogoni.size > 1 && !pogonKod);
@@ -805,7 +803,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         setUcitava(false);
         return;
       }
-      setKarakteristike(propagirajMetaKarakteristika(kRes.data || []));
+      setKarakteristike(kRes.data || []);
       setSopMap(buildSopMapPoPogonu(sRes.data || []));
       setNaloziZaPogon(rnRes.data || []);
       if (!(kRes.data || []).length) {
@@ -937,31 +935,42 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     let pogon = String(pogonEksplicitni || "").trim().toUpperCase()
       || (radniNalogEksplicitni ? pogonIzRn(radniNalogEksplicitni) : null);
     if (!pogon) {
-      const saMerenjima = pogoniSaMerenjima(karakteristike, id);
-      if (saMerenjima.length === 1) {
-        pogon = saMerenjima[0];
-      } else if (saMerenjima.length > 1) {
-        const izabran = String(pogonKodRef.current || "").trim().toUpperCase();
-        pogon = (izabran && saMerenjima.includes(izabran))
-          ? izabran
-          : podrazumevaniPogonMerljive(karakteristike, id);
-      } else {
-        const svi = pogoniZaDeoSvi(sopMap, naloziZaPogon, id, karakteristike);
-        const omoguceni = svi.filter((p) => jePogonOmogucen({
-          sopMap,
-          naloziRows: naloziZaPogon,
-          karakteristike,
-          idDeo: id,
-          pogonKod: p,
-          modul: "merljive",
-        }));
-        if (omoguceni.length) {
-          pogon = podrazumevaniPogon(omoguceni);
-        } else if (svi.length) {
-          pogon = podrazumevaniPogon(svi);
-        } else {
-          pogon = "A";
+      const jeOmogucen = (p) => jePogonOmogucen({
+        sopMap,
+        naloziRows: naloziZaPogon,
+        karakteristike,
+        idDeo: id,
+        pogonKod: p,
+        modul: "merljive",
+      });
+      const kandidati = pogoniZaUcitavanjeMerljive(
+        sopMap, naloziZaPogon, karakteristike, id, { jeOmogucen },
+      );
+      if (kandidati.length === 1) {
+        pogon = kandidati[0];
+      } else if (kandidati.length > 1) {
+        const izabran = String(pogonEksplicitni || pogonKodRef.current || "").trim().toUpperCase();
+        if (!izabran || !kandidati.includes(izabran)) {
+          if (seq !== ucitajDeoSeq.current) return;
+          setPogonKod("");
+          pogonKodRef.current = "";
+          setGrupe([]);
+          setGrupaAB("");
+          resetKolone(5);
+          const biloSop = Object.values(sopMap[id] || {})[0];
+          setNazivDela(biloSop?.naziv_dela || id);
+          setPoruka(
+            `Izaberi pogon za ${id} (${kandidati.map((p) => labelPogona(p)).join(", ")}). `
+            + "A = Ulazna kontrola, B = Preseraj, …",
+          );
+          return;
         }
+        pogon = izabran;
+      } else {
+        prikaziGresku(
+          `ID ${id}: nema merljivih dimenzija ni aktivnog pogona. Admin → uvezi šifrarnik, pa Ctrl+F5.`,
+        );
+        return;
       }
     }
     pogon = String(pogon).trim().toUpperCase();
@@ -1010,6 +1019,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       return;
     }
     if (seq !== ucitajDeoSeq.current) return;
+    pogonKodRef.current = pogon;
     setPogonKod(pogon);
     const sopFallback = sop.broj_merenja || 5;
     setSacuvaneGrupe([]);
@@ -1018,21 +1028,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setKomentarPoPoziciji({});
 
     const gsInit = grupeMerenja(karakteristike, id, pogon);
-    let gs = gsInit;
-    if (!gs.length) {
-      for (const alt of pogoniSaMerenjima(karakteristike, id)) {
-        if (alt === pogon) continue;
-        const probe = grupeMerenja(karakteristike, id, alt);
-        if (probe.length) {
-          pogon = alt;
-          pogonKodRef.current = alt;
-          setPogonKod(alt);
-          sop = sopZaPogon(sopMap, id, alt) || sop;
-          gs = probe;
-          break;
-        }
-      }
-    }
+    const gs = gsInit;
     if (!gs.length) {
       if (seq !== ucitajDeoSeq.current) return;
       const imaKar = (karakteristike || []).some(
@@ -1040,7 +1036,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       );
       prikaziGresku(
         imaKar
-          ? `ID ${id} / ${labelPogona(pogon)}: nema merljivih dimenzija za ovaj pogon. Izaberi pogon B (Preseraj).`
+          ? `ID ${id} / ${labelPogona(pogon)}: nema merljivih dimenzija za ovaj pogon. Izaberi drugi pogon.`
           : porukaNepoznatIdDeo(karakteristike, id),
       );
       return;
@@ -1122,9 +1118,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     }
     const id = String(idDeoRef.current || "").trim().toUpperCase();
     if (!idSpremanZaUcitavanje(id)) return;
-    if (grupeRef.current.length > 0 && id === prethodniId.current) return;
-    if (id === poslednjaGreskaIdRef.current && !grupeRef.current.length) return;
-    ucitajDeo(id, { pogonEksplicitni: pogonKodRef.current || undefined });
+    const pk = String(pogonKodRef.current || "").trim().toUpperCase();
+    if (grupeRef.current.length > 0 && id === prethodniId.current) {
+      if (!pk || pk === prethodniPogon.current) return;
+    }
+    if (id === poslednjaGreskaIdRef.current && !grupeRef.current.length && !pk) return;
+    ucitajDeo(id, { pogonEksplicitni: pk || undefined });
   }, [ucitava, karakteristike, sopMap, naloziZaPogon, ucitajDeo]);
 
   useEffect(() => {
@@ -1300,6 +1299,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     idUcitajTimer.current = null;
     pogonKodRef.current = p;
     setPogonKod(p);
+    setSacuvaneGrupe([]);
+    prethodniAB.current = "";
     poslednjaGreskaIdRef.current = "";
     ucitajDeo(idDeo, { pogonEksplicitni: p, radniNalogEksplicitni: "" });
   }, [idDeo, ucitajDeo]);

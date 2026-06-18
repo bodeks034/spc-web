@@ -1,0 +1,3 @@
+-- Čišćenje pogrešnog pogon_kod u bazi (5502-A, NT-001).
+-- Pokreni u Supabase SQL Editoru. Posle: npm run sync:glavni-unos:import + Ctrl+F5.
+-- Puna verzija: scripts/sql-ocisti-pogon-5502-nt001.sql

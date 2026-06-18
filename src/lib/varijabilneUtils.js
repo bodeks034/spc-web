@@ -633,15 +633,31 @@ function redoviZaDeo(karakteristike, idDeo, pogonKod) {
   const pogon = String(pogonKod || "").trim().toUpperCase();
   const normalized = propagirajMetaKarakteristika(karakteristike);
   const zaDeo = normalized.filter((k) => String(k.id_deo || "").toUpperCase() === id);
-  const multiPogon = deoImaVisePogona(normalized, id);
-  const imaPogonSpec = zaDeo.some((k) => pogonKodKarakteristike(k, { multiPogon: true }));
+  const pogoni = new Set();
+  for (const k of zaDeo) {
+    const pk = pogonKodKarakteristike(k, { multiPogon: true });
+    if (pk) pogoni.add(pk);
+  }
+  const multiPogon = pogoni.size > 1;
+
+  // Više pogona — bez izabranog pogona ne vraćaj ništa (ne mešaj ulaznu sa Preserajem…).
+  if (multiPogon && !pogon) return [];
 
   return zaDeo.filter((k) => {
     if (!pogon) return true;
-    const pk = pogonKodKarakteristike(k, { multiPogon });
+    const pk = pogonKodKarakteristike(k, { multiPogon: true });
     if (pk) return pk === pogon;
-    return !imaPogonSpec && !multiPogon;
+    return false;
   }).filter(jeMerljivaKarakteristika);
+}
+
+function sortSerijeMerenja(arr) {
+  return [...arr].sort((a, b) => {
+    const na = Number(a);
+    const nb = Number(b);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a).localeCompare(String(b), undefined, { numeric: true });
+  });
 }
 
 function redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod) {
@@ -764,7 +780,7 @@ export function grupeMerenja(karakteristike, idDeo, pogonKod) {
   for (const k of redoviZaDeo(karakteristike, idDeo, pogonKod)) {
     if (k.sifra_merenja) set.add(String(k.sifra_merenja).trim());
   }
-  return [...set].sort();
+  return sortSerijeMerenja([...set]);
 }
 
 /** Serije sa metapodacima za UI (redom A→G). */

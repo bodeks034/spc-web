@@ -1,5 +1,5 @@
 /**
- * Pakuje CSV + generiše Excel master fajlove u jedan folder.
+ * Pakuje CSV iz excel rad izmenjen/sifrarnik-paket/csv → Excel master fajlovi.
  * node scripts/pakuj-sifrarnik-folder.mjs
  */
 import fs from "node:fs/promises";
@@ -7,10 +7,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as XLSX from "xlsx";
 import { KARAKTERISTIKE_MERLJIVE_HEADER } from "../src/lib/karakteristikaMerljive.js";
+import { sifrarnikPaketDir, sifrarnikCsvDir } from "../src/lib/sifrarnikPaths.js";
 
 const root = path.resolve(import.meta.dirname, "..");
-const docs = path.join(root, "docs");
-const out = path.join(root, "excel-rad", "sifrarnik-paket");
+const csvDir = sifrarnikCsvDir(root);
+const out = sifrarnikPaketDir(root);
 
 const ATRIBUTIVNI = [
   ["linije", "linije.csv"],
@@ -37,6 +38,7 @@ const MERLJIVE = [
 const KOPIRAJ_CSV = [
   ...ATRIBUTIVNI.map(([, f]) => f),
   ...MERLJIVE.map(([, f]) => f),
+  "pogon_kod.csv",
   "ciljevi.csv",
   "kupci.csv",
   "merila.csv",
@@ -64,19 +66,6 @@ function parseCsvLine(line) {
   return out;
 }
 
-function csvToObjects(csvPath) {
-  const txt = readFileSync(csvPath, "utf8");
-  const lines = txt.split(/\r?\n/).filter((l) => l.trim());
-  if (!lines.length) return [];
-  const headers = parseCsvLine(lines[0]);
-  return lines.slice(1).map((line) => {
-    const cols = parseCsvLine(line);
-    const row = {};
-    headers.forEach((h, i) => { row[h] = cols[i] ?? ""; });
-    return row;
-  });
-}
-
 function csvToSheet(csvPath) {
   const txt = readFileSync(csvPath, "utf8");
   const lines = txt.split(/\r?\n/).filter((l) => l.trim());
@@ -91,23 +80,16 @@ function csvToSheet(csvPath) {
   return XLSX.utils.json_to_sheet(rows, { header: headers });
 }
 
-function definicijaSheetFromKarCsv() {
-  return null;
-}
-
-async function buildWorkbook(pairs, outName, { extraSheets = [] } = {}) {
+async function buildWorkbook(pairs, outName) {
   const wb = XLSX.utils.book_new();
   for (const [sheet, file] of pairs) {
-    const p = path.join(docs, file);
+    const p = path.join(csvDir, file);
     try {
       await fs.access(p);
       XLSX.utils.book_append_sheet(wb, csvToSheet(p), sheet.slice(0, 31));
     } catch {
       console.warn(`  preskačem (nema): ${file}`);
     }
-  }
-  for (const [sheetName, sheetObj] of extraSheets) {
-    if (sheetObj) XLSX.utils.book_append_sheet(wb, sheetObj, sheetName.slice(0, 31));
   }
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
   const target = path.join(out, outName);
@@ -125,92 +107,34 @@ async function buildWorkbook(pairs, outName, { extraSheets = [] } = {}) {
   }
 }
 
-const README = `# SPC — šifrarnik paket (jedan folder)
+const README = `# SPC — šifrarnik paket
 
-Generisano: scripts/pakuj-sifrarnik-folder.mjs
+**Radni folder:** \`excel rad izmenjen/sifrarnik-paket\`
 
-## Gde unosiš šta — aplikacija vs Excel
+## Tok (glavni unos → aplikacija)
 
-| Podatak | Gde POPUNJAVAŠ (Excel/CSV) | Gde koristi aplikacija |
-|---------|---------------------------|------------------------|
-| **ID dela** | \`delovi\` tab / delovi.csv | Unos: skeniraš/kucaš ID; baza: delovi |
-| **RN (radni nalog)** | \`radni_nalozi\` + \`sop_deo_varijabilni\` | Unos: polje RN ili barkod; auto iz baze po delu |
-| **Kontrolor** | \`radnici\` (ime, email, uloga) | **Ne kucaš** — uzima se od prijavljenog korisnika |
-| **Kom za kontrolu (N)** | \`delovi\` kolona *kom za kontrolu n* | Atributivne: koliko merenja u seriji |
-| **USL / LSL** | \`karakteristike_merljive\` | **Samo merljive** — pri unosu merenja |
-| **Greške OK/NOK** | \`greske_katalog\` | Atributivne: dropdown pri unosu |
-| **Ček lista** | \`kontrolna_lista_stavke\` | Pre unosa na liniji |
+1. Inženjer unosi u **\`../glavni unos.xlsx\`** (tabovi vozilo1, vozilo2, tab **pogon_kod**).
+2. \`npm run sync:glavni-unos\` — automatski puni:
+   - \`SPC_merljive.xlsx\` (karakteristike + SOP)
+   - \`SPC_atributivne.xlsx\` (delovi po pogonu + radni nalozi)
+   - \`csv/*.csv\` (iste tabele)
+3. \`npm run sync:glavni-unos:import\` — uvoz u Supabase.
 
-### Tok rada
+Ručna izmena: edituj CSV ovde ili Excel, pa \`npm run import:sifrarnik-paket\`.
 
-1. **Izmeni Excel** u ovom folderu (ili CSV pa ponovo pokreni pakuj skriptu).
-2. **Uvezi u bazu:** Admin Panel → Uvezi iz Excela  
-   - Atributivne: \`SPC_master_atributivne.xlsx\`  
-   - Merljive: \`SPC_merljive.xlsx\`
-3. **Ili CSV:** \`npm run import:docs\` (iz docs/ u korenu projekta)
-4. **Svakodnevni unos** — u aplikaciji (modul Atributivne / Merljive), ne u Excelu.
-
----
-
-## Excel fajlovi u ovom folderu
-
-| Fajl | Tabovi | Namena |
-|------|--------|--------|
-| **SPC_master_atributivne.xlsx** | 9 tabova | Linije, mašine, delovi, RN, radnici, greške, ček lista |
-| **SPC_merljive.xlsx** | 3 taba | SOP dela, **karakteristike_merljive** (jedini izvor), istorija merenja |
-| **SPC_merljive_demo_5501_5503.xlsx** | demo | Primer merljivog unosa (ako postoji) |
-
-## CSV kopije (isti sadržaj)
-
-${KOPIRAJ_CSV.map((f) => `- ${f}`).join("\n")}
-
-## Tačni nazivi tabova (mora biti isto!)
-
-Atributivne: linije, masine, smene, greske_katalog, katalog_gresaka_vozilo, delovi, radnici, radni_nalozi, kontrolna_lista_stavke
-
-Merljive: sop_deo_varijabilni, karakteristike_merljive, merenja_varijabilna
-
-### karakteristike_merljive — jedini izvor (popuni meta na prvom redu grupe po pogonu)
+### karakteristike_merljive — kolone
 ${KARAKTERISTIKE_MERLJIVE_HEADER.join(", ")}
 
-**Pravilo:** kolona \`merni_instrument\` = Vizuelno / Dokumentacija → automatski u **atributivne**; ostalo → **merljive**.
-
-## Kolone koje te zanimaju
-
-### radni_nalozi (RN)
-radni nal, id dela, naziv dela, količina, kupac, status
-
-### radnici (kontrolor)
-ime i prezime, uloga=kontrolor, email (isti kao Supabase Auth)
-
-### delovi (deo + kom za kontrolu)
-id dela, naziv dela, linija id, masina id, kom za kontrolu n
-
-### karakteristike_merljive (USL / LSL)
-id_deo, pozicija, nominala, usl, lsl, usl_text, lsl_text, jedinica
-
-### sop_deo_varijabilni (RN + kontrolor po delu — merljive)
-id_deo, radni_nalog, kontrolor_ime, broj_merenja
-
----
-
-Detaljnije: docs/UPUTSTVO_SIFARNIK_I_EXCEL.md
+**Pogon:** kolona \`Linija\` u glavnom unosu → tab \`pogon_kod\` → \`pogon_kod\` u šifrarniku.
 `;
 
 async function main() {
-  await fs.mkdir(path.join(out, "csv"), { recursive: true });
-  console.log("Folder:", out);
-
-  for (const f of KOPIRAJ_CSV) {
-    try {
-      await fs.copyFile(path.join(docs, f), path.join(out, "csv", f));
-    } catch {
-      console.warn(`  nema csv: ${f}`);
-    }
-  }
+  await fs.mkdir(csvDir, { recursive: true });
+  console.log("CSV izvor:", csvDir);
+  console.log("Excel izlaz:", out);
 
   console.log("\nExcel:");
-  await buildWorkbook(ATRIBUTIVNI, "SPC_master_atributivne.xlsx");
+  await buildWorkbook(ATRIBUTIVNI, "SPC_atributivne.xlsx");
   await buildWorkbook(MERLJIVE, "SPC_merljive.xlsx");
 
   const demo = path.join(root, "public", "SPC_merljive_demo_5501_5503.xlsx");

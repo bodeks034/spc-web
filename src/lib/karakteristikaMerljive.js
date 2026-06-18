@@ -242,6 +242,10 @@ export function mapKarakteristikaMerljiveRow(r) {
   if (!pogon && linijaFaza) pogon = pogonIzLinijeFaze(linijaFaza);
 
   const rnRaw = String(pick(r, "radni_nalog", "radni nalog") || "").trim();
+  if (!pogon && rnRaw) {
+    const m = rnRaw.toUpperCase().match(/-([A-H])$/);
+    if (m) pogon = m[1];
+  }
   const radniNalog = rnRaw
     ? rnRaw.toUpperCase()
     : (pogon ? radniNalogIzDeoPogona(idDeo, pogon) : null);
@@ -298,10 +302,14 @@ export function mapKarakteristikaMerljiveRow(r) {
   return row;
 }
 
-/** Prazan pogon → iz linije_faze ili 'A' (FK + UNIQUE zahtevaju konzistentan pogon_kod). */
+/** Prazan pogon → linija_faza → sufiks RN → 'A' (FK + UNIQUE). */
 export function normalizujPogonKodKar(row) {
   let pogon = String(row?.pogon_kod || "").trim().toUpperCase();
   if (!pogon && row?.linija_faza) pogon = pogonIzLinijeFaze(row.linija_faza) || "";
+  if (!pogon && row?.radni_nalog) {
+    const m = String(row.radni_nalog).trim().toUpperCase().match(/-([A-H])$/);
+    if (m) pogon = m[1];
+  }
   if (!pogon) pogon = "A";
   return { ...row, pogon_kod: pogon };
 }
