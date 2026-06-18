@@ -10,7 +10,9 @@ import {
   jeAtributivnaPoInstrumentu,
   jeMerljivaPoInstrumentu,
   brojMerenjaIzReda,
+  faiBrojMerenjaIzReda,
 } from "./karakteristikaMerljive.js";
+import { faiObaveznoIzReda } from "./faiWorkflow.js";
 
 export const SYNC_META_COLS = [
   "radni_nalog",
@@ -23,6 +25,7 @@ export const SYNC_META_COLS = [
   "ukupno_kom",
   "kom_za_kontrolu_n",
   "nivo_kontrole",
+  "fai_broj_merenja",
   "broj_merenja",
 ];
 
@@ -71,7 +74,7 @@ export function metaIzGrupe(rows) {
     const n = brojMerenjaIzReda(r);
     if (Number.isFinite(n) && n > 0 && jeMerljivaPoInstrumentu(r)) return n;
     return best;
-  }, Number(first.broj_merenja) || Number(first.kom_za_kontrolu_n) || 5);
+  }, Number(first.broj_merenja) || 5);
 
   const merljive = rows.some((r) => jeMerljivaPoInstrumentu(r));
   const atributivne = rows.some((r) => jeAtributivnaPoInstrumentu(r));
@@ -99,11 +102,26 @@ export function metaIzGrupe(rows) {
     masina_id: meta.masina_id !== undefined && meta.masina_id !== "" ? Number(meta.masina_id) : null,
     kom_za_kontrolu_n: meta.kom_za_kontrolu_n !== undefined && meta.kom_za_kontrolu_n !== ""
       ? Number(meta.kom_za_kontrolu_n)
-      : brojMerenja,
+      : null,
     ukupno_kom: ukupnoKom,
+    nivo_kontrole: meta.nivo_kontrole || null,
+    fai_broj_merenja: meta.fai_broj_merenja !== undefined && meta.fai_broj_merenja !== ""
+      ? faiBrojMerenjaIzReda({ fai_broj_merenja: meta.fai_broj_merenja })
+      : null,
     atributivne,
     merljive,
   };
+}
+
+function napomenaDeloviIzMeta(m, stara = "") {
+  const delovi = [];
+  if (stara) delovi.push(stara);
+  if (m.nivo_kontrole && faiObaveznoIzReda({ nivo_kontrole: m.nivo_kontrole })) {
+    delovi.push(`FAI: ${m.fai_broj_merenja || 1} merenja/dim`);
+  } else if (m.nivo_kontrole) {
+    delovi.push(`Nivo kontrole: ${m.nivo_kontrole}`);
+  }
+  return [...new Set(delovi)].join(" · ");
 }
 
 function deoPogonKey(id, pogon) {
@@ -116,6 +134,14 @@ export function radniNalogIzDeoPogona(idDeo, pogonKod) {
   const p = String(pogonKod || "").trim().toUpperCase();
   if (!id || !p) return "";
   return `RN-2026-${id}-${p}`;
+}
+
+/** Jedinstven broj_naloga za radni_nalozi (PK = broj_naloga, ne id_deo+pogon). */
+export function brojNalogaZaGrupu(m) {
+  const poPogonu = radniNalogIzDeoPogona(m.id_deo, m.pogon_kod);
+  const explicit = String(m.radni_nalog || "").trim().toUpperCase();
+  if (m.eksplicitanPogon) return poPogonu || explicit;
+  return explicit || poPogonu;
 }
 
 /** Mapiranje linija_faza → pogon_kod (NT/NM multi-pogon delovi). */
@@ -192,8 +218,10 @@ export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeci
         kom_za_kontrolu: m.kom_za_kontrolu_n,
         slika_naziv: slika || null,
         aktivan: true,
-        napomena: stariDeo.napomena
-          || (m.eksplicitanPogon ? `Atributivne — pogon ${m.pogon_kod}` : ""),
+        napomena: napomenaDeloviIzMeta(
+          m,
+          stariDeo.napomena || (m.eksplicitanPogon ? `Atributivne — pogon ${m.pogon_kod}` : ""),
+        ),
         tip_kontrole: stariDeo.tip_kontrole || "deo",
         vozilo_katalog_id: stariDeo.vozilo_katalog_id || null,
         greska_katalog_id: stariDeo.greska_katalog_id || null,
@@ -307,7 +335,7 @@ export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano =
     const key = deoPogonKey(m.id_deo, m.pogon_kod);
     if (postojeciKeys.has(key)) continue;
 
-    const rn = m.radni_nalog || radniNalogIzDeoPogona(m.id_deo, m.pogon_kod);
+    const rn = brojNalogaZaGrupu(m);
     if (!rn) continue;
 
     maxId += 1;

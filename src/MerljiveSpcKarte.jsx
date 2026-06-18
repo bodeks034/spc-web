@@ -315,6 +315,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           vrednost: pos.val,
           ucl: pos.ucl,
           lcl: pos.lcl,
+          pozicija: pozicija || null,
         });
         await kreirajAutoEskalaciju(supabase, {
           id_deo: idDeo,
@@ -324,7 +325,9 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           prefiks: "AUTO-VAR",
         });
         addToast(`⚠ SPC alarm (${tipKarte}): ${upozoreni.length} tačka van kontrole`, "greska");
-      } catch { /* optional */ }
+      } catch (e) {
+        addToast(`SPC alarm nije snimljen: ${e.message || "greška"}`, "greska");
+      }
     })();
   }, [upozoreni, idDeo, pozicija, tip, korisnik?.radnikId, addToast]);
 

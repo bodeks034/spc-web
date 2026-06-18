@@ -1,5 +1,6 @@
 /** Supabase CRUD za gage_rr_studije */
 import { proceniMSA } from "./gageRR.js";
+import { azurirajMsaPosleStudije } from "./msaKalendar.js";
 
 export function studijaIzReda(row) {
   if (!row) return null;
@@ -122,7 +123,15 @@ export async function snimiGageRRStudiju(supabase, studija, kreiraoId) {
     .select(SELECT)
     .single();
   if (error) throw error;
-  return studijaIzReda(data);
+  const saved = studijaIzReda(data);
+  try {
+    await azurirajMsaPosleStudije(supabase, {
+      meriloId: studija.merilo_id,
+      studijaId: saved.dbId,
+      datumStudije: studija.datum || new Date().toISOString().split("T")[0],
+    });
+  } catch { /* msa_kalendar možda nije migriran */ }
+  return saved;
 }
 
 export async function obrisiGageRRStudiju(supabase, id) {

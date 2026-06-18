@@ -1,4 +1,5 @@
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
+import PlanUzorkovanjaPanel from "./PlanUzorkovanjaPanel.jsx";
 import { useMemo } from "react";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
@@ -26,6 +27,8 @@ export default function MerljiveLinijaLeviPanel({
   potrebanBroj,
   preostaloSesije,
   ciljSesije,
+  planUzorkovanja,
+  ucestalostPlan,
   poruka,
   dostupniPogoni = [],
   omoguceniPogoni = null,
@@ -187,6 +190,7 @@ export default function MerljiveLinijaLeviPanel({
               </span>
             </div>
           )}
+          <PlanUzorkovanjaPanel C={C} plan={planUzorkovanja} ucestalost={ucestalostPlan} />
         </div>
       )}
 

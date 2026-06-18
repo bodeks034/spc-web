@@ -61,6 +61,7 @@ import {
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 import { podrazumevaniKpiIzListeP } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf } from "./lib/kpiUnos.js";
+import { generisiPredajaSmenePdf } from "./lib/predajaSmenePdf.js";
 import { useOfflineQueue } from "./lib/offlineQueue.js";
 import { ensureSesija, novaSesija, clearSveSesije, getAktivnaSesija } from "./lib/spcSesija.js";
 import SchemaStatusPanel from "./components/SchemaStatusPanel.jsx";
@@ -95,6 +96,9 @@ import {
 import NotifikacijePodesavanja from "./components/NotifikacijePodesavanja.jsx";
 import MeriloBarkodUputstvo from "./components/MeriloBarkodUputstvo.jsx";
 import AdminKalibracijaPanel from "./components/AdminKalibracijaPanel.jsx";
+import AdminSpcAlarmiPanel from "./components/AdminSpcAlarmiPanel.jsx";
+import SpcAlarmBlokada from "./components/SpcAlarmBlokada.jsx";
+import { useSpcAlarmGate } from "./hooks/useSpcAlarmGate.js";
 import SpcBaselinePanel from "./components/SpcBaselinePanel.jsx";
 import RadniNaloziPanel from "./components/RadniNaloziPanel.jsx";
 import {
@@ -747,7 +751,9 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
           prefiks: "AUTO-SPC",
         });
         addToast(`⚠ SPC alarm: ${upoz.length} tačka van kontrole`, "greska");
-      } catch { /* spc_alarmi možda nije migriran */ }
+      } catch (e) {
+        addToast(`SPC alarm nije snimljen: ${e.message || "greška"}`, "greska");
+      }
     })();
   }, [cd, idDeo, tip, korisnik?.radnikId, addToast]);
 
@@ -1697,14 +1703,16 @@ function UnosAqlPanel({
   const nokKlase = useMemo(() => nokPoAqlKlasi(stavke), [stavke]);
   const velicina = Math.max(2, lotVelicina || DEFAULT_AQL_LOT_SIZE);
   const lotIzRn = lotIzvor === "rn";
-  const lotLabel = lotIzRn
-    ? `RN ${radniNalog || "—"}`
-    : lotIzvor === "plan"
-      ? "planirano"
-      : lotIzvor === "deo"
-        ? `deo ${idDeo || "—"}`
-        : "ručno";
-  const lotReadonly = lotIzRn || lotIzvor === "plan" || lotIzvor === "deo";
+  const lotLabel = lotIzvor === "prekontrola"
+    ? `prekontrola ${idDeo || "—"}`
+    : lotIzRn
+      ? `RN ${radniNalog || "—"}`
+      : lotIzvor === "plan"
+        ? "planirano"
+        : lotIzvor === "deo"
+          ? `deo ${idDeo || "—"}`
+          : "ručno";
+  const lotReadonly = lotIzRn || lotIzvor === "plan" || lotIzvor === "deo" || lotIzvor === "prekontrola";
 
   const inpAql = {
     background: C.input,
@@ -2005,6 +2013,10 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   }, [dostupniPogoni, naloziZaPogon, sviDelovi, atributivniPogoni, idDeo]);
   const trebaIzborPogona = !!(idDeo && omoguceniPogoni.size > 1 && !pogonKod);
   const deoSpreman = !!(deoInfo && !trebaIzborPogona);
+  const { alarm: spcAlarm, blokira: spcBlokira, osvezi: osveziSpcAlarm } = useSpcAlarmGate(supabase, {
+    idDeo,
+    enabled: jeLinija && deoSpreman,
+  });
 
   const voziloMode = jeKontrolaCelogVozila(deoInfo);
   const voziloDijagramSrc = useMemo(() => dijagramSrcZaDeo(deoInfo), [deoInfo]);
@@ -2455,7 +2467,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
       if(error)throw error;
       const { error: errKpi } = await snimiKpiUnos(supabase, kpiPayload);
       if (errKpi) addToast(porukaKpiGreske(errKpi), "greska");
-      const mirror = await mirrorKontrolniLogToExcel(supabase, redovi);
+      const mirror = await mirrorKontrolniLogToExcel(supabase, redovi, { kpi: kpiSerija });
       if (mirror.storage) addToast("📊 Excel kopija ažurirana (Supabase Storage)","info");
       else if (mirror.download) addToast("📊 Excel kopija preuzeta lokalno","info");
       const nok=redovi.filter(r=>r.status==="NOK").length,uk=redovi.length;
@@ -2603,6 +2615,30 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
         onUspeh={()=>{setPokaziZahtev(false);proveriPrekid();addToast("✓ Zahtev poslat adminu — čeka odobrenje","uspeh");}}
         onOtkazati={()=>setPokaziZahtev(false)} C={C}
       />}
+
+      {spcBlokira && spcAlarm && (
+        <SpcAlarmBlokada
+          alarm={spcAlarm}
+          korisnik={korisnik}
+          nazivDela={deoInfo?.naziv_dela || ""}
+          radniNalog={radniNalog}
+          podnaslov="Atributivne · linija"
+          C={C}
+          onPotvrdjeno={() => {
+            osveziSpcAlarm();
+            addToast("✓ SPC alarm potvrđen — možete nastaviti unos", "uspeh");
+          }}
+          onKarantin={() => {
+            osveziSpcAlarm();
+            addToast("🔒 Karantin aktivan — eskalacija poslata, čeka kvalitet", "greska");
+          }}
+          onZatvoreno={() => {
+            osveziSpcAlarm();
+            addToast("✓ SPC alarm zatvoren", "uspeh");
+          }}
+          onZahtevPrekid={() => setPokaziZahtev(true)}
+        />
+      )}
 
       <AppHeader
         korisnik={korisnik}
@@ -4569,9 +4605,8 @@ export default function App() {
   useEffect(() => {
     if (modul !== "atributivne" && modul !== "varijabilne") return;
     const sm = Number(localStorage.getItem("spc_smena") || sessionStorage.getItem("spc_smena") || 1);
-    if (jeLinijaUloga(korisnik?.uloga)) {
-      if (modul === "atributivne") setListaOk(true);
-      else setListaOkVar(true);
+    if (jeLinijaUloga(korisnik?.uloga) && modul === "atributivne") {
+      setListaOk(true);
       return;
     }
     if (modul === "atributivne") {
@@ -4728,7 +4763,7 @@ export default function App() {
     </div>
   );
 
-  if(modul==="varijabilne"&&!listaOkVar&&!jeLinijaUloga(korisnik?.uloga)&&!jeAdmin(korisnik?.uloga)) return (
+  if(modul==="varijabilne"&&!listaOkVar&&!jeAdmin(korisnik?.uloga)) return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace"}}>
       <AppHeader
         korisnik={korisnik}
@@ -5449,6 +5484,11 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
         {/* Excel ↔ Supabase — merljive / varijabilne */}
         <MerljiveExcelPanel C={C} addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })} />
 
+        {/* SPC alarmi — blokada linije */}
+        <AdminSpcAlarmiPanel korisnik={korisnik} C={C} addToast={(t, tip) => {
+          alert(t);
+        }} />
+
         {/* Zahtevi za prekid */}
         <AdminPrekidiPanel korisnik={korisnik} C={C} addToast={(t,tip)=>{
           // mini toast u admin panelu
@@ -5945,133 +5985,15 @@ function PrioritizacijaDelova({ C, addToast }) {
 
 // ─── IZVEŠTAJ SMENE PDF ───────────────────────────────────────
 async function generisiIzvestajSmene(korisnik, smena, C) {
-  const danas = new Date().toISOString().split("T")[0];
-  
-  // Učitaj podatke smene
-  const { data } = await supabase.from("kontrolni_log")
-    .select("*").eq("datum",danas).eq("smena",smena)
-    .order("created_at",{ascending:true});
-
-  if (!data?.length) { alert("Nema podataka za ovu smenu danas."); return; }
-
-  const n   = data.reduce((s,r)=>s+(r.ukupno_merenja||0),0);
-  const nok = data.reduce((s,r)=>s+(r.nok_kolicina||0),0);
-  const ok  = data.reduce((s,r)=>s+(r.ok_kolicina||0),0);
-  const rty = n>0?((ok/n)*100).toFixed(2):0;
-  const dpmo= n>0?Math.round((nok/n)*1e6):0;
-
-  // Pareto
-  const gB={};
-  data.forEach(r=>{if(r.greska_naziv&&r.greska_naziv!=="OK")
-    gB[r.greska_naziv]=(gB[r.greska_naziv]||0)+(r.nok_kolicina||0);});
-  const topGreske=Object.entries(gB).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  let kpiAgg = null;
-  try {
-    const kpiRows = await fetchKpiUnos(supabase, {
-      modul: "atributivne",
-      datum: danas,
-      smena,
-    });
-    kpiAgg = agregirajKpiUnos(kpiRows);
-  } catch { /* */ }
-
-  const { default: jsPDF } = await import("jspdf");
-  const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-  const W = pdf.internal.pageSize.getWidth();
-
-  // Header
-  pdf.setFillColor(28,35,51);
-  pdf.rect(0,0,W,40,`F`);
-  pdf.setTextColor(88,166,255);
-  pdf.setFontSize(18); pdf.setFont("helvetica","bold");
-  pdf.text("SPC KONTROLA KVALITETA", 14,15);
-  pdf.setTextColor(200,210,230);
-  pdf.setFontSize(11); pdf.setFont("helvetica","normal");
-  pdf.text(`IZVEŠTAJ SMENE ${smena} · ${danas}`, 14,25);
-  pdf.text(`Generisao: ${korisnik.ime}`, 14,33);
-
-  // KPI
-  pdf.setTextColor(30,32,36);
-  let y=55;
-  pdf.setFontSize(13); pdf.setFont("helvetica","bold");
-  pdf.text("STATISTIKE SMENE",14,y); y+=8;
-
-  const kpi=[
-    ["Ukupno mereno",n,""],
-    ["OK komada",ok,""],
-    ["NOK komada",nok,""],
-    ["RTY %",rty,"%"],
-    ["DPMO",dpmo.toLocaleString(),""],
-  ];
-
-  kpi.forEach(([naziv,vrednost,suf],i)=>{
-    const x = 14 + (i%3)*62;
-    const yy = y + Math.floor(i/3)*22;
-    pdf.setFillColor(240,244,248);
-    pdf.rect(x,yy,58,18,`F`);
-    pdf.setFontSize(8); pdf.setFont("helvetica","normal");
-    pdf.setTextColor(100,110,120);
-    pdf.text(naziv,x+4,yy+7);
-    pdf.setFontSize(14); pdf.setFont("helvetica","bold");
-    pdf.setTextColor(30,32,36);
-    pdf.text(`${vrednost}${suf}`,x+4,yy+15);
+  await generisiPredajaSmenePdf(supabase, {
+    korisnik,
+    smena,
+    modul: "atributivne",
+    addToast: (msg, tip) => {
+      if (tip === "greska") alert(msg);
+      else if (tip === "uspeh") alert(msg);
+    },
   });
-  y+=50;
-
-  if (kpiAgg) {
-    y = dodajKpiBlokPdf(pdf, y, kpiAgg);
-  }
-
-  // Top greške
-  if (topGreske.length) {
-    pdf.setFontSize(13); pdf.setFont("helvetica","bold");
-    pdf.setTextColor(30,32,36);
-    pdf.text("TOP GREŠKE",14,y); y+=8;
-    topGreske.forEach(([naziv,count],i)=>{
-      pdf.setFontSize(10); pdf.setFont("helvetica","normal");
-      pdf.setTextColor(60,70,80);
-      pdf.text(`${i+1}. ${naziv}`,14,y);
-      pdf.text(`${count} kom`,150,y);
-      const maxW = 80;
-      const bar = Math.min((count/topGreske[0][1])*maxW, maxW);
-      pdf.setFillColor(88,166,255);
-      pdf.rect(80,y-4,bar,5,`F`);
-      y+=8;
-    });
-  }
-
-  // Tabela unosa
-  y+=5;
-  pdf.setFontSize(13); pdf.setFont("helvetica","bold");
-  pdf.setTextColor(30,32,36);
-  pdf.text("UNOSI SMENE",14,y); y+=8;
-
-  pdf.setFontSize(8); pdf.setFont("helvetica","bold");
-  pdf.setTextColor(100,110,120);
-  ["ID DELA","NAZIV","GREŠKA","STATUS","NOK"].forEach((h,i)=>{
-    pdf.text(h, [14,40,90,140,170][i], y);
-  });
-  y+=5;
-  pdf.setDrawColor(200,210,220);
-  pdf.line(14,y,195,y); y+=3;
-
-  pdf.setFont("helvetica","normal"); pdf.setTextColor(30,32,36);
-  data.slice(0,25).forEach(r=>{
-    if (y>270) { pdf.addPage(); y=20; }
-    pdf.text((r.id_deo||"").substring(0,10),14,y);
-    pdf.text((r.naziv_dela||"").substring(0,18),40,y);
-    pdf.text((r.greska_naziv||"").substring(0,18),90,y);
-    r.status==="NOK"
-      ? pdf.setTextColor(207,34,46)
-      : pdf.setTextColor(26,127,55);
-    pdf.text(r.status||"",140,y);
-    pdf.setTextColor(30,32,36);
-    pdf.text(String(r.nok_kolicina||0),170,y);
-    y+=6;
-  });
-
-  pdf.save(`Izvestaj_Smena${smena}_${danas}.pdf`);
 }
 
 // ============================================================

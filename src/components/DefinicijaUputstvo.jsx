@@ -8,9 +8,12 @@ const META_KOLONE = [
   ["linija_faza", "Preseraj / Karoserija…", ""],
   ["linija_id / masina_id", "43 / 1", "za atributivne"],
   ["naziv_dela / slika", "Nosač motora", ""],
-  ["ukupno_kom", "50", "količina na RN"],
-  ["kom_za_kontrolu_n", "3", "broj merenja u seriji"],
-  ["nivo_kontrole", "DA", "opciono"],
+  ["ukupno_kom", "100", "ukupan broj komada na RN / seriji"],
+  ["kom_za_kontrolu_n", "50", "koliko komada prekontrolisati (npr. 50 od 100); AQL lot, atributivni cilj"],
+  ["klasa", "Critical", "AQL klasa po dimenziji — glavni unos kol. N; prag alarma: Critical 20%, Major 30%, Minor 40%"],
+  ["nivo_kontrole", "DA", "FAI / prvo parče (glavni unos kol. V)"],
+  ["fai_broj_merenja", "3", "FAI merenja po dimenziji (glavni unos kol. W)"],
+  ["broj_merenja", "5", "koliko puta meriti istu dimenziju u seriji — glavni unos kol. X; prazno + Merljiva = auto 5"],
 ];
 
 export default function DefinicijaUputstvo({ C, variant = "full", defaultOpen = false }) {

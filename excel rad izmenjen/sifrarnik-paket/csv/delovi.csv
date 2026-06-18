@@ -1,0 +1,10 @@
+id dela*,pogon kod,radni nalog,naziv dela*,karakteristika kontrole*,linija id*,masina id*,kom za kontrolu n*,slika/crtez,aktivan,napomena,tip kontrole,vozilo katalog id,greska katalog id
+5504-B,,,Nosac motor,Vizuelna i funkcionalna kontrola,12,1,30,,DA,,deo,,
+5505-B,,,Konzola,Kontrola vara i dimenzija,12,2,20,,DA,,deo,,
+MRAP-001,,,MRAP komplet,Finalna vizuelna kontrola celog vozila,48,1,5,MRAP_SOP.jpg,DA,MRAP — oklopno vozilo,vozilo,MRAP,
+MRAP1-001,,,MRAP1 komplet,Finalna vizuelna kontrola celog vozila,48,1,5,MRAP1_SOP.jpg,DA,MRAP1 — oklopno vozilo 6x6,vozilo,MRAP1,
+NM-001,C,RN-2026-NM001-C,Nosač motora,Vizuelna kontrola zavarivanje,12,1,5,NM-01.png,DA,Atributivne — Karoserija,deo,,
+NT-001,A,RN-2026-NT001-A,Nosač motora,Vizuelna kontrola ulazna,43,1,3,nosac motora NTV.png,DA,Atributivne — Ulazna,deo,,
+NT-001,C,RN-2026-NT001-C,Nosač motora,Vizuelna kontrola zavarivanje,12,1,3,nosac motora NTV.png,DA,Atributivne — Karoserija,deo,,
+NT-001,F,RN-2026-NT001-F,Nosač motora,Završna kontrola,48,1,3,nosac motora NTV.png,DA,Atributivne — Finalna,deo,,
+NTV-001,,,NTV komplet,Finalna vizuelna kontrola celog vozila,48,1,5,NTV_SOP.jpg,DA,NTV — novo terensko vozilo,vozilo,NTV,

@@ -1,0 +1,4 @@
+broj_naloga,id_deo,naziv_dela,kolicina,kupac,datum_unosa,rok_isporuke,status,operater,napomena
+RN-2026-101,5502-A,Osovina,500,Kupac A,2026-06-01,2026-06-15,aktivan,,
+RN-2026-102,5501-A,Nosac,300,Kupac B,2026-06-01,2026-06-20,aktivan,,
+RN-2026-099,5503-A,Poklopac,200,Kupac A,2026-05-28,2026-06-10,zavrsen,,

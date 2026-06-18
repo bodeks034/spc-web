@@ -74,11 +74,13 @@ export const KORACI_ATRIB_KONTROLOR = [
 export const KORACI_MERLJIVE_LINIJA = [
   { id: "id", label: "ID / SERIJA" },
   { id: "poka", label: "POKA-YOKE" },
+  { id: "fai", label: "FAI" },
   { id: "unos", label: "UNOS MERENJA" },
 ];
 
 export const KORACI_MERLJIVE_KONTROLOR = [
   { id: "id", label: "ID / SERIJA" },
   { id: "poka", label: "POKA-YOKE" },
+  { id: "fai", label: "FAI" },
   { id: "unos", label: "UNOS MERENJA" },
 ];

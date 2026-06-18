@@ -12,6 +12,13 @@ const DEFAULTS = {
   teams_webhook: "",
   notif_email: "0",
   email_webhook: "",
+  smtp_host: "",
+  smtp_port: "587",
+  smtp_user: "",
+  smtp_pass: "",
+  smtp_from: "",
+  smtp_to: "",
+  smtp_tls: "1",
 };
 
 export async function ucitajPodesavanjaNotifikacija(supabase) {
@@ -141,6 +148,38 @@ export async function posaljiGenericWebhook(url, payload) {
   }
 }
 
+function edgeEmailUrl() {
+  return `${String(SUPABASE_URL).replace(/\/$/, "")}/functions/v1/send-email`;
+}
+
+export async function posaljiSmtpEmail(settings, { to, naslov, opis }) {
+  const host = settings.smtp_host?.trim();
+  const user = settings.smtp_user?.trim();
+  const pass = settings.smtp_pass?.trim();
+  const primalac = (to || settings.smtp_to || "").trim();
+  if (!host || !user || !pass || !primalac) {
+    throw new Error("SMTP nije potpuno podešen (host, user, pass, to)");
+  }
+  const res = await fetch(edgeEmailUrl(), {
+    method: "POST",
+    headers: edgeHeaders(),
+    body: JSON.stringify({
+      to: primalac,
+      subject: naslov,
+      text: opis,
+      smtp_host: host,
+      smtp_port: Number(settings.smtp_port) || 587,
+      smtp_user: user,
+      smtp_pass: pass,
+      smtp_from: settings.smtp_from?.trim() || user,
+      smtp_tls: settings.smtp_tls !== "0",
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) throw new Error(json.error || `SMTP ${res.status}`);
+  return json;
+}
+
 export async function posaljiObavestenje(supabase, settings, alarm) {
   const { id: alarmId, naslov, opis, nivo } = alarm;
   if (vecPoslato(alarmId)) return { preskoceno: true };
@@ -165,18 +204,24 @@ export async function posaljiObavestenje(supabase, settings, alarm) {
     }
   }
 
-  if (settings.notif_email === "1" && settings.email_webhook?.trim()) {
+  if (settings.notif_email === "1") {
+    const emailOk = settings.smtp_host?.trim() && settings.smtp_user?.trim();
     try {
-      await posaljiGenericWebhook(settings.email_webhook.trim(), {
-        subject: naslov,
-        text: opis,
-        source: "spc-web",
-        level: nivo,
-        alarm_id: alarmId,
-      });
-      rezultati.push({ kanal: "email_webhook", uspeh: true });
+      if (emailOk) {
+        await posaljiSmtpEmail(settings, { naslov, opis });
+        rezultati.push({ kanal: "smtp", uspeh: true });
+      } else if (settings.email_webhook?.trim()) {
+        await posaljiGenericWebhook(settings.email_webhook.trim(), {
+          subject: naslov,
+          text: opis,
+          source: "spc-web",
+          level: nivo,
+          alarm_id: alarmId,
+        });
+        rezultati.push({ kanal: "email_webhook", uspeh: true });
+      }
     } catch (e) {
-      rezultati.push({ kanal: "email_webhook", uspeh: false, greska: e.message });
+      rezultati.push({ kanal: emailOk ? "smtp" : "email_webhook", uspeh: false, greska: e.message });
     }
   }
 

@@ -34,8 +34,98 @@ export function redKpiUnos({
 
 export async function snimiKpiUnos(supabase, params) {
   const row = redKpiUnos(params);
-  if (!row.id_deo) return { error: new Error("Nema ID dela za KPI") };
-  return supabase.from("kpi_unos").insert(row);
+  if (!row.id_deo) return { data: null, error: new Error("Nema ID dela za KPI") };
+  return supabase.from("kpi_unos").insert(row).select("id").single();
+}
+
+export function kpiVrednostiIzDb(row) {
+  if (!row) return null;
+  return {
+    ukupno_kom: Number(row.ukupno_kom) || 0,
+    ispravno_iz_prve: Number(row.ispravno_iz_prve) || 0,
+    neusaglaseno: Number(row.neusaglaseno) || 0,
+    dorada: Number(row.dorada) || 0,
+    skart: Number(row.skart) || 0,
+    ok_nakon_dorade: Number(row.ok_nakon_dorade) || 0,
+    planirano_min: Number(row.planirano_min) || 0,
+    zastoj_min: Number(row.zastoj_min) || 0,
+    planirano_kom: Number(row.planirano_kom) || 0,
+  };
+}
+
+/** Poslednji KPI red za seriju / sesiju (kasni unos dorade i škarta). */
+export async function pronadjiKpiUnos(supabase, {
+  modul,
+  idDeo,
+  datum,
+  smena,
+  serija,
+  radniNalog,
+  sesija_id,
+}) {
+  if (sesija_id) {
+    const { data, error } = await supabase
+      .from("kpi_unos")
+      .select("*")
+      .eq("modul", modul)
+      .eq("sesija_id", sesija_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) return data;
+  }
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id || !datum) return null;
+  let q = supabase
+    .from("kpi_unos")
+    .select("*")
+    .eq("modul", modul)
+    .eq("id_deo", id)
+    .eq("datum", datum)
+    .eq("smena", Number(smena) || 1);
+  if (serija) q = q.eq("serija", String(serija).trim());
+  if (radniNalog) q = q.eq("radni_nalog", radniNalog);
+  const { data, error } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function azurirajKpiUnos(supabase, kpiId, params) {
+  const row = redKpiUnos(params);
+  if (!kpiId) return { data: null, error: new Error("Nema KPI reda za ažuriranje") };
+  const {
+    ukupno_kom,
+    ispravno_iz_prve,
+    neusaglaseno,
+    dorada,
+    skart,
+    ok_nakon_dorade,
+    planirano_min,
+    zastoj_min,
+    planirano_kom,
+  } = row;
+  return supabase
+    .from("kpi_unos")
+    .update({
+      ukupno_kom,
+      ispravno_iz_prve,
+      neusaglaseno,
+      dorada,
+      skart,
+      ok_nakon_dorade,
+      planirano_min,
+      zastoj_min,
+      planirano_kom,
+    })
+    .eq("id", kpiId)
+    .select("id")
+    .single();
+}
+
+export async function snimiIliAzurirajKpiUnos(supabase, params, existingId) {
+  if (existingId) return azurirajKpiUnos(supabase, existingId, params);
+  return snimiKpiUnos(supabase, params);
 }
 
 export function porukaKpiGreske(error) {

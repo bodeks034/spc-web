@@ -8,6 +8,7 @@ import { TABLET } from "../layout/tokens/tablet.js";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
+import FaiLinijaKorak from "./FaiLinijaKorak.jsx";
 import { KontrolnaLista } from "../lib/kontrolaSesije.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
@@ -59,6 +60,10 @@ export default function MobilniMerljiviUnos({
   onNoviDeo,
   slikaNaziv,
   urlSlike,
+  kolone = [],
+  koloneFai = [],
+  faiPotreban = true,
+  onFaiOdobreno,
   C,
   children,
 }) {
@@ -79,7 +84,10 @@ export default function MobilniMerljiviUnos({
     resetSkrolPosleRotacije();
   }, [viewportKey]);
   const wizardKoraci = kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA;
-  const korakWizardId = linijaKorak === 1 ? "id" : linijaKorak === 2 ? "poka" : "unos";
+  const korakWizardId = linijaKorak === 1 ? "id"
+    : linijaKorak === 2 ? "poka"
+    : linijaKorak === 3 ? "fai"
+    : "unos";
 
   const INP = {
     width: "100%",
@@ -393,13 +401,43 @@ export default function MobilniMerljiviUnos({
           onZahtevKalibracija={onZahtevKalibracija}
           onDalje={() => {
             if (!kontrolnaListaOk) return;
-            setUnosKorak("forma");
-            setLinijaKorak(3);
+            if (faiPotreban) {
+              setLinijaKorak(3);
+            } else {
+              setUnosKorak("forma");
+              setLinijaKorak(4);
+            }
           }}
-          daljeLabel="Unos merenja →"
+          daljeLabel={faiPotreban ? "FAI (prvo parče) →" : "Unos merenja →"}
           prikaziNazad
           onNazad={() => setLinijaKorak(1)}
         />
+      </div>,
+      { skrol: true },
+    );
+  }
+
+  if (linijaKorak === 3 && faiPotreban) {
+    return omot(
+      <div key={viewportKey} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <FaiLinijaKorak
+          C={C}
+          korisnik={korisnik}
+          idDeo={idDeo}
+          pogonKod={pogonKod}
+          radniNalog={radniNalog}
+          smena={smena}
+          koloneFai={koloneFai}
+          onOdobreno={(rec) => {
+            onFaiOdobreno?.(rec);
+            setUnosKorak("forma");
+            setLinijaKorak(4);
+          }}
+        />
+        <button type="button" onClick={() => setLinijaKorak(2)}
+          style={{ ...BIG_BTN(C.hover), margin: "0 16px 16px", fontSize: 14, padding: 14 }}>
+          ← Nazad na poka-yoke
+        </button>
       </div>,
       { skrol: true },
     );

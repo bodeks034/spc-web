@@ -1,0 +1,2 @@
+# ERP piše ovde dnevni CSV izvoz radnih naloga.
+# Cron skripta (scripts/erp-dnevni-uvoz.mjs) uzima najnoviji *.csv i arhivira u ../processed/

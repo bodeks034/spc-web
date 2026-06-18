@@ -10,17 +10,36 @@ function dISO() {
 
 export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
   const [stat, setStat] = useState({ ok: 0, nok: 0, merenja: 0, rty: 0, dpmo: 0 });
+  const [extra, setExtra] = useState({ alarmi: 0, osmd: 0 });
   const [loading, setLoading] = useState(true);
 
   const osvezi = useCallback(async () => {
     setLoading(true);
     try {
+      const datum = dISO();
+      const sm = Number(smena) || 1;
       const s = await fetchSmenaStatMerljive(supabase, {
-        datum: dISO(),
-        smena: Number(smena) || 1,
+        datum,
+        smena: sm,
         idDeo: idDeo || undefined,
       });
       setStat(s);
+      let alarmi = 0;
+      let osmd = 0;
+      try {
+        const { count: alC } = await supabase.from("spc_alarmi")
+          .select("id", { count: "exact", head: true })
+          .eq("datum", datum)
+          .in("status", ["otvoren", "potvrden", "karantin"]);
+        alarmi = alC || 0;
+      } catch { /* */ }
+      try {
+        const { count: d8C } = await supabase.from("osmd_izvestaji")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["u_toku", "otvoren", "ceka"]);
+        osmd = d8C || 0;
+      } catch { /* */ }
+      setExtra({ alarmi, osmd });
     } catch (e) {
       addToast(e.message, "greska");
     } finally {
@@ -46,6 +65,8 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
             ["NOK", stat.nok, C.crvena],
             ["RTY %", stat.rty > 0 ? `${stat.rty.toFixed(1)}%` : "—", C.zuta],
             ["DPMO", stat.dpmo > 0 ? stat.dpmo.toLocaleString() : "—", C.ljubicasta],
+            ["SPC ALARMI", extra.alarmi, C.crvena],
+            ["OTVORENI 8D", extra.osmd, C.narandzasta || C.zuta],
           ].map(([l, v, b]) => (
             <div key={l} style={{
               background: C.panel, border: `1px solid ${b}30`, borderRadius: 10,
@@ -61,12 +82,12 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
               background: "#7c3aed", border: "none", borderRadius: 8, color: "#fff",
               fontSize: 11, fontWeight: 700, padding: "10px 16px", cursor: "pointer", marginTop: 4,
             }}>
-            📄 Izveštaj smene PDF
+            📄 Predaja smene PDF
           </button>
         </div>
       )}
       <div style={{ color: C.sivi, fontSize: 9, marginTop: 16, lineHeight: 1.5 }}>
-        Podaci iz tabele <strong>merenja_varijabilna</strong> za današnji datum i izabranu smenu.
+        PDF uključuje škart/KPI, SPC alarme i otvorene 8D. Podaci iz <strong>merenja_varijabilna</strong>.
       </div>
     </div>
   );

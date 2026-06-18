@@ -167,6 +167,9 @@ export function koristiUgaoUnosKolone(k) {
 }
 
 import { jeAtributivnaPoInstrumentu, jeMerljivaPoInstrumentu } from "./karakteristikaMerljive.js";
+import { faiObaveznoIzReda, faiBrojMerenjaIzKolone } from "./faiWorkflow.js";
+import { faiBrojMerenjaIzReda } from "./karakteristikaMerljive.js";
+import { labelKlasaSaPragom } from "./spcAlarmPragovi.js";
 
 /** Da li red ide u merljivi unos (dimenzije/SPC), a ne u atributivni OK/NOK. */
 export function jeMerljivaKarakteristika(k) {
@@ -608,15 +611,23 @@ export function brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallbac
   const rows = redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod)
     .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
   const pogon = String(pogonKod || "").trim().toUpperCase();
+  const fb = Number(fallback);
+  const sopFb = Number.isFinite(fb) && fb > 0 ? fb : 5;
+  let best = 0;
   for (const k of rows) {
     const pk = pogonKodKarakteristike(k, { multiPogon: true });
-    const n = Number(k.broj_merenja) || Number(k.kom_za_kontrolu_n);
+    const n = Number(k.broj_merenja);
     if (!Number.isFinite(n) || n <= 0) continue;
     if (pogon && pk && pk !== pogon) continue;
-    return n;
+    if (n > best) best = n;
   }
-  const fb = Number(fallback);
-  return Number.isFinite(fb) && fb > 0 ? fb : 5;
+  if (best > 0) {
+    const merljiveN = rows.filter(jeMerljivaKarakteristika).length;
+    // Auto-dodela 1 kad postoji samo jedna dimenzija — koristi SOP (npr. NM-001 ulazna = 5).
+    if (best === 1 && merljiveN <= 1 && sopFb > 1) return sopFb;
+    return best;
+  }
+  return sopFb;
 }
 
 /** Meta po seriji: faza KP, linija (Preseraj/Karoserija…), broj uzoraka. */
@@ -748,6 +759,8 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj,
     uslDec: 0,
     nominalDec: null,
     plausibilnost: null,
+    faiObavezno: false,
+    faiBrojMerenja: 1,
     merenja: [],
     input: "",
     cntOK: 0,
@@ -775,6 +788,10 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj,
       uslDec: g.uslDec,
       nominalDec: nomFin,
       plausibilnost: granicePlausibilnostiUnosa(g.lslDec, g.uslDec, nomFin, g.jedinica),
+      klasa: kn.klasa || null,
+      klasaLabel: labelKlasaSaPragom(kn.klasa),
+      faiObavezno: faiObaveznoIzReda(kn),
+      faiBrojMerenja: faiObaveznoIzReda(kn) ? faiBrojMerenjaIzReda(kn) : 1,
       merenja: [],
       input: "",
       cntOK: 0,

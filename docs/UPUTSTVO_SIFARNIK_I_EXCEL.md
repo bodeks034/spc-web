@@ -1,5 +1,7 @@
 # Uputstvo — novi šifrarnik, Excel, CSV i uvoz u bazu
 
+**PDF obuka (A4):** [OBUKA_EXCEL_UNOS.html](./OBUKA_EXCEL_UNOS.html) — otvori u browseru → Ctrl+P → Save as PDF
+
 Projekat: **`C:\mix\spc-web`**
 
 ---

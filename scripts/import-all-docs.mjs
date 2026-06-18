@@ -2,7 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { mapDeloviRedIzExcela, podeliDeloviUvoz } from "../src/lib/deloviAtributivni.js";
-import { mapKarakteristikaMerljiveRow, stripKarakteristikeForDb } from "../src/lib/karakteristikaMerljive.js";
+import {
+  mapKarakteristikaMerljiveRow,
+  getKarakteristikeDbCols,
+  pripremiKarakteristikeZaUpsert,
+  KARAKTERISTIKE_UPSERT_CONFLICT,
+  dodeliSerijeMerenja,
+} from "../src/lib/karakteristikaMerljive.js";
+import { propagirajMetaKarakteristika } from "../src/lib/definicijaKarakteristika.js";
 
 const DOCS = path.resolve("docs");
 
@@ -284,7 +291,6 @@ async function main() {
         ? String(pogonRaw).trim().toUpperCase()
         : (sufiks ? sufiks[1] : null);
       return {
-        id: num(r.id),
         broj_naloga: broj,
         id_deo: pick(r, "id dela", "id_deo").toUpperCase(),
         pogon_kod: pogon_kod || null,
@@ -535,13 +541,19 @@ async function main() {
 
   if (karMerRows.length) {
     console.log("Import karakteristika merljivih...");
+    const dbCols = await getKarakteristikeDbCols(supabase);
+    const dbRows = await pripremiKarakteristikeZaUpsert(
+      supabase,
+      dodeliSerijeMerenja(
+        propagirajMetaKarakteristika(karMerRows.map((r) => mapKarakteristikaMerljiveRow(r))),
+      ),
+      dbCols,
+    );
     await upsertBatches(
       supabase,
       "karakteristike_merljive",
-      karMerRows
-        .map((r) => stripKarakteristikeForDb(mapKarakteristikaMerljiveRow(r)))
-        .filter((r) => r.id && r.id_deo && r.pozicija),
-      "id"
+      dbRows,
+      KARAKTERISTIKE_UPSERT_CONFLICT,
     );
   }
 

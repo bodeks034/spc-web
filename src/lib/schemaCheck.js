@@ -11,6 +11,13 @@ export const MIGRACIJE_LISTA = [
   { id: "gage", naziv: "Gage R&R", fajl: "12_gage_rr_schema.sql" },
   { id: "kontrolni_log", naziv: "Kontrolni log", fajl: "01_supabase_schema.sql" },
   { id: "spc_baseline", naziv: "SPC baseline (PPAP)", fajl: "22_spc_baseline_merljive.sql" },
+  { id: "spc_alarmi_reakcije", naziv: "SPC alarm reakcije (linija)", fajl: "33_spc_alarmi_reakcije.sql" },
+  { id: "spc_karantin", naziv: "SPC karantin (HOLD lot/RN)", fajl: "34_spc_karantin.sql" },
+  { id: "faza5_qms", naziv: "QMS Faza 5 (plan, MSA, FAI, SMTP)", fajl: "35_faza5_qms.sql" },
+  { id: "fai_broj_merenja", naziv: "FAI broj merenja po dimenziji", fajl: "37_fai_broj_merenja.sql" },
+  { id: "klasa_karakteristike", naziv: "AQL klasa dimenzije (Critical/Major/Minor)", fajl: "43_klasa_karakteristike.sql" },
+  { id: "kar_unique_pogon", naziv: "Karakteristike UNIQUE po pogonu", fajl: "40_karakteristike_unique_pogon.sql" },
+  { id: "erp_uvoz_log", naziv: "ERP automatski uvoz (log)", fajl: "38_erp_uvoz_log.sql" },
 ];
 
 const PROBES = [
@@ -27,6 +34,16 @@ const PROBES = [
   { id: "notif_log", table: "notifikacije_log", select: "id,kanal" },
   { id: "kar_revizija", table: "karakteristike_revizija", select: "id,id_deo,polje" },
   { id: "spc_baseline", table: "spc_baseline", select: "id,id_deo,tip_karte,pozicija" },
+  { id: "spc_alarmi_reakcije", table: "spc_alarmi", select: "id,komentar_operater,potvrdio_id" },
+  { id: "spc_karantin", table: "karantin_lotovi", select: "id,id_deo,status,spc_alarm_id" },
+  { id: "faza5_kplan", table: "kontrolni_plan", select: "id,id_deo,revizija" },
+  { id: "faza5_msa", table: "msa_kalendar", select: "id,merilo_id,sledeca_studija" },
+  { id: "faza5_fai", table: "fai_unosi", select: "id,id_deo,status" },
+  { id: "fai_broj_merenja", table: "karakteristike_merljive", select: "id,fai_broj_merenja" },
+  { id: "klasa_karakteristike", table: "karakteristike_merljive", select: "id,klasa" },
+  { id: "kar_unique_pogon", table: "karakteristike_merljive", select: "id,id_deo,pogon_kod,sifra_merenja,pozicija" },
+  { id: "faza5_smtp", table: "app_podesavanja", select: "kljuc,vrednost" },
+  { id: "erp_uvoz_log", table: "erp_uvoz_log", select: "id,izvor,uspeh,created_at" },
 ];
 
 function greskaNedostaje(error) {
@@ -67,6 +84,12 @@ export async function proveriSemu(supabase) {
     notifikacije: byId.notifikacije?.ok && byId.notif_log?.ok,
     kar_revizija: byId.kar_revizija?.ok,
     spc_baseline: byId.spc_baseline?.ok,
+    spc_alarmi_reakcije: byId.spc_alarmi_reakcije?.ok,
+    spc_karantin: byId.spc_karantin?.ok,
+    faza5_qms: byId.faza5_kplan?.ok && byId.faza5_msa?.ok && byId.faza5_fai?.ok,
+    fai_broj_merenja: byId.fai_broj_merenja?.ok,
+    kar_unique_pogon: byId.kar_unique_pogon?.ok,
+    erp_uvoz_log: byId.erp_uvoz_log?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({
@@ -85,6 +108,15 @@ export async function proveriSemu(supabase) {
       m.id === "notifikacije" && byId.notifikacije,
       m.id === "notifikacije" && byId.notif_log,
       m.id === "kar_revizija" && byId.kar_revizija,
+      m.id === "spc_alarmi_reakcije" && byId.spc_alarmi_reakcije,
+      m.id === "spc_karantin" && byId.spc_karantin,
+      m.id === "faza5_qms" && byId.faza5_kplan,
+      m.id === "faza5_qms" && byId.faza5_msa,
+      m.id === "faza5_qms" && byId.faza5_fai,
+      m.id === "fai_broj_merenja" && byId.fai_broj_merenja,
+      m.id === "klasa_karakteristike" && byId.klasa_karakteristike,
+      m.id === "kar_unique_pogon" && byId.kar_unique_pogon,
+      m.id === "erp_uvoz_log" && byId.erp_uvoz_log,
     ].filter(Boolean),
   }));
 }

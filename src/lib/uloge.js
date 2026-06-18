@@ -87,7 +87,7 @@ const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "log"]);
 /** Operator: samo unos + log. Kontrolor: + karte, smena. Kvalitet/admin: sve. */
 const TAB_MERLJIVE_OPERATOR = new Set(["unos", "log"]);
 const TAB_MERLJIVE_KONTROLOR = new Set([
-  "unos", "log", "karte", "smena", "oee", "heatmap",
+  "unos", "log", "karte", "smena", "oee", "heatmap", "msa", "kplan",
 ]);
 const TAB_ATRIB_OPERATOR = new Set(["unos"]);
 const TAB_ATRIB_KONTROLOR = new Set([

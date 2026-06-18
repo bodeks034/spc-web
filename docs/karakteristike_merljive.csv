@@ -1,4 +1,4 @@
-id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,masina_id,naziv_dela,slika,ukupno_kom,kom_za_kontrolu_n,pozicija,naziv_mere,nominala,usl,lsl,merni_instrument,jedinica,napomena,nivo_kontrole
+id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,masina_id,naziv_dela,slika,ukupno_kom,kom_za_kontrolu_n,pozicija,naziv_mere,nominala,usl,lsl,merni_instrument,jedinica,napomena,nivo_kontrole,fai_broj_merenja
 2,5502-A,B,B,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,Glavni rukavac (A-A),55h6,55,55.1,54.981,Mikrometar,mm,,DA
 3,5502-A,B,B,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,Ulazni rukavac (B-B),42h6,42,42,41.984,Mikrometar,mm,,DA
 4,5502-A,B,B,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,Srednji precnik (C-C),50h6,50,50,49.984,Mikrometar,mm,,DA
@@ -27,7 +27,7 @@ id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,m
 27,5503-A,,B,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,Duzina vezne povrsine,120,120.5,119.5,120.5,Pomicno merilo,mm,,DA
 28,5503-A,,B,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,Radijalno bacanje,0.04,0.04,0,4,Komparator,mm,,DA
 29,5503-A,,B,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,Ravnost,0.03,0.03,0,3,Komparator,mm,,DA
-100,NM-001,A,1,RN-2026-NM001-A,Vizuelna kontrola ulazna,Ulazna kontrola,43,1,Nosač motora,NM-01.png,50,5,Debljina lima,10 mm,10,10.2,9.8,Mikrometar,mm,§1 Ulazna kontrola,DA
+100,NM-001,A,1,RN-2026-NM001-A,Vizuelna kontrola ulazna,Ulazna kontrola,43,1,Nosač motora,NM-01.png,50,5,Debljina lima,10 mm,10,10.2,9.8,Mikrometar,mm,§1 Ulazna kontrola,DA,1
 103,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,Ukupna dužina,230,230,230.2,229.8,Pomično merilo,mm,§2 Laser sečenje,
 104,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,Ukupna visina,130,130,130.2,129.8,Pomično merilo,mm,§2 Laser sečenje,
 105,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,Unutrašnji otvor,190,190,190.1,189.9,Pomično merilo,mm,§2 Laser sečenje,

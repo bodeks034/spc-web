@@ -19,7 +19,10 @@ import { propagirajMetaKarakteristika } from "./lib/definicijaKarakteristika.js"
 import MerljiveSpcKarte from "./MerljiveSpcKarte.jsx";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
 import InzenjerExcelPanel from "./InzenjerExcelPanel.jsx";
-import GageRRPanel from "./components/GageRRPanel.jsx";
+import MerilaMsaHub from "./components/MerilaMsaHub.jsx";
+import KontrolniPlanPanel from "./components/KontrolniPlanPanel.jsx";
+import FaiLinijaKorak from "./components/FaiLinijaKorak.jsx";
+import { ucitajOdobrenFai, koloneZaFai, faiLinijaPotreban } from "./lib/faiWorkflow.js";
 import FotoNokUnos from "./components/FotoNokUnos.jsx";
 import KalibracijaMerilaPanel from "./components/KalibracijaMerilaPanel.jsx";
 import RadniNaloziPanel from "./components/RadniNaloziPanel.jsx";
@@ -38,10 +41,15 @@ import {
   onFocusTastatura,
 } from "./layout/index.js";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
+import KpiSerijaPanel from "./components/KpiSerijaPanel.jsx";
 import InteligencijaDeoPanel from "./components/InteligencijaDeoPanel.jsx";
 import { podrazumevaniKpiIzMerenja } from "./lib/oeeKpi.js";
-import { snimiKpiUnos, porukaKpiGreske } from "./lib/kpiUnos.js";
+import { snimiKpiUnos, snimiIliAzurirajKpiUnos, pronadjiKpiUnos, kpiVrednostiIzDb, porukaKpiGreske } from "./lib/kpiUnos.js";
+import { ucitajPlanUzorkovanja, izracunajPlanUzorkovanja, datumSrUIso } from "./lib/planUzorkovanja.js";
 import { useOfflineQueue } from "./lib/offlineQueue.js";
+import { useSpcAlarmGate } from "./hooks/useSpcAlarmGate.js";
+import SpcAlarmBlokada from "./components/SpcAlarmBlokada.jsx";
+import { proveriIKreirajAlarmeNokSerije } from "./lib/spcAlarmWorkflow.js";
 import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezimaUTacci, jeKontrolorLinija, jeLinijaUloga, pocetniKorakUnosMer, mozeInzenjerExcel, mozeInzenjerExcelUvoz } from "./lib/uloge.js";
 import {
   mapaMerila,
@@ -301,8 +309,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     ["karte", "SPC KARTE"],
     ["stanje", "STANJE"],
     ["smena", "SMENA"],
-    ["msa", "MSA / Gage R&R"],
-    ["merila", "MERILA"],
+    ["msa", "MSA / MERILA"],
+    ["kplan", "KONTROLNI PLAN"],
     ["heatmap", "HEAT MAP"],
     ["ciljevi", "CILJEVI"],
     ["nalozi", "NALOZI"],
@@ -320,8 +328,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     if (id === "stanje") return C.ljubicasta;
     if (id === "admin") return C.zuta;
     if (id === "msa") return C.ljubicasta;
+    if (id === "kplan") return C.plava;
     if (id === "smena") return C.zuta;
-    if (id === "merila") return C.plava;
     if (id === "heatmap") return "#f472b6";
     if (id === "ciljevi") return C.zelena;
     if (id === "nalozi") return C.plava;
@@ -355,6 +363,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const [poruka, setPoruka] = useState("");
   const [snima, setSnima] = useState(false);
   const [sacuvaneGrupe, setSacuvaneGrupe] = useState([]);
+  const [planUzorkovanja, setPlanUzorkovanja] = useState(null);
+  const [ucestalostPlan, setUcestalostPlan] = useState("");
   const [urlSlike, setUrlSlike] = useState(null);
   const [zoomSlika, setZoomSlika] = useState(false);
 
@@ -372,6 +382,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const [komentarPoPoziciji, setKomentarPoPoziciji] = useState({});
   const [merenjaHeatmap, setMerenjaHeatmap] = useState([]);
   const [kpiSerija, setKpiSerija] = useState(() => podrazumevaniKpiIzMerenja({ kolone: [], potrebanBroj: 5, brojKolona: 0 }));
+  const [kpiDbId, setKpiDbId] = useState(null);
+  const [kpiPanelOtvoren, setKpiPanelOtvoren] = useState(false);
+  const [snimaKpi, setSnimaKpi] = useState(false);
   const [aktivnaKolona, setAktivnaKolona] = useState(-1);
   const [tastMerenjaVidljiva, setTastMerenjaVidljiva] = useState(false);
   const [merilaLista, setMerilaLista] = useState([]);
@@ -379,11 +392,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     const sm = procitajSmenuIzStorage();
     return getListaOkSession("varijabilne", sm, null);
   });
-  /** Admin / operator linija — ne čekaj useEffect (sprečava belu kontrolnu listu). */
-  const listaSpremna = kontrolnaListaOk || mozeAdmin || jeLinijaUloga(korisnik?.uloga);
+  /** Admin preskače listu; svi ostali (uključujući operatore linije) moraju je popuniti. */
+  const listaSpremna = kontrolnaListaOk || mozeAdmin;
   const [ucitavaDeo, setUcitavaDeo] = useState(false);
   const [unosKorak, setUnosKorak] = useState("poka");
   const [linijaKorak, setLinijaKorak] = useState(1);
+  const [faiOdobren, setFaiOdobren] = useState(false);
   const kalibracijaOdobrena = !!kalibracijaOdobrenId;
   const mozeUpRikosKalibracije = mozeAdmin || kalibracijaOdobrena;
   const prethodniKalOdobren = useRef(null);
@@ -441,6 +455,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   koloneRef.current = kolone;
   grupeRef.current = grupe;
   const idUcitano = !!(idDeo && nazivDela && grupe.length && grupaAB);
+  const { alarm: spcAlarm, blokira: spcBlokira, osvezi: osveziSpcAlarm, postaviAlarm: postaviSpcAlarm } = useSpcAlarmGate(supabase, {
+    idDeo,
+    enabled: jeLinija && idUcitano,
+  });
 
   useEffect(() => {
     pogonKodRef.current = pogonKod;
@@ -468,10 +486,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setKontrolnaListaOk(true);
       return;
     }
-    if (jeLinija && jeLinijaUloga(korisnik?.uloga)) {
-      setKontrolnaListaOk(true);
-      return;
-    }
     const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
 
     if (jeLinija && !idZaListu) {
@@ -487,6 +501,33 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setUnosKorak("poka");
     }
   }, [smena, idDeo, idUcitano, jeLinija, linijaKorak, korisnik?.uloga, mozeAdmin]);
+
+  const koloneFai = useMemo(() => koloneZaFai(kolone), [kolone]);
+  const faiPotreban = koloneFai.length > 0;
+
+  const proveriFai = useCallback(async () => {
+    if (!jeLinija || !idDeo || idDeo.length < 3) {
+      setFaiOdobren(!jeLinija);
+      return;
+    }
+    if (!faiPotreban) {
+      setFaiOdobren(true);
+      return;
+    }
+    try {
+      const r = await ucitajOdobrenFai(supabase, {
+        idDeo,
+        pogonKod,
+        radniNalog,
+        smena,
+      });
+      setFaiOdobren(!!r);
+    } catch {
+      setFaiOdobren(false);
+    }
+  }, [jeLinija, idDeo, pogonKod, radniNalog, smena, faiPotreban]);
+
+  useEffect(() => { proveriFai(); }, [proveriFai]);
 
   const zavrsiKontrolnuListu = useCallback(() => {
     const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
@@ -591,11 +632,126 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     });
   }, [idDeo, radniNalog]);
 
+  const serijaJeSacuvana = grupaAB && sacuvaneGrupe.includes(grupaAB);
+
+  const kpiPayloadZaSnimanje = useCallback(() => ({
+    modul: "merljive",
+    datum: datumSrUIso(datum),
+    smena,
+    id_deo: idDeo,
+    serija: grupaAB,
+    radni_nalog: radniNalog,
+    sesija_id: getAktivnaSesija("merljive")?.sesija_id || null,
+    kpi: kpiSerija,
+  }), [datum, smena, idDeo, grupaAB, radniNalog, kpiSerija]);
+
+  const ucitajKpiIzBaze = useCallback(async () => {
+    if (!idDeo || !grupaAB) {
+      setKpiDbId(null);
+      return;
+    }
+    try {
+      const row = await pronadjiKpiUnos(supabase, {
+        modul: "merljive",
+        idDeo,
+        datum: datumSrUIso(datum),
+        smena,
+        serija: grupaAB,
+        radniNalog,
+        sesija_id: getAktivnaSesija("merljive")?.sesija_id,
+      });
+      if (row) {
+        setKpiDbId(row.id);
+        const izDb = kpiVrednostiIzDb(row);
+        if (izDb) {
+          setKpiSerija(prev => ({ ...prev, ...izDb }));
+        }
+      } else {
+        setKpiDbId(null);
+      }
+    } catch {
+      setKpiDbId(null);
+    }
+  }, [idDeo, grupaAB, datum, smena, radniNalog]);
+
+  useEffect(() => {
+    if (!serijaJeSacuvana) {
+      setKpiDbId(null);
+      return;
+    }
+    ucitajKpiIzBaze();
+  }, [serijaJeSacuvana, ucitajKpiIzBaze, sacuvaneGrupe, grupaAB]);
+
+  const azurirajKpiKasnije = useCallback(async () => {
+    if (!idDeo || !grupaAB || snimaKpi) return;
+    if (!serijaJeSacuvana && !kpiDbId) {
+      addToast("Prvo sačuvaj seriju merenja, pa KPI.", "greska");
+      return;
+    }
+    setSnimaKpi(true);
+    try {
+      const payload = kpiPayloadZaSnimanje();
+      const { data, error } = await snimiIliAzurirajKpiUnos(supabase, payload, kpiDbId);
+      if (error) {
+        addToast(porukaKpiGreske(error), "greska");
+        return;
+      }
+      if (data?.id) setKpiDbId(data.id);
+      addToast("✓ KPI ažuriran (dorada / škart)", "uspeh");
+    } finally {
+      setSnimaKpi(false);
+    }
+  }, [idDeo, grupaAB, snimaKpi, serijaJeSacuvana, kpiDbId, kpiPayloadZaSnimanje, addToast]);
+
   const ciljSesije = grupe.length;
   const preostaloSesije = useMemo(() => {
     if (!idDeo || !grupe.length) return 0;
     return grupe.filter(g => !sacuvaneGrupe.includes(g)).length;
   }, [idDeo, grupe, sacuvaneGrupe]);
+
+  const osveziPlanUzorkovanja = useCallback(async () => {
+    if (!idDeo || !grupaAB) {
+      setPlanUzorkovanja(null);
+      setUcestalostPlan("");
+      return;
+    }
+    try {
+      const { plan, ucestalost } = await ucitajPlanUzorkovanja(supabase, {
+        karakteristike,
+        idDeo,
+        serija: grupaAB,
+        pogonKod,
+        poTuri: potrebanBroj,
+        datum,
+        smena,
+        radniNalog,
+      });
+      setPlanUzorkovanja(plan);
+      setUcestalostPlan(ucestalost);
+    } catch {
+      setPlanUzorkovanja(izracunajPlanUzorkovanja({
+        ciljKom: 0,
+        poTuri: potrebanBroj,
+        uradjeneTure: 0,
+      }));
+      setUcestalostPlan("");
+    }
+  }, [idDeo, grupaAB, pogonKod, potrebanBroj, datum, smena, radniNalog, karakteristike]);
+
+  useEffect(() => {
+    osveziPlanUzorkovanja();
+  }, [osveziPlanUzorkovanja]);
+
+  const bumpPlanPosleSnimanja = useCallback(() => {
+    setPlanUzorkovanja((prev) => {
+      if (!prev) return prev;
+      return izracunajPlanUzorkovanja({
+        ciljKom: prev.ciljKom,
+        poTuri: prev.poTuri,
+        uradjeneTure: prev.uradjeneTure + 1,
+      });
+    });
+  }, []);
 
   const mozePreskociti = mozeAdmin || !!prekidOdobrenId;
   const serijaPotpuna = svaMerenjaZavrsena(kolone, potrebanBroj);
@@ -661,17 +817,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setUcitava(false);
     })();
     return () => { ok = false; };
-  }, []);
-
-  /** Ako nema stavki u bazi, ne blokiraj ceo unos praznom listom. */
-  useEffect(() => {
-    (async () => {
-      const { count, error } = await supabase
-        .from("kontrolna_lista_stavke")
-        .select("id", { count: "exact", head: true })
-        .eq("aktivna", true);
-      if (!error && count === 0) setKontrolnaListaOk(true);
-    })();
   }, []);
 
   useEffect(() => {
@@ -898,8 +1043,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           ? `ID ${id} / ${labelPogona(pogon)}: nema merljivih dimenzija za ovaj pogon. Izaberi pogon B (Preseraj).`
           : porukaNepoznatIdDeo(karakteristike, id),
       );
-      prethodniId.current = id;
-      prethodniPogon.current = pogon;
       return;
     }
     poslednjaGreskaIdRef.current = "";
@@ -1073,6 +1216,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     onIdChange("");
     setLinijaKorak(1);
     setUnosKorak("poka");
+    setFaiOdobren(false);
     setPoruka("");
   };
 
@@ -1081,7 +1225,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const onIdChange = (v, { potvrdi = false, radniNalogEksplicitni, pogonEksplicitni } = {}) => {
     const s = String(v || "").trim().toUpperCase();
     if (prethodniId.current && s !== prethodniId.current && !mozePreskociti) {
-      if (!svaMerenjaZavrsena(kolone, potrebanBroj)) {
+      if (imaBiloSta(kolone) && !svaMerenjaZavrsena(kolone, potrebanBroj)) {
         setPoruka("Moraš završiti sva merenja pre promene ID!");
         setIdDeo(prethodniId.current);
         return;
@@ -1105,7 +1249,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setSacuvaneGrupe([]);
       resetKolone(5);
       setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
-      if (jeLinija) setLinijaKorak(1);
+      if (jeLinija) {
+        setLinijaKorak(1);
+        setFaiOdobren(false);
+      }
     }
     if (!s) {
       prethodniId.current = "";
@@ -1534,6 +1681,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setFotoPoPoziciji({});
       setKomentarPoPoziciji({});
       setSacuvaneGrupe(prev => [...prev, grupaAB]);
+      bumpPlanPosleSnimanja();
       if (!prebaciNaSledecuSerijuPosleSnimanja(grupaAB)) {
         setPoruka(`Offline sačuvano. Sinhronizuj kada bude mreža. Sesija: ${sesija_id}`);
       }
@@ -1542,8 +1690,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
     const { error } = await supabase.from("merenja_varijabilna").insert(rows);
     if (!error) {
-      const { error: errKpi } = await snimiKpiUnos(supabase, kpiPayload);
+      const { data: kpiData, error: errKpi } = await snimiKpiUnos(supabase, kpiPayload);
       if (errKpi) addToast(porukaKpiGreske(errKpi), "greska");
+      else if (kpiData?.id) setKpiDbId(kpiData.id);
     }
     setSnima(false);
     if (error) {
@@ -1570,6 +1719,26 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setKalibracijaOdobrenId(null);
     }
     setSacuvaneGrupe(prev => [...prev, grupaAB]);
+    setKpiPanelOtvoren(false);
+    await osveziPlanUzorkovanja();
+
+    try {
+      const alarmiNok = await proveriIKreirajAlarmeNokSerije(supabase, {
+        rows,
+        idDeo,
+        radnikId: korisnik?.radnikId,
+        serija: grupaAB,
+        kolone,
+      });
+      if (alarmiNok.length) {
+        postaviSpcAlarm(alarmiNok[0]);
+        await osveziSpcAlarm();
+        setPoruka(`⛔ SPC alarm — ${alarmiNok[0].pozicija || "NOK"} · potvrdite pre nastavka.`);
+        return;
+      }
+    } catch (e) {
+      addToast(`SPC alarm (NOK serija): ${e.message || "greška"}`, "greska");
+    }
 
     if (prebaciNaSledecuSerijuPosleSnimanja(grupaAB)) {
       return;
@@ -1592,6 +1761,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setSacuvaneGrupe([]);
     setPrekidOdobrenId(null);
     setKpiSerija(podrazumevaniKpiIzMerenja({ kolone: [], potrebanBroj: 5, brojKolona: 0 }));
+    setKpiDbId(null);
+    setKpiPanelOtvoren(false);
     resetKolone(5);
   };
 
@@ -1749,10 +1920,31 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   );
 
   const prikaziMerljiveFormu = idDeo && grupaAB && unosKorak === "forma" && (
-    !jeLinija || (koristiMobLinija && linijaKorak === 3) || (jeLinija && !koristiMobLinija)
+    !jeLinija || (
+      faiOdobren && (
+        (koristiMobLinija && linijaKorak === 4) || (jeLinija && !koristiMobLinija)
+      )
+    )
   );
   const linijaListaDesktop = jeLinija && !koristiMobLinija && unosKorak === "forma"
     && idUcitano && !ucitavaDeo && !nalogUcitava;
+
+  const kpiPanelBlok = prikaziMerljiveFormu && idDeo && grupaAB ? (
+    <KpiSerijaPanel
+      C={C}
+      kompakt
+      vrednosti={kpiSerija}
+      onChange={setKpiSerija}
+      grupaAB={grupaAB}
+      otvoren={kpiPanelOtvoren}
+      onToggle={() => setKpiPanelOtvoren(v => !v)}
+      serijaSacuvana={!!serijaJeSacuvana}
+      kpiUpisan={!!kpiDbId}
+      snimaKpi={snimaKpi}
+      onAzurirajKpi={azurirajKpiKasnije}
+      mozeAzurirati={!!kpiDbId || !!serijaJeSacuvana}
+    />
+  ) : null;
 
   const mobDugmadAkcije = L.mobTabKarusel && (
     <div style={{
@@ -2077,6 +2269,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               {metaRed("Šta se meri", k.naziv, C.plava, K)}
               {k.nazivMere ? metaRed("Nominala / oznaka", k.nazivMere, undefined, K) : null}
               {metaRed("Merni instrument", tekstInstrumentaSaBrojem(k.instrument, merilaMap), undefined, K)}
+              {k.klasaLabel ? metaRed("Klasa defekta", k.klasaLabel, C.sivi, K) : null}
               {metaRed("Broj merenja", k.ukupnoLabel, C.zuta, K)}
             </>
           )}
@@ -2413,12 +2606,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         {L.mobTabKarusel ? (
           <>
             {mobDugmadAkcije}
-            {idDeo && serijaPotpuna && (
-              <div style={{ flexShrink: 0, overflowY: "auto", marginBottom: 2 }}>
-                <SkartDoradaOeePanel C={C} kompakt vrednosti={kpiSerija} onChange={setKpiSerija}
-                  podnaslov={`Serija ${grupaAB || "—"} · popunite pre Sačuvaj`} />
-              </div>
-            )}
+            {kpiPanelBlok}
             <MerljivaMobTabKarusel
               key={viewportKey}
               C={C}
@@ -2478,12 +2666,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   </div>
                 ))}
               </div>
-              {idDeo && serijaPotpuna && (
-                <div style={{ flexShrink: 0, maxHeight: 200, overflowY: "auto", marginTop: 4 }}>
-                  <SkartDoradaOeePanel C={C} kompakt vrednosti={kpiSerija} onChange={setKpiSerija}
-                    podnaslov={`Serija ${grupaAB || "—"} · popunite pre Sačuvaj`} />
-                </div>
-              )}
+              {kpiPanelBlok}
             </div>
             <aside style={{
               flex: `0 0 ${L.slikaSirina}px`,
@@ -2551,7 +2734,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const trebaCekListaMer = tab === "unos" && !listaSpremna && !jeLinija && !mozeAdmin;
   const trebaEmbeddedListaMer = tab === "unos" && !listaSpremna && jeLinija && idUcitano
-    && koristiMobLinija && !jeLinijaUloga(korisnik?.uloga) && !mozeAdmin;
+    && koristiMobLinija && !mozeAdmin;
 
   if (trebaCekListaMer) {
     const idZaListu = null;
@@ -2632,6 +2815,30 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           }}
           onOtkazati={() => setPokaziZahtev(false)}
           C={C}
+        />
+      )}
+
+      {spcBlokira && spcAlarm && (
+        <SpcAlarmBlokada
+          alarm={spcAlarm}
+          korisnik={korisnik}
+          nazivDela={nazivDela}
+          radniNalog={radniNalog}
+          podnaslov="Merljive · linija"
+          C={C}
+          onPotvrdjeno={() => {
+            osveziSpcAlarm();
+            addToast("✓ SPC alarm potvrđen — možete nastaviti unos", "uspeh");
+          }}
+          onKarantin={() => {
+            osveziSpcAlarm();
+            addToast("🔒 Karantin aktivan — eskalacija poslata, čeka kvalitet", "greska");
+          }}
+          onZatvoreno={() => {
+            osveziSpcAlarm();
+            addToast("✓ SPC alarm zatvoren", "uspeh");
+          }}
+          onZahtevPrekid={() => setPokaziZahtev(true)}
         />
       )}
 
@@ -2851,7 +3058,11 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       )}
 
       {tab === "msa" && (
-        <GageRRPanel C={C} addToast={addToast} korisnik={korisnik} />
+        <MerilaMsaHub C={C} addToast={addToast} korisnik={korisnik} />
+      )}
+
+      {tab === "kplan" && (
+        <KontrolniPlanPanel C={C} addToast={addToast} korisnik={korisnik} idDeoFilter={idDeo || ""} />
       )}
 
       {tab === "smena" && (
@@ -2862,10 +3073,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           addToast={addToast}
           idDeo={idDeo || undefined}
         />
-      )}
-
-      {tab === "merila" && (
-        <KalibracijaMerilaPanel korisnik={korisnik} C={C} addToast={addToast} />
       )}
 
       {tab === "heatmap" && (
@@ -2972,7 +3179,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
       {tab === "unos" && jeLinija && !koristiMobLinija && (
         <LinijaWizardNav
-          korak={!idDeo || !grupaAB ? "id" : unosKorak === "forma" ? "unos" : unosKorak}
+          korak={!idDeo || !grupaAB ? "id" : unosKorak === "forma" ? "unos" : unosKorak === "fai" ? "fai" : unosKorak}
           koraci={kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA}
           C={C}
           akcent={C.zelena}
@@ -3023,9 +3230,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           onNoviDeo={noviDeoLinija}
           slikaNaziv={slika}
           urlSlike={urlSlike}
+          kolone={kolone}
+          koloneFai={koloneFai}
+          faiPotreban={faiPotreban}
+          onFaiOdobreno={() => setFaiOdobren(true)}
           C={C}
         >
-          {linijaKorak === 3 && merljiveFormaBlok}
+          {linijaKorak === 4 && merljiveFormaBlok}
         </MobilniMerljiviUnos>
       )}
 
@@ -3067,8 +3278,26 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               {poruka}
             </div>
           )}
-          {generalijeGornjiRed}
-          {merljiveFormaBlok}
+          {idUcitano && !listaSpremna && !mozeAdmin && (
+            <div style={{ flex: 1, padding: 14, overflowY: "auto", minHeight: 0 }}>
+              <KontrolnaLista
+                korisnik={korisnik}
+                smena={Number(smena)}
+                idDeo={String(idDeo || "").trim().toUpperCase()}
+                naslovModul="Merljive"
+                akcent={C.zelena}
+                onZavrsena={zavrsiKontrolnuListu}
+                C={C}
+                ugradjen
+              />
+            </div>
+          )}
+          {idUcitano && listaSpremna && (
+            <>
+              {generalijeGornjiRed}
+              {merljiveFormaBlok}
+            </>
+          )}
         </div>
       )}
 
@@ -3102,6 +3331,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
             potrebanBroj={potrebanBroj}
             preostaloSesije={preostaloSesije}
             ciljSesije={ciljSesije}
+            planUzorkovanja={planUzorkovanja}
+            ucestalostPlan={ucestalostPlan}
             poruka={poruka}
             dostupniPogoni={dostupniPogoni}
             omoguceniPogoni={omoguceniPogoni}
@@ -3207,8 +3438,29 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   kalibracijaCeka={!!kalibracijaCekaId}
                   onZahtevKalibracija={() => setPokaziZahtevKal(true)}
                   onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
-                  onDalje={() => setUnosKorak("forma")}
-                  daljeLabel="Unos merenja →"
+                  onDalje={() => {
+                    if (faiPotreban) setUnosKorak("fai");
+                    else setUnosKorak("forma");
+                  }}
+                  daljeLabel={faiPotreban ? "FAI (prvo parče) →" : "Unos merenja →"}
+                />
+              </div>
+            )}
+            {idUcitano && listaSpremna && unosKorak === "fai" && jeLinija && faiPotreban && (
+              <div style={{ flex: 1, padding: 14, overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                <FaiLinijaKorak
+                  C={C}
+                  korisnik={korisnik}
+                  idDeo={idDeo}
+                  pogonKod={pogonKod}
+                  radniNalog={radniNalog}
+                  smena={smena}
+                  koloneFai={koloneFai}
+                  addToast={addToast}
+                  onOdobreno={() => {
+                    setFaiOdobren(true);
+                    setUnosKorak("forma");
+                  }}
                 />
               </div>
             )}
@@ -3422,11 +3674,28 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 onZahtevKalibracija={() => setPokaziZahtevKal(true)}
                 urlSlike={P.urlSlikeUPokaKomponenti ? urlSlike : undefined}
                 onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
-                onDalje={() => setUnosKorak("forma")}
+                onDalje={() => setUnosKorak(jeLinija && faiPotreban ? "fai" : "forma")}
                 stekListaDugmeSlika
               />
             </div>
           </div>
+        )}
+
+        {idDeo && grupaAB && unosKorak === "fai" && jeLinija && faiPotreban && (
+          <FaiLinijaKorak
+            C={C}
+            korisnik={korisnik}
+            idDeo={idDeo}
+            pogonKod={pogonKod}
+            radniNalog={radniNalog}
+            smena={smena}
+            koloneFai={koloneFai}
+            addToast={addToast}
+            onOdobreno={() => {
+              setFaiOdobren(true);
+              setUnosKorak("forma");
+            }}
+          />
         )}
 
         {merljiveFormaBlok}

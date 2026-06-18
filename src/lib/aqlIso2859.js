@@ -231,9 +231,17 @@ function kolicinaIzNaloga(nalog) {
 
 /**
  * Veličina lota za AQL unos — prioritet:
- * RN količina → planirano kom (KPI/nalog) → kom_za_kontrolu dela → ručni/podrazumevani.
+ * kom_za_kontrolu dela (prekontrola, npr. 50 od 100) → RN ukupno → plan → ručno.
  */
 export function lotVelicinaZaAql({ nalog, deo, planiranoKom } = {}) {
+  const izPrekontrole = Math.round(Number(deo?.kom_za_kontrolu || 0)) || 0;
+  if (izPrekontrole >= 2) {
+    return {
+      velicina: izPrekontrole,
+      izvor: "prekontrola",
+      radniNalog: nalog?.broj_naloga || nalog?.radni_nalog || null,
+    };
+  }
   const izRn = kolicinaIzNaloga(nalog);
   if (izRn >= 2) {
     return {
@@ -245,10 +253,6 @@ export function lotVelicinaZaAql({ nalog, deo, planiranoKom } = {}) {
   const plan = Math.round(Number(planiranoKom || 0)) || 0;
   if (plan >= 2) {
     return { velicina: plan, izvor: "plan", radniNalog: nalog?.broj_naloga || null };
-  }
-  const izDeo = Math.round(Number(deo?.kom_za_kontrolu || 0)) || 0;
-  if (izDeo >= 2) {
-    return { velicina: izDeo, izvor: "deo", radniNalog: null };
   }
   return { velicina: ucitajAqlLotVelicina(), izvor: "rucno", radniNalog: null };
 }

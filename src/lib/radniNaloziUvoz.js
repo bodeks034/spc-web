@@ -139,6 +139,8 @@ export function mapRadniNalogRed(row) {
     ? String(pogonRaw).trim().toUpperCase()
     : pogonIzRn(brojNorm);
 
+  const statusRaw = pick(row, "status");
+
   return {
     ok: true,
     row: {
@@ -150,11 +152,43 @@ export function mapRadniNalogRed(row) {
       kupac: pick(row, "kupac", "customer", "klijent") || null,
       datum_unosa: normalizujDatum(pick(row, "datum_unosa", "datum unosa", "datum")),
       rok_isporuke: normalizujDatum(pick(row, "rok_isporuke", "rok isporuke", "rok", "due_date")),
-      status: normalizujStatus(pick(row, "status")),
+      status: statusRaw ? normalizujStatus(statusRaw) : null,
       operater: pick(row, "operater", "operator") || null,
       napomena: pick(row, "napomena", "note", "notes") || null,
     },
   };
+}
+
+const MERGE_POLJA = [
+  "naziv_dela",
+  "kolicina",
+  "kupac",
+  "datum_unosa",
+  "rok_isporuke",
+  "operater",
+  "napomena",
+  "pogon_kod",
+  "status",
+];
+
+/** Pri dnevnom uvozu — ne briši postojeće vrednosti praznim ERP poljima. */
+export function spojiSaPostojecim(postojeci, novi) {
+  if (!postojeci) {
+    return {
+      ...novi,
+      status: novi.status ?? "aktivan",
+    };
+  }
+  const out = { ...novi };
+  for (const polje of MERGE_POLJA) {
+    if (out[polje] == null || out[polje] === "") {
+      if (postojeci[polje] != null && postojeci[polje] !== "") {
+        out[polje] = postojeci[polje];
+      }
+    }
+  }
+  if (out.status == null) out.status = postojeci.status ?? "aktivan";
+  return out;
 }
 
 /** Parsiraj ceo CSV tekst → { redovi, greske, ukupno }. */
@@ -200,20 +234,35 @@ export async function sinhronizujKupce(supabase, redovi) {
   return { ok: true, broj: kupci.length };
 }
 
-export async function upsertRadniNalozi(supabase, redovi, { syncKupci = true } = {}) {
+export async function upsertRadniNalozi(supabase, redovi, { syncKupci = true, mergeNulls = false } = {}) {
   if (!redovi?.length) {
     return { ok: false, error: new Error("Nema validnih redova za uvoz.") };
   }
 
+  let rows = redovi.map((r) => ({
+    ...r,
+    status: r.status ?? "aktivan",
+  }));
+
+  if (mergeNulls) {
+    const brojevi = rows.map((r) => r.broj_naloga);
+    const { data: postojeci } = await supabase
+      .from("radni_nalozi")
+      .select("*")
+      .in("broj_naloga", brojevi);
+    const byBroj = Object.fromEntries((postojeci || []).map((r) => [r.broj_naloga, r]));
+    rows = rows.map((r) => spojiSaPostojecim(byBroj[r.broj_naloga], r));
+  }
+
   if (syncKupci) {
-    const k = await sinhronizujKupce(supabase, redovi);
+    const k = await sinhronizujKupce(supabase, rows);
     if (!k.ok) return { ok: false, error: k.error };
   }
 
   const batchSize = 100;
   let upsertovano = 0;
-  for (let i = 0; i < redovi.length; i += batchSize) {
-    const batch = redovi.slice(i, i + batchSize);
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
     const { error } = await supabase
       .from("radni_nalozi")
       .upsert(batch, { onConflict: "broj_naloga" });

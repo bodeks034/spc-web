@@ -3,6 +3,7 @@
  * Vizuelno / dokumentacija → atributivne; ostalo → merljive.
  */
 import { pogonIzLinijeFaze, radniNalogIzDeoPogona } from "./syncSifrarnikIzMerljivih.js";
+import { dedupeRowsForUpsert } from "./upsertUtil.js";
 
 export const KARAKTERISTIKE_MERLJIVE_HEADER = [
   "id",
@@ -18,7 +19,11 @@ export const KARAKTERISTIKE_MERLJIVE_HEADER = [
   "slika",
   "ukupno_kom",
   "kom_za_kontrolu_n",
+  "nivo_kontrole",
+  "fai_broj_merenja",
+  "broj_merenja",
   "pozicija",
+  "klasa",
   "naziv_mere",
   "nominala",
   "usl",
@@ -26,16 +31,53 @@ export const KARAKTERISTIKE_MERLJIVE_HEADER = [
   "merni_instrument",
   "jedinica",
   "napomena",
-  "nivo_kontrole",
 ];
 
 /** Kolone koje idu u Supabase (ceo red — bez strip meta). */
 export const KARAKTERISTIKE_DB_COLS = [
   ...KARAKTERISTIKE_MERLJIVE_HEADER,
-  "broj_merenja",
   "usl_text",
   "lsl_text",
 ];
+
+let karakteristikeDbColsCache = null;
+
+function kolonaNedostajeUGresci(error, col) {
+  const m = (error?.message || "").toLowerCase();
+  const c = String(col || "").toLowerCase();
+  return (
+    (m.includes("schema cache") || m.includes("could not find") || m.includes("does not exist"))
+    && m.includes(c)
+  );
+}
+
+/** Provera šeme — preskače opcione kolone koje migracija još nije dodala. */
+export async function getKarakteristikeDbCols(supabase) {
+  if (karakteristikeDbColsCache) return karakteristikeDbColsCache;
+
+  let cols = [...KARAKTERISTIKE_DB_COLS];
+  for (const opt of ["fai_broj_merenja", "klasa"]) {
+    const { error } = await supabase.from("karakteristike_merljive").select(`id,${opt}`).limit(0);
+    if (error && kolonaNedostajeUGresci(error, opt)) {
+      cols = cols.filter((c) => c !== opt);
+    }
+  }
+  karakteristikeDbColsCache = cols;
+  return karakteristikeDbColsCache;
+}
+
+export function resetKarakteristikeDbColsCache() {
+  karakteristikeDbColsCache = null;
+}
+
+export const MIGRACIJA_FAI_BROJ_MERENJA = "37_fai_broj_merenja.sql";
+export const MIGRACIJA_KLASA_KARAKTERISTIKE = "43_klasa_karakteristike.sql";
+export const MIGRACIJA_KARAKTERISTIKE_UNIQUE_POGON = "40_karakteristike_unique_pogon.sql";
+export const MIGRACIJA_KARAKTERISTIKE_ID_SEQ = "41_fix_karakteristike_id_sequence.sql";
+export const KARAKTERISTIKE_UPSERT_CONFLICT = "id_deo,pogon_kod,sifra_merenja,pozicija";
+
+/** Auto dodela broj_merenja (SPC podgrupa — max 10). */
+const BROJ_MERENJA_SPC_AUTO_MAX = 10;
 
 function num(v) {
   if (v === "" || v == null) return null;
@@ -75,8 +117,122 @@ export function jeMerljivaPoInstrumentu(k) {
 }
 
 export function brojMerenjaIzReda(r) {
-  const n = num(pick(r, "kom_za_kontrolu_n", "broj_merenja", "nivo_kontrole"));
-  return Number.isFinite(n) && n > 0 ? n : null;
+  const n = num(pick(
+    r,
+    "broj_merenja",
+    "spc broj merenja po dimenziji",
+    "broj merenja ucestalost (1/h)",
+    "broj merenja",
+  ));
+  if (Number.isFinite(n) && n > 0) return Math.min(Math.round(n), BROJ_MERENJA_SPC_AUTO_MAX);
+  return null;
+}
+
+/** Ključ serije merenja unutar dela (pogon + linija + operacija). */
+export function grupaSerijeKey(r) {
+  const idDeo = String(r?.id_deo || "").trim().toUpperCase();
+  const linija = String(r?.linija_faza || "").trim();
+  let pogon = String(r?.pogon_kod || "").trim().toUpperCase();
+  if (!pogon && linija) pogon = pogonIzLinijeFaze(linija) || "";
+  const faza = String(r?.faza_naziv || "").trim();
+  return `${idDeo}|${pogon}|${linija}|${faza}`;
+}
+
+function brojMerenjaZaSerijuGrupu(redoviGrupe) {
+  for (const r of redoviGrupe || []) {
+    const n = brojMerenjaIzReda(r);
+    if (n) return n;
+  }
+  const imaMerljivih = (redoviGrupe || []).some((r) => jeMerljivaPoInstrumentu(r));
+  return imaMerljivih ? 5 : null;
+}
+
+/**
+ * Automatski dodeli sifra_merenja (1, 2, 3…) i broj_merenja po seriji
+ * kad inženjer ne unese ručno (glavni unos / Excel).
+ */
+export function dodeliSerijeMerenja(redovi, { prepisi = false } = {}) {
+  const lista = [...(redovi || [])];
+  if (!lista.length) return lista;
+
+  const grupe = new Map();
+  lista.forEach((r, idx) => {
+    const key = grupaSerijeKey(r);
+    if (!grupe.has(key)) {
+      grupe.set(key, {
+        rows: [],
+        firstIdx: idx,
+        linija_id: num(r.linija_id) ?? 999,
+      });
+    }
+    grupe.get(key).rows.push(r);
+  });
+
+  const sortirane = [...grupe.entries()].sort((a, b) => {
+    const ga = a[1];
+    const gb = b[1];
+    const idCmp = String(ga.rows[0]?.id_deo || "").localeCompare(String(gb.rows[0]?.id_deo || ""));
+    if (idCmp !== 0) return idCmp;
+    const pogonCmp = String(ga.rows[0]?.pogon_kod || "").localeCompare(String(gb.rows[0]?.pogon_kod || ""));
+    if (pogonCmp !== 0) return pogonCmp;
+    if (ga.linija_id !== gb.linija_id) return ga.linija_id - gb.linija_id;
+    return ga.firstIdx - gb.firstIdx;
+  });
+
+  const sifraPoGrupi = new Map();
+  const brojPoGrupi = new Map();
+  const serijaMetaPoGrupi = new Map();
+  const brojacPoDeoPogon = new Map();
+
+  sortirane.forEach(([key, g]) => {
+    const r0 = g.rows[0];
+    const pk = `${String(r0.id_deo).toUpperCase()}|${String(r0.pogon_kod || pogonIzLinijeFaze(r0.linija_faza) || "").toUpperCase()}`;
+    const sledeca = (brojacPoDeoPogon.get(pk) || 0) + 1;
+    brojacPoDeoPogon.set(pk, sledeca);
+    sifraPoGrupi.set(key, String(sledeca));
+    brojPoGrupi.set(key, brojMerenjaZaSerijuGrupu(g.rows));
+
+    let nivo = null;
+    let fai = null;
+    for (const row of g.rows) {
+      const n = String(row.nivo_kontrole || "").trim();
+      if (n && !nivo) nivo = n;
+      const fn = num(row.fai_broj_merenja);
+      if (Number.isFinite(fn) && fn > 0 && fai == null) fai = fn;
+    }
+    serijaMetaPoGrupi.set(key, { nivo_kontrole: nivo, fai_broj_merenja: fai });
+  });
+
+  return lista.map((r) => {
+    const key = grupaSerijeKey(r);
+    const out = { ...r };
+    const imaSifru = String(out.sifra_merenja || "").trim();
+    if (prepisi || !imaSifru) {
+      out.sifra_merenja = sifraPoGrupi.get(key) || "1";
+    }
+    const autoBroj = brojPoGrupi.get(key);
+    const imaBroj = Number(out.broj_merenja);
+    if (autoBroj && (prepisi || !Number.isFinite(imaBroj) || imaBroj <= 0)) {
+      out.broj_merenja = autoBroj;
+    }
+
+    const serijaMeta = serijaMetaPoGrupi.get(key) || {};
+    if (serijaMeta.nivo_kontrole && !String(out.nivo_kontrole || "").trim()) {
+      out.nivo_kontrole = serijaMeta.nivo_kontrole;
+    }
+    if (serijaMeta.fai_broj_merenja && !Number.isFinite(Number(out.fai_broj_merenja))) {
+      out.fai_broj_merenja = serijaMeta.fai_broj_merenja;
+    }
+
+    return out;
+  });
+}
+
+/** FAI merenja na prvo parče (1–10), nezavisno od serije. */
+export function faiBrojMerenjaIzReda(r) {
+  const n = num(pick(r, "fai_broj_merenja", "fai broj merenja"));
+  if (Number.isFinite(n) && n > 0) return Math.min(Math.max(Math.round(n), 1), 10);
+  return 1;
 }
 
 /** Normalizuj jedan red iz Excel/CSV u kanonski oblik. */
@@ -92,7 +248,7 @@ export function mapKarakteristikaMerljiveRow(r) {
     : (pogon ? radniNalogIzDeoPogona(idDeo, pogon) : null);
 
   const kom = num(pick(r, "kom_za_kontrolu_n", "kom za kontrolu n"));
-  const brojMerenja = brojMerenjaIzReda(r) ?? kom;
+  const brojMerenja = brojMerenjaIzReda(r);
 
   const row = {
     id: num(r.id),
@@ -109,6 +265,7 @@ export function mapKarakteristikaMerljiveRow(r) {
     ukupno_kom: num(pick(r, "ukupno_kom", "ukupno kom")),
     kom_za_kontrolu_n: kom,
     pozicija: String(pick(r, "pozicija", "dimenzija") || "").trim(),
+    klasa: String(pick(r, "klasa", "Klasa") || "").trim() || null,
     naziv_mere: String(pick(r, "naziv_mere", "naziv mere") || "").trim() || null,
     nominala: num(pick(r, "nominala")),
     usl: num(pick(r, "usl")),
@@ -119,8 +276,12 @@ export function mapKarakteristikaMerljiveRow(r) {
     jedinica: String(pick(r, "jedinica") || "").trim() || null,
     napomena: String(pick(r, "napomena") || "").trim() || null,
     nivo_kontrole: String(pick(r, "nivo_kontrole", "nivo kontrole") || "").trim() || null,
+    fai_broj_merenja: (() => {
+      const n = num(pick(r, "fai_broj_merenja", "fai broj merenja", "fac broj"));
+      if (Number.isFinite(n) && n > 0) return Math.min(Math.max(Math.round(n), 1), 10);
+      return null;
+    })(),
     broj_merenja: brojMerenja,
-    /** Izvedeno — za auto-sync (ne u Excel header). */
     atributivne: jeAtributivnaPoInstrumentu({ merni_instrument: pick(r, "merni_instrument", "merni instrument") })
       ? "DA"
       : "NE",
@@ -138,10 +299,104 @@ export function mapKarakteristikaMerljiveRow(r) {
   return row;
 }
 
-export function stripKarakteristikeForDb(row) {
+/** Prazan pogon → iz linije_faze ili 'A' (FK + UNIQUE zahtevaju konzistentan pogon_kod). */
+export function normalizujPogonKodKar(row) {
+  let pogon = String(row?.pogon_kod || "").trim().toUpperCase();
+  if (!pogon && row?.linija_faza) pogon = pogonIzLinijeFaze(row.linija_faza) || "";
+  if (!pogon) pogon = "A";
+  return { ...row, pogon_kod: pogon };
+}
+
+/** Normalizuj prirodni ključ pre dedupe / upsert. */
+export function normalizujKarakteristikuRed(row) {
+  const r = normalizujPogonKodKar(row);
+  return {
+    ...r,
+    id_deo: String(r.id_deo || "").trim().toUpperCase(),
+    sifra_merenja: String(r.sifra_merenja ?? "").trim(),
+    pozicija: String(r.pozicija ?? "").trim(),
+  };
+}
+
+export function stripKarakteristikeForDb(row, cols = KARAKTERISTIKE_DB_COLS) {
   const o = {};
-  for (const k of KARAKTERISTIKE_DB_COLS) {
+  for (const k of cols) {
     if (row[k] !== undefined) o[k] = row[k];
   }
   return o;
+}
+
+/** Upsert po prirodnom ključu — ne šalji id (PostgreSQL zadržava postojeći). */
+export function stripKarakteristikeForDbUpsert(row, cols = KARAKTERISTIKE_DB_COLS) {
+  const o = stripKarakteristikeForDb(row, cols);
+  delete o.id;
+  if (o.id_deo) o.id_deo = String(o.id_deo).trim().toUpperCase();
+  if (o.pogon_kod) o.pogon_kod = String(o.pogon_kod).trim().toUpperCase() || "A";
+  if (o.sifra_merenja !== undefined && o.sifra_merenja !== null) {
+    o.sifra_merenja = String(o.sifra_merenja).trim();
+  }
+  if (o.pozicija !== undefined && o.pozicija !== null) {
+    o.pozicija = String(o.pozicija).trim();
+  }
+  return o;
+}
+
+export function karakteristikaMatchKey(r) {
+  const pogon = String(r.pogon_kod || "").trim().toUpperCase() || "A";
+  return [
+    String(r.id_deo || "").trim().toUpperCase(),
+    pogon,
+    String(r.sifra_merenja || "").trim(),
+    String(r.pozicija || "").trim(),
+  ].join("\0");
+}
+
+/** Jedinstven id po redu — Excel id se ne koristi (ponavlja se po pogonu). */
+export async function resolveKarakteristikeIds(supabase, rows) {
+  const idDeos = [...new Set(rows.map((r) => String(r.id_deo || "").trim().toUpperCase()).filter(Boolean))];
+  if (!idDeos.length) return rows;
+
+  const existing = [];
+  for (let i = 0; i < idDeos.length; i += 50) {
+    const chunk = idDeos.slice(i, i + 50);
+    const { data, error } = await supabase
+      .from("karakteristike_merljive")
+      .select("id,id_deo,pogon_kod,sifra_merenja,pozicija")
+      .in("id_deo", chunk);
+    if (error) throw new Error(`karakteristike_merljive: ${error.message}`);
+    existing.push(...(data || []));
+  }
+
+  const byKey = new Map();
+  const usedIds = new Set();
+  let maxId = 0;
+  for (const r of existing) {
+    const id = Number(r.id) || 0;
+    byKey.set(karakteristikaMatchKey(r), id);
+    usedIds.add(id);
+    maxId = Math.max(maxId, id);
+  }
+
+  return rows.map((row) => {
+    const key = karakteristikaMatchKey(row);
+    const postojeci = byKey.get(key);
+    if (postojeci) return { ...row, id: postojeci };
+
+    let nextId = maxId + 1;
+    while (usedIds.has(nextId)) nextId += 1;
+    maxId = nextId;
+    usedIds.add(nextId);
+    byKey.set(key, nextId);
+    return { ...row, id: nextId };
+  });
+}
+
+export async function pripremiKarakteristikeZaUpsert(supabase, rows, dbCols = KARAKTERISTIKE_DB_COLS) {
+  void supabase;
+  const normalized = rows.map(normalizujKarakteristikuRed);
+  const deduped = dedupeRowsForUpsert(normalized, KARAKTERISTIKE_UPSERT_CONFLICT);
+  const stripped = deduped
+    .map((r) => stripKarakteristikeForDbUpsert(r, dbCols))
+    .filter((r) => r.id_deo && r.sifra_merenja && r.pozicija);
+  return dedupeRowsForUpsert(stripped, KARAKTERISTIKE_UPSERT_CONFLICT);
 }

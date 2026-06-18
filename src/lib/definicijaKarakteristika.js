@@ -50,6 +50,21 @@ function cell(r, col) {
   return r[col] ?? "";
 }
 
+/** Čitaj po imenu kolone (header red) ili poziciono indeksu. */
+function pickDefinicija(r, ...keys) {
+  if (!r || typeof r !== "object") return "";
+  for (const k of keys) {
+    const kn = String(k).toLowerCase().replace(/\s+/g, "_");
+    for (const [hk, val] of Object.entries(r)) {
+      const hkn = String(hk).toLowerCase().replace(/\s+/g, "_");
+      if (hkn === kn && val !== undefined && val !== null && String(val).trim() !== "") {
+        return val;
+      }
+    }
+  }
+  return "";
+}
+
 export function definicijaImaHeaderRed(rows) {
   const h = String(rows[0]?.[0] ?? "").trim().toLowerCase();
   return h === "id_deo" || h === "id dela" || h === "id dela*";
@@ -87,6 +102,8 @@ export function parseDefinicijaRed(r) {
     merni_instrument: String(cell(r, DEFINICIJA_COL.merni_instrument) || "").trim() || null,
     jedinica: String(cell(r, DEFINICIJA_COL.jedinica) || "").trim() || null,
     napomena: String(cell(r, DEFINICIJA_COL.napomena) || "").trim() || null,
+    nivo_kontrole: String(pickDefinicija(r, "nivo_kontrole", "nivo kontrole") || "").trim() || null,
+    fai_broj_merenja: num(pickDefinicija(r, "fai_broj_merenja", "fai broj merenja", "fac broj")),
     atributivne: String(cell(r, DEFINICIJA_COL.atributivne) ?? "").trim() || null,
     merljive: String(cell(r, DEFINICIJA_COL.merljive) ?? "").trim() || null,
     kom_za_kontrolu_n: cell(r, DEFINICIJA_COL.kom_za_kontrolu_n),
@@ -119,8 +136,6 @@ const META_PROPAGIRAJ = [
   "slika",
   "ukupno_kom",
   "kom_za_kontrolu_n",
-  "nivo_kontrole",
-  "broj_merenja",
 ];
 
 function metaPrazno(v) {

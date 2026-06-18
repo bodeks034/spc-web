@@ -6,6 +6,7 @@ import {
   ERP_CSV_KOLONE,
 } from "../lib/radniNaloziUvoz.js";
 import { pogonIzRn } from "../lib/pogonSop.js";
+import { formatErpUvozVreme } from "../lib/erpUvozLog.js";
 
 export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   const [nalozi, setNalozi] = useState([]);
@@ -15,6 +16,7 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   const [filter, setFilter] = useState("aktivan");
   const [csvPreview, setCsvPreview] = useState(null);
   const [uvozi, setUvozi] = useState(false);
+  const [poslednjiUvoz, setPoslednjiUvoz] = useState(null);
   const [nov, setNov] = useState({
     broj_naloga: "",
     id_deo: "",
@@ -27,12 +29,14 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   });
 
   const osvezi = useCallback(async () => {
-    const [n, k] = await Promise.all([
+    const [n, k, log] = await Promise.all([
       supabase.from("radni_nalozi").select("*").order("created_at", { ascending: false }),
       supabase.from("kupci").select("id,naziv").eq("aktivan", true),
+      supabase.from("erp_uvoz_log").select("*").order("created_at", { ascending: false }).limit(1),
     ]);
     setNalozi(n.data || []);
     setKupci(k.data || []);
+    setPoslednjiUvoz(log.data?.[0] || null);
     setLoading(false);
   }, []);
 
@@ -135,6 +139,19 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
           </div>
           <div style={{ color: C.sivi, fontSize: 10, marginTop: 4, lineHeight: 1.45 }}>
             Aktivnih: {stat.aktivni} · Ukupno u bazi: {stat.ukupno}
+            <br />
+            {poslednjiUvoz ? (
+              <>
+                Poslednji automatski uvoz: {formatErpUvozVreme(poslednjiUvoz.created_at)}
+                {" · "}
+                {poslednjiUvoz.upsertovano ?? 0} naloga
+                {" · "}
+                {poslednjiUvoz.uspeh ? "OK" : "GREŠKA"}
+                {poslednjiUvoz.fajl ? ` · ${poslednjiUvoz.fajl}` : ""}
+              </>
+            ) : (
+              <>Automatski uvoz: nema zapisa (pokreni cron ili migraciju 38)</>
+            )}
             <br />
             Kupac i rok isporuke unosiš ovde (forma ili CSV) — prikazuju se u unosu merenja posle izbora dela.
           </div>

@@ -4,6 +4,7 @@
  */
 import { podeliDeloviUvoz } from "./deloviAtributivni.js";
 import { normalizujDatum } from "./radniNaloziUvoz.js";
+import { dedupeRowsForUpsert } from "./upsertUtil.js";
 import {
   generisiIzKarakteristika,
   generisiRadniNaloge,
@@ -14,10 +15,11 @@ import {
 
 async function upsertBatches(supabase, table, rows, onConflict) {
   if (!rows?.length) return 0;
+  const deduped = dedupeRowsForUpsert(rows, onConflict);
   const batchSize = 100;
   let total = 0;
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize);
+  for (let i = 0; i < deduped.length; i += batchSize) {
+    const batch = deduped.slice(i, i + batchSize);
     const opts = onConflict ? { onConflict } : undefined;
     const { error } = await supabase.from(table).upsert(batch, opts);
     if (error) throw new Error(`${table}: ${error.message}`);
@@ -45,7 +47,7 @@ function minimalDeloviMasterIzKar(karRows) {
       karakteristika: m.faza_naziv || "Merljive",
       linija_id: Number.isFinite(m.linija_id) ? m.linija_id : 1,
       masina_id: Number.isFinite(m.masina_id) ? m.masina_id : 1,
-      kom_za_kontrolu: m.kom_za_kontrolu_n || m.broj_merenja || 5,
+      kom_za_kontrolu: m.kom_za_kontrolu_n ?? null,
       slika_naziv: m.slika || null,
       aktivan: true,
       tip_kontrole: "deo",
@@ -152,7 +154,7 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
     maxRnId += 1;
     rnIzSop.push({
       id: maxRnId,
-      broj_naloga: s.radni_nalog || radniNalogIzDeoPogona(s.id_deo, s.pogon_kod),
+      broj_naloga: radniNalogIzDeoPogona(s.id_deo, s.pogon_kod) || s.radni_nalog,
       id_deo: s.id_deo,
       naziv_dela: s.naziv_dela || "",
       kolicina: 50,
@@ -167,11 +169,6 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
   }
 
   const results = [];
-
-  if (gen.sopRows.length) {
-    const n = await upsertBatches(supabase, "sop_deo_varijabilni", gen.sopRows, "id_deo,pogon_kod");
-    results.push({ sheet: "sop_deo_varijabilni (auto)", status: "ok", count: n });
-  }
 
   const deloviRows = gen.deloviPogonRows.map((p) => ({
     id_deo: p.id_deo,
@@ -194,6 +191,7 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
   const { masterRows: masterFromPogon, pogonRows } = podeliDeloviUvoz(deloviRows);
   const mergedMaster = spojiMasterDelovi(spojiMasterDelovi(masterFromPogon, gen.masterRows), minimalMaster);
 
+  // FK: sop_deo_varijabilni i karakteristike_merljive → delovi(id_deo) — prvo delovi
   if (mergedMaster.length || pogonRows.length) {
     const mCount = mergedMaster.length
       ? await upsertBatches(supabase, "delovi", mergedMaster, "id_deo")
@@ -206,6 +204,11 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
       status: "ok",
       count: mCount + pCount,
     });
+  }
+
+  if (gen.sopRows.length) {
+    const n = await upsertBatches(supabase, "sop_deo_varijabilni", gen.sopRows, "id_deo,pogon_kod");
+    results.push({ sheet: "sop_deo_varijabilni (auto)", status: "ok", count: n });
   }
 
   const sviRn = [...noviRn, ...rnIzSop];

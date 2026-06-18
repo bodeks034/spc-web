@@ -1,0 +1,6 @@
+# SAP / ERP CSV fajlovi za automatsko punjenje Excel šifrarnika.
+# Pokreni: npm run sap:csv-excel
+#
+# delovi.csv          → SPC_master_atributivne.xlsx tab "delovi"
+# radni_nalozi.csv    → tab "radni_nalozi"
+# kupci.csv           → tab "kupci"

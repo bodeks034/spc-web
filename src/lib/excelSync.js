@@ -12,14 +12,31 @@ import {
 } from "./definicijaKarakteristika.js";
 import {
   KARAKTERISTIKE_MERLJIVE_HEADER,
+  KARAKTERISTIKE_DB_COLS,
   mapKarakteristikaMerljiveRow,
-  stripKarakteristikeForDb,
+  getKarakteristikeDbCols,
+  pripremiKarakteristikeZaUpsert,
+  KARAKTERISTIKE_UPSERT_CONFLICT,
+  MIGRACIJA_KARAKTERISTIKE_UNIQUE_POGON,
+  MIGRACIJA_KARAKTERISTIKE_ID_SEQ,
+  dodeliSerijeMerenja,
 } from "./karakteristikaMerljive.js";
 import { syncDerivedSifrarnikForDelove } from "./importDerivedSifrarnik.js";
 import {
   generisiIzKarakteristika,
   generisiRadniNaloge,
 } from "./syncSifrarnikIzMerljivih.js";
+import {
+  MERENJA_VARIJABILNA_EXPORT_COLS,
+  KONTROLNI_LOG_EXPORT_COLS,
+  KPI_EXPORT_COLS,
+  buildKpiLookup,
+  fetchKpiUnosZaIzvoz,
+  fetchNaziviDelaMap,
+  mapMerenjeVarijabilnoZaIzvoz,
+  mapKontrolniLogZaIzvoz,
+  kpiPoljaIzForme,
+} from "./kpiExcelExport.js";
 
 export const EXCEL_BUCKET = "spc-excel-sync";
 export const KONTROLNI_LOG_FILE = "kontrolni_log.xlsx";
@@ -44,6 +61,7 @@ export const KONTROLNI_LOG_COLS = [
   ["ukupno_merenja", "Ukupno N"],
   ["potreban_broj", "Potreban broj"],
   ["komentar", "Komentar"],
+  ...KPI_EXPORT_COLS,
 ];
 
 /** Kolone taba delovi u SPC_master_atributivne (redosled za Excel). */
@@ -284,7 +302,7 @@ export const MERLJIVE_IMPORT_SHEETS = [
     sheet: "karakteristike_merljive",
     altSheets: ["Definicija_Karakteristika"],
     table: "karakteristike_merljive",
-    onConflict: "id",
+    onConflict: KARAKTERISTIKE_UPSERT_CONFLICT,
     map: (r) => mapKarakteristikaMerljiveRow(r),
     valid: (r) => r.id_deo && r.pozicija,
   },
@@ -397,54 +415,6 @@ function pogonIzRnUvoz(brojNaloga) {
   const rn = String(brojNaloga || "").trim().toUpperCase();
   const m = rn.match(/-([A-H])$/);
   return m ? m[1] : "A";
-}
-
-function karakteristikaMatchKey(r) {
-  return [
-    String(r.id_deo || "").trim().toUpperCase(),
-    String(r.pogon_kod || "").trim().toUpperCase(),
-    String(r.sifra_merenja || "").trim(),
-    String(r.pozicija || "").trim(),
-  ].join("\0");
-}
-
-async function resolveKarakteristikeIds(supabase, rows) {
-  const idDeos = [...new Set(rows.map((r) => String(r.id_deo || "").trim().toUpperCase()).filter(Boolean))];
-  if (!idDeos.length) return rows;
-
-  const existing = [];
-  for (let i = 0; i < idDeos.length; i += 50) {
-    const chunk = idDeos.slice(i, i + 50);
-    const { data, error } = await supabase
-      .from("karakteristike_merljive")
-      .select("id,id_deo,pogon_kod,sifra_merenja,pozicija")
-      .in("id_deo", chunk);
-    if (error) throw new Error(`karakteristike_merljive: ${error.message}`);
-    existing.push(...(data || []));
-  }
-
-  const byKey = new Map();
-  let maxId = 0;
-  for (const r of existing) {
-    byKey.set(karakteristikaMatchKey(r), Number(r.id));
-    maxId = Math.max(maxId, Number(r.id) || 0);
-  }
-
-  return rows.map((row) => {
-    const key = karakteristikaMatchKey(row);
-    const postojeci = byKey.get(key);
-    if (postojeci) return { ...row, id: postojeci };
-    const eksplicitni = Number(row.id);
-    if (Number.isFinite(eksplicitni) && eksplicitni > 0) {
-      maxId = Math.max(maxId, eksplicitni);
-      byKey.set(key, eksplicitni);
-      return row;
-    }
-    maxId += 1;
-    const next = { ...row, id: maxId };
-    byKey.set(key, maxId);
-    return next;
-  });
 }
 
 function findSheetEntry(wb, cfg) {
@@ -688,7 +658,25 @@ async function upsertBatches(supabase, table, rows, onConflict) {
     const batch = deduped.slice(i, i + batchSize);
     const opts = onConflict ? { onConflict } : undefined;
     const { error } = await supabase.from(table).upsert(batch, opts);
-    if (error) throw new Error(`${table}: ${error.message}`);
+    if (error) {
+      let msg = `${table}: ${error.message}`;
+      if (
+        table === "karakteristike_merljive"
+        && (
+          String(error.message).includes("id_deo_sifra_merenja_pozicija")
+          || String(error.message).includes("id_deo_pogon_sifra_pozicija")
+        )
+      ) {
+        msg += ` — proveri duplikate u Excelu (isto id_deo+pogon+sifra+pozicija) i pokreni ${MIGRACIJA_KARAKTERISTIKE_UNIQUE_POGON}`;
+      }
+      if (
+        table === "karakteristike_merljive"
+        && String(error.message).includes("karakteristike_merljive_pkey")
+      ) {
+        msg += ` — pokreni ${MIGRACIJA_KARAKTERISTIKE_ID_SEQ} u Supabase SQL Editoru`;
+      }
+      throw new Error(msg);
+    }
   }
   return deduped.length;
 }
@@ -742,8 +730,9 @@ async function importSheetConfig(supabase, wb, cfg, useMerljiveParser) {
   }
   if (cfg.table === "karakteristike_merljive") {
     rows = propagirajMetaKarakteristika(rows);
-    rows = await resolveKarakteristikeIds(supabase, rows);
-    rows = rows.map(stripKarakteristikeForDb);
+    rows = dodeliSerijeMerenja(rows);
+    const dbCols = await getKarakteristikeDbCols(supabase);
+    rows = await pripremiKarakteristikeZaUpsert(supabase, rows, dbCols);
   }
   if (cfg.replace) {
     await supabase.from(cfg.table).delete().neq("id", 0);
@@ -775,15 +764,29 @@ export async function importMerljiveWorkbookToSupabase(supabase, wb, onlySheets 
   if (karCfg && autoSyncDerived) {
     const parsed = rowsForMerljiveSheet(wb, karCfg);
     if (parsed.mapped.length) {
-      const karRowsWithMeta = propagirajMetaKarakteristika(parsed.mapped);
-      const idDeos = [...new Set(karRowsWithMeta.map((r) => String(r.id_deo || "").toUpperCase()).filter(Boolean))];
-      const syncRes = await syncDerivedSifrarnikForDelove(supabase, idDeos, { karRows: karRowsWithMeta });
+      const resolved = dodeliSerijeMerenja(
+        propagirajMetaKarakteristika(parsed.mapped),
+      );
+      const idDeos = [...new Set(resolved.map((r) => String(r.id_deo || "").toUpperCase()).filter(Boolean))];
+      const syncRes = await syncDerivedSifrarnikForDelove(supabase, idDeos, { karRows: resolved });
       results.push(...syncRes);
 
-      const resolved = await resolveKarakteristikeIds(supabase, karRowsWithMeta);
-      const dbRows = resolved.map(stripKarakteristikeForDb);
-      const count = await upsertBatches(supabase, "karakteristike_merljive", dbRows, "id");
-      results.push({ sheet: karCfg.sheet, table: "karakteristike_merljive", status: "ok", count });
+      const dbCols = await getKarakteristikeDbCols(supabase);
+      const dbRows = await pripremiKarakteristikeZaUpsert(supabase, resolved, dbCols);
+      const count = await upsertBatches(
+        supabase,
+        "karakteristike_merljive",
+        dbRows,
+        KARAKTERISTIKE_UPSERT_CONFLICT,
+      );
+      const karResult = {
+        sheet: karCfg.sheet,
+        table: "karakteristike_merljive",
+        status: "ok",
+        count,
+        skippedCols: KARAKTERISTIKE_DB_COLS.filter((c) => !dbCols.includes(c)),
+      };
+      results.push(karResult);
     } else {
       results.push({
         sheet: karCfg.sheet,
@@ -878,9 +881,35 @@ export async function exportMerenjaVarijabilnaExcel(supabase, idDeo, pozicija, d
   const { data, error } = await q;
   if (error) throw error;
   if (!data?.length) return null;
+
+  const [kpiRows, nazivDelaMap] = await Promise.all([
+    fetchKpiUnosZaIzvoz(supabase, {
+      modul: "merljive",
+      idDeo,
+      datumOd,
+      datumDo,
+    }),
+    fetchNaziviDelaMap(supabase, idDeo),
+  ]);
+  const kpiLookup = buildKpiLookup(kpiRows);
+  const mapped = data.map((r) => mapMerenjeVarijabilnoZaIzvoz(r, { nazivDelaMap, kpiLookup }));
+
   const wb = XLSX.utils.book_new();
-  const sheet = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, sheet, "merenja_varijabilna");
+  const exportRows = mapped.map((r) => {
+    const o = {};
+    MERENJA_VARIJABILNA_EXPORT_COLS.forEach(([key, label]) => { o[label] = r[key] ?? ""; });
+    return o;
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows), "merenja_varijabilna");
+
+  if (kpiRows.length) {
+    const kpiExport = kpiRows.map((r) => {
+      const o = { modul: r.modul, datum: r.datum, smena: r.smena, id_deo: r.id_deo, serija: r.serija, radni_nalog: r.radni_nalog, sesija_id: r.sesija_id };
+      KPI_EXPORT_COLS.forEach(([key, label]) => { o[label] = r[key] ?? ""; });
+      return o;
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiExport), "kpi_unos");
+  }
   return wb;
 }
 
@@ -910,15 +939,18 @@ async function loadKontrolniLogWorkbook(supabase) {
  * Dual-write: nakon inserta u Supabase, dopuni Excel u Storage bucket-u.
  * Vraća { storage: bool, download: bool, error?: string }
  */
-export async function mirrorKontrolniLogToExcel(supabase, newRows, { alsoDownload = false } = {}) {
+export async function mirrorKontrolniLogToExcel(supabase, newRows, { alsoDownload = false, kpi = null } = {}) {
   if (!newRows?.length) return { storage: false, download: false };
 
+  const kpiFields = kpiPoljaIzForme(kpi);
+  const enrichedRows = newRows.map((r) => ({ ...r, ...kpiFields }));
+
   const exportRows = rowsToExportRows(
-    newRows.map((r) => ({
+    enrichedRows.map((r) => ({
       ...r,
-      created_at: new Date().toISOString(),
+      created_at: r.created_at || new Date().toISOString(),
     })),
-    KONTROLNI_LOG_COLS
+    KONTROLNI_LOG_COLS,
   );
 
   let storageOk = false;
@@ -960,17 +992,41 @@ function dISO() {
 export async function exportKontrolniLogExcel(supabase, idDeo, datumOd, datumDo) {
   let q = supabase
     .from("kontrolni_log")
-    .select("datum,smena,id_deo,naziv_dela,greska_naziv,podkategorija,defekt,status,ok_kolicina,nok_kolicina,ukupno_merenja,komentar,created_at")
-    .order("datum", { ascending: true });
+    .select("datum,smena,radni_nalog,id_deo,naziv_dela,pogon_kod,greska_naziv,podkategorija,defekt,status,ok_kolicina,nok_kolicina,ukupno_merenja,komentar,sesija_id,created_at")
+    .order("datum", { ascending: true })
+    .order("created_at", { ascending: true });
   if (idDeo) q = q.eq("id_deo", idDeo);
   if (datumOd) q = q.gte("datum", datumOd);
   if (datumDo) q = q.lte("datum", datumDo);
   const { data, error } = await q;
   if (error) throw error;
   if (!data?.length) return null;
+
+  const kpiRows = await fetchKpiUnosZaIzvoz(supabase, {
+    modul: "atributivne",
+    idDeo,
+    datumOd,
+    datumDo,
+  });
+  const kpiLookup = buildKpiLookup(kpiRows);
+  const mapped = data.map((r) => mapKontrolniLogZaIzvoz(r, { kpiLookup }));
+
   const wb = XLSX.utils.book_new();
-  const sheet = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, sheet, "kontrolni_log");
+  const exportRows = mapped.map((r) => {
+    const o = {};
+    KONTROLNI_LOG_EXPORT_COLS.forEach(([key, label]) => { o[label] = r[key] ?? ""; });
+    return o;
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows), "kontrolni_log");
+
+  if (kpiRows.length) {
+    const kpiExport = kpiRows.map((r) => {
+      const o = { modul: r.modul, datum: r.datum, smena: r.smena, id_deo: r.id_deo, serija: r.serija, radni_nalog: r.radni_nalog, sesija_id: r.sesija_id };
+      KPI_EXPORT_COLS.forEach(([key, label]) => { o[label] = r[key] ?? ""; });
+      return o;
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiExport), "kpi_unos");
+  }
   return wb;
 }
 

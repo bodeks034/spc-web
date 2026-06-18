@@ -26,6 +26,24 @@ const TIPOVI = {
     },
     nivo: "visok",
   },
+  spc_alarm: {
+    naslov: (z) => `SPC van kontrole: ${z.id_deo}`,
+    opis: (z) => {
+      const karta = z.tip_karte ? `${z.tip_karte}-karta` : "SPC";
+      const pravilo = z.pravilo ? ` · ${z.pravilo}` : "";
+      const poz = z.pozicija ? ` · ${z.pozicija}` : "";
+      return `${karta}${poz}${pravilo}`.trim();
+    },
+    nivo: "kriticno",
+  },
+  spc_karantin: {
+    naslov: (z) => `KARANTIN SPC: ${z.id_deo}`,
+    opis: (z) => {
+      const rn = z.radni_nalog ? `RN ${z.radni_nalog}. ` : "";
+      return `${rn}${z.razlog || z.komentar_operater || ""}`.trim();
+    },
+    nivo: "kriticno",
+  },
 };
 
 /**

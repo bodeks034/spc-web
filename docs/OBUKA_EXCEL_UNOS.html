@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPC — Excel: gde se šta unosi</title>
+  <style>
+    :root { --text:#1a1a1a; --muted:#555; --border:#ccc; --accent:#0c5c8a; --green:#1a6b3c; --orange:#b45309; --bg:#f4f6f8; }
+    * { box-sizing:border-box; }
+    body { font-family:"Segoe UI",Arial,sans-serif; font-size:10pt; line-height:1.42; color:var(--text); margin:0; background:#888; }
+    .page { width:210mm; min-height:297mm; margin:12px auto; padding:16mm 14mm 18mm; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.2); }
+    @media print {
+      body { background:#fff; }
+      .page { margin:0; box-shadow:none; page-break-after:always; min-height:auto; }
+      .page:last-child { page-break-after:auto; }
+      .no-print { display:none!important; }
+    }
+    @page { size:A4; margin:12mm 10mm; }
+    h1 { font-size:21pt; margin:0 0 6px; color:var(--accent); }
+    h2 { font-size:13pt; margin:18px 0 6px; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:3px; page-break-after:avoid; }
+    h3 { font-size:11pt; margin:12px 0 4px; page-break-after:avoid; }
+    p { margin:5px 0; }
+    .sub { color:var(--muted); margin-bottom:14px; }
+    table { width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:8.8pt; page-break-inside:avoid; }
+    th,td { border:1px solid var(--border); padding:4px 6px; text-align:left; vertical-align:top; }
+    th { background:var(--bg); }
+    pre,.flow { background:#eef1f4; border:1px solid var(--border); border-radius:4px; padding:8px 10px; font-family:Consolas,monospace; font-size:8.5pt; white-space:pre-wrap; margin:8px 0; page-break-inside:avoid; }
+    .gold { border:2px solid var(--orange); background:#fff8ed; padding:10px 12px; border-radius:6px; margin:12px 0; }
+    .note { border-left:4px solid var(--accent); background:#eef6fb; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .warn { border-left:4px solid #c0392b; background:#fdf0ef; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .ok { border-left:4px solid var(--green); background:#eef8f1; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .tag { display:inline-block; background:var(--green); color:#fff; font-size:7.5pt; font-weight:700; padding:2px 7px; border-radius:10px; margin-right:5px; }
+    .tag.req { background:#c0392b; }
+    .tag.opt { background:#666; }
+    .sheet-name { font-family:Consolas,monospace; background:#e8e8e8; padding:1px 5px; border-radius:3px; font-size:9pt; }
+    .print-bar { position:sticky; top:0; z-index:99; background:#222; color:#fff; padding:10px; text-align:center; }
+    .print-bar button { background:var(--green); color:#fff; border:none; padding:8px 18px; font-weight:700; border-radius:6px; cursor:pointer; margin-left:10px; }
+    footer { margin-top:14px; border-top:1px solid var(--border); font-size:7.5pt; color:var(--muted); text-align:center; padding-top:6px; }
+    .section-start { page-break-before:always; }
+  </style>
+</head>
+<body>
+
+<div class="print-bar no-print">
+  SPC — Excel: gde se šta unosi (A4)
+  <button type="button" onclick="window.print()">🖨 Štampaj / Save as PDF</button>
+</div>
+
+<!-- NASLOVNA -->
+<div class="page">
+  <p class="tag">JUN 2026</p>
+  <h1>Excel — gde se šta unosi</h1>
+  <p class="sub">Uputstvo za inženjere i administratore · šifrarnik SPC Web</p>
+
+  <div class="gold">
+    <strong>Zlatno pravilo</strong>
+    <table style="margin-top:8px">
+      <tr><th>Gde</th><th>Šta unosiš</th></tr>
+      <tr><td><strong>Excel / CSV</strong></td><td>Šifrarnik: delovi, greške, granice LSL/USL, radnici, RN — <em>pre</em> rada</td></tr>
+      <tr><td><strong>Aplikacija Modul 1</strong></td><td>Svakodnevna merenja OK/NOK i brojčane vrednosti</td></tr>
+      <tr><td><strong>Supabase baza</strong></td><td>Aplikacija čita <strong>bazu</strong>, ne Excel fajl sa diska</td></tr>
+    </table>
+  </div>
+
+  <h2>Gde leže fajlovi</h2>
+  <pre>C:\mix\spc-web\
+├── excel-rad\
+│   ├── SPC_master_atributivne.xlsx    ← atributivni šifrarnik
+│   ├── SPC_merljive.xlsx              ← merljive granice + SOP
+│   └── Katalog_vozilo_9_komponenti.xlsx  ← 9 sheetova vozila
+├── docs\
+│   ├── *.csv                          ← izvoz za npm run import:docs
+│   └── Varijabilne_SPC.xlsm           ← alternativa merljivog
+└── sifarnik celo vozilo\              ← samo dijagram (NE uvoz)</pre>
+
+  <h2>Sadržaj</h2>
+  <ol>
+    <li>Tri Excel fajla — pregled</li>
+    <li>Šta NE unosiš u Excel</li>
+    <li>Master atributivne — tab po tab</li>
+    <li>Merljive — tab po tab</li>
+    <li>Katalog vozila (9 komponenti)</li>
+    <li>Uvoz u bazu — korak po korak</li>
+    <li>Česte greške</li>
+  </ol>
+  <footer>SPC Web · Excel obuka · str. 1</footer>
+</div>
+
+<!-- PREGLED -->
+<div class="page section-start">
+  <h2>1. Tri Excel fajla — ne mešati</h2>
+  <table>
+    <tr><th>Fajl</th><th>Tabovi</th><th>Ko popunjava</th><th>Uvoz gde</th></tr>
+    <tr>
+      <td><strong>SPC_master_atributivne.xlsx</strong></td>
+      <td>linije, masine, smene, greske_katalog, katalog_gresaka_vozilo, delovi, radnici, radni_nalozi, kontrolna_lista_stavke + opciono ciljevi, kupci, merila, kalibracije</td>
+      <td>Inženjer / admin</td>
+      <td>Admin panel → Uvezi iz Excela</td>
+    </tr>
+    <tr>
+      <td><strong>SPC_merljive.xlsx</strong></td>
+      <td>sop_deo_varijabilni, karakteristike_merljive, merenja_varijabilna</td>
+      <td>Inženjer kvaliteta</td>
+      <td>Modul Merljive → tab EXCEL → Uvezi</td>
+    </tr>
+    <tr>
+      <td><strong>Katalog_vozilo_9_komponenti.xlsx</strong></td>
+      <td>9 sheetova (Karoserija, Motor…) — slobodna imena</td>
+      <td>Inženjer</td>
+      <td>Spoji u CSV → tab katalog_gresaka_vozilo u masteru</td>
+    </tr>
+  </table>
+
+  <h2>2. Mapa — podatak → Excel tab</h2>
+  <table>
+    <tr><th>Šta treba aplikaciji</th><th>Excel tab</th><th>Ko kuca u aplikaciji?</th></tr>
+    <tr><td>ID dela (5501-A, NM-001…)</td><td><span class="sheet-name">delovi</span></td><td>Operator <strong>skenira</strong> — ne kuca u Excel svaki dan</td></tr>
+    <tr><td>Radni nalog</td><td><span class="sheet-name">radni_nalozi</span> + SOP merljive</td><td>Predlog iz baze; ERP CSV</td></tr>
+    <tr><td>Kontrolor (ime)</td><td><span class="sheet-name">radnici</span></td><td><strong>Niko</strong> — automatski od prijave</td></tr>
+    <tr><td>Kom za kontrolu (N)</td><td><span class="sheet-name">delovi</span> kolona kom za kontrolu n</td><td>Atributivne: veličina serije</td></tr>
+    <tr><td>LSL / USL / nominala</td><td><span class="sheet-name">karakteristike_merljive</span></td><td>Operator unosi <strong>merenje</strong>, ne granice</td></tr>
+    <tr><td>Greške OK/NOK (delovi)</td><td><span class="sheet-name">greske_katalog</span></td><td>Dropdown u unosu</td></tr>
+    <tr><td>Greške vozila (AUTO…)</td><td><span class="sheet-name">katalog_gresaka_vozilo</span></td><td>Posle izbora zone na dijagramu</td></tr>
+    <tr><td>Ček lista (poka-yoke)</td><td><span class="sheet-name">kontrolna_lista_stavke</span></td><td>Operater samo čekira</td></tr>
+    <tr><td>Linija / mašina</td><td><span class="sheet-name">linije</span>, <span class="sheet-name">masine</span>, <span class="sheet-name">delovi</span></td><td>Iz šifrarnika dela</td></tr>
+    <tr><td>Dnevni log merenja</td><td><strong>NE u Excel</strong></td><td>Modul 1 → automatski u bazu</td></tr>
+  </table>
+
+  <div class="warn"><strong>Imena tabova moraju biti tačna</strong> (mala slova, donja crta): npr. <span class="sheet-name">greske_katalog</span>, ne „Greške“.</div>
+  <footer>SPC Web · Excel obuka · str. 2</footer>
+</div>
+
+<!-- NE UNOSI -->
+<div class="page section-start">
+  <h2>3. Šta NE unosiš u Excel</h2>
+  <table>
+    <tr><th>NE u Excel</th><th>Gde ide umesto toga</th></tr>
+    <tr><td>Svako OK/NOK merenje sa linije</td><td>Aplikacija Modul 1 → tabela <code>kontrolni_log</code></td></tr>
+    <tr><td>Svako brojčano merenje</td><td>Aplikacija Merljive → <code>merenja_varijabilna</code></td></tr>
+    <tr><td>Ime kontrolora na svakom redu</td><td>Prijava — uzima se iz <code>radnici</code> + Auth</td></tr>
+    <tr><td>Deaktivacija radnika (DA u koloni aktivan)</td><td>Admin panel → Deaktiviraj (Excel ne prepisuje prazno polje)</td></tr>
+    <tr><td>Dijagram vozila (SVG)</td><td><code>public/vozilo/dijagrami/</code> — zamena fajla, ne Excel</td></tr>
+  </table>
+
+  <div class="ok">Tab <span class="sheet-name">merenja_varijabilna</span> u Excelu služi za <strong>uvoz istorije / migraciju</strong>, ne za svakodnevni rad operatera.</div>
+
+  <h2>4. Pravila headera u Excelu</h2>
+  <ul>
+    <li>Prvi red = <strong>nazivi kolona</strong> (header)</li>
+    <li>Podaci od reda 2</li>
+    <li>Može srpski: <em>id dela</em>, <em>naziv dela</em>, <em>kom za kontrolu n</em></li>
+    <li>Zvezdica na kraju (<em>id dela*</em>) — ignoriše se</li>
+    <li>Đ/č/š u headerima — automatski se mapira</li>
+    <li><strong>DA / NE</strong> za aktivan, aktivna, aktivno</li>
+  </ul>
+  <footer>SPC Web · Excel obuka · str. 3</footer>
+</div>
+
+<!-- ATRIBUTIVNE TAB 1-5 -->
+<div class="page section-start">
+  <h2>5. SPC_master_atributivne.xlsx — tab po tab</h2>
+
+  <h3><span class="sheet-name">linije</span></h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th><th>Napomena</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>12</td><td>Broj linije</td></tr>
+    <tr><td>linija</td><td><span class="tag req">DA</span></td><td>Karoserija</td><td>Naziv</td></tr>
+    <tr><td>proces, operacija, greske</td><td><span class="tag opt">NE</span></td><td></td><td>Opciono</td></tr>
+  </table>
+
+  <h3><span class="sheet-name">masine</span></h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>1</td></tr>
+    <tr><td>naziv masine / naziv</td><td><span class="tag req">DA</span></td><td>Stanica zavarivanja</td></tr>
+    <tr><td>linija</td><td><span class="tag opt">NE</span></td><td>12</td></tr>
+  </table>
+
+  <h3><span class="sheet-name">smene</span></h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>1</td></tr>
+    <tr><td>smena / naziv</td><td><span class="tag req">DA</span></td><td>Prva smena</td></tr>
+    <tr><td>pocetak, kraj</td><td><span class="tag opt">NE</span></td><td>06:00</td></tr>
+  </table>
+
+  <h3><span class="sheet-name">greske_katalog</span> — greške za POJEDINAČNE delove</h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>101</td></tr>
+    <tr><td>kategorija</td><td><span class="tag req">DA</span></td><td>Vara</td></tr>
+    <tr><td>podkategorija</td><td><span class="tag req">DA</span></td><td>Porozna vara</td></tr>
+    <tr><td>defekt</td><td><span class="tag opt">NE</span></td><td>Detalj</td></tr>
+    <tr><td>id dela / id_deo</td><td><span class="tag opt">NE</span></td><td>5502-A — samo za taj deo</td></tr>
+    <tr><td>katalog id</td><td><span class="tag opt">NE</span></td><td>GRUPA-NOSAC — više delova</td></tr>
+  </table>
+  <div class="note">U tabu <span class="sheet-name">delovi</span> kolona <em>greska katalog id</em> povezuje deo sa katalogom grešaka.</div>
+
+  <h3><span class="sheet-name">katalog_gresaka_vozilo</span> — CELO VOZILO</h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>KAROS-001, MOTOR-001, FINAL-001</td></tr>
+    <tr><td>kategorija</td><td><span class="tag req">DA</span></td><td>EKSTERIJER</td></tr>
+    <tr><td>podkategorija</td><td><span class="tag req">DA</span></td><td>Prednji branik</td></tr>
+    <tr><td>defekt</td><td><span class="tag req">DA</span></td><td>Loše poravnanje</td></tr>
+  </table>
+  <div class="warn">Uvoz ovog taba <strong>briše stari</strong> sadržaj tabele u bazi i ubacuje novi.</div>
+  <footer>SPC Web · Excel obuka · str. 4</footer>
+</div>
+
+<!-- DELOVI RADNICI -->
+<div class="page section-start">
+  <h3><span class="sheet-name">delovi</span> — NAJVAŽNIJI tab</h3>
+  <table>
+    <tr><th>Kolona u Excelu</th><th>Obavezno</th><th>Primer</th><th>Uticaj u aplikaciji</th></tr>
+    <tr><td>id dela*</td><td><span class="tag req">DA</span></td><td>NM-001</td><td>Sken na liniji</td></tr>
+    <tr><td>pogon kod</td><td><span class="tag opt">NE</span></td><td>A, B, C…</td><td>Više pogona za isti ID</td></tr>
+    <tr><td>radni nalog</td><td><span class="tag opt">NE</span></td><td>RN-2026-NM001-C</td><td>Predlog RN po pogonu</td></tr>
+    <tr><td>naziv dela*</td><td><span class="tag req">DA</span></td><td>Nosač motora</td><td>Prikaz na ekranu</td></tr>
+    <tr><td>karakteristika kontrole*</td><td><span class="tag req">DA</span></td><td>Vizuelna kontrola</td><td>Opis</td></tr>
+    <tr><td>linija id*</td><td><span class="tag req">DA</span></td><td>12</td><td>→ tab linije</td></tr>
+    <tr><td>masina id*</td><td><span class="tag req">DA</span></td><td>1</td><td>→ tab masine</td></tr>
+    <tr><td>kom za kontrolu n*</td><td><span class="tag req">DA</span></td><td>30</td><td>Koliko uzoraka u seriji (atributivne)</td></tr>
+    <tr><td>slika/crtez</td><td><span class="tag opt">NE</span></td><td>NM-01.png</td><td>Fajl u Storage / public</td></tr>
+    <tr><td>aktivan</td><td><span class="tag opt">NE</span></td><td>DA</td><td>NE = deo se ne koristi</td></tr>
+    <tr><td>tip kontrole</td><td><span class="tag opt">NE</span></td><td>vozilo</td><td><strong>vozilo</strong> = dijagram + katalog vozila</td></tr>
+    <tr><td>vozilo katalog id</td><td><span class="tag opt">NE</span></td><td>NTV, MRAP</td><td>Filter grešaka vozila</td></tr>
+    <tr><td>greska katalog id</td><td><span class="tag opt">NE</span></td><td>5502-A</td><td>Filter greske_katalog</td></tr>
+  </table>
+
+  <h3><span class="sheet-name">radnici</span></h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>3</td></tr>
+    <tr><td>ime i prezime</td><td><span class="tag req">DA</span></td><td>MARKO PETROVIĆ</td></tr>
+    <tr><td>uloga</td><td><span class="tag req">DA</span></td><td>operator, kontrolor, kvalitet, sef, admin</td></tr>
+    <tr><td>email</td><td><span class="tag opt">NE</span></td><td>marko@fabrika.com — isti kao Supabase Auth</td></tr>
+    <tr><td>aktivan</td><td><span class="tag opt">NE</span></td><td>DA ili NE — prazno = ne menja status u bazi</td></tr>
+  </table>
+  <div class="note">Lozinku postavlja admin u aplikaciji (Admin → Lozinka), ne u Excelu.</div>
+
+  <h3><span class="sheet-name">radni_nalozi</span></h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>radni nal</td><td><span class="tag req">DA</span></td><td>RN-2026-NT001-A</td></tr>
+    <tr><td>id dela</td><td><span class="tag req">DA</span></td><td>NT-001</td></tr>
+    <tr><td>kolicina, kupac, status</td><td><span class="tag opt">NE</span></td><td></td></tr>
+    <tr><td>pogon kod</td><td><span class="tag opt">NE</span></td><td>A — ili iz sufiksa RN (-A)</td></tr>
+  </table>
+
+  <h3><span class="sheet-name">kontrolna_lista_stavke</span></h3>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag req">DA</span></td><td>1</td></tr>
+    <tr><td>kategorija</td><td><span class="tag opt">NE</span></td><td>Provera</td></tr>
+    <tr><td>stavka</td><td><span class="tag req">DA</span></td><td>ID dela tačan</td></tr>
+    <tr><td>redosled</td><td><span class="tag opt">NE</span></td><td>1, 2, 3…</td></tr>
+    <tr><td>aktivna</td><td><span class="tag opt">NE</span></td><td>DA</td></tr>
+  </table>
+  <footer>SPC Web · Excel obuka · str. 5</footer>
+</div>
+
+<!-- MERLJIVE -->
+<div class="page section-start">
+  <h2>6. SPC_merljive.xlsx — tri taba</h2>
+  <p>Fajl: <code>excel-rad\SPC_merljive.xlsx</code> ili preuzmi iz Modul Merljive → EXCEL.</p>
+
+  <h3><span class="sheet-name">karakteristike_merljive</span> — GLAVNI tab (granice)</h3>
+  <div class="gold">Jedan red = jedna dimenzija za merenje. Kolona <strong>merni_instrument</strong> odlučuje modul:<br>
+  <strong>Vizuelno / Dokumentacija</strong> → atributivne · ostalo sa LSL/USL → merljive</div>
+  <table>
+    <tr><th>Kolona</th><th>Obavezno</th><th>Primer</th></tr>
+    <tr><td>id</td><td><span class="tag opt">NE</span></td><td>Auto pri uvozu</td></tr>
+    <tr><td>id_deo</td><td><span class="tag req">DA</span></td><td>NM-001</td></tr>
+    <tr><td>pogon_kod</td><td><span class="tag req">DA</span></td><td>A, B, C…</td></tr>
+    <tr><td>sifra_merenja</td><td><span class="tag opt">NE</span></td><td>M1</td></tr>
+    <tr><td>radni_nalog</td><td><span class="tag opt">NE</span></td><td>RN-2026-NM001-C</td></tr>
+    <tr><td>pozicija</td><td><span class="tag req">DA</span></td><td>1, 2, 3…</td></tr>
+    <tr><td>naziv_mere</td><td><span class="tag opt">NE</span></td><td>Prečnik rupe</td></tr>
+    <tr><td>nominala</td><td><span class="tag opt">NE</span></td><td>10.0</td></tr>
+    <tr><td>lsl, usl</td><td><span class="tag req">DA</span>*</td><td>9.8 / 10.2 — *za merljive</td></tr>
+    <tr><td>merni_instrument</td><td><span class="tag req">DA</span></td><td>Šubler, CMM, Vizuelno</td></tr>
+    <tr><td>jedinica</td><td><span class="tag opt">NE</span></td><td>mm, stepen</td></tr>
+    <tr><td>kom_za_kontrolu_n</td><td><span class="tag opt">NE</span></td><td>5 — broj merenja u seriji</td></tr>
+    <tr><td>linija_id, masina_id</td><td><span class="tag opt">NE</span></td><td>Meta na prvom redu grupe po pogonu</td></tr>
+  </table>
+  <div class="note">Inženjer menja samo ovaj tab za nove granice — tab EXCEL u Modulu 2 (ograničen uvoz).</div>
+
+  <h3><span class="sheet-name">sop_deo_varijabilni</span> (tab SOP)</h3>
+  <table>
+    <tr><th>Kolona</th><th>Primer</th></tr>
+    <tr><td>id_deo + pogon_kod</td><td>NM-001 + C</td></tr>
+    <tr><td>radni_nalog</td><td>RN-2026-NM001-C</td></tr>
+    <tr><td>broj_merenja</td><td>5</td></tr>
+    <tr><td>kontrolor_ime, linija, masina</td><td>Opciono</td></tr>
+  </table>
+
+  <h3><span class="sheet-name">merenja_varijabilna</span> (tab DATA)</h3>
+  <p>Samo za <strong>uvoz istorije</strong> — ne za svakodnevni unos operatera.</p>
+  <table>
+    <tr><th>Kolona</th><th>Primer</th></tr>
+    <tr><td>id, datum, smena</td><td>1, 2026-06-01, 1</td></tr>
+    <tr><td>id_deo, pogon_kod, pozicija</td><td>NM-001, C, 3</td></tr>
+    <tr><td>vrednost_raw / izmereno</td><td>10.05</td></tr>
+    <tr><td>status</td><td>OK / NOK</td></tr>
+  </table>
+  <footer>SPC Web · Excel obuka · str. 6</footer>
+</div>
+
+<!-- VOZILO + UVOZ -->
+<div class="page section-start">
+  <h2>7. Katalog vozila — 9 sheetova</h2>
+  <pre>excel-rad\Katalog_vozilo_9_komponenti.xlsx
+  Sheet Karoserija  → kolona id = KAROS-001
+  Sheet Motor       → id = MOTOR-001
+  … (9 sheetova)
+        ↓ spoji sve redove
+  docs\katalog_gresaka_vozilo.csv
+        ↓
+  tab katalog_gresaka_vozilo u master Excelu → uvoz</pre>
+
+  <p>U tabu <span class="sheet-name">delovi</span> za vozilo:</p>
+  <table>
+    <tr><th>Kolona</th><th>Vrednost</th></tr>
+    <tr><td>id dela</td><td>NTV-001, MRAP-001…</td></tr>
+    <tr><td>tip kontrole</td><td><strong>vozilo</strong></td></tr>
+    <tr><td>vozilo katalog id</td><td>NTV, MRAP…</td></tr>
+  </table>
+
+  <h2>8. Uvoz u bazu — korak po korak</h2>
+  <h3>A) Atributivni šifrarnik</h3>
+  <ol>
+    <li>Izmeni <strong>SPC_master_atributivne.xlsx</strong> u <code>excel-rad\</code></li>
+    <li>Admin panel → Atributivne → ADMIN → <strong>Uvezi iz Excela</strong></li>
+    <li>Proveri preview (broj redova po tabu) → <strong>Uvezi u Supabase</strong></li>
+  </ol>
+  <p>Alternativa: izvezi CSV u <code>docs\</code> → <code>npm run import:docs</code></p>
+
+  <h3>B) Merljive granice</h3>
+  <ol>
+    <li>Izmeni <strong>SPC_merljive.xlsx</strong> — tab karakteristike_merljive</li>
+    <li>Modul Merljive → Modul 2 → tab <strong>EXCEL</strong> → Uvezi</li>
+    <li>Auto-sync puni SOP, delovi, RN iz karakteristika</li>
+  </ol>
+
+  <h3>C) Provera posle uvoza</h3>
+  <ol>
+    <li>Aplikacija → unesi ID dela → učitava se crtež i granice</li>
+    <li>Atributivne → dropdown grešaka</li>
+    <li>Vozilo → dijagram + kategorije po zoni</li>
+  </ol>
+
+  <h2>9. Česte greške</h2>
+  <table>
+    <tr><th>Greška</th><th>Rešenje</th></tr>
+    <tr><td>Pogrešan naziv taba</td><td>Tačno: greske_katalog, ne „Greške“</td></tr>
+    <tr><td>ID NM-000 ne radi</td><td>Tačan ID iz Excela (NM-001)</td></tr>
+    <tr><td>Merljive prazne</td><td>Proveri pogon_kod (A/B) i merni_instrument ≠ Vizuelno</td></tr>
+    <tr><td>Excel uvoz aktivira radnike</td><td>Ne piši DA u aktivan ako ne menjaš namerno</td></tr>
+    <tr><td>Menjam log u Excelu</td><td>Log ide iz aplikacije — ne iz šifrarnika</td></tr>
+    <tr><td>Crtež ne postoji</td><td>Upload u Storage ili public/slike/merljive/</td></tr>
+  </table>
+
+  <h2>10. Radni tok (praksa)</h2>
+  <pre>1. Novi deo     → delovi + greske_katalog (atrib.) ILI karakteristike_merljive (merlj.)
+2. Granice      → samo karakteristike_merljive (inženjer)
+3. Novi radnik  → radnici + Auth + Admin Lozinka
+4. Novi RN      → radni_nalozi ili ERP CSV
+5. Uvoz         → Admin / Merljive EXCEL
+6. Svaki dan    → operateri u aplikaciji (NE Excel)</pre>
+
+  <footer>SPC Web · Excel obuka · kraj dokumenta · docs/UPUTSTVO_SIFARNIK_I_EXCEL.md</footer>
+</div>
+
+</body>
+</html>
