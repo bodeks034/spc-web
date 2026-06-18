@@ -1,0 +1,9 @@
+id_deo*,naziv,tip_kontrole,format,sadrzaj_barkoda*,radni_nalog,tip_koda,aktivna,napomena
+5502-A,Osovina,deo,id,5502-A,,oba,DA,Samo ID dela
+5502-A,Osovina,deo,id_rn,5502-A|RN-2024-002,RN-2024-002,oba,DA,ID + radni nalog
+NTV-001,NTV komplet,vozilo,id,NTV-001,,oba,DA,Samo ID dela
+NTV-001,NTV komplet,vozilo,id_rn,NTV-001|NTV-001,NTV-001,oba,DA,ID + radni nalog
+MRAP-001,MRAP komplet,vozilo,id,MRAP-001,,oba,DA,Samo ID dela
+MRAP-001,MRAP komplet,vozilo,id_rn,MRAP-001|MRAP-001,MRAP-001,oba,DA,ID + radni nalog
+MRAP1-001,MRAP1 komplet,vozilo,id,MRAP1-001,,oba,DA,Samo ID dela
+MRAP1-001,MRAP1 komplet,vozilo,id_rn,MRAP1-001|MRAP1-001,MRAP1-001,oba,DA,ID + radni nalog

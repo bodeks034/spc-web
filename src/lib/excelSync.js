@@ -37,6 +37,9 @@ import {
   mapKontrolniLogZaIzvoz,
   kpiPoljaIzForme,
 } from "./kpiExcelExport.js";
+import { DELOVI_EXCEL_COLS } from "./excelColumnDefs.js";
+
+export { DELOVI_EXCEL_COLS };
 
 export const EXCEL_BUCKET = "spc-excel-sync";
 export const KONTROLNI_LOG_FILE = "kontrolni_log.xlsx";
@@ -65,24 +68,6 @@ export const KONTROLNI_LOG_COLS = [
 ];
 
 /** Kolone taba delovi u SPC_master_atributivne (redosled za Excel). */
-export const DELOVI_EXCEL_COLS = [
-  ["id_deo", "id dela*"],
-  ["pogon_kod", "pogon kod"],
-  ["radni_nalog", "radni nalog"],
-  ["naziv_dela", "naziv dela*"],
-  ["karakteristika", "karakteristika kontrole*"],
-  ["linija_id", "linija id*"],
-  ["masina_id", "masina id*"],
-  ["kom_za_kontrolu", "kom za kontrolu n*"],
-  ["slika_naziv", "slika/crtez"],
-  ["aktivan", "aktivan"],
-  ["napomena", "napomena"],
-  ["tip_kontrole", "tip kontrole"],
-  ["vozilo_katalog_id", "vozilo katalog id"],
-  ["greska_katalog_id", "greska katalog id"],
-];
-
-/** Mapiranje Excel sheet → Supabase (isti redosled kao docs/*.csv) */
 export const IMPORT_SHEETS = [
   {
     sheet: "linije",

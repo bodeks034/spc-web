@@ -1,30 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
-import { DELOVI_EXCEL_COLS } from "./excelSync.js";
+import {
+  DELOVI_EXCEL_COLS,
+  RADNI_NALOZI_EXCEL_COLS,
+  KUPCI_EXCEL_COLS,
+} from "./excelColumnDefs.js";
 import { normHeader, parseCsvText } from "./radniNaloziUvoz.js";
 
-/** Excel kolone po sheet-u (db key → header u ćeliji). */
-export const RADNI_NALOZI_EXCEL_COLS = [
-  ["id", "id"],
-  ["broj_naloga", "radni nal"],
-  ["id_deo", "id dela*"],
-  ["naziv_dela", "naziv dela"],
-  ["kolicina", "količina"],
-  ["kupac", "kupac"],
-  ["datum_unosa", "datum unosa"],
-  ["rok_isporuke", "rok isporuke"],
-  ["status", "status"],
-  ["operater", "operater"],
-  ["napomena", "napomena"],
-  ["pogon_kod", "pogon_kod"],
-];
-
-export const KUPCI_EXCEL_COLS = [
-  ["id", "id"],
-  ["naziv", "naziv"],
-  ["aktivan", "aktivan"],
-];
+export { RADNI_NALOZI_EXCEL_COLS, KUPCI_EXCEL_COLS };
 
 /**
  * Koji CSV fajl ide u koji Excel tab master šifrarnika.

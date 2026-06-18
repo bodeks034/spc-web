@@ -4,12 +4,10 @@ function dISO() {
   return new Date().toISOString().split("T")[0];
 }
 
-/** Da li karakteristika zahteva FAI — kolona nivo_kontrole u Excelu (DA / 1 / FAI). */
+/** Da li karakteristika zahteva FAI — samo kolona nivo_kontrole (glavni unos kol. V). */
 export function faiObaveznoIzReda(k) {
   const n = String(k?.nivo_kontrole ?? "").trim().toUpperCase();
-  if (["DA", "1", "TRUE", "FAI", "YES"].includes(n)) return true;
-  const nap = String(k?.napomena || "").toLowerCase();
-  return /\bfai\b/.test(nap) || /prvo\s*par/.test(nap);
+  return ["DA", "1", "TRUE", "FAI", "YES"].includes(n);
 }
 
 export function faiObaveznoIzKolone(k) {

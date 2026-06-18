@@ -24,16 +24,17 @@ import {
   grupisiKarakteristike,
   metaIzGrupe,
 } from "./syncSifrarnikIzMerljivih.js";
-import { RADNI_NALOZI_EXCEL_COLS } from "./sapCsvToExcel.js";
+import { RADNI_NALOZI_EXCEL_COLS } from "./excelColumnDefs.js";
 import { normHeader } from "./radniNaloziUvoz.js";
+import {
+  GLAVNI_UNOS_BROJ_MERENJA_DEFAULT,
+  GLAVNI_UNOS_COL_BROJ_MERENJA,
+} from "./spcDefaults.js";
 
 const VOZILO_SHEET_RE = /^vozilo\d+$/i;
 
 /** Podrazumevano SPC merenja po dimenziji kad je Tip=Merljiva a kolona X prazna. */
-export const GLAVNI_UNOS_BROJ_MERENJA_DEFAULT = 5;
-
-/** Kolona X — koliko puta meriti istu dimenziju u seriji (SPC). */
-export const GLAVNI_UNOS_COL_BROJ_MERENJA = "SPC broj merenja po dimenziji";
+export { GLAVNI_UNOS_BROJ_MERENJA_DEFAULT, GLAVNI_UNOS_COL_BROJ_MERENJA };
 
 /** Kolone voziloN sheeta — V/W/X = nivo FAI + broj merenja (glavni unos). */
 export const GLAVNI_UNOS_VOZILO_HEADERS = [

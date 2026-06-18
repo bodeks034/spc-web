@@ -34,7 +34,7 @@ export default function CrtezPregledPanel({
     let ok = true;
     setStatus("loading");
     setUrl(null);
-    ucitajPrikazSliku(supabase, modul, slikaNaziv).then((u) => {
+    ucitajPrikazSliku(supabase, modul, slikaNaziv, idDeo).then((u) => {
       if (!ok) return;
       if (u) {
         setUrl(u);

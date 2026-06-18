@@ -143,8 +143,7 @@ function brojMerenjaZaSerijuGrupu(redoviGrupe) {
     const n = brojMerenjaIzReda(r);
     if (n) return n;
   }
-  const imaMerljivih = (redoviGrupe || []).some((r) => jeMerljivaPoInstrumentu(r));
-  return imaMerljivih ? 5 : null;
+  return null;
 }
 
 /**

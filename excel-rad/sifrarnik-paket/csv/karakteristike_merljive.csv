@@ -1,0 +1,85 @@
+id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,masina_id,naziv_dela,slika,ukupno_kom,kom_za_kontrolu_n,nivo_kontrole,fai_broj_merenja,broj_merenja,pozicija,klasa,naziv_mere,nominala,usl,lsl,merni_instrument,jedinica,napomena
+2,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Glavni rukavac (A-A),,55h6,55,55.1,54.981,Mikrometar,mm,
+3,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Ulazni rukavac (B-B),,42h6,42,42,41.984,Mikrometar,mm,
+4,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Srednji precnik (C-C),,50h6,50,50,49.984,Mikrometar,mm,
+5,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Sirina zleba za klin,,12P9,12,11.982,11.939,Tolerancijski cep,mm,
+6,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Dubina zleba,,5,5,5.2,5,Dubinsko pomicno merilo,mm,
+7,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Radijalno bacanje,,0.05,0.05,0.05,0,Komparator,mm,
+8,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Hrapavost (N5),,Ra0,4,0.4,0.4,Profilometrar,mm,
+9,5502-A,B,1,RN-2024-002,Vizuelna kontrola povrsine i montaze,Preseraj,1,2,Osovina,Osovina_SOP.jpg,50,20,DA,,5,Ugao fasete,,45,450000,460000,440000,Uglomer,stepen,
+10,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Ukupna visina,,100,100.5,99.5,100.5,Pomicno merilo,mm,
+11,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Sirina nosaca,,50,50.2,49.8,50.2,Pomicno merilo,mm,
+12,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Dubina kanala,,12,12.3,11.7,12.3,Dubinsko pomicno merilo,mm,
+13,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Razmak rupa,,25,25.2,24.8,25.2,Pomicno merilo,mm,
+14,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Duzina kraka,,75,75.3,74.7,75.3,Pomicno merilo,mm,
+15,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Debljina zida,,3,3.15,2.85,3.15,Pomicno merilo,mm,
+16,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Precnik rupe,,8,8.1,7.9,8.1,Pomicno merilo,mm,
+17,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Radijalno bacanje,,0.05,0.05,0,5,Komparator,mm,
+18,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Ravnost povrsine,,0.02,0.02,0,2,Komparator,mm,
+19,5501-A,C,1,RN-2024-001,Vizuelna kontrola vara i zazora,Karoserija,12,1,Nosac,Nosac_SOP.jpg,50,30,DA,,,Zazor spoja,,1.5,1.6,1.4,1.6,Tolerancijski cep,mm,
+20,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Ukupna duzina,,200,200.5,199.5,200.5,Pomicno merilo,mm,
+21,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Sirina poklopca,,40,40.2,39.8,40.2,Pomicno merilo,mm,
+22,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Visina zida,,15,15.2,14.8,15.2,Pomicno merilo,mm,
+23,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Zazor poklopca,,1.2,1.25,1.15,1.25,Tolerancijski cep,mm,
+24,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Dubina kanala,,8,8.2,7.8,8.2,Dubinsko pomicno merilo,mm,
+25,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Precnik montaze,,30,30.2,29.8,30.2,Pomicno merilo,mm,
+26,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Debljina rebra,,2.5,2.6,2.4,2.6,Pomicno merilo,mm,
+27,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Duzina vezne povrsine,,120,120.5,119.5,120.5,Pomicno merilo,mm,
+28,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Radijalno bacanje,,0.04,0.04,0,4,Komparator,mm,
+29,5503-A,,1,RN-2024-003,Kontrola zazora i brtvljenja,Montaza finalna,30,3,Poklopac,Poklopac_SOP.jpg,50,25,DA,,,Ravnost,,0.03,0.03,0,3,Komparator,mm,
+100,NM-001,A,1,RN-2026-NM001-A,Vizuelna kontrola ulazna,Ulazna kontrola,43,1,Nosač motora,NM-01.png,50,5,DA,1,5,Debljina lima,,10 mm,10,10.2,9.8,Mikrometar,mm,§1 Ulazna kontrola
+103,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Ukupna dužina,,230,230,230.2,229.8,Pomično merilo,mm,§2 Laser sečenje
+104,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Ukupna visina,,130,130,130.2,129.8,Pomično merilo,mm,§2 Laser sečenje
+105,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Unutrašnji otvor,,190,190,190.1,189.9,Pomično merilo,mm,§2 Laser sečenje
+106,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Donji otvor,,160,160,160.1,159.9,Pomično merilo,mm,§2 Laser sečenje
+107,NM-001,B,1,RN-2026-NM001-B,Laser sečenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Radijus R16,,16,16,16.2,15.8,Šablon,mm,§2 Laser sečenje
+108,NM-001,B,2,RN-2026-NM001-B,Bušenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Ø17 rupe (4 kom),,17.0,17,17.2,16.8,Mikrometar,mm,§3 Bušenje — SPC X̄-R
+109,NM-001,B,2,RN-2026-NM001-B,Bušenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Razmak rupa centar-centar,,190,190,190.2,189.8,Pomično merilo,mm,§3 Bušenje — SPC X̄-R
+110,NM-001,B,2,RN-2026-NM001-B,Bušenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Simetričnost rupa,,0,0,0.2,-0.2,Komparator,mm,§3 Bušenje — SPC I-MR
+111,NM-001,B,2,RN-2026-NM001-B,Bušenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Pozicija rupa X,,Crtež,0,0.2,-0.2,Koordinatni merni sistem,mm,§3 Bušenje — SPC I-MR
+112,NM-001,B,2,RN-2026-NM001-B,Bušenje,Preseraj,,,Nosač motora,NM-01.png,50,5,,,5,Pozicija rupa Y,,Crtež,0,0.2,-0.2,Koordinatni merni sistem,mm,§3 Bušenje — SPC I-MR
+113,NM-001,B,3,RN-2026-NM001-B,Savijanje,Preseraj,,,Nosač motora,NM-01.png,50,4,,,5,Visina savijanja,,110,110,110.1,109.9,Pomično merilo,mm,§4 Savijanje
+114,NM-001,B,3,RN-2026-NM001-B,Savijanje,Preseraj,,,Nosač motora,NM-01.png,50,4,,,5,Širina savijanja,,80,80,80.1,79.9,Pomično merilo,mm,§4 Savijanje
+115,NM-001,B,3,RN-2026-NM001-B,Savijanje,Preseraj,,,Nosač motora,NM-01.png,50,4,,,5,Ugao savijanja,,90°,90,90.5,89.5,Uglomer,stepen,§4 Savijanje
+116,NM-001,B,3,RN-2026-NM001-B,Savijanje,Preseraj,,,Nosač motora,NM-01.png,50,4,,,5,Paralelnost stranica,,0,0,0.2,0,Komparator,mm,§4 Savijanje
+117,NM-001,C,1,RN-2026-NM001-C,Vizuelna kontrola zavarivanje,Karoserija,12,1,Nosač motora,NM-01.png,50,5,DA,,,Visina vara,,6,6,7,5,Vizuelna + šablonska skala,mm,§5 Zavarivanje VT ISO 17637
+122,NM-001,C,2,RN-2026-NM001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,NM-01.png,50,5,DA,,5,Ravnost baze,,0,0,0.2,0,Komparator,mm,§6 Geometrijska
+123,NM-001,C,2,RN-2026-NM001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,NM-01.png,50,5,DA,,5,Paralelnost ušica,,0,0,0.2,0,Komparator,mm,§6 Geometrijska
+124,NM-001,C,2,RN-2026-NM001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,NM-01.png,50,5,DA,,5,Pravougaonost,,90°,90,90.2,89.8,Uglomer,stepen,§6 Geometrijska
+125,NM-001,C,2,RN-2026-NM001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,NM-01.png,50,5,DA,,5,Koncentričnost rupa,,0,0,0.2,0,Komparator,mm,§6 Geometrijska
+126,NM-001,C,2,RN-2026-NM001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,NM-01.png,50,5,DA,,5,Simetričnost sklopa,,0,0,0.2,-0.2,Komparator,mm,§6 Geometrijska
+127,NM-001,F,1,RN-2026-NM001-F,Završna kontrola,Završna,48,1,Nosač motora,NM-01.png,50,4,DA,,5,Masa dela,,2.35 kg,2.35,2.45,2.25,Vaga,kg,§7 Završna kontrola
+131,NT-001,A,1,RN-2026-NT001-A,Vizuelna kontrola ulazna,Ulazna kontrola,43,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Debljina lima,,10mm,10,10.2,9.8,Mikrometar,mm,§1 Ulazna kontrola
+132,NT-001,A,2,RN-2026-NT001-A,Ulazna kontrola,Ulazna kontrola,43,1,Nosač motora,nosac motora NTV.png,50,1,DA,,,Sertifikat materijala,,S355J2,,,,Dokumentacija,mm,§1 Ulazna — OK/NOK
+133,NT-001,A,2,RN-2026-NT001-A,Ulazna kontrola,Ulazna kontrola,43,1,Nosač motora,nosac motora NTV.png,50,1,DA,,,Površinska oštećenja,,OK,,,,Vizuelno,mm,§1 Ulazna kontrola
+134,NT-001,B,1,RN-2026-NT001-B,Laser sečenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Ukupna dužina,,,280,280.2,279.8,Pomično merilo,mm,§2 Laser sečenje
+135,NT-001,B,1,RN-2026-NT001-B,Laser sečenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Ukupna visina,,,155,155.2,154.8,Pomično merilo,mm,§2 Laser sečenje
+136,NT-001,B,1,RN-2026-NT001-B,Laser sečenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Unutrašnji otvor,,,240,240.1,239.9,Pomično merilo,mm,§2 Laser sečenje
+137,NT-001,B,1,RN-2026-NT001-B,Laser sečenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Donji otvor,,,160,160.1,159.9,Pomično merilo,mm,§2 Laser sečenje
+138,NT-001,B,1,RN-2026-NT001-B,Laser sečenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Radijus R8,,,8,8.2,7.8,Šablon,mm,§2 Laser sečenje
+139,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Ø18 rupe (2 kom),,,18,18.2,17.8,Mikrometar,mm,§3 Bušenje — SPC X̄-R
+140,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Ø17 rupe (2 kom),,,17,17.2,16.8,Mikrometar,mm,§3 Bušenje — SPC X̄-R
+141,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Ø14 rupe (4 kom),,,14,14.2,13.8,Mikrometar,mm,§3 Bušenje — SPC I-MR
+142,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Pozicija Ø18 rupa X,,teorijska,,0.2,-0.2,Pomično merilo,mm,§3 Bušenje — SPC I-MR
+143,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Pozicija Ø18 rupa Y,,teorijska,,0.2,-0.2,Komparator,mm,§3 Bušenje — SPC I-MR
+144,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Pozicija Ø14 rupa,,teorijska,,0.3,-0.3,Mikrometar,mm,§3 Bušenje — SPC I-MR
+145,NT-001,B,3,RN-2026-NT001-B,Savijanje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Unutrasnja sirina,,,80,80.1,79.9,Pomično merilo,mm,§4 Savijanje
+146,NT-001,B,3,RN-2026-NT001-B,Savijanje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Širina preseka,,,110,110.1,109.9,Pomično merilo,mm,§4 Savijanje
+147,NT-001,B,3,RN-2026-NT001-B,Savijanje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Visina nosaca,,,155,155.2,154.8,Pomično merilo,mm,§4 Savijanje
+148,NT-001,B,3,RN-2026-NT001-B,Savijanje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Ugao savijanja,,90°,90,90.5,89.5,Uglomer,stepen,§4 Savijanje
+149,NT-001,B,3,RN-2026-NT001-B,Savijanje,Preseraj,,,Nosač motora,nosac motora NTV.png,50,3,,,5,Simetricnost,,,0,0.2,-0.2,Komparator,mm,§4 Savijanje
+150,NT-001,C,1,RN-2026-NT001-C,Vizuelna kontrola zavarivanje,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,,Visina vara,,6mm,6,7,5,Vizuelna + šablonska skala,mm,§5 Zavarivanje VT ISO 17637
+151,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,,Duzina vara,,Crtez,,,,Vizuelna VT,mm,§5 Zavarivanje — OK/NOK
+152,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,,Poroznost,,,0,0,0,Vizuelna VT,mm,§5 Zavarivanje
+153,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,,Prskanje,,,0,0,0,Vizuelna VT,mm,§5 Zavarivanje
+154,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,,Pukotine,,,0,0,0,Vizuelna VT,mm,§5 Zavarivanje
+155,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Ravnost baze,,,0,0.2,0,Komparator,mm,§6 Geometrijska
+156,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Paralelnost bocnih nosaca,,,0,0.2,0,Komparator,mm,§6 Geometrijska
+157,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Pravougaonost,,90°,90,90.2,89.8,Uglomer,stepen,§6 Geometrijska
+158,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Koncentričnost rupa,,,0,0.2,-0.2,Komparator,mm,§6 Geometrijska
+159,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,12,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Simetričnost sklopa,,,0,0.2,-0.2,Komparator,mm,§6 Geometrijska
+160,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,48,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Masa dela,,"3,2kg",3.2,3.4,3,Vaga,kg,§7 Završna — OK/NOK
+161,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,48,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Oštre ivice,,,,,,Vizuelno,mm,§7 Završna — OK/NOK
+162,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,48,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Površinska zaštita,,,,,,Vizuelno,mm,§7 Završna — OK/NOK
+163,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,48,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Oznaka dela,,NT-001,,,,Vizuelno,mm,
+164,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,48,1,Nosač motora,nosac motora NTV.png,50,3,DA,,5,Vizuelni izgled,,Bez ostecenja,,,,Vizuelno,mm,

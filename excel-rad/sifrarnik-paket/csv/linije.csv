@@ -1,0 +1,61 @@
+id,linija,proces,operacija,greske
+1,Preseraj,Priprema materijala,Savijanje,Pogresan radijus
+2,Preseraj,Podesavanje alata,Probijanje,Neujednacen ugao
+3,Preseraj,Podesavanje alata,Savijanje,Pucanje
+4,Preseraj,Podesavanje alata,Probijanje,Neujednacen ugao
+5,Preseraj,Hranjenje prese,Busenje,Elasticno ugibanje
+6,Preseraj,Oblikovanje ,Savijanje,Pogresan radijus
+7,Preseraj,Oblikovanje ,Rezanje,Pucanje
+8,Preseraj,Zavrsna obrada,Izvlacenje,Nabori
+9,Preseraj,Kontrola kvaliteta,Razdvajanje,Ogrebotine
+10,Preseraj,Kontrola kvaliteta,Razdvajanje,Pogresan izbor V otvora prese
+11,Preseraj,Kontrola kvaliteta,Razdvajanje,Pomak zadnjeg granicnika
+12,Karoserija,Podsklopovi sklapanje,Lučno zavarivanje,Loši varovi
+13,Karoserija,Glavni sklopovi sklapanje,Tačkasto zavarivanje,Neusklađenost delova
+14,Karoserija,Zavarivanje i spajanje,Lasersko zavarivanje,Pogrešna geometrija
+15,Karoserija,Kontrola kvaliteta geometrije,Nanošenje lepilla,Oštećenje usled rukovanja
+16,Karoserija,Kontrola kvaliteta,Nanošenje zaptivnih masa,Kriva ivica
+17,Karoserija,Kontrola kvaliteta,Merenje kordinata (CMM),Ogrebotina
+18,Karoserija,Kontrola kvaliteta,Merenje kordinata (CMM),Zazor
+19,Lakirnica,Zastita karoserije,Odmašćivanje karoserije,Mehurići u premazu
+20,Lakirnica,Bojenje karoserije,Pranje karoserije,Pmorandzina kora
+21,Lakirnica,Bojenje karoserije,Fosfatizacija,Curenje boje
+22,Lakirnica,Bojenje karoserije,KTL,Cestice prašine u boji i laku
+23,Lakirnica,Bojenje karoserije,Potapanje,Nedovoljna debljina premaza
+24,Lakirnica,Bojenje karoserije,Zaptivanje šavova,Nedovoljna debljina premaza
+25,Lakirnica,Bojenje karoserije,Osnovna boja nanošenje,Nedovoljna debljina premaza
+26,Lakirnica,Bojenje karoserije,Lak nanošenje,Nedovoljna debljina premaza
+27,Lakirnica,Bojenje karoserije,Pečenje i sušenje,Nedovoljna debljina premaza
+28,Lakirnica,Bojenje karoserije,Primer nanošenje,Nedovoljna debljina premaza
+29,Lakirnica,Bojenje karoserije,Vizuelna kontrola,Nedovoljna debljina premaza
+30,Montaža,Kompletiranje vozila finalno,Ugradnja motora,Nedostajuči delovi
+31,Montaža,Kompletiranje vozila finalno,Ugradnja transmisije,Pogrešna ugradnja
+32,Montaža,Kompletiranje vozila finalno,Ugradnja hidraulike,Greške u kalibraciji softvera
+33,Montaža,Kompletiranje vozila finalno,Ugradnja pneumatike,Oštećenje enterijera
+34,Montaža,Kompletiranje vozila finalno,Spajanje karoserije išasije,Oštećenje spoljašnosti
+35,Montaža,Kompletiranje vozila finalno,Ugradnja enterijera,Oštećenje spoljašnosti
+36,Montaža,Kompletiranje vozila finalno,Ugradnja točkova,Oštećenje spoljašnosti
+37,Montaža,Kompletiranje vozila finalno,Punjenje tečnosti,Oštećenje spoljašnosti
+38,Montaža,Kompletiranje vozila finalno,Programiranje elektronike,Oštećenje spoljašnosti
+39,Montaža,Kompletiranje vozila finalno,ugradnja elektro instalacije,Oštećenje spoljašnosti
+40,Montaža,Kompletiranje vozila finalno,Postavljanje stakala,Oštećenje spoljašnosti
+41,Montaža,Kompletiranje vozila finalno,Podešavanje zazora,Oštećenje spoljašnosti
+42,Montaža,Kompletiranje vozila finalno,Kontrola kvaliteta,Oštećenje spoljašnosti
+43,Ulazna kontrola,Verifikacija kvaliteta delova,Audit dobavljača,Neispravan materijal
+44,Ulazna kontrola,Verifikacija kvaliteta materijala,Vizuelna kontrola,Pogresan deo isporučen
+45,Ulazna kontrola,Verifikacija kvaliteta materijala,Merenje dimenzija materijala,Nedostajuća dokumetacija
+46,Ulazna kontrola,Potvrda ispravnosti,Laboratorijsko ispitivanje,Oštećenje delova u transportu
+47,Ulazna kontrola,Verifikacija kvaliteta materijala,Provera prateće dokumentacije,Oštećenje delova u transportu
+48,Završna kontrola,Potvrda kvaliteta proizvoda,Vizuelni pregled,Funkcionalni kvarovi
+49,Završna kontrola,Potvrda kvaliteta proizvoda,Test kočnica i svetala,Estetski nedostaci
+50,Završna kontrola,Potvrda kvaliteta proizvoda,Test vodonepropustivosti,Curenje tečnosti 
+51,Završna kontrola,Potvrda kvaliteta proizvoda,Dijagnostika kvarova,Neprolazak testa vodom
+52,Završna kontrola,Potvrda kvaliteta proizvoda,Podešavanje geometrije trapa,Neprolazak TDF testa
+53,Završna kontrola,Potvrda kvaliteta proizvoda,TDF test,Neprolazak TDF testa
+54,Završna kontrola,Potvrda kvaliteta proizvoda,Provera dokumentacije vozila,Neprolazak TDF testa
+55,Završna kontrola,Potvrda kvaliteta proizvoda,PDI finalno odobrenje za transport,Neprolazak TDF testa
+56,Logistika,Upravljanje protokom materijala,Prijem sirovina,Kašnjenje u isporuci
+57,Logistika,Upravljanje gotovim vozilima,Unutrašnji transport,Netačan inventar
+58,Logistika,Upravljanje gotovim vozilima,Spoljašni transport,Oštećenje delova u transportu
+59,Logistika,Upravljanje gotovim vozilima,Snabdevanje linije materijalom,Oštećenje vozila u transportu
+60,Logistika,Upravljanje gotovim vozilima,Priprema vozila za transport,Greške u sekvenciranju delova na liniji

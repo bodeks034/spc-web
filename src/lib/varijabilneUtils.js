@@ -170,6 +170,7 @@ import { jeAtributivnaPoInstrumentu, jeMerljivaPoInstrumentu } from "./karakteri
 import { faiObaveznoIzReda, faiBrojMerenjaIzKolone } from "./faiWorkflow.js";
 import { faiBrojMerenjaIzReda } from "./karakteristikaMerljive.js";
 import { labelKlasaSaPragom } from "./spcAlarmPragovi.js";
+import { GLAVNI_UNOS_BROJ_MERENJA_DEFAULT } from "./spcDefaults.js";
 
 /** Da li red ide u merljivi unos (dimenzije/SPC), a ne u atributivni OK/NOK. */
 export function jeMerljivaKarakteristika(k) {
@@ -400,6 +401,42 @@ export function maxDuzinaUnosaBroja(opseg) {
   return intLen + 4;
 }
 
+/** Koliko decimala očekujemo iz LSL/USL/nominala (za nepotpun unos). */
+export function brojDecimalaIzGranica(lslDec, uslDec, nominalDec) {
+  let maxDec = 0;
+  for (const v of [lslDec, uslDec, nominalDec]) {
+    if (!Number.isFinite(v)) continue;
+    const s = String(v);
+    const idx = s.indexOf(".");
+    if (idx >= 0) maxDec = Math.max(maxDec, s.length - idx - 1);
+  }
+  return maxDec;
+}
+
+/**
+ * Operator još kuca decimale (npr. 11,9 umesto 11,939).
+ * Ne bojimo NOK niti auto-dodajemo dok vrednost može postati OK.
+ */
+export function unosMerenjaNepotpun(raw, granice = {}) {
+  const s = String(raw ?? "").trim();
+  if (!s || !s.includes(",")) return false;
+
+  const { lslDec, uslDec, nominalDec, jedinica } = granice;
+  const minDec = brojDecimalaIzGranica(lslDec, uslDec, nominalDec);
+  if (minDec <= 0) return false;
+
+  const posle = s.split(",")[1] ?? "";
+  if (!posle.length) return true;
+  if (posle.length >= minDec) return false;
+
+  const j = jedinica ?? "mm";
+  const dec = toDec(s, j);
+  if (!Number.isFinite(dec)) return true;
+  if (proveriOkNok(s, lslDec, uslDec, j) === "OK") return false;
+
+  return true;
+}
+
 /** Da li je broj u razumnom opsegu (pre dodavanja merenja). */
 export function proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, jedinica) {
   if (!Number.isFinite(dec)) {
@@ -443,6 +480,8 @@ export function bojaUnosMerenja(raw, lslDec, uslDec, nominalDec, jedinica, C) {
   const dec = toDec(s, jedinica);
   if (!Number.isFinite(dec)) return C.input;
 
+  if (unosMerenjaNepotpun(s, { lslDec, uslDec, nominalDec, jedinica })) return C.input;
+
   const pl = proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, jedinica);
   if (!pl.ok) return C.nok || "#2d1010";
 
@@ -454,7 +493,12 @@ export function unosMerenjaSpremanZaDodavanje(raw, k) {
   const s = String(raw ?? "").trim();
   if (!s) return false;
 
-  const granice = { lslDec: k.lslDec, uslDec: k.uslDec, nominalDec: k.nominalDec };
+  const granice = {
+    lslDec: k.lslDec,
+    uslDec: k.uslDec,
+    nominalDec: k.nominalDec,
+    jedinica: k.jedinica,
+  };
 
   if (koristiUgaoUnosKolone(k) || unosKaoUgao(k.jedinica, s, k.lslDec, k.uslDec)) {
     return false;
@@ -463,6 +507,7 @@ export function unosMerenjaSpremanZaDodavanje(raw, k) {
   if (s.includes(",")) {
     const posle = s.split(",")[1];
     if (!posle?.length) return false;
+    if (unosMerenjaNepotpun(s, granice)) return false;
     return validirajUnos(s, k.jedinica, granice).ok;
   }
 
@@ -606,13 +651,11 @@ function redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod) {
   );
 }
 
-/** Broj uzoraka za seriju (fazu) — iz karakteristike_merljive.broj_merenja, inače SOP fallback. */
-export function brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallback = 5, pogonKod) {
+/** Broj uzoraka za seriju — samo karakteristike_merljive.broj_merenja (glavni unos kol. X); bez SOP fallbacka. */
+export function brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, _sopFallbackZanemaren = 5, pogonKod) {
   const rows = redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod)
     .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
   const pogon = String(pogonKod || "").trim().toUpperCase();
-  const fb = Number(fallback);
-  const sopFb = Number.isFinite(fb) && fb > 0 ? fb : 5;
   let best = 0;
   for (const k of rows) {
     const pk = pogonKodKarakteristike(k, { multiPogon: true });
@@ -621,13 +664,9 @@ export function brojMerenjaZaSeriju(karakteristike, idDeo, sifraMerenja, fallbac
     if (pogon && pk && pk !== pogon) continue;
     if (n > best) best = n;
   }
-  if (best > 0) {
-    const merljiveN = rows.filter(jeMerljivaKarakteristika).length;
-    // Auto-dodela 1 kad postoji samo jedna dimenzija — koristi SOP (npr. NM-001 ulazna = 5).
-    if (best === 1 && merljiveN <= 1 && sopFb > 1) return sopFb;
-    return best;
-  }
-  return sopFb;
+  if (best > 0) return best;
+  const imaMerljivih = rows.some(jeMerljivaKarakteristika);
+  return imaMerljivih ? GLAVNI_UNOS_BROJ_MERENJA_DEFAULT : 5;
 }
 
 /** Meta po seriji: faza KP, linija (Preseraj/Karoserija…), broj uzoraka. */

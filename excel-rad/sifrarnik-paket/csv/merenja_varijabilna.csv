@@ -1,0 +1,1350 @@
+id,datum,smena,radni_nalog,id_deo,naziv_dela,pozicija,izmereno,status,linija,kontrolor,merni_instrument,masina
+2,2026-04-21 02:00:00,1,rn-2,5502-a,osovina,ukupna duzina,360,ok,montaza,kika kon,pomicno merilo,m2
+3,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+4,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+5,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+6,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+7,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+8,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+9,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+10,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+11,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+12,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+13,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+14,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+15,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+16,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+17,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+18,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+19,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+20,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+21,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+22,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+23,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+24,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+25,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+26,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+27,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+28,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+29,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+30,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+31,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+32,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+33,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+34,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+35,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+36,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+37,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+38,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+39,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+40,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+41,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+42,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+43,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+44,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+45,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+46,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+47,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.964,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+48,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+49,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+50,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.935,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+51,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+52,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+53,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+54,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+55,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+56,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+57,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+58,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+59,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+60,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+61,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+62,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+63,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+64,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+65,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+66,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+67,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+68,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+69,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+70,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+71,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+72,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+73,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+74,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+75,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+76,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+77,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+78,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+79,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+80,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+81,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+82,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+83,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+84,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+85,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+86,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+87,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+88,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+89,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+90,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+91,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+92,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+93,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+94,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+95,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+96,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+97,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+98,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+99,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+100,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+101,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+102,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+103,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+104,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+105,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+106,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+107,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+108,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+109,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+110,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+111,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+112,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+113,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+114,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+115,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+116,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+117,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+118,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+119,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+120,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+121,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+122,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+123,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+124,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+125,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+126,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+127,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+128,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+129,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+130,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+131,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+132,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+133,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+134,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+135,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+136,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+137,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+138,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+139,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+140,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+141,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+142,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+143,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+144,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+145,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+146,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+147,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+148,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+149,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+150,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+151,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+152,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+153,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+154,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+155,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+156,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+157,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+158,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+159,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+160,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+161,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+162,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+163,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+164,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+165,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+166,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+167,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+168,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+169,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+170,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+171,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+172,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+173,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+174,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+175,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+176,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+177,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+178,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+179,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+180,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+181,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+182,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+183,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+184,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+185,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+186,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+187,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+188,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+189,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+190,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+191,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+192,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+193,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+194,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+195,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+196,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+197,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+198,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+199,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+200,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+201,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+202,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+203,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+204,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+205,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+206,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+207,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+208,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+209,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+210,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+211,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+212,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+213,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),40.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+214,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+215,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+216,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+217,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+218,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+219,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+220,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+221,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+222,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+223,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+224,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+225,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+226,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+227,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+228,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+229,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+230,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+231,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+232,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+233,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+234,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+235,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+236,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+237,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+238,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+239,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+240,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+241,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+242,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+243,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.05,OK,Montaza,KIKA KON,Komparator,M2
+244,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+245,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+246,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+247,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+248,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+249,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+250,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+251,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+252,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+253,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+254,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+255,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.03,OK,Montaza,KIKA KON,Komparator,M2
+256,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.04,OK,Montaza,KIKA KON,Komparator,M2
+257,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+258,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+259,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+260,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+261,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+262,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+263,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+264,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+265,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+266,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+267,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+268,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+269,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+270,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+271,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+272,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+273,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+274,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+275,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+276,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+277,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+278,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+279,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+280,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+281,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+282,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+283,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+284,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+285,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+286,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+287,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+288,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+289,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+290,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+291,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+292,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+293,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+294,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+295,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+296,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+297,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+298,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+299,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+300,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+301,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+302,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+303,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+304,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+305,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+306,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+307,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+308,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+309,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+310,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+311,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+312,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+313,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+314,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+315,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+316,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+317,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.964,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+318,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+319,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+320,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.935,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+321,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+322,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+323,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+324,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+325,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+326,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+327,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+328,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+329,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+330,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+331,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+332,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+333,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+334,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+335,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+336,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+337,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+338,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+339,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+340,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+341,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+342,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+343,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+344,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+345,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+346,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+347,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+348,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+349,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+350,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+351,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+352,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+353,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+354,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+355,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+356,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+357,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+358,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+359,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+360,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+361,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+362,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+363,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+364,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+365,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+366,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+367,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+368,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+369,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+370,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+371,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+372,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+373,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+374,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+375,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+376,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+377,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+378,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+379,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+380,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+381,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+382,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+383,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+384,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+385,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+386,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+387,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+388,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+389,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+390,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+391,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+392,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+393,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+394,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+395,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+396,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+397,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+398,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+399,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+400,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+401,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+402,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+403,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+404,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+405,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+406,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+407,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+408,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+409,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+410,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+411,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+412,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+413,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+414,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+415,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+416,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+417,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+418,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+419,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+420,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+421,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+422,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+423,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+424,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+425,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+426,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+427,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+428,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+429,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+430,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+431,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+432,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+433,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+434,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+435,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+436,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+437,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+438,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+439,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+440,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+441,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+442,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+443,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+444,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+445,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+446,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+447,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+448,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+449,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+450,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+451,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+452,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+453,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+454,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+455,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+456,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+457,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+458,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+459,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+460,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+461,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+462,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+463,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+464,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+465,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+466,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+467,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+468,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+469,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+470,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+471,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+472,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+473,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+474,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+475,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+476,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+477,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+478,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+479,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+480,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+481,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+482,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+483,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),40.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+484,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+485,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+486,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+487,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+488,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+489,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+490,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+491,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+492,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+493,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+494,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+495,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+496,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+497,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+498,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+499,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+500,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+501,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+502,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+503,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+504,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+505,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+506,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+507,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+508,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+509,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+510,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+511,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+512,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+513,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.05,OK,Montaza,KIKA KON,Komparator,M2
+514,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+515,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+516,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+517,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+518,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+519,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+520,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+521,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+522,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+523,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+524,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+525,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.03,OK,Montaza,KIKA KON,Komparator,M2
+526,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.04,OK,Montaza,KIKA KON,Komparator,M2
+527,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+528,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+529,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+530,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+531,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+532,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+533,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+534,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+535,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+536,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+537,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+538,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+539,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+540,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+541,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+542,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+543,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+544,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+545,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+546,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+547,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+548,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+549,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+550,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+551,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+552,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+553,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+554,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+555,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+556,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+557,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+558,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+559,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+560,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+561,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+562,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+563,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+564,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+565,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+566,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+567,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+568,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+569,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+570,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+571,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+572,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+573,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+574,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+575,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+576,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+577,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+578,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+579,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+580,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+581,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+582,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+583,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+584,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+585,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+586,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+587,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.964,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+588,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+589,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+590,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.935,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+591,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+592,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+593,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+594,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+595,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+596,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+597,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+598,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+599,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+600,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+601,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+602,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+603,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+604,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+605,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+606,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+607,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+608,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+609,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+610,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+611,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+612,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+613,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+614,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+615,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+616,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+617,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+618,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+619,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+620,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+621,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+622,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+623,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+624,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+625,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+626,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+627,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+628,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+629,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+630,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+631,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+632,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+633,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+634,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+635,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+636,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+637,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+638,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+639,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+640,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+641,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+642,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+643,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+644,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+645,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+646,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+647,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+648,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+649,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+650,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+651,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+652,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+653,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+654,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+655,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+656,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+657,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+658,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+659,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+660,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+661,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+662,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+663,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+664,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+665,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+666,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+667,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+668,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+669,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+670,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+671,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+672,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+673,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+674,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+675,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+676,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+677,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+678,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+679,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+680,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+681,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+682,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+683,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+684,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+685,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+686,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+687,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+688,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+689,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+690,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+691,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+692,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+693,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+694,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+695,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+696,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+697,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+698,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+699,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+700,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+701,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+702,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+703,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+704,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+705,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+706,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+707,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+708,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+709,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+710,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+711,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+712,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+713,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+714,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+715,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+716,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+717,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+718,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+719,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+720,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+721,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+722,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+723,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+724,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+725,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+726,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+727,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+728,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+729,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+730,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+731,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+732,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+733,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+734,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+735,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+736,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+737,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+738,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+739,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+740,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+741,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+742,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+743,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+744,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+745,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+746,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+747,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+748,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+749,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+750,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+751,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+752,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+753,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),40.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+754,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+755,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+756,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+757,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+758,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+759,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+760,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+761,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+762,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+763,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+764,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+765,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+766,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+767,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+768,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+769,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+770,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+771,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+772,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+773,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+774,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+775,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+776,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+777,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+778,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+779,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+780,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+781,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+782,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+783,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.05,OK,Montaza,KIKA KON,Komparator,M2
+784,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+785,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+786,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+787,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+788,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+789,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+790,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+791,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+792,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+793,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+794,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+795,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.03,OK,Montaza,KIKA KON,Komparator,M2
+796,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.04,OK,Montaza,KIKA KON,Komparator,M2
+797,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+798,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+799,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+800,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+801,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+802,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+803,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+804,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+805,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+806,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+807,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+808,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+809,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+810,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+811,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+812,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+813,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+814,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+815,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+816,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+817,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+818,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+819,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+820,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+821,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+822,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+823,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+824,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+825,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+826,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+827,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+828,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+829,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+830,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+831,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+832,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+833,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+834,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+835,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+836,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+837,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+838,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+839,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+840,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+841,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+842,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+843,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+844,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+845,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+846,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+847,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+848,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+849,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+850,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+851,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+852,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+853,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+854,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+855,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+856,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+857,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.964,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+858,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+859,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+860,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.935,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+861,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+862,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+863,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+864,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+865,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+866,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+867,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+868,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+869,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+870,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+871,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+872,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+873,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+874,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+875,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+876,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+877,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+878,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+879,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+880,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+881,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+882,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+883,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+884,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+885,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+886,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+887,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+888,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+889,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+890,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+891,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+892,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+893,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+894,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+895,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+896,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+897,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+898,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+899,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+900,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+901,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+902,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+903,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+904,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+905,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+906,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+907,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+908,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+909,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+910,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+911,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+912,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+913,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+914,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+915,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+916,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+917,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+918,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+919,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+920,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+921,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+922,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+923,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+924,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+925,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+926,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+927,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+928,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+929,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+930,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+931,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+932,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+933,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+934,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+935,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+936,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+937,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+938,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+939,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+940,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+941,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+942,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+943,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+944,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+945,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+946,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+947,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+948,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+949,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+950,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+951,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+952,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+953,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+954,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+955,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+956,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+957,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+958,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+959,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+960,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+961,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+962,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+963,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+964,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+965,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+966,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+967,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+968,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+969,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+970,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+971,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+972,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+973,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+974,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+975,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+976,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+977,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+978,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+979,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+980,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+981,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+982,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+983,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+984,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+985,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+986,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+987,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+988,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+989,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+990,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+991,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+992,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+993,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+994,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+995,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+996,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+997,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+998,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+999,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1000,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1001,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1002,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1003,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1004,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1005,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1006,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1007,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1008,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1009,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1010,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1011,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1012,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1013,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1014,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1015,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1016,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1017,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1018,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1019,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1020,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1021,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1022,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1023,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),40.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1024,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1025,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1026,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1027,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1028,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1029,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1030,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1031,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1032,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1033,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1034,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1035,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1036,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1037,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1038,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1039,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1040,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1041,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1042,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1043,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1044,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1045,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1046,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1047,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1048,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1049,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1050,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1051,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1052,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1053,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.05,OK,Montaza,KIKA KON,Komparator,M2
+1054,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1055,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1056,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1057,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1058,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1059,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1060,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1061,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1062,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1063,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1064,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+1065,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.03,OK,Montaza,KIKA KON,Komparator,M2
+1066,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.04,OK,Montaza,KIKA KON,Komparator,M2
+1067,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+1068,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+1069,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1070,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1071,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1072,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1073,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1074,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1075,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1076,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1077,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1078,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1079,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1080,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1081,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1082,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1083,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1084,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1085,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1086,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1087,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1088,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1089,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1090,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1091,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1092,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.2,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1093,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1094,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1095,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1096,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1097,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1098,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1099,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1100,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1101,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1102,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1103,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1104,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1105,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,361.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1106,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1107,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1108,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.0,NOK,Montaza,KIKA KON,Pomicno merilo,M2
+1109,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,359.5,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1110,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ukupna duzina,360.0,OK,Montaza,KIKA KON,Pomicno merilo,M2
+1111,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1112,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1113,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.975,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1114,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1115,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1116,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1117,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1118,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.985,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1119,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1120,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.983,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1121,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1122,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.982,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1123,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1124,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1125,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1126,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.965,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1127,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.964,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1128,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1129,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.93,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1130,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.935,NOK,Montaza,KIKA KON,Tolerancijski cep,M2
+1131,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1132,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1133,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1134,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.94,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1135,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1136,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.95,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1137,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1138,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.96,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1139,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1140,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Sirina zleba za klin,11.98,OK,Montaza,KIKA KON,Tolerancijski cep,M2
+1141,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1142,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1143,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1144,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1145,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1146,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1147,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1148,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1149,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1150,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1151,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1152,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1153,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1154,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1155,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1156,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.3,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1157,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.2,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1158,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1159,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.1,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1160,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1161,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1162,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1163,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1164,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1165,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1166,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,4.9,NOK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1167,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1168,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1169,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1170,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Dubina zleba,5.0,OK,Montaza,KIKA KON,Dubinsko pomicno merilo,M2
+1171,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+1172,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.1,OK,Montaza,KIKA KON,Profilometrar,M2
+1173,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+1174,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+1175,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+1176,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.2,OK,Montaza,KIKA KON,Profilometrar,M2
+1177,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1178,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1179,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1180,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1181,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1182,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1183,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1184,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+1185,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+1186,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+1187,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+1188,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1189,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1190,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+1191,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1192,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1193,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1194,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1195,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.5,NOK,Montaza,KIKA KON,Profilometrar,M2
+1196,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1197,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1198,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1199,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.3,OK,Montaza,KIKA KON,Profilometrar,M2
+1200,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Hrapavost (N5),0.4,OK,Montaza,KIKA KON,Profilometrar,M2
+1201,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+1202,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+1203,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,444444.0,OK,Montaza,KIKA KON,Uglomer,M2
+1204,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1205,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1206,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1207,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1208,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1209,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1210,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1211,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+1212,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1213,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1214,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1215,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1216,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1217,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,450000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1218,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1219,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+1220,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+1221,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+1222,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1223,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1224,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+1225,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1226,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,470000.0,NOK,Montaza,KIKA KON,Uglomer,M2
+1227,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1228,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1229,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1230,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ugao fasete,460000.0,OK,Montaza,KIKA KON,Uglomer,M2
+1231,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1232,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1233,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1234,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1235,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1236,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1237,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1238,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1239,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1240,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1241,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1242,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1243,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1244,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1245,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1246,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1247,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1248,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),54.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1249,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1250,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1251,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),56.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1252,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1253,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1254,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1255,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1256,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1257,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1258,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1259,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1260,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Glavni rukavac (A-A),55.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1261,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1262,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1263,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1264,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1265,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1266,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1267,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1268,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1269,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1270,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1271,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1272,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1273,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1274,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1275,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1276,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1277,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1278,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1279,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1280,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1281,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1282,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),41.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1283,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1284,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1285,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1286,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1287,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1288,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1289,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1290,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Ulazni rukavac (B-B),42.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1291,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1292,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1293,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),40.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1294,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1295,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1296,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1297,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1298,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1299,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1300,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1301,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1302,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1303,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1304,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1305,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1306,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1307,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1308,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1309,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),49.0,NOK,Montaza,KIKA KON,Mikrometar,M2
+1310,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1311,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1312,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1313,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1314,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1315,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1316,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1317,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1318,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1319,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1320,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Srednji precnik (C-C),50.0,OK,Montaza,KIKA KON,Mikrometar,M2
+1321,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1322,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1323,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.05,OK,Montaza,KIKA KON,Komparator,M2
+1324,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1325,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1326,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1327,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1328,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1329,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1330,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1331,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1332,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1333,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1334,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+1335,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.03,OK,Montaza,KIKA KON,Komparator,M2
+1336,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.04,OK,Montaza,KIKA KON,Komparator,M2
+1337,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+1338,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.02,OK,Montaza,KIKA KON,Komparator,M2
+1339,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1340,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1341,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1342,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1343,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1344,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1345,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1346,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1347,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1348,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1349,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2
+1350,2026-04-21 02:00:00,1,RN-2,5502-A,Osovina,Radijalno bacanje,0.0,OK,Montaza,KIKA KON,Komparator,M2

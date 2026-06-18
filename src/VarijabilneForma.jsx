@@ -1128,13 +1128,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   }, [ucitava, karakteristike, sopMap, naloziZaPogon, ucitajDeo]);
 
   useEffect(() => {
-    if (!slika) { setUrlSlike(null); return; }
+    if (!slika && !idDeo) { setUrlSlike(null); return; }
     let ok = true;
-    ucitajPrikazSliku(supabase, "merljive", slika).then((url) => {
+    ucitajPrikazSliku(supabase, "merljive", slika, idDeo).then((url) => {
       if (ok) setUrlSlike(url);
     });
     return () => { ok = false; };
-  }, [slika]);
+  }, [slika, idDeo]);
 
   /** Samo redom: A → B. Ručni skok na B dok A nije sačuvana — zabranjeno. */
   const indeksAktivne = grupe.indexOf(grupaAB);

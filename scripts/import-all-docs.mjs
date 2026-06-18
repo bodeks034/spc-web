@@ -527,6 +527,7 @@ async function main() {
       "sop_deo_varijabilni",
       sopDeoVarRows.map((r) => ({
         id_deo: pick(r, "id_deo").toUpperCase(),
+        pogon_kod: (pick(r, "pogon_kod", "pogon kod", "pogon") || "A").toUpperCase(),
         radni_nalog: pick(r, "radni_nalog"),
         naziv_dela: pick(r, "naziv_dela"),
         slika: pick(r, "slika"),
@@ -535,7 +536,7 @@ async function main() {
         broj_merenja: num(pick(r, "broj_merenja")) || 5,
         kontrolor_ime: pick(r, "kontrolor_ime"),
       })).filter((r) => r.id_deo),
-      "id_deo"
+      "id_deo,pogon_kod"
     );
   }
 

@@ -59,8 +59,45 @@ export function storageKandidati(tip, vrednost) {
   return [...new Set(list)];
 }
 
-/** Keš — ne ponavljaj neuspešne storage pozive svaki render. */
+const EXT_SLIKE = ["jpg", "jpeg", "png", "webp"];
+
+/** Lokalni + storage kandidati (ime iz šifrarnika, pa fallback po id_deo). */
+export function sviKandidatiSlike(tip, vrednost, idDeo) {
+  const lokalni = new Set();
+  const storage = new Set();
+
+  const dodaj = (t, naziv) => {
+    if (!naziv) return;
+    const l = lokalnaPutanjaSlike(t, naziv);
+    if (l) lokalni.add(l);
+    const fajl = imeFajlaSlika(naziv);
+    if (fajl) lokalni.add(`/${SLIKE_FOLDER}/${encodeURIComponent(fajl)}`);
+    for (const p of storageKandidati(t, naziv)) storage.add(p);
+  };
+
+  dodaj(tip, vrednost);
+
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (id) {
+    for (const ext of EXT_SLIKE) {
+      const ime = `${id}.${ext}`;
+      dodaj(tip, ime);
+      dodaj(tip === "merljive" ? SLIKE_ATRIBUTIVNE : SLIKE_MERLJIVE, ime);
+    }
+  }
+
+  return {
+    lokalni: [...lokalni],
+    storage: [...storage],
+  };
+}
+
+/** Keš uspešnih URL-ova (neuspeh se ne kešira — fajl može stići kasnije). */
 const prikazSlikeCache = new Map();
+
+export function resetPrikazSlikeCache() {
+  prikazSlikeCache.clear();
+}
 
 /** Redosled pokušaja učitavanja slike (bez provere učitavanja). */
 export async function ucitajUrlSlike(supabase, tip, vrednost) {
@@ -70,20 +107,23 @@ export async function ucitajUrlSlike(supabase, tip, vrednost) {
 
 /**
  * Prvi URL koji stvarno radi (public/slike pa Storage).
- * Vraća null ako nigde nema fajla — tada prikaži ručni uvoz.
+ * idDeo — fallback npr. 5502-A.jpg ako Osovina_SOP.jpg ne postoji.
  */
-export async function ucitajPrikazSliku(supabase, tip, vrednost) {
-  if (!vrednost) return null;
-  const key = `${tip}|${String(vrednost).trim()}`;
+export async function ucitajPrikazSliku(supabase, tip, vrednost, idDeo = null) {
+  if (!vrednost && !idDeo) return null;
+  const key = `${tip}|${String(vrednost || "").trim()}|${String(idDeo || "").trim().toUpperCase()}`;
   if (prikazSlikeCache.has(key)) return prikazSlikeCache.get(key);
 
-  const lokal = lokalnaPutanjaSlike(tip, vrednost);
-  if (lokal && await testUrlSlike(lokal)) {
-    prikazSlikeCache.set(key, lokal);
-    return lokal;
+  const { lokalni, storage } = sviKandidatiSlike(tip, vrednost, idDeo);
+
+  for (const lokal of lokalni) {
+    if (await testUrlSlike(lokal)) {
+      prikazSlikeCache.set(key, lokal);
+      return lokal;
+    }
   }
 
-  for (const put of storageKandidati(tip, vrednost)) {
+  for (const put of storage) {
     const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
     if (error || !data?.signedUrl) continue;
     if (await testUrlSlike(data.signedUrl)) {
@@ -92,6 +132,5 @@ export async function ucitajPrikazSliku(supabase, tip, vrednost) {
     }
   }
 
-  prikazSlikeCache.set(key, null);
   return null;
 }

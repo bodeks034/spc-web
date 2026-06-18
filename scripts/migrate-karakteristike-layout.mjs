@@ -7,6 +7,7 @@ import path from "node:path";
 import { propagirajMetaKarakteristika } from "../src/lib/definicijaKarakteristika.js";
 import {
   KARAKTERISTIKE_MERLJIVE_HEADER,
+  dodeliSerijeMerenja,
   mapKarakteristikaMerljiveRow,
 } from "../src/lib/karakteristikaMerljive.js";
 
@@ -60,7 +61,10 @@ async function convertFile(relPath) {
     if (!legacy.ukupno_kom) legacy.ukupno_kom = "50";
     return legacy;
   }));
-  const mapped = propagated.map(mapKarakteristikaMerljiveRow);
+  const mapped = dodeliSerijeMerenja(
+    propagated.map(mapKarakteristikaMerljiveRow),
+    { prepisi: true },
+  );
   const lines = [
     KARAKTERISTIKE_MERLJIVE_HEADER.join(","),
     ...mapped.map((r) => rowToCsvLine(r, KARAKTERISTIKE_MERLJIVE_HEADER)),
@@ -71,7 +75,7 @@ async function convertFile(relPath) {
 
 async function main() {
   await convertFile("docs/karakteristike_merljive.csv");
-  await convertFile("excel-rad/sifrarnik-paket/csv/karakteristike_merljive.csv");
+  await convertFile("excel rad izmenjen/sifrarnik-paket/csv/karakteristike_merljive.csv");
 }
 
 main().catch((e) => {

@@ -72,11 +72,10 @@ export function metaIzGrupe(rows) {
 
   const brojMerenja = rows.reduce((best, r) => {
     const n = brojMerenjaIzReda(r);
-    if (Number.isFinite(n) && n > 0 && jeMerljivaPoInstrumentu(r)) return n;
+    if (Number.isFinite(n) && n > 0 && jeMerljivaPoInstrumentu(r)) return Math.max(best, n);
     return best;
-  }, Number(first.broj_merenja) || 5);
-
-  const merljive = rows.some((r) => jeMerljivaPoInstrumentu(r));
+  }, 0);
+  const imaMerljivih = rows.some((r) => jeMerljivaPoInstrumentu(r));
   const atributivne = rows.some((r) => jeAtributivnaPoInstrumentu(r));
 
   const ukupnoKom = rows.reduce((v, r) => {
@@ -92,7 +91,7 @@ export function metaIzGrupe(rows) {
     eksplicitanPogon,
     faza_naziv: first.faza_naziv || "",
     linija_faza: first.linija_faza || "",
-    broj_merenja: brojMerenja,
+    broj_merenja: brojMerenja > 0 ? brojMerenja : (imaMerljivih ? 5 : null),
     naziv_dela: meta.naziv_dela || "",
     radni_nalog: meta.radni_nalog
       ? String(meta.radni_nalog).trim().toUpperCase()
@@ -109,7 +108,7 @@ export function metaIzGrupe(rows) {
       ? faiBrojMerenjaIzReda({ fai_broj_merenja: meta.fai_broj_merenja })
       : null,
     atributivne,
-    merljive,
+    merljive: imaMerljivih,
   };
 }
 
