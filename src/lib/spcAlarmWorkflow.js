@@ -35,6 +35,19 @@ export function normalizujIdDeo(idDeo) {
 
 const BLOKIRAJUCI_STATUSI = ["otvoren", "karantin"];
 
+/** Samo alarmi nastali pri snimanju serije na liniji (NOK prag) blokiraju proizvodnju. */
+export function jeLinijskiSpcAlarm(alarm) {
+  if (!alarm) return false;
+  const tip = String(alarm.tip_karte || "").trim();
+  if (tip === "Linija") return true;
+  return String(alarm.pravilo || "").startsWith("NOK ≥");
+}
+
+/** Alarmi iz pregleda SPC grafikona (Western Electric) — eskalacija, ne blokiraju liniju. */
+export function jeAnalitickiSpcAlarm(alarm) {
+  return !!alarm && !jeLinijskiSpcAlarm(alarm);
+}
+
 async function ucitajAlarmPoId(supabase, alarmId) {
   const { data, error } = await supabase
     .from("spc_alarmi")
@@ -68,6 +81,7 @@ export async function ucitajBlokirajuciSpcAlarm(supabase, idDeo) {
     .select("*")
     .eq("id_deo", deo)
     .in("status", BLOKIRAJUCI_STATUSI)
+    .or("tip_karte.eq.Linija,pravilo.ilike.NOK%")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -208,6 +222,28 @@ export async function zatvoriSpcAlarm(supabase, { alarmId, radnikId, komentar })
   return data;
 }
 
+export async function zatvoriAnalitickeSpcAlarme(supabase, { radnikId, komentar = "Zatvoreno — analitički alarm (grafikon), ne blokira liniju." } = {}) {
+  const { data: rows, error } = await supabase
+    .from("spc_alarmi")
+    .select("id, tip_karte, pravilo, status")
+    .in("status", ["otvoren", "potvrden"])
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+
+  const zaZatvaranje = (rows || []).filter(jeAnalitickiSpcAlarm);
+  let zatvoreno = 0;
+  for (const a of zaZatvaranje) {
+    try {
+      await zatvoriSpcAlarm(supabase, { alarmId: a.id, radnikId, komentar });
+      zatvoreno += 1;
+    } catch {
+      /* već zatvoren ili promenjen */
+    }
+  }
+  return zatvoreno;
+}
+
 export function opisSpcAlarma(alarm) {
   if (!alarm) return "";
   const deo = alarm.tip_karte ? `${alarm.tip_karte}-karta` : "SPC";
@@ -216,7 +252,7 @@ export function opisSpcAlarma(alarm) {
 }
 
 export function alarmBlokiraLiniju(alarm) {
-  return !!alarm && BLOKIRAJUCI_STATUSI.includes(alarm.status);
+  return jeLinijskiSpcAlarm(alarm) && BLOKIRAJUCI_STATUSI.includes(alarm?.status);
 }
 
 const KLASA_NAZIVI = {
@@ -232,7 +268,7 @@ export function pozicijeSaPotpunimNok(rows) {
 
 /**
  * Alarm na liniji kad NOK u seriji pređe prag (podrazumevano ≥20%).
- * SPC karte (Western Electric) ne pale se automatski pri unosu — samo pri pregledu grafikona.
+ * Pregled SPC grafikona (Western Electric) samo kreira eskalaciju — ne upisuje spc_alarmi i ne blokira liniju.
  */
 export async function kreirajAlarmNokSerije(supabase, {
   idDeo,

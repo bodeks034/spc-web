@@ -14,29 +14,71 @@ export function calcP(nok, n) {
   return n > 0 ? +((nok / n) * 100).toFixed(2) : 0;
 }
 
-export function westernElectric(niz, cl, ucl, lcl) {
+const SPC_EPS = 1e-9;
+
+/** Minimum tačaka za Western Electric obrazac (pravila 2–5). Ispod toga — samo van UCL/LCL. */
+export const WE_MIN_PODGRUPA_OBRAZAC = 8;
+
+export function vanKontrolnihGranica(val, ucl, lcl, eps = SPC_EPS) {
+  if (!Number.isFinite(val) || !Number.isFinite(ucl) || !Number.isFinite(lcl)) return false;
+  return val > ucl + eps || val < lcl - eps;
+}
+
+/** Western Electric pravila 2–5 (obrazac). Pravilo 1 — van UCL/LCL — u chartDataWithWesternElectric. */
+export function westernElectricObrazac(niz, cl, ucl, lcl) {
   const sigma = (ucl - cl) / 3;
-  if (sigma <= 0) return [];
+  if (!Number.isFinite(sigma) || sigma <= SPC_EPS || !niz?.length) return [];
+
   const flag = new Set();
   const n = niz.length;
+
   for (let i = 0; i < n; i++) {
-    const v = niz[i];
-    if (v > ucl || v < lcl) flag.add(i);
-    if (i >= 8) {
-      const s = niz.slice(i - 8, i + 1);
-      if (s.every(x => x > cl) || s.every(x => x < cl)) s.forEach((_, j) => flag.add(i - 8 + j));
-    }
-    if (i >= 5) {
-      const s = niz.slice(i - 5, i + 1);
-      if (s.every((x, j) => j === 0 || x > s[j - 1]) || s.every((x, j) => j === 0 || x < s[j - 1]))
-        s.forEach((_, j) => flag.add(i - 5 + j));
-    }
-    if (i >= 2) {
+    if (i >= 2 && n >= 3) {
       const s = niz.slice(i - 2, i + 1);
-      const g = s.filter(x => x > cl + 2 * sigma).length;
-      const d = s.filter(x => x < cl - 2 * sigma).length;
-      if (g >= 2 || d >= 2) s.forEach((_, j) => flag.add(i - 2 + j));
+      const iznad = s.filter((x) => x > cl + 2 * sigma + SPC_EPS).length;
+      const ispod = s.filter((x) => x < cl - 2 * sigma - SPC_EPS).length;
+      if (iznad >= 2 || ispod >= 2) {
+        for (let j = 0; j < s.length; j++) flag.add(i - 2 + j);
+      }
     }
+
+    if (i >= 4 && n >= 5) {
+      const s = niz.slice(i - 4, i + 1);
+      const iznad = s.filter((x) => x > cl + sigma + SPC_EPS).length;
+      const ispod = s.filter((x) => x < cl - sigma - SPC_EPS).length;
+      if (iznad >= 4 || ispod >= 4) {
+        for (let j = 0; j < s.length; j++) flag.add(i - 4 + j);
+      }
+    }
+
+    if (i >= 7 && n >= 8) {
+      const s = niz.slice(i - 7, i + 1);
+      if (s.every((x) => x > cl + SPC_EPS) || s.every((x) => x < cl - SPC_EPS)) {
+        for (let j = 0; j < s.length; j++) flag.add(i - 7 + j);
+      }
+    }
+
+    if (i >= 5 && n >= 6) {
+      const s = niz.slice(i - 5, i + 1);
+      const raste = s.every((x, j) => j === 0 || x > s[j - 1] + SPC_EPS);
+      const pada = s.every((x, j) => j === 0 || x < s[j - 1] - SPC_EPS);
+      if (raste || pada) {
+        for (let j = 0; j < s.length; j++) flag.add(i - 5 + j);
+      }
+    }
+  }
+
+  return [...flag];
+}
+
+/** Kompatibilnost — puna WE analiza (granica + obrazac). */
+export function westernElectric(niz, cl, ucl, lcl) {
+  const flag = new Set();
+  for (let i = 0; i < niz.length; i++) {
+    if (vanKontrolnihGranica(niz[i], ucl, lcl)) flag.add(i);
+  }
+  if (niz.length >= WE_MIN_PODGRUPA_OBRAZAC) {
+    westernElectricObrazac(niz, cl, ucl, lcl).forEach((j) => flag.add(j));
   }
   return [...flag];
 }
@@ -233,18 +275,33 @@ export async function upisiSpcAlarm(supabase, alarm) {
   return data;
 }
 
-export function chartDataWithWesternElectric(podaci) {
+export function chartDataWithWesternElectric(podaci, {
+  obrazacPravila = true,
+  minTačakaObrazac = WE_MIN_PODGRUPA_OBRAZAC,
+} = {}) {
   if (!podaci?.length) return [];
-  const flag = new Set();
+
+  const vanGranica = new Set();
   podaci.forEach((d, i) => {
-    const sigma = (d.ucl - d.cl) / 3;
-    if (sigma <= 0) return;
-    if (d.val > d.ucl || d.val < d.lcl) flag.add(i);
+    if (vanKontrolnihGranica(d.val, d.ucl, d.lcl)) vanGranica.add(i);
   });
-  const niz = podaci.map(p => p.val);
-  if (podaci.length) {
+
+  const obrazac = new Set();
+  if (obrazacPravila && podaci.length >= minTačakaObrazac) {
+    const niz = podaci.map((p) => p.val);
     const d0 = podaci[0];
-    westernElectric(niz, d0.cl, d0.ucl, d0.lcl).forEach(j => flag.add(j));
+    const limitiIsti = podaci.every(
+      (d) => d.ucl === d0.ucl && d.cl === d0.cl && d.lcl === d0.lcl,
+    );
+    if (limitiIsti) {
+      westernElectricObrazac(niz, d0.cl, d0.ucl, d0.lcl).forEach((j) => obrazac.add(j));
+    }
   }
-  return podaci.map((d, i) => ({ ...d, upoz: flag.has(i) }));
+
+  return podaci.map((d, i) => ({
+    ...d,
+    upozVanGranica: vanGranica.has(i),
+    upozObrazac: obrazac.has(i),
+    upoz: vanGranica.has(i) || obrazac.has(i),
+  }));
 }

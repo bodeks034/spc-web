@@ -8,9 +8,9 @@ import {
   podgrupeMerenja, izracunajXbarRKarte, izracunajIMRKarte, calcCpCpk, bojaKapabiliteta,
   paretoNokPoPoziciji, statPoSmeni,
   trendKvalitetaPoDanu, agregatKvaliteta, nokPoPozicijiDashboard,
-  SIGMA_BENCH, yDomainSpc, sigmaProcesa,
+  SIGMA_BENCH, yDomainSpc, yDomainRangeChart, sigmaProcesa,
 } from "./lib/varijabilneSpcStats.js";
-import { upisiSpcAlarm, kreirajAutoEskalaciju } from "./lib/spcStats.js";
+import { kreirajAutoEskalaciju, WE_MIN_PODGRUPA_OBRAZAC } from "./lib/spcStats.js";
 import { downloadWorkbook, exportMerenjaVarijabilnaExcel } from "./lib/excelSync.js";
 import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi } from "./lib/varijabilneUtils.js";
 import { uniqueDeloviIzSop } from "./lib/pogonSop.js";
@@ -88,29 +88,62 @@ function TrendUpozorenje({ podaci, C, jedinica }) {
   );
 }
 
-function WesternUpozorenja({ podaci, C, jedinica }) {
+function WesternUpozorenja({ podaci, C, jedinica, premaloPodgrupa = false }) {
   const upoz = (podaci || []).filter(d => d.upoz);
-  if (!upoz.length) return (
-    <div style={{ color: C.zelena, fontSize: 11, marginTop: 10 }}>✓ Western Electric — nema kršenja pravila</div>
-  );
+  const vanGranica = upoz.filter(d => d.upozVanGranica);
+  const samoObrazac = upoz.filter(d => d.upozObrazac && !d.upozVanGranica);
+
+  if (!upoz.length) {
+    return (
+      <div style={{ color: C.zelena, fontSize: 11, marginTop: 10 }}>
+        ✓ Western Electric — nema kršenja
+        {premaloPodgrupa && (
+          <span style={{ color: C.sivi, display: "block", marginTop: 4, fontSize: 10 }}>
+            Obrazac pravila (2σ, trend…) isključen — premalo podgrupa za pouzdanu procenu.
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{
       background: `${C.crvena}12`, border: `1px solid ${C.crvena}40`,
       borderRadius: 8, padding: "10px 14px", marginTop: 12,
     }}>
       <div style={{ color: C.crvena, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
-        ⚠ Western Electric — {upoz.length} tačka van kontrole
+        ⚠ Western Electric — {upoz.length} označenih tačaka
       </div>
-      <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.6 }}>
-        Pravila: tačka van UCL/LCL · 2 od 3 iznad 2σ · 4 od 5 iznad 1σ · 8 tačaka iste strane CL · 6 rastućih/padajućih.
+      <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.6, marginBottom: 6 }}>
+        {vanGranica.length > 0 && (
+          <div>
+            <strong style={{ color: C.crvena }}>{vanGranica.length} van UCL/LCL</strong>
+            {" "}— tačka prelazi kontrolne granice na grafikonu.
+          </div>
+        )}
+        {samoObrazac.length > 0 && (
+          <div style={{ marginTop: vanGranica.length ? 4 : 0 }}>
+            <strong style={{ color: C.zuta }}>{samoObrazac.length} obrazac</strong>
+            {" "}— unutar UCL/LCL, ali pravilo obrazca (2 od 3 iznad 2σ, 8 iste strane CL, trend…).
+          </div>
+        )}
+        {premaloPodgrupa && (
+          <div style={{ marginTop: 4, color: C.plava }}>
+            Obrazac pravila isključen zbog malog uzorka — prikazane su samo tačke van UCL/LCL.
+          </div>
+        )}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
         {upoz.slice(0, 12).map(d => (
           <span key={d.label} style={{
-            background: C.panel, border: `1px solid ${C.crvena}`, borderRadius: 4,
-            padding: "2px 8px", fontSize: 10, color: C.crvena,
+            background: C.panel,
+            border: `1px solid ${d.upozVanGranica ? C.crvena : C.zuta}`,
+            borderRadius: 4,
+            padding: "2px 8px", fontSize: 10,
+            color: d.upozVanGranica ? C.crvena : C.zuta,
           }}>
             {d.label}: {fmt(d.val, jedinica)}
+            {d.upozVanGranica ? " (UCL/LCL)" : " (obrazac)"}
           </span>
         ))}
         {upoz.length > 12 && <span style={{ color: C.sivi, fontSize: 10 }}>+{upoz.length - 12}</span>}
@@ -296,40 +329,37 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   );
 
   const upozoreni = aktPodaci.filter(d => d.upoz);
-  const trebaDimenzija = KARTE_TIPOVI.has(tip) || tip === "cpk" || tip === "hist";
+  const vanUclLcl = aktPodaci.filter(d => d.upozVanGranica);
+  const premaloObrazac = (tip === "xbar" || tip === "r")
+    ? podgrupe.length < WE_MIN_PODGRUPA_OBRAZAC
+    : aktPodaci.length < WE_MIN_PODGRUPA_OBRAZAC;
+  const upozoreniZaEskalaciju = aktPodaci.filter(
+    d => d.upozVanGranica || (d.upozObrazac && !premaloObrazac),
+  );
 
   useEffect(() => {
-    if (!idDeo || !upozoreni.length || !korisnik?.radnikId || !KARTE_TIPOVI.has(tip)) return;
-    const k = `${idDeo}-${pozicija}-${tip}-${upozoreni.length}`;
+    if (!idDeo || !upozoreniZaEskalaciju.length || !korisnik?.radnikId || !KARTE_TIPOVI.has(tip)) return;
+    const k = `${idDeo}-${pozicija}-${tip}-${upozoreniZaEskalaciju.length}`;
     if (alarmPoslat.current.has(k)) return;
     alarmPoslat.current.add(k);
     const tipKarte = { xbar: "Xbar", r: "R", i: "I", mr: "MR" }[tip] || tip;
     (async () => {
       try {
-        const pos = upozoreni[upozoreni.length - 1];
-        await upisiSpcAlarm(supabase, {
-          id_deo: idDeo,
-          datum: dISO(),
-          tip_karte: tipKarte,
-          pravilo: "Western Electric",
-          vrednost: pos.val,
-          ucl: pos.ucl,
-          lcl: pos.lcl,
-          pozicija: pozicija || null,
-        });
         await kreirajAutoEskalaciju(supabase, {
           id_deo: idDeo,
-          opis: `Merljiva ${tipKarte}-karta (${pozicija || "sve"}): ${upozoreni.length} tačka van kontrole`,
+          opis: `Merljiva ${tipKarte}-karta (${pozicija || "sve"}): ${upozoreniZaEskalaciju.length} SPC upozorenje`,
           prioritet: "kriticno",
           kreirao_id: korisnik.radnikId,
           prefiks: "AUTO-VAR",
         });
-        addToast(`⚠ SPC alarm (${tipKarte}): ${upozoreni.length} tačka van kontrole`, "greska");
+        addToast(`⚠ SPC (${tipKarte}): ${upozoreniZaEskalaciju.length} upozorenje — ne blokira liniju`, "greska");
       } catch (e) {
-        addToast(`SPC alarm nije snimljen: ${e.message || "greška"}`, "greska");
+        addToast(`SPC eskalacija nije snimljena: ${e.message || "greška"}`, "greska");
       }
     })();
-  }, [upozoreni, idDeo, pozicija, tip, korisnik?.radnikId, addToast]);
+  }, [upozoreniZaEskalaciju, idDeo, pozicija, tip, korisnik?.radnikId, addToast]);
+
+  const trebaDimenzija = KARTE_TIPOVI.has(tip) || tip === "cpk" || tip === "hist";
 
   const exportPDF = async () => {
     if (!kartaRef.current) return;
@@ -551,7 +581,8 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 ...(tip === "i" ? [["X̄", fmt(imr.xBar, jedinica), C.plava], ["MR̄", fmt(imr.mrBar, jedinica), C.ljubicasta]] : []),
                 ...(tip === "mr" ? [["MR̄", fmt(imr.mrBar, jedinica), C.ljubicasta]] : []),
                 ["σ̂", fmt(imr.sigmaHat || spc.sigmaHat, jedinica), "#22d3ee"],
-                ["VAN K.", upozoreni.length, upozoreni.length ? C.crvena : C.zelena],
+                ["VAN UCL/LCL", vanUclLcl.length, vanUclLcl.length ? C.crvena : C.zelena],
+                ["WE OBRAZAC", upozoreni.length - vanUclLcl.length, (upozoreni.length - vanUclLcl.length) ? C.zuta : C.zelena],
               ]} />
               {kar && (
                 <div style={{ color: C.sivi, fontSize: 10, marginBottom: 8 }}>
@@ -587,19 +618,32 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                     podaci={aktPodaci}
                     bojaLinije={tip === "r" ? C.narandzasta : tip === "mr" ? C.ljubicasta : tip === "i" ? "#22d3ee" : C.zelena}
                     C={C}
-                    lsl={gr.lsl}
-                    usl={gr.usl}
+                    lsl={tip === "xbar" || tip === "i" ? gr.lsl : undefined}
+                    usl={tip === "xbar" || tip === "i" ? gr.usl : undefined}
                     naslovKarte={NASLOV_KARTE[tip]}
                     sufiks={isStepen(jedinica) ? " mm" : (jedinicaSpcOsi(jedinica) === "mm" ? " mm" : "")}
-                    yDomain={yDomainSpc(aktPodaci, [gr.lsl, gr.usl].filter(Number.isFinite))}
+                    yDomain={
+                      tip === "r" || tip === "mr"
+                        ? yDomainRangeChart(aktPodaci)
+                        : yDomainSpc(aktPodaci, [gr.lsl, gr.usl].filter(Number.isFinite))
+                    }
                     formatVrednost={(v) => {
                       if (!Number.isFinite(v)) return "—";
+                      if (tip === "r" || tip === "mr") {
+                        const dec = Math.abs(v) < 0.1 ? 4 : Math.abs(v) < 1 ? 3 : 2;
+                        return (+v).toFixed(dec).replace(".", ",");
+                      }
                       if (isStepen(jedinica)) return `${fmt(v, jedinica)} (${decStepenUDms(v)})`;
                       return fmt(v, jedinica);
                     }}
-                    height={ekran.mob ? 300 : 400}
+                    height={tip === "r" || tip === "mr" ? (ekran.mob ? 340 : 440) : (ekran.mob ? 300 : 400)}
                   />
-                  <WesternUpozorenja podaci={aktPodaci} C={C} jedinica={jedinica} />
+                  <WesternUpozorenja
+                    podaci={aktPodaci}
+                    C={C}
+                    jedinica={jedinica}
+                    premaloPodgrupa={premaloObrazac && (tip === "xbar" || tip === "r" || tip === "i")}
+                  />
                 </>
               )}
             </>

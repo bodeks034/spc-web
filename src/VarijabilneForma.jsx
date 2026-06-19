@@ -18,6 +18,7 @@ import {
 import { propagirajMetaKarakteristika } from "./lib/definicijaKarakteristika.js";
 import { dodeliSerijeMerenja } from "./lib/karakteristikaMerljive.js";
 import MerljiveExcelPanel from "./MerljiveExcelPanel.jsx";
+import MerljiveSpcKarte from "./MerljiveSpcKarte.jsx";
 import InzenjerExcelPanel from "./InzenjerExcelPanel.jsx";
 import MerilaMsaHub from "./components/MerilaMsaHub.jsx";
 import KontrolniPlanPanel from "./components/KontrolniPlanPanel.jsx";
@@ -1623,10 +1624,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     }
   }, [dodajMerenje, kolonaJePuna]);
 
-  const blurInputMerenja = useCallback(() => {
-    // Samo zatvaranje tastature — merenje se dodaje Enter-om ili „+ Dodaj”.
-  }, []);
-
   const pokusajDodajMerenje = useCallback((i) => {
     const k = koloneRef.current[i];
     if (!k || kolonaJePuna(k)) return;
@@ -1639,6 +1636,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     })) return;
     dodajMerenje(i);
   }, [dodajMerenje, kolonaJePuna]);
+
+  const blurInputMerenja = useCallback((i) => {
+    pokusajDodajMerenje(i);
+  }, [pokusajDodajMerenje]);
 
   const keyDownInputMerenja = useCallback((e, i, k) => {
     if (kolonaJePuna(k)) {

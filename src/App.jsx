@@ -733,16 +733,6 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
     alarmPoslat.current.add(key);
     (async () => {
       try {
-        const pos = upoz[upoz.length - 1];
-        await upisiSpcAlarm(supabase, {
-          id_deo: idDeo,
-          datum: dISO(),
-          tip_karte: tip,
-          pravilo: "Western Electric",
-          vrednost: pos.val,
-          ucl: pos.ucl,
-          lcl: pos.lcl,
-        });
         await kreirajAutoEskalaciju(supabase, {
           id_deo: idDeo,
           opis: `SPC ${tip}-karta: ${upoz.length} tačka van kontrole (Western Electric)`,
@@ -750,9 +740,9 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
           kreirao_id: korisnik.radnikId,
           prefiks: "AUTO-SPC",
         });
-        addToast(`⚠ SPC alarm: ${upoz.length} tačka van kontrole`, "greska");
+        addToast(`⚠ SPC upozorenje: ${upoz.length} tačka van kontrole — ne blokira liniju`, "greska");
       } catch (e) {
-        addToast(`SPC alarm nije snimljen: ${e.message || "greška"}`, "greska");
+        addToast(`SPC eskalacija nije snimljena: ${e.message || "greška"}`, "greska");
       }
     })();
   }, [cd, idDeo, tip, korisnik?.radnikId, addToast]);
@@ -4340,13 +4330,23 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
      fmt:v=>+v.toFixed(3),sufiks:""},
   ];
   const akt=karte.find(k=>k.id===tip);
-  const cd=(akt?.podaci||[]).map((d,i,arr)=>{
-    const niz=arr.map(x=>x[akt.dKey]);
-    const up=new Set(westernElectric(niz,d[akt.clKey],d.ucl,Math.max(d.lcl||0,0)));
-    return{...d,label:d.datum?.substring(5)||"",val:akt.fmt(d[akt.dKey]),
-      cl:akt.fmt(d[akt.clKey]),ucl:akt.fmt(d.ucl),lcl:akt.fmt(Math.max(d.lcl||0,0)),
-      upoz:up.has(i)};
-  });
+  const cdRaw=(akt?.podaci||[]).map((d,i)=>({
+    ...d,
+    label:d.datum?.substring(5)||"",
+    val:Number(d[akt.dKey]),
+    cl:Number(d[akt.clKey]),
+    ucl:Number(d.ucl),
+    lcl:Number(Math.max(d.lcl||0,0)),
+  }));
+  const cd=chartDataWithWesternElectric(cdRaw, {
+    obrazacPravila: cdRaw.length >= 8,
+  }).map(d=>({
+    ...d,
+    val:akt.fmt(d.val),
+    cl:akt.fmt(d.cl),
+    ucl:akt.fmt(d.ucl),
+    lcl:akt.fmt(d.lcl),
+  }));
   const upozoreni=cd.filter(d=>d.upoz);
   const cl=cd[0]?.cl??0,ucl=cd[0]?.ucl??0,lcl=cd[0]?.lcl??0;
   const Dot=(props)=>{const{cx,cy,index}=props;const u=cd[index]?.upoz;
@@ -5515,41 +5515,114 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
   );
 }
 
-function AdminStatistike({C}) {
-  const [stat,setStat] = useState(null);
-  useEffect(()=>{
-    Promise.all([
-      supabase.from("kontrolni_log").select("id",{count:"exact",head:true}),
-      supabase.from("delovi").select("id",{count:"exact",head:true}),
-      supabase.from("radnici").select("id",{count:"exact",head:true}),
-      supabase.from("kontrolni_log").select("id",{count:"exact",head:true})
-        .gte("datum",new Date().toISOString().split("T")[0]),
-    ]).then(([log,del,rad,danas])=>{
+function AdminStatistike({ C }) {
+  const [stat, setStat] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [osvezeno, setOsvezeno] = useState(null);
+
+  const ucitaj = useCallback(async () => {
+    setLoading(true);
+    const danas = new Date().toISOString().split("T")[0];
+    try {
+      const [
+        logRes, delRes, radRes, logDanasRes,
+        merRes, merDanasRes, kpiDanasRes,
+      ] = await Promise.all([
+        supabase.from("kontrolni_log").select("id", { count: "exact", head: true }),
+        supabase.from("delovi").select("id", { count: "exact", head: true }),
+        supabase.from("radnici").select("id", { count: "exact", head: true }),
+        supabase.from("kontrolni_log").select("id", { count: "exact", head: true }).gte("datum", danas),
+        supabase.from("merenja_varijabilna").select("id", { count: "exact", head: true }),
+        supabase.from("merenja_varijabilna").select("id", { count: "exact", head: true }).gte("datum", danas),
+        supabase.from("kpi_unos").select("id", { count: "exact", head: true }).gte("datum", danas),
+      ]);
+
+      const ukMer = merRes.count ?? 0;
+      const ukLog = logRes.count ?? 0;
+      const danasMer = merDanasRes.count ?? 0;
+      const danasLog = logDanasRes.count ?? 0;
+
       setStat({
-        ukupnoUnosa: log.count||0,
-        ukupnoDelova: del.count||0,
-        ukupnoRadnika: rad.count||0,
-        unosaDanas: danas.count||0,
+        ukupnoUnosa: ukLog + ukMer,
+        ukupnoDelova: delRes.count ?? 0,
+        ukupnoRadnika: radRes.count ?? 0,
+        unosaDanas: danasLog + danasMer,
+        merljivaDanas: danasMer,
+        atributivnoDanas: danasLog,
+        kpiDanas: kpiDanasRes.count ?? 0,
       });
-    });
-  },[]);
+      setOsvezeno(new Date());
+    } catch (e) {
+      console.error("AdminStatistike:", e?.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  if(!stat) return <div style={{color:C.sivi,fontSize:12}}>Učitavanje...</div>;
+  useEffect(() => {
+    ucitaj();
+    const iv = setInterval(ucitaj, 30000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") ucitaj();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [ucitaj]);
 
-  return(
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
-      {[
-        ["UNOSA DANAS",  stat.unosaDanas,  C.zelena],
-        ["UK. UNOSA",    stat.ukupnoUnosa, C.plava],
-        ["DELOVA",       stat.ukupnoDelova,C.narandzasta],
-        ["RADNIKA",      stat.ukupnoRadnika,C.ljubicasta],
-      ].map(([n,v,b])=>(
-        <div key={n} style={{background:C.bg,border:`1px solid ${b}25`,
-          borderRadius:10,padding:"14px",textAlign:"center"}}>
-          <div style={{color:b,fontSize:24,fontWeight:700}}>{v}</div>
-          <div style={{color:C.sivi,fontSize:9,letterSpacing:1.2,marginTop:4}}>{n}</div>
-        </div>
-      ))}
+  if (loading && !stat) {
+    return <div style={{ color: C.sivi, fontSize: 12 }}>Učitavanje…</div>;
+  }
+
+  if (!stat) {
+    return (
+      <div style={{ color: C.sivi, fontSize: 12 }}>
+        Nije moguće učitati statistiku.
+        <button type="button" onClick={ucitaj} style={{
+          marginLeft: 8, background: C.plava, border: "none", borderRadius: 6,
+          color: "#fff", fontSize: 10, padding: "4px 10px", cursor: "pointer",
+        }}>Pokušaj ponovo</button>
+      </div>
+    );
+  }
+
+  const vreme = osvezeno
+    ? osvezeno.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "—";
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+        <span style={{ color: C.sivi, fontSize: 10 }}>Osveženo: {vreme} · auto 30s</span>
+        <button type="button" onClick={ucitaj} disabled={loading} style={{
+          background: C.plava, border: "none", borderRadius: 6,
+          color: "#fff", fontSize: 10, fontWeight: 700, padding: "6px 12px",
+          cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
+        }}>
+          {loading ? "Osvežavam…" : "↻ Osveži"}
+        </button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10 }}>
+        {[
+          ["UNOSA DANAS", stat.unosaDanas, C.zelena],
+          ["MERLJIVA DANAS", stat.merljivaDanas, C.plava],
+          ["ATR. DANAS", stat.atributivnoDanas, C.narandzasta],
+          ["KPI DANAS", stat.kpiDanas, C.ljubicasta],
+          ["UK. UNOSA", stat.ukupnoUnosa, C.plava],
+          ["DELOVA", stat.ukupnoDelova, C.narandzasta],
+          ["RADNIKA", stat.ukupnoRadnika, C.zuta],
+        ].map(([n, v, b]) => (
+          <div key={n} style={{
+            background: C.bg, border: `1px solid ${b}25`,
+            borderRadius: 10, padding: "14px", textAlign: "center",
+          }}>
+            <div style={{ color: b, fontSize: 24, fontWeight: 700 }}>{v}</div>
+            <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2, marginTop: 4 }}>{n}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

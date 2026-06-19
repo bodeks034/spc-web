@@ -1,4 +1,4 @@
-import { chartDataWithWesternElectric, groupSpcRows } from "./spcStats.js";
+import { chartDataWithWesternElectric, WE_MIN_PODGRUPA_OBRAZAC, groupSpcRows } from "./spcStats.js";
 import {
   podgrupeMerenja,
   izracunajXbarRKarte,
@@ -35,7 +35,9 @@ export function primeniBaselineNaPodatke(podaci, baseline) {
   }
   const osnovni = podaci.map((d) => ({ ...d, cl, ucl, lcl }));
   return {
-    podaci: chartDataWithWesternElectric(osnovni),
+    podaci: chartDataWithWesternElectric(osnovni, {
+      obrazacPravila: osnovni.length >= WE_MIN_PODGRUPA_OBRAZAC,
+    }),
     baseline,
   };
 }

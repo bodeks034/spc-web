@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import { ucitajAktivneSpcAlarme, zatvoriSpcAlarm, opisSpcAlarma } from "../lib/spcAlarmWorkflow.js";
+import { ucitajAktivneSpcAlarme, zatvoriSpcAlarm, zatvoriAnalitickeSpcAlarme, opisSpcAlarma, jeLinijskiSpcAlarm, jeAnalitickiSpcAlarm } from "../lib/spcAlarmWorkflow.js";
 import { exportSpcAlarmReakcijaPdf } from "../lib/spcAlarmPdf.js";
 
 const BOJA_STATUS = (C, status) => {
@@ -14,6 +14,7 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
   const [loading, setLoading] = useState(true);
   const [zatvaranjeId, setZatvaranjeId] = useState(null);
   const [komentar, setKomentar] = useState("");
+  const [cistiAnalitiku, setCistiAnalitiku] = useState(false);
 
   const ucitaj = async () => {
     setLoading(true);
@@ -36,9 +37,25 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
     return () => { supabase.removeChannel(ch); };
   }, []);
 
-  const otvoreni = alarmi.filter((a) => a.status === "otvoren");
-  const karantin = alarmi.filter((a) => a.status === "karantin");
-  const potvrdeni = alarmi.filter((a) => a.status === "potvrden");
+  const linijski = alarmi.filter(jeLinijskiSpcAlarm);
+  const analiticki = alarmi.filter(jeAnalitickiSpcAlarm);
+  const linijskiOtvoreni = linijski.filter((a) => a.status === "otvoren");
+  const linijskiKarantin = linijski.filter((a) => a.status === "karantin");
+  const linijskiPotvrdeni = linijski.filter((a) => a.status === "potvrden");
+  const analitickiAktivni = analiticki.filter((a) => a.status === "otvoren" || a.status === "potvrden");
+
+  const ocistiAnalitiku = async () => {
+    setCistiAnalitiku(true);
+    try {
+      const n = await zatvoriAnalitickeSpcAlarme(supabase, { radnikId: korisnik?.radnikId });
+      addToast?.(n > 0 ? `✓ Zatvoreno ${n} analitičkih alarma (grafikon)` : "Nema analitičkih alarma za zatvaranje", n > 0 ? "uspeh" : "info");
+      ucitaj();
+    } catch (e) {
+      addToast?.(e.message || "Greška", "greska");
+    } finally {
+      setCistiAnalitiku(false);
+    }
+  };
 
   const zatvori = async (a) => {
     if (!komentar.trim()) {
@@ -72,7 +89,7 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
     }
   };
 
-  const renderAlarm = (a) => (
+  const renderAlarm = (a, { analiticki = false } = {}) => (
     <div key={a.id} style={{
       background: C.bg,
       border: `1px solid ${BOJA_STATUS(C, a.status)}55`,
@@ -98,6 +115,11 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
         </span>
       </div>
       <div style={{ color: C.sivi, fontSize: 11, marginBottom: 8, lineHeight: 1.5 }}>
+        {analiticki && (
+          <div style={{ color: C.plava, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
+            Analitika grafikona — ne blokira liniju
+          </div>
+        )}
         {opisSpcAlarma(a)}
         {a.eskalacija_id && (
           <span> · Esk. #{a.eskalacija_id}</span>
@@ -177,22 +199,34 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>
           SPC ALARMI
-          {(otvoreni.length + karantin.length) > 0 && (
+          {(linijskiOtvoreni.length + linijskiKarantin.length) > 0 && (
             <span style={{
               background: C.crvena, color: "#fff", fontSize: 10,
               borderRadius: 10, padding: "1px 7px", marginLeft: 8,
             }}>
-              {otvoreni.length + karantin.length}
+              {linijskiOtvoreni.length + linijskiKarantin.length}
             </span>
           )}
         </div>
-        <button type="button" onClick={ucitaj}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {analitickiAktivni.length > 0 && (
+            <button type="button" onClick={ocistiAnalitiku} disabled={cistiAnalitiku}
+              style={{
+                background: `${C.plava}18`, border: `1px solid ${C.plava}55`,
+                borderRadius: 5, color: C.plava, fontSize: 10, padding: "4px 10px",
+                cursor: cistiAnalitiku ? "wait" : "pointer", fontWeight: 700,
+              }}>
+              {cistiAnalitiku ? "Čistim…" : `Očisti analitičke (${analitickiAktivni.length})`}
+            </button>
+          )}
+          <button type="button" onClick={ucitaj}
           style={{
             background: "none", border: `1px solid ${C.border}`,
             borderRadius: 5, color: C.sivi, fontSize: 10, padding: "4px 10px", cursor: "pointer",
           }}>
           ↻ Osveži
         </button>
+        </div>
       </div>
       {loading ? (
         <div style={{ color: C.sivi, fontSize: 12 }}>Učitavanje...</div>
@@ -202,28 +236,36 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
         </div>
       ) : (
         <>
-          {karantin.length > 0 && (
+          {linijskiKarantin.length > 0 && (
             <>
               <div style={{ color: C.ljubicasta || C.plava, fontSize: 10, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>
-                KARANTIN (HOLD)
+                KARANTIN LINIJA (HOLD)
               </div>
-              {karantin.map(renderAlarm)}
+              {linijskiKarantin.map((a) => renderAlarm(a))}
             </>
           )}
-          {otvoreni.length > 0 && (
+          {linijskiOtvoreni.length > 0 && (
             <>
               <div style={{ color: C.crvena, fontSize: 10, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>
-                OTVORENI (blokiraju liniju)
+                LINIJA — OTVORENI (blokiraju unos)
               </div>
-              {otvoreni.map(renderAlarm)}
+              {linijskiOtvoreni.map((a) => renderAlarm(a))}
             </>
           )}
-          {potvrdeni.length > 0 && (
+          {linijskiPotvrdeni.length > 0 && (
             <>
               <div style={{ color: C.zuta, fontSize: 10, fontWeight: 700, margin: "8px 0", letterSpacing: 1 }}>
-                POTVRĐENI (čekaju zatvaranje)
+                LINIJA — POTVRĐENI (čekaju zatvaranje)
               </div>
-              {potvrdeni.map(renderAlarm)}
+              {linijskiPotvrdeni.map((a) => renderAlarm(a))}
+            </>
+          )}
+          {analitickiAktivni.length > 0 && (
+            <>
+              <div style={{ color: C.plava, fontSize: 10, fontWeight: 700, margin: "12px 0 8px", letterSpacing: 1 }}>
+                ANALITIKA GRAFIKONA (ne blokiraju liniju)
+              </div>
+              {analitickiAktivni.map((a) => renderAlarm(a, { analiticki: true }))}
             </>
           )}
         </>

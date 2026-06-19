@@ -18,7 +18,9 @@ function SpcTooltip({ active, payload, C, sufiks, formatVrednost }) {
   if (!d) return null;
   const fmt = (v) => formatVrednost(v, d);
   const van = d.upoz ? (
-    <div style={{ color: C.crvena, fontWeight: 700, marginTop: 6, fontSize: 11 }}>⚠ Western Electric</div>
+    <div style={{ color: d.upozVanGranica ? C.crvena : C.zuta, fontWeight: 700, marginTop: 6, fontSize: 11 }}>
+      ⚠ {d.upozVanGranica ? "Van UCL/LCL" : "Western Electric obrazac"}
+    </div>
   ) : null;
 
   return (
@@ -134,13 +136,15 @@ export default function SpcKontrolnaGraf({
 
   const Dot = (props) => {
     const { cx, cy, index } = props;
-    const u = podaci[index]?.upoz;
+    const d = podaci[index];
+    const u = d?.upoz;
+    const boja = u ? (d.upozVanGranica ? C.crvena : C.zuta) : bojaLinije;
     return (
       <circle
         cx={cx}
         cy={cy}
         r={u ? 8 : 5}
-        fill={u ? C.crvena : bojaLinije}
+        fill={boja}
         stroke={u ? "#fff" : bojaLinije}
         strokeWidth={u ? 2 : 1}
         opacity={0.95}

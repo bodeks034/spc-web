@@ -1,4 +1,4 @@
-import { chartDataWithWesternElectric } from "./spcStats.js";
+import { chartDataWithWesternElectric, WE_MIN_PODGRUPA_OBRAZAC } from "./spcStats.js";
 import { vrednostZaKarte } from "./varijabilneUtils.js";
 
 /** Konstante za X̄/R karte (n = veličina podgrupe, kao u Excel SPC listu). */
@@ -52,6 +52,26 @@ export function yDomainSpc(podaci, extra = []) {
   const max = Math.max(...nums);
   const pad = Math.max((max - min) * 0.15, (max - min) * 0.05 + 0.001, 0.01);
   return [+(min - pad).toFixed(6), +(max + pad).toFixed(6)];
+}
+
+/** Y-os za R / MR kartu — bez LSL/USL dimenzije; raspon uvek čitljiv. */
+export function yDomainRangeChart(podaci) {
+  if (!podaci?.length) return [0, "auto"];
+  const nums = [];
+  podaci.forEach(d => {
+    if (Number.isFinite(d.val)) nums.push(d.val);
+    if (Number.isFinite(d.ucl)) nums.push(d.ucl);
+    if (Number.isFinite(d.lcl)) nums.push(d.lcl);
+    if (Number.isFinite(d.cl)) nums.push(d.cl);
+  });
+  if (!nums.length) return [0, "auto"];
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const span = Math.max(max - min, max * 0.05, 0.001);
+  const pad = Math.max(span * 0.22, 0.002);
+  const yMin = Math.max(0, min - pad);
+  const yMax = max + pad;
+  return [+yMin.toFixed(6), +yMax.toFixed(6)];
 }
 
 export function spcFactors(n) {
@@ -135,9 +155,11 @@ export function izracunajXbarRKarte(podgrupe, n = 5) {
 
   const sigmaHat = f.d2 > 0 ? rBar / f.d2 : 0;
 
+  const weObrazac = podgrupe.length >= WE_MIN_PODGRUPA_OBRAZAC;
+
   return {
-    xbarPodaci: chartDataWithWesternElectric(xbarPodaci),
-    rPodaci: chartDataWithWesternElectric(rPodaci),
+    xbarPodaci: chartDataWithWesternElectric(xbarPodaci, { obrazacPravila: weObrazac }),
+    rPodaci: chartDataWithWesternElectric(rPodaci, { obrazacPravila: false }),
     xbarBar: +xbarBar.toFixed(6),
     rBar: +rBar.toFixed(6),
     sigmaHat: +sigmaHat.toFixed(6),
@@ -343,9 +365,11 @@ export function izracunajIMRKarte(merenja, jedinica) {
 
   const sigmaHat = f.d2 > 0 ? mrBar / f.d2 : 0;
 
+  const weObrazac = ind.length >= WE_MIN_PODGRUPA_OBRAZAC;
+
   return {
-    iPodaci: chartDataWithWesternElectric(iPodaci),
-    mrPodaci: chartDataWithWesternElectric(mrPodaci),
+    iPodaci: chartDataWithWesternElectric(iPodaci, { obrazacPravila: weObrazac }),
+    mrPodaci: chartDataWithWesternElectric(mrPodaci, { obrazacPravila: false }),
     xBar: +xBar.toFixed(6),
     mrBar: +mrBar.toFixed(6),
     sigmaHat: +sigmaHat.toFixed(6),
