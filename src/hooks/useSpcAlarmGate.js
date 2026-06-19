@@ -49,5 +49,5 @@ export function useSpcAlarmGate(supabase, { idDeo, enabled = false }) {
     return () => { supabase.removeChannel(ch); };
   }, [supabase, idDeo, enabled, osvezi]);
 
-  return { alarm, blokira: alarmBlokiraLiniju(alarm), loading, osvezi, postaviAlarm: setAlarm };
+  return { alarm, blokira: alarmBlokiraLiniju(alarm), loading, osvezi, postaviAlarm: setAlarm, ocistiAlarm: () => setAlarm(null) };
 }

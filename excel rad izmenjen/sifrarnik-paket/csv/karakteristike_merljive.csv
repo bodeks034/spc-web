@@ -1,39 +1,39 @@
 id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,masina_id,naziv_dela,slika,ukupno_kom,kom_za_kontrolu_n,nivo_kontrole,fai_broj_merenja,broj_merenja,pozicija,klasa,naziv_mere,nominala,usl,lsl,merni_instrument,jedinica,napomena
-35,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Čistoća dela,Major,Čistoća dela,,,,Operater,-,Čišćenje
-12,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Desni žljeb dužina,Major,Desni žljeb dužina,124,124.2,123.8,Šubler,mm,Podešavanje
-14,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Desni žljeb pozicija,Major,Desni žljeb pozicija,18,18.2,17.8,Dubinomer,mm,Podešavanje
-13,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Desni žljeb širina,Critical,Desni žljeb širina,16,,,Kalibar,mm,Podešavanje
-29,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Faza 1.5x45°,Minor,Faza 1.5x45°,1.5,1.7,1.3,Šubler,mm,Korekcija
-28,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Faza 1x45° desno,Minor,Faza 1x45° desno,1,1.2,0.8,Šubler,mm,Korekcija
-27,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Faza 1x45° levo,Minor,Faza 1x45° levo,1,1.2,0.8,Šubler,mm,Korekcija
-22,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Koncentričnost Ø47 prema A-B,Critical,Koncentričnost Ø47 prema A-B,0,0.02,,Komparator,mm,Stop proizvodnje
-23,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Koncentričnost Ø50 prema A-B,Critical,Koncentričnost Ø50 prema A-B,0,0.02,,Komparator,mm,Stop proizvodnje
-9,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Levi žljeb dužina,Major,Levi žljeb dužina,58,58.2,57.8,Šubler,mm,Podešavanje
-11,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Levi žljeb pozicija,Major,Levi žljeb pozicija,11,11.2,10.8,Dubinomer,mm,Podešavanje
-10,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Levi žljeb širina,Critical,Levi žljeb širina,12,,,Kalibar,mm,Podešavanje
-8,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Navoj M50x2 desno,Critical,Navoj M50x2 desno,,,,Navojni prsten,-,Odbaci deo
-7,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Navoj M50x2 levo,Critical,Navoj M50x2 levo,,,,Navojni prsten,-,Odbaci deo
-6,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ø42 kraj vratila,Major,Ø42 kraj vratila,42,42,41.98,Mikrometar,mm,Podešavanje
+35,5502-A,G,7,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Čistoća dela,Major,Čistoća dela,,,,Operater,-,Čišćenje
+12,5502-A,G,3,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Desni žljeb dužina,Major,Desni žljeb dužina,124,124.2,123.8,Šubler,mm,Podešavanje
+14,5502-A,G,3,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Desni žljeb pozicija,Major,Desni žljeb pozicija,18,18.2,17.8,Dubinomer,mm,Podešavanje
+13,5502-A,G,3,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Desni žljeb širina,Critical,Desni žljeb širina,16,,,Kalibar,mm,Podešavanje
+29,5502-A,G,6,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Faza 1.5x45°,Minor,Faza 1.5x45°,1.5,1.7,1.3,Šubler,mm,Korekcija
+28,5502-A,G,6,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Faza 1x45° desno,Minor,Faza 1x45° desno,1,1.2,0.8,Šubler,mm,Korekcija
+27,5502-A,G,6,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Faza 1x45° levo,Minor,Faza 1x45° levo,1,1.2,0.8,Šubler,mm,Korekcija
+22,5502-A,G,5,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Koncentričnost Ø47 prema A-B,Critical,Koncentričnost Ø47 prema A-B,0,0.02,,Komparator,mm,Stop proizvodnje
+23,5502-A,G,5,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Koncentričnost Ø50 prema A-B,Critical,Koncentričnost Ø50 prema A-B,0,0.02,,Komparator,mm,Stop proizvodnje
+9,5502-A,G,2,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Levi žljeb dužina,Major,Levi žljeb dužina,58,58.2,57.8,Šubler,mm,Podešavanje
+11,5502-A,G,3,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Levi žljeb pozicija,Major,Levi žljeb pozicija,11,11.2,10.8,Dubinomer,mm,Podešavanje
+10,5502-A,G,2,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Levi žljeb širina,Critical,Levi žljeb širina,12,,,Kalibar,mm,Podešavanje
+8,5502-A,G,2,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Navoj M50x2 desno,Critical,Navoj M50x2 desno,,,,Navojni prsten,-,Odbaci deo
+7,5502-A,G,2,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Navoj M50x2 levo,Critical,Navoj M50x2 levo,,,,Navojni prsten,-,Odbaci deo
+6,5502-A,G,2,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ø42 kraj vratila,Major,Ø42 kraj vratila,42,42,41.98,Mikrometar,mm,Podešavanje
 3,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ø47 levi rukavac,Critical,Ø47 levi rukavac,47,47,46.981,Mikrometar,mm,Korekcija alata
 4,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ø50 desni rukavac,Critical,Ø50 desni rukavac,50,50,49.981,Mikrometar,mm,Korekcija alata
 2,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ø50 glavni rukavac,Critical,Ø50 glavni rukavac,50,50,49.981,Mikrometar,mm,Korekcija alata
 5,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ø68 prirubnica,Major,Ø68 prirubnica,68,68.2,67.8,Šubler,mm,Podešavanje
-20,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Paralelnost A-B,Critical,Paralelnost A-B,0,0.05,,Komparator,mm,Stop proizvodnje
-21,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Pravolinijskost,Critical,Pravolinijskost,0,0.05,,Komparator,mm,Stop proizvodnje
-25,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,R1 radijus desno,Minor,R1 radijus desno,1,1.2,0.8,Radius merač,mm,Korekcija
-24,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,R1 radijus levo,Minor,R1 radijus levo,1,1.2,0.8,Radius merač,mm,Korekcija
-26,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,R2 prelaz,Minor,R2 prelaz,2,2.2,1.8,Radius merač,mm,Korekcija
-19,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Radijalno bacanje datum A-B,Critical,Radijalno bacanje datum A-B,0,0.02,,Komparator,mm,Stop proizvodnje
-30,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Rapavost N5 glavni rukavac,Critical,Rapavost N5 glavni rukavac,,,,Rapavomer,Ra,Dorada
-31,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Rapavost N5 rukavac,Critical,Rapavost N5 rukavac,,,,Rapavomer,Ra,Dorada
-32,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Rapavost N6 utori,Major,Rapavost N6 utori,,,,Rapavomer,Ra,Dorada
-34,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Srhovi uklonjeni,Major,Srhovi uklonjeni,,,,Operater,-,Dorada
+20,5502-A,G,4,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Paralelnost A-B,Critical,Paralelnost A-B,0,0.05,,Komparator,mm,Stop proizvodnje
+21,5502-A,G,5,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Pravolinijskost,Critical,Pravolinijskost,0,0.05,,Komparator,mm,Stop proizvodnje
+25,5502-A,G,5,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,R1 radijus desno,Minor,R1 radijus desno,1,1.2,0.8,Radius merač,mm,Korekcija
+24,5502-A,G,5,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,R1 radijus levo,Minor,R1 radijus levo,1,1.2,0.8,Radius merač,mm,Korekcija
+26,5502-A,G,6,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,R2 prelaz,Minor,R2 prelaz,2,2.2,1.8,Radius merač,mm,Korekcija
+19,5502-A,G,4,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Radijalno bacanje datum A-B,Critical,Radijalno bacanje datum A-B,0,0.02,,Komparator,mm,Stop proizvodnje
+30,5502-A,G,6,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Rapavost N5 glavni rukavac,Critical,Rapavost N5 glavni rukavac,,,,Rapavomer,Ra,Dorada
+31,5502-A,G,7,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Rapavost N5 rukavac,Critical,Rapavost N5 rukavac,,,,Rapavomer,Ra,Dorada
+32,5502-A,G,7,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Rapavost N6 utori,Major,Rapavost N6 utori,,,,Rapavomer,Ra,Dorada
+34,5502-A,G,7,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Srhovi uklonjeni,Major,Srhovi uklonjeni,,,,Operater,-,Dorada
 1,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Ukupna dužina vratila,Critical,Ukupna dužina vratila,360,360.1,359.9,Šubler,mm,Zaustavi proces
-18,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor A-A dubina,Major,Utor A-A dubina,6.2,6.4,6,Dubinomer,mm,Podešavanje
-17,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor A-A širina,Critical,Utor A-A širina,16,,,Kalibar,mm,Podešavanje
-16,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor B-B dubina,Major,Utor B-B dubina,4.9,5.1,4.7,Dubinomer,mm,Podešavanje
-15,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor B-B širina,Critical,Utor B-B širina,12,,,Kalibar,mm,Podešavanje
-33,5502-A,G,1,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Vizuelna kontrola oštećenja,Major,Vizuelna kontrola oštećenja,,,,Operater,-,Sortiranje
+18,5502-A,G,4,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor A-A dubina,Major,Utor A-A dubina,6.2,6.4,6,Dubinomer,mm,Podešavanje
+17,5502-A,G,4,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor A-A širina,Critical,Utor A-A širina,16,,,Kalibar,mm,Podešavanje
+16,5502-A,G,4,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor B-B dubina,Major,Utor B-B dubina,4.9,5.1,4.7,Dubinomer,mm,Podešavanje
+15,5502-A,G,3,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Utor B-B širina,Critical,Utor B-B širina,12,,,Kalibar,mm,Podešavanje
+33,5502-A,G,7,RN-2024-002,,Masinska obrada,7,,Osovina,Osovina_SOP.jpg,100,100,,,5,Vizuelna kontrola oštećenja,Major,Vizuelna kontrola oštećenja,,,,Operater,-,Sortiranje
 93,DEMO-001,B,1,RN-2026-DEMO001,Laser sečenje,Preseraj,2,,Test nosač — demo,DEMO-01.png,50,50,,,5,Dužina A,Critical,Dužina A,120,120.5,119.5,Pomično merilo,mm,
 99,DEMO-001,F,1,RN-2026-DEMO001-F,Završna kontrola,Završna,6,,,,,,,,5,Masa dela,Minor,Masa dela,2.5,2.7,2.3,Vaga,kg,
 92,DEMO-001,A,1,RN-2026-DEMO001,Vizuelna kontrola ulazna,Ulazna kontrola,1,,Test nosač — demo,DEMO-01.png,50,50,,,,Oštećenje površine,Major,Oštećenje površine,,,,Vizuelno,mm,
@@ -69,9 +69,9 @@ id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,m
 78,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,3,,Nosač motora,nosac motora NTV.png,50,50,,,,Duzina vara,Major,Duzina vara,,,,Vizuelna VT,mm,
 85,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,3,,Nosač motora,nosac motora NTV.png,50,50,,,5,Koncentričnost rupa,,Koncentričnost rupa,0,0.2,-0.2,Komparator,mm,
 87,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,6,,Nosač motora,nosac motora NTV.png,50,50,,,5,Masa dela,,Masa dela,3.2,3.4,3,Vaga,kg,
-68,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Ø14 rupe (4 kom),Major,Ø14 rupe (4 kom),14,14.2,13.8,Mikrometar,mm,
-67,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Ø17 rupe (2 kom),Major,Ø17 rupe (2 kom),17,17.2,16.8,Mikrometar,mm,
-66,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Ø18 rupe (2 kom),Major,Ø18 rupe (2 kom),18,18.2,17.8,Mikrometar,mm,
+68,NT-001,B,1,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Ø14 rupe (4 kom),Major,Ø14 rupe (4 kom),14,14.2,13.8,Mikrometar,mm,
+67,NT-001,B,1,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Ø17 rupe (2 kom),Major,Ø17 rupe (2 kom),17,17.2,16.8,Mikrometar,mm,
+66,NT-001,B,1,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Ø18 rupe (2 kom),Major,Ø18 rupe (2 kom),18,18.2,17.8,Mikrometar,mm,
 88,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,6,,Nosač motora,nosac motora NTV.png,50,50,,,5,Oštre ivice,,Oštre ivice,,,,Vizuelno,mm,
 90,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,6,,Nosač motora,nosac motora NTV.png,50,50,,,5,Oznaka dela,,Oznaka dela,,,,Vizuelno,mm,
 83,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,3,,Nosač motora,nosac motora NTV.png,50,50,,,5,Paralelnost bocnih nosaca,,Paralelnost bocnih nosaca,0,0.2,0,Komparator,mm,
@@ -79,8 +79,8 @@ id,id_deo,pogon_kod,sifra_merenja,radni_nalog,faza_naziv,linija_faza,linija_id,m
 60,NT-001,A,2,RN-2026-NT001-A,Ulazna kontrola,Ulazna kontrola,1,,Nosač motora,nosac motora NTV.png,50,50,,,,Površinska oštećenja,Critical,Površinska oštećenja,,,,Vizuelno,mm,
 89,NT-001,F,1,RN-2026-NT001-F,Završna kontrola,Završna,6,,Nosač motora,nosac motora NTV.png,50,50,,,5,Površinska zaštita,,Površinska zaštita,,,,Vizuelno,mm,
 71,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Pozicija Ø14 rupa,Major,Pozicija Ø14 rupa,,0.3,-0.3,Mikrometar,mm,
-69,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Pozicija Ø18 rupa X,Major,Pozicija Ø18 rupa X,,0.2,-0.2,Pomično merilo,mm,
-70,NT-001,B,2,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Pozicija Ø18 rupa Y,Major,Pozicija Ø18 rupa Y,,0.2,-0.2,Komparator,mm,
+69,NT-001,B,1,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Pozicija Ø18 rupa X,Major,Pozicija Ø18 rupa X,,0.2,-0.2,Pomično merilo,mm,
+70,NT-001,B,1,RN-2026-NT001-B,Bušenje,Preseraj,2,3,Nosač motora,nosac motora NTV.png,50,50,,,5,Pozicija Ø18 rupa Y,Major,Pozicija Ø18 rupa Y,,0.2,-0.2,Komparator,mm,
 84,NT-001,C,3,RN-2026-NT001-C,Geometrijska kontrola,Karoserija,3,,Nosač motora,nosac motora NTV.png,50,50,,,5,Pravougaonost,,Pravougaonost,90,90.2,89.8,Uglomer,stepen,
 80,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,3,,Nosač motora,nosac motora NTV.png,50,50,,,,Prskanje,,Prskanje,0,0,0,Vizuelna VT,mm,
 81,NT-001,C,2,RN-2026-NT001-C,Zavarivanje,Karoserija,3,,Nosač motora,nosac motora NTV.png,50,50,,,,Pukotine,,Pukotine,0,0,0,Vizuelna VT,mm,

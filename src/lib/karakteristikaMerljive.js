@@ -202,7 +202,8 @@ export function dodeliSerijeMerenja(redovi, { prepisi = false } = {}) {
     serijaMetaPoGrupi.set(key, { nivo_kontrole: nivo, fai_broj_merenja: fai });
   });
 
-  return lista.map((r) => {
+  return podeliPrevelikeSerije(
+    lista.map((r) => {
     const key = grupaSerijeKey(r);
     const out = { ...r };
     const imaSifru = String(out.sifra_merenja || "").trim();
@@ -224,7 +225,30 @@ export function dodeliSerijeMerenja(redovi, { prepisi = false } = {}) {
     }
 
     return out;
-  });
+    }),
+  );
+}
+
+/** >5 merljivih dimenzija u jednoj seriji → podeli na serije 1,2,3… (po 5, npr. 5502-A). */
+export function podeliPrevelikeSerije(redovi, maxPoSeriji = 5) {
+  const lista = (redovi || []).map((r) => ({ ...r }));
+  const grupe = new Map();
+  for (const r of lista) {
+    const key = `${grupaSerijeKey(r)}|${String(r.sifra_merenja || "").trim()}`;
+    if (!grupe.has(key)) grupe.set(key, []);
+    grupe.get(key).push(r);
+  }
+
+  for (const rows of grupe.values()) {
+    const merljive = rows
+      .filter(jeMerljivaPoInstrumentu)
+      .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+    if (merljive.length <= maxPoSeriji) continue;
+    merljive.forEach((r, i) => {
+      r.sifra_merenja = String(Math.floor(i / maxPoSeriji) + 1);
+    });
+  }
+  return lista;
 }
 
 /** FAI merenja na prvo parče (1–10), nezavisno od serije. */

@@ -85,11 +85,15 @@ export function normalizujKarakteristikuRed(k) {
     jedinica = napomena;
   }
 
-  return {
+  const out = {
     ...k,
     merni_instrument: instrument || k.merni_instrument,
     jedinica: jedinica || k.jedinica || "mm",
   };
+  if (prepoznajUgaoKarakteristiku(out) && !isUgao(out.jedinica)) {
+    out.jedinica = "stepen";
+  }
+  return out;
 }
 
 /** Da li je vrednost pakovani DMS (npr. 440000, 15000), ne običan mm broj. */
@@ -115,8 +119,9 @@ export function graniceIzKarakteristike(k) {
     if (/^\d{4,7}$/.test(t)) return formatStep(t);
     const n = num ?? (/^\d{4,7}$/.test(t) ? Number(t) : null);
     if (Number.isFinite(n) && n >= 1000) return formatStep(String(Math.round(n)));
+    if (Number.isFinite(n) && n <= 180) return prikazUgaoGranica(n);
     if (t) return t;
-    return Number.isFinite(num) ? formatStep(String(Math.round(num))) : "—";
+    return Number.isFinite(num) ? prikazUgaoGranica(num) : "—";
   };
 
   let lslT = k.lsl_text ?? (k.lsl != null ? String(k.lsl) : "");
@@ -166,7 +171,7 @@ export function koristiUgaoUnosKolone(k) {
   return prepoznajUgaoKarakteristiku(k) || isUgao(k?.jedinica);
 }
 
-import { jeAtributivnaPoInstrumentu, jeMerljivaPoInstrumentu } from "./karakteristikaMerljive.js";
+import { jeAtributivnaPoInstrumentu, jeMerljivaPoInstrumentu, grupaSerijeKey } from "./karakteristikaMerljive.js";
 import { faiObaveznoIzReda, faiBrojMerenjaIzKolone } from "./faiWorkflow.js";
 import { faiBrojMerenjaIzReda } from "./karakteristikaMerljive.js";
 import { labelKlasaSaPragom } from "./spcAlarmPragovi.js";
@@ -388,7 +393,7 @@ function formatBrojOpseg(v, jedinica) {
 
 export function formatOpsegPlausibilnosti(opseg, jedinica) {
   if (!opseg) return "";
-  const j = jedinicaSpcOsi(jedinica);
+  const j = isUgao(jedinica) ? "" : String(jedinica || "").trim();
   const a = formatBrojOpseg(opseg.min, jedinica);
   const b = formatBrojOpseg(opseg.max, jedinica);
   return j ? `${a} – ${b} ${j}` : `${a} – ${b}`;
@@ -410,6 +415,14 @@ export function brojDecimalaIzGranica(lslDec, uslDec, nominalDec) {
     const idx = s.indexOf(".");
     if (idx >= 0) maxDec = Math.max(maxDec, s.length - idx - 1);
   }
+  if (maxDec <= 0 && Number.isFinite(lslDec) && Number.isFinite(uslDec)) {
+    const span = Math.abs(uslDec - lslDec);
+    if (span > 0 && span < 1) {
+      const s = span.toFixed(6).replace(/\.?0+$/, "");
+      const idx = s.indexOf(".");
+      if (idx >= 0) maxDec = Math.max(maxDec, s.length - idx - 1);
+    }
+  }
   return maxDec;
 }
 
@@ -427,14 +440,8 @@ export function unosMerenjaNepotpun(raw, granice = {}) {
 
   const posle = s.split(",")[1] ?? "";
   if (!posle.length) return true;
-  if (posle.length >= minDec) return false;
-
-  const j = jedinica ?? "mm";
-  const dec = toDec(s, j);
-  if (!Number.isFinite(dec)) return true;
-  if (proveriOkNok(s, lslDec, uslDec, j) === "OK") return false;
-
-  return true;
+  if (posle.length < minDec) return true;
+  return false;
 }
 
 /** Da li je broj u razumnom opsegu (pre dodavanja merenja). */
@@ -554,6 +561,10 @@ export function validirajUnos(raw, jedinica, granice = {}) {
     return { ok: false, poruka: "Neispravan broj." };
   }
 
+  if (unosMerenjaNepotpun(s, { lslDec, uslDec, nominalDec, jedinica })) {
+    return { ok: false, poruka: "", zadrziUnos: true };
+  }
+
   const pl = proveriPlausibilnostUnosa(dec, lslDec, uslDec, nominalDec, jedinica);
   if (!pl.ok) return { ok: false, poruka: pl.poruka };
 
@@ -660,10 +671,25 @@ function sortSerijeMerenja(arr) {
   });
 }
 
+function mapaImplicitnihSerija(karakteristike, idDeo, pogonKod) {
+  const rows = redoviZaDeo(karakteristike, idDeo, pogonKod);
+  const keys = [...new Set(rows.map((k) => grupaSerijeKey(k)))].sort();
+  const mapa = new Map();
+  keys.forEach((key, i) => mapa.set(key, String(i + 1)));
+  return mapa;
+}
+
+function efektivnaSifraMerenja(k, mapaSerija) {
+  const eksplicitna = String(k?.sifra_merenja || "").trim();
+  if (eksplicitna) return eksplicitna;
+  return mapaSerija?.get(grupaSerijeKey(k)) || "";
+}
+
 function redoviSerije(karakteristike, idDeo, sifraMerenja, pogonKod) {
   const ab = String(sifraMerenja || "").trim();
+  const mapa = mapaImplicitnihSerija(karakteristike, idDeo, pogonKod);
   return redoviZaDeo(karakteristike, idDeo, pogonKod).filter(
-    (k) => String(k.sifra_merenja || "").trim() === ab,
+    (k) => efektivnaSifraMerenja(k, mapa) === ab,
   );
 }
 
@@ -776,9 +802,12 @@ export function pogoniSaMerenjima(karakteristike, idDeo) {
 
 /** Jedinstvene serije (A,B,C…) za deo */
 export function grupeMerenja(karakteristike, idDeo, pogonKod) {
+  const rows = redoviZaDeo(karakteristike, idDeo, pogonKod);
+  const mapa = mapaImplicitnihSerija(karakteristike, idDeo, pogonKod);
   const set = new Set();
-  for (const k of redoviZaDeo(karakteristike, idDeo, pogonKod)) {
-    if (k.sifra_merenja) set.add(String(k.sifra_merenja).trim());
+  for (const k of rows) {
+    const sifra = efektivnaSifraMerenja(k, mapa);
+    if (sifra) set.add(sifra);
   }
   return sortSerijeMerenja([...set]);
 }
@@ -905,10 +934,20 @@ export function jedinicaSpcOsi(jedinica) {
   return isUgao(jedinica) ? "mm" : String(jedinica || "").trim();
 }
 
-/** Format vrednosti na grafikonu / KPI. */
+/** Prikaz ugla iz šifrarnika (decimalni stepeni 0–180 ili pakovani DMS). */
+export function prikazUgaoGranica(n) {
+  if (!Number.isFinite(n)) return "—";
+  if (n > 180) return formatStep(String(Math.round(n)));
+  return decStepenUDms(n);
+}
+
+/** Format vrednosti na grafikonu / KPI / opsegu unosa. */
 export function formatVrednostKarte(v, jedinica, dec = 4) {
   if (!Number.isFinite(v)) return "—";
-  if (isUgao(jedinica)) return `${(+v).toFixed(dec)} mm`;
+  if (isUgao(jedinica)) {
+    if (Math.abs(v) <= 180) return decStepenUDms(v);
+    return `${(+v).toFixed(dec)} mm`;
+  }
   return (+v).toFixed(dec);
 }
 

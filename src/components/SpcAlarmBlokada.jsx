@@ -19,6 +19,7 @@ export default function SpcAlarmBlokada({
   onZatvoreno,
   onKarantin,
   onZahtevPrekid,
+  onOsvezi,
   podnaslov = "",
 }) {
   const [komentar, setKomentar] = useState("");
@@ -27,6 +28,11 @@ export default function SpcAlarmBlokada({
 
   const jeKarantin = alarm?.status === "karantin";
   const mozeZatvoriti = jeAdmin(korisnik?.uloga) || jeKvalitetIliVise(korisnik?.uloga);
+
+  const posleAkcije = async (cb) => {
+    await onOsvezi?.();
+    cb?.();
+  };
 
   const potvrdi = async () => {
     if (!komentar.trim()) {
@@ -41,9 +47,15 @@ export default function SpcAlarmBlokada({
         radnikId: korisnik?.radnikId,
         komentar,
       });
-      onPotvrdjeno?.();
+      await posleAkcije(onPotvrdjeno);
     } catch (e) {
-      setGreska(e.message || "Greška pri potvrdi alarma.");
+      const msg = String(e.message || "");
+      if (msg.includes("JSON object") || msg.includes("više ne postoji")) {
+        await posleAkcije(onPotvrdjeno);
+        return;
+      }
+      setGreska(msg || "Greška pri potvrdi alarma.");
+      await onOsvezi?.();
     } finally {
       setLoading(false);
     }
@@ -63,9 +75,10 @@ export default function SpcAlarmBlokada({
         komentar,
         radniNalog,
       });
-      onKarantin?.();
+      await posleAkcije(onKarantin);
     } catch (e) {
       setGreska(e.message || "Greška pri karantinu.");
+      await onOsvezi?.();
     } finally {
       setLoading(false);
     }
@@ -84,9 +97,15 @@ export default function SpcAlarmBlokada({
         radnikId: korisnik?.radnikId,
         komentar,
       });
-      onZatvoreno?.();
+      await posleAkcije(onZatvoreno);
     } catch (e) {
-      setGreska(e.message || "Greška pri zatvaranju alarma.");
+      const msg = String(e.message || "");
+      if (msg.includes("JSON object")) {
+        await posleAkcije(onZatvoreno);
+        return;
+      }
+      setGreska(msg || "Greška pri zatvaranju alarma.");
+      await onOsvezi?.();
     } finally {
       setLoading(false);
     }

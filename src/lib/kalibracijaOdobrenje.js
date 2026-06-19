@@ -26,12 +26,12 @@ export async function ucitajOdobrenuKalibraciju(supabaseClient, { radnikId, idDe
     query = query.is("operater_id", null);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query;
   if (error) {
     console.error("ucitajOdobrenuKalibraciju:", error.message);
     return null;
   }
-  return data?.id ?? null;
+  return data?.[0]?.id ?? null;
 }
 
 /** Aktivan zahtev operatera koji čeka admina. */
@@ -47,14 +47,13 @@ export async function ucitajCekaKalibraciju(supabaseClient, { radnikId, idDeo })
     .eq("operater_id", operaterId)
     .eq("status", "ceka")
     .order("id", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
     console.error("ucitajCekaKalibraciju:", error.message);
     return null;
   }
-  return data?.id ?? null;
+  return data?.[0]?.id ?? null;
 }
 
 export async function posaljiZahtevKalibracije(supabaseClient, {
@@ -119,6 +118,12 @@ export async function adminPostaviOdobrenjeKalibracije(supabaseClient, {
     if (error) return { ok: false, greska: error.message };
     return { ok: true };
   }
+
+  await supabaseClient
+    .from("kalibracija_zahtevi")
+    .update({ status: "zatvoren", admin_id: admin, updated_at: ts })
+    .eq("id_deo", deo)
+    .eq("status", "odobreno");
 
   const { error: errCeka } = await supabaseClient
     .from("kalibracija_zahtevi")

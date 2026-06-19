@@ -94,3 +94,38 @@ export function dopuniPlaniranoKom(kpi, planiranoKom) {
   if (!plan) return kpi;
   return { ...kpi, planirano_kom: kpi?.planirano_kom > 0 ? kpi.planirano_kom : plan };
 }
+
+/** Saberi KPI vrednosti preko svih serija za isti ID deo (sesija / smena). */
+export function agregirajKpiPoSerijama(kpiPoSeriji = {}, tekucaSerija = "", tekuciKpi = null) {
+  const mapa = { ...kpiPoSeriji };
+  if (tekucaSerija && tekuciKpi) mapa[tekucaSerija] = tekuciKpi;
+
+  const sum = {
+    ukupno_kom: 0,
+    ispravno_iz_prve: 0,
+    neusaglaseno: 0,
+    dorada: 0,
+    skart: 0,
+    ok_nakon_dorade: 0,
+    planirano_min: 0,
+    zastoj_min: 0,
+    planirano_kom: 0,
+    brojSerija: 0,
+  };
+
+  for (const k of Object.values(mapa)) {
+    if (!k) continue;
+    sum.brojSerija += 1;
+    sum.ukupno_kom += Number(k.ukupno_kom) || 0;
+    sum.ispravno_iz_prve += Number(k.ispravno_iz_prve) || 0;
+    sum.neusaglaseno += Number(k.neusaglaseno) || 0;
+    sum.dorada += Number(k.dorada) || 0;
+    sum.skart += Number(k.skart) || 0;
+    sum.ok_nakon_dorade += Number(k.ok_nakon_dorade) || 0;
+    sum.planirano_min = Math.max(sum.planirano_min, Number(k.planirano_min) || 0);
+    sum.zastoj_min += Number(k.zastoj_min) || 0;
+    sum.planirano_kom = Math.max(sum.planirano_kom, Number(k.planirano_kom) || 0);
+  }
+
+  return sum;
+}

@@ -4,7 +4,7 @@ export const NOK_ALARM_PROCENAT = 0.20;
 export const NOK_ALARM_MIN_NOK = 1;
 
 export const NOK_ALARM_PO_KLASI = {
-  critical: 0.20,
+  critical: 0.30,
   major: 0.30,
   minor: 0.40,
 };
@@ -16,11 +16,15 @@ const KLASA_NAZIVI = {
 };
 
 export function normalizujKlasaDefekta(klasa) {
-  const s = String(klasa || "").trim().toLowerCase();
+  const s = String(klasa || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   if (!s) return null;
-  if (s.startsWith("crit") || s.includes("krit")) return "critical";
-  if (s.startsWith("maj")) return "major";
-  if (s.startsWith("min")) return "minor";
+  if (s.startsWith("crit") || s.includes("krit") || s === "aql critical") return "critical";
+  if (s.startsWith("maj") || s.includes("glavn")) return "major";
+  if (s.startsWith("min") || s.includes("manj")) return "minor";
   return null;
 }
 

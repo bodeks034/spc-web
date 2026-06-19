@@ -2,33 +2,75 @@ import { useMemo, useEffect, useState } from "react";
 import { izracunajOeeKpi } from "../lib/oeeKpi.js";
 import { supabase } from "../lib/supabaseClient.js";
 
-const POLJA = [
-  ["ukupno_kom", "Ukupno kom", "number"],
-  ["ispravno_iz_prve", "Ispravno iz prve", "number"],
-  ["neusaglaseno", "Neusaglašeno", "number"],
-  ["dorada", "Dorada", "number"],
-  ["skart", "Škart", "number"],
-  ["ok_nakon_dorade", "OK nakon dorade", "number"],
-  ["planirano_kom", "Planirano (kom)", "number"],
-  ["planirano_min", "Planirano (min)", "number"],
-  ["zastoj_min", "Zastoj (min)", "number"],
+const POLJA_RUCNO = [
+  ["dorada", "Dorada"],
+  ["skart", "Škart"],
+  ["ok_nakon_dorade", "OK nakon dorade"],
 ];
 
-export default function SkartDoradaOeePanel({
-  C, vrednosti, onChange, naslov, podnaslov, kompakt,
-}) {
-  const kpi = useMemo(() => izracunajOeeKpi(vrednosti || {}), [vrednosti]);
+const POLJA_PLAN = [
+  ["planirano_kom", "Planirano (kom)"],
+  ["planirano_min", "Planirano (min)"],
+  ["zastoj_min", "Zastoj (min)"],
+];
 
+const POLJA_AUTO = [
+  ["ukupno_kom", "Ukupno kom"],
+  ["ispravno_iz_prve", "Ispravno iz prve"],
+  ["neusaglaseno", "Neusaglašeno"],
+];
+
+const POLJA_UKUPNO_KLJUCEVI = [
+  ...POLJA_AUTO,
+  ...POLJA_RUCNO,
+];
+
+function fmtBroj(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? String(n) : "0";
+}
+
+function KpiBrojPolje({ label, value, boja, C, onChange, readOnly = false }) {
   const inp = {
     width: "100%",
-    background: C.input,
+    background: readOnly ? C.bg : C.input,
     border: `1px solid ${C.border}`,
     borderRadius: 6,
-    color: C.tekst,
-    fontSize: kompakt ? 12 : 13,
-    padding: kompakt ? "6px 8px" : "8px 10px",
+    color: boja || C.tekst,
+    fontSize: 12,
+    padding: "6px 8px",
     boxSizing: "border-box",
     fontFamily: "inherit",
+    fontWeight: readOnly ? 700 : 400,
+  };
+
+  return (
+    <label style={{ display: "block" }}>
+      <span style={{ color: C.sivi, fontSize: 8, display: "block", marginBottom: 3 }}>{label}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        readOnly={readOnly}
+        value={fmtBroj(value)}
+        onChange={readOnly ? undefined : (e => {
+          const raw = e.target.value.replace(/[^\d]/g, "");
+          onChange(raw === "" ? 0 : Math.max(0, Number(raw)));
+        })}
+        style={inp}
+      />
+    </label>
+  );
+}
+
+export default function SkartDoradaOeePanel({
+  C, vrednosti, ukupno, onChange, naslov, podnaslov, kompakt,
+}) {
+  const kpiIzvor = ukupno || vrednosti || {};
+  const kpi = useMemo(() => izracunajOeeKpi(kpiIzvor), [kpiIzvor]);
+
+  const promeniPolje = (key, val) => {
+    onChange?.({ ...vrednosti, [key]: val });
   };
 
   return (
@@ -46,23 +88,104 @@ export default function SkartDoradaOeePanel({
         )}
       </div>
 
+      {ukupno ? (
+        <>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: kompakt ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+            gap: 8,
+            marginBottom: 10,
+            padding: 8,
+            background: C.bg,
+            borderRadius: 8,
+            border: `1px solid ${C.border}`,
+          }}>
+            {POLJA_UKUPNO_KLJUCEVI.map(([key, label]) => {
+              const boja = key === "ispravno_iz_prve" ? C.zelena
+                : key === "neusaglaseno" ? C.zuta
+                : key === "dorada" ? C.narandzasta
+                : key === "skart" ? C.crvena
+                : key === "ok_nakon_dorade" ? C.plava
+                : C.tekst;
+              return (
+                <KpiBrojPolje
+                  key={key}
+                  C={C}
+                  label={`${label} (ukupno)`}
+                  value={kpiIzvor?.[key]}
+                  boja={boja}
+                  readOnly
+                />
+              );
+            })}
+          </div>
+          <div style={{ color: C.sivi, fontSize: 8, marginBottom: 8 }}>
+            Ručni unos za tekuću seriju (sabira se u ukupno iznad):
+          </div>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: kompakt ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+            gap: 8,
+            marginBottom: 10,
+          }}>
+            {POLJA_RUCNO.map(([key, label]) => (
+              <KpiBrojPolje
+                key={key}
+                C={C}
+                label={`${label} (serija)`}
+                value={vrednosti?.[key]}
+                boja={key === "dorada" ? C.narandzasta : key === "skart" ? C.crvena : C.plava}
+                onChange={val => promeniPolje(key, val)}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: kompakt ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+            gap: 8,
+            marginBottom: 10,
+          }}>
+            {POLJA_AUTO.map(([key, label]) => (
+              <KpiBrojPolje
+                key={key}
+                C={C}
+                label={label}
+                value={vrednosti?.[key]}
+                boja={key === "ispravno_iz_prve" ? C.zelena : key === "neusaglaseno" ? C.zuta : C.tekst}
+                readOnly
+              />
+            ))}
+            {POLJA_RUCNO.map(([key, label]) => (
+              <KpiBrojPolje
+                key={key}
+                C={C}
+                label={label}
+                value={vrednosti?.[key]}
+                boja={key === "dorada" ? C.narandzasta : key === "skart" ? C.crvena : C.plava}
+                onChange={val => promeniPolje(key, val)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       <div style={{
         display: "grid",
-        gridTemplateColumns: kompakt ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gridTemplateColumns: kompakt ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
         gap: 8,
         marginBottom: 10,
       }}>
-        {POLJA.map(([key, label]) => (
-          <label key={key} style={{ display: "block" }}>
-            <span style={{ color: C.sivi, fontSize: 8, display: "block", marginBottom: 3 }}>{label}</span>
-            <input
-              type={POLJA.find(p => p[0] === key)[2]}
-              min={0}
-              value={vrednosti?.[key] ?? 0}
-              onChange={e => onChange({ ...vrednosti, [key]: Math.max(0, Number(e.target.value) || 0) })}
-              style={inp}
-            />
-          </label>
+        {POLJA_PLAN.map(([key, label]) => (
+          <KpiBrojPolje
+            key={key}
+            C={C}
+            label={label}
+            value={vrednosti?.[key]}
+            onChange={val => promeniPolje(key, val)}
+          />
         ))}
       </div>
 
@@ -76,7 +199,7 @@ export default function SkartDoradaOeePanel({
           ["FPY", kpi.fpy != null ? `${kpi.fpy}%` : "—", C.plava],
           ["Dostupnost", kpi.availability != null ? `${kpi.availability}%` : "—", C.zuta],
           ["Performanse", kpi.performance != null ? `${kpi.performance}%` : "—",
-            (vrednosti?.planirano_kom > 0) ? C.plava : C.sivi],
+            (kpiIzvor?.planirano_kom > 0) ? C.plava : C.sivi],
           ["Kvalitet", kpi.quality != null ? `${kpi.quality}%` : "—", C.zelena],
           ["Škart %", kpi.skartStopa != null ? `${kpi.skartStopa}%` : "—", C.crvena],
           ["Dorada %", kpi.doradaStopa != null ? `${kpi.doradaStopa}%` : "—", C.narandzasta],
@@ -209,10 +332,12 @@ export function SkartDoradaOeePregled({ C, podaci, naslov }) {
                 </span>
               </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 10, color: C.sivi }}>
+                <span>Iz prve: <strong style={{ color: C.zelena }}>{row.ispravno_iz_prve ?? 0}</strong></span>
+                <span>Neus.: <strong style={{ color: C.zuta }}>{row.neusaglaseno ?? 0}</strong></span>
                 <span>Škart: <strong style={{ color: C.crvena }}>{row.skart}</strong></span>
                 <span>Dorada: <strong style={{ color: C.narandzasta }}>{row.dorada}</strong></span>
+                <span>OK↳: <strong style={{ color: C.plava }}>{row.ok_nakon_dorade ?? 0}</strong></span>
                 <span>FPY: <strong style={{ color: C.plava }}>{k.fpy}%</strong></span>
-                <span>UK: {row.ukupno_kom}</span>
               </div>
             </div>
           );

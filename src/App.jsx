@@ -2013,7 +2013,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   }, [dostupniPogoni, naloziZaPogon, sviDelovi, atributivniPogoni, idDeo]);
   const trebaIzborPogona = !!(idDeo && omoguceniPogoni.size > 1 && !pogonKod);
   const deoSpreman = !!(deoInfo && !trebaIzborPogona);
-  const { alarm: spcAlarm, blokira: spcBlokira, osvezi: osveziSpcAlarm } = useSpcAlarmGate(supabase, {
+  const { alarm: spcAlarm, blokira: spcBlokira, osvezi: osveziSpcAlarm, ocistiAlarm: ocistiSpcAlarm } = useSpcAlarmGate(supabase, {
     idDeo,
     enabled: jeLinija && deoSpreman,
   });
@@ -2625,17 +2625,21 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           podnaslov="Atributivne · linija"
           C={C}
           onPotvrdjeno={() => {
+            ocistiSpcAlarm();
             osveziSpcAlarm();
             addToast("✓ SPC alarm potvrđen — možete nastaviti unos", "uspeh");
           }}
           onKarantin={() => {
+            ocistiSpcAlarm();
             osveziSpcAlarm();
             addToast("🔒 Karantin aktivan — eskalacija poslata, čeka kvalitet", "greska");
           }}
           onZatvoreno={() => {
+            ocistiSpcAlarm();
             osveziSpcAlarm();
             addToast("✓ SPC alarm zatvoren", "uspeh");
           }}
+          onOsvezi={osveziSpcAlarm}
           onZahtevPrekid={() => setPokaziZahtev(true)}
         />
       )}

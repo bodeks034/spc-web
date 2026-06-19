@@ -328,14 +328,13 @@ export async function ucitajOdobrenPrekid(supabaseClient, { radnikId, idDeo }) {
     .eq("operater_id", operaterId)
     .eq("status", "odobreno")
     .order("id", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
     console.error("ucitajOdobrenPrekid:", error.message);
     return null;
   }
-  return data?.id ?? null;
+  return data?.[0]?.id ?? null;
 }
 
 export async function zatvoriPrekidZahtev(supabaseClient, prekidId) {

@@ -35,6 +35,30 @@ export function normalizujIdDeo(idDeo) {
 
 const BLOKIRAJUCI_STATUSI = ["otvoren", "karantin"];
 
+async function ucitajAlarmPoId(supabase, alarmId) {
+  const { data, error } = await supabase
+    .from("spc_alarmi")
+    .select("*")
+    .eq("id", alarmId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** UPDATE + select jednog reda — bez .single() greške kad je red već promenjen. */
+async function azurirajAlarmJedan(supabase, alarmId, patch, { dozvoljeniStari = [] } = {}) {
+  let q = supabase.from("spc_alarmi").update(patch).eq("id", alarmId);
+  if (dozvoljeniStari.length) q = q.in("status", dozvoljeniStari);
+  const { data, error } = await q.select("*");
+  if (error) throw error;
+  if (data?.length === 1) return data[0];
+  if (data?.length > 1) return data[0];
+
+  const trenutni = await ucitajAlarmPoId(supabase, alarmId);
+  if (!trenutni) throw new Error("Alarm više ne postoji u bazi.");
+  return trenutni;
+}
+
 export async function ucitajBlokirajuciSpcAlarm(supabase, idDeo) {
   const deo = normalizujIdDeo(idDeo);
   if (deo.length < 3) return null;
@@ -82,21 +106,27 @@ export async function potvrdiSpcAlarm(supabase, { alarmId, radnikId, komentar })
   const txt = String(komentar || "").trim();
   if (!txt) throw new Error("Komentar je obavezan pre nastavka rada.");
 
-  const { data, error } = await supabase
-    .from("spc_alarmi")
-    .update({
+  const trenutni = await ucitajAlarmPoId(supabase, alarmId);
+  if (!trenutni) throw new Error("Alarm više ne postoji.");
+  if (trenutni.status === "potvrden" || trenutni.status === "zatvoren") {
+    return { id: trenutni.id, status: trenutni.status };
+  }
+  if (trenutni.status === "karantin") {
+    throw new Error("Alarm je u karantinu — čeka odluku kvaliteta/admina.");
+  }
+
+  const data = await azurirajAlarmJedan(
+    supabase,
+    alarmId,
+    {
       status: "potvrden",
       komentar_operater: txt,
       potvrdio_id: radnikId || null,
       updated_at: new Date().toISOString(),
-    })
-    .eq("id", alarmId)
-    .eq("status", "otvoren")
-    .select("id,status")
-    .single();
-
-  if (error) throw error;
-  return data;
+    },
+    { dozvoljeniStari: ["otvoren"] },
+  );
+  return { id: data.id, status: data.status };
 }
 
 export async function karantinSpcAlarm(supabase, {
@@ -119,21 +149,18 @@ export async function karantinSpcAlarm(supabase, {
     korektivna_akcija: "HOLD proizvodnje / lota dok kvalitet ne odobri puštanje.",
   });
 
-  const { data, error } = await supabase
-    .from("spc_alarmi")
-    .update({
+  const data = await azurirajAlarmJedan(
+    supabase,
+    alarm.id,
+    {
       status: "karantin",
       komentar_operater: txt,
       potvrdio_id: radnikId || null,
       eskalacija_id: esk?.id || null,
       updated_at: new Date().toISOString(),
-    })
-    .eq("id", alarm.id)
-    .eq("status", "otvoren")
-    .select("*")
-    .single();
-
-  if (error) throw error;
+    },
+    { dozvoljeniStari: ["otvoren"] },
+  );
 
   const rn = String(radniNalog || "").trim().toUpperCase() || null;
   const { error: kErr } = await supabase.from("karantin_lotovi").insert({
@@ -162,20 +189,21 @@ export async function zatvoriSpcAlarm(supabase, { alarmId, radnikId, komentar })
   const txt = String(komentar || "").trim();
   if (!txt) throw new Error("Komentar zatvaranja je obavezan.");
 
-  const { data, error } = await supabase
-    .from("spc_alarmi")
-    .update({
+  const trenutni = await ucitajAlarmPoId(supabase, alarmId);
+  if (!trenutni) throw new Error("Alarm više ne postoji.");
+  if (trenutni.status === "zatvoren") return trenutni;
+
+  const data = await azurirajAlarmJedan(
+    supabase,
+    alarmId,
+    {
       status: "zatvoren",
       komentar_zatvaranja: txt,
       zatvorio_id: radnikId || null,
       updated_at: new Date().toISOString(),
-    })
-    .eq("id", alarmId)
-    .in("status", ["otvoren", "potvrden", "karantin"])
-    .select("*")
-    .single();
-
-  if (error) throw error;
+    },
+    { dozvoljeniStari: ["otvoren", "potvrden", "karantin"] },
+  );
   await pustiKarantinZaAlarm(supabase, alarmId, radnikId);
   return data;
 }
@@ -235,7 +263,29 @@ export async function kreirajAlarmNokSerije(supabase, {
   const pragTxt = Math.round(pragBroj * 100);
   const klasaNorm = normalizujKlasaDefekta(klasa);
   const klasaTxt = klasaNorm ? ` ${KLASA_NAZIVI[klasaNorm]}` : "";
-  const pravilo = `NOK ≥${pragTxt}%${klasaTxt} (${nokCnt}/${n})`;
+  const serijaTxt = String(serija || "").trim() || "?";
+  const pravilo = `NOK ≥${pragTxt}%${klasaTxt} (${nokCnt}/${n}) · S${serijaTxt}`;
+
+  const { data: otvoren } = await supabase
+    .from("spc_alarmi")
+    .select("*")
+    .eq("id_deo", deo)
+    .eq("pozicija", pozicija)
+    .eq("pravilo", pravilo)
+    .eq("status", "otvoren")
+    .limit(1);
+  if (otvoren?.length) return otvoren[0];
+
+  const { data: obradjen } = await supabase
+    .from("spc_alarmi")
+    .select("id")
+    .eq("id_deo", deo)
+    .eq("pozicija", pozicija)
+    .eq("datum", dISO())
+    .in("status", ["potvrden", "zatvoren"])
+    .ilike("pravilo", `% · S${serijaTxt}%`)
+    .limit(1);
+  if (obradjen?.length) return null;
 
   const alarm = await upisiSpcAlarm(supabase, {
     id_deo: deo,

@@ -127,6 +127,7 @@ export function parseDefinicijaSheet(rows) {
 
 const META_PROPAGIRAJ = [
   "pogon_kod",
+  "sifra_merenja",
   "radni_nalog",
   "faza_naziv",
   "linija_faza",
