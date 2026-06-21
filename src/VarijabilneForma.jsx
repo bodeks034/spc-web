@@ -10,7 +10,8 @@ import {
   validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
   formatOpsegPlausibilnosti,
   svaMerenjaZavrsena, imaBiloSta, grupeMerenja, grupeMerenjaSaMetom,
-  brojMerenjaZaSeriju, labelSerije, metaSerije, koloneZaGrupu,
+  brojMerenjaZaSeriju, labelSerije, metaSerije, koloneZaGrupu, koloneFaiZaDeo, faiPotrebanZaDeo,
+  brojPotrebnihZaKolonu, kolonePetStranica,
   filterKeyUnos, sanitizujInputMerenja, unosMerenjaSpremanZaDodavanje, unosMerenjaNepotpun, primeniTastMerenja,
   unosKaoUgao, jeMerljivaKarakteristika,
   idSpremanZaUcitavanje, porukaNepoznatIdDeo,
@@ -22,8 +23,8 @@ import MerljiveSpcKarte from "./MerljiveSpcKarte.jsx";
 import InzenjerExcelPanel from "./InzenjerExcelPanel.jsx";
 import MerilaMsaHub from "./components/MerilaMsaHub.jsx";
 import KontrolniPlanPanel from "./components/KontrolniPlanPanel.jsx";
-import FaiLinijaKorak from "./components/FaiLinijaKorak.jsx";
-import { ucitajOdobrenFai, koloneZaFai, faiLinijaPotreban } from "./lib/faiWorkflow.js";
+import FaiUnosTraka from "./components/FaiUnosTraka.jsx";
+import { ucitajOdobrenFai, snimiFaiUnos, odobriFai, ucitajPoslednjiFai } from "./lib/faiWorkflow.js";
 import FotoNokUnos from "./components/FotoNokUnos.jsx";
 import KalibracijaMerilaPanel from "./components/KalibracijaMerilaPanel.jsx";
 import RadniNaloziPanel from "./components/RadniNaloziPanel.jsx";
@@ -43,6 +44,7 @@ import {
 } from "./layout/index.js";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 import KpiSerijaPanel from "./components/KpiSerijaPanel.jsx";
+import KpiDoradaHub from "./components/KpiDoradaHub.jsx";
 import InteligencijaDeoPanel from "./components/InteligencijaDeoPanel.jsx";
 import { podrazumevaniKpiIzMerenja, agregirajKpiPoSerijama } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, snimiIliAzurirajKpiUnos, pronadjiKpiUnos, kpiVrednostiIzDb, porukaKpiGreske, fetchKpiUnos } from "./lib/kpiUnos.js";
@@ -383,6 +385,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const [kpiDbId, setKpiDbId] = useState(null);
   const [kpiDbIdPoSeriji, setKpiDbIdPoSeriji] = useState({});
   const [kpiPanelOtvoren, setKpiPanelOtvoren] = useState(false);
+  const [kpiHubOtvoren, setKpiHubOtvoren] = useState(false);
   const kpiSerijaRef = useRef(kpiSerija);
   const kpiRucniUnos = useRef(false);
   const kpiDbIdRef = useRef(kpiDbId);
@@ -402,6 +405,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const [unosKorak, setUnosKorak] = useState("poka");
   const [linijaKorak, setLinijaKorak] = useState(1);
   const [faiOdobren, setFaiOdobren] = useState(false);
+  const [faiCekaOdobrenje, setFaiCekaOdobrenje] = useState(false);
+  const [faiPoslednjiId, setFaiPoslednjiId] = useState(null);
+  const [faiStranica, setFaiStranica] = useState(0);
   const kalibracijaOdobrena = !!kalibracijaOdobrenId;
   const mozeUpRikosKalibracije = mozeAdmin || kalibracijaOdobrena;
   const prethodniKalOdobren = useRef(null);
@@ -460,6 +466,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   const inputRefs = useRef([]);
   const koloneRef = useRef(kolone);
   koloneRef.current = kolone;
+  const poslednjaKolonaUnosRef = useRef(-1);
   grupeRef.current = grupe;
   const idUcitano = !!(idDeo && nazivDela && grupe.length && grupaAB);
   const { alarm: spcAlarm, blokira: spcBlokira, osvezi: osveziSpcAlarm, postaviAlarm: postaviSpcAlarm, ocistiAlarm: ocistiSpcAlarm } = useSpcAlarmGate(supabase, {
@@ -509,32 +516,93 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     }
   }, [smena, idDeo, idUcitano, jeLinija, linijaKorak, korisnik?.uloga, mozeAdmin]);
 
-  const koloneFai = useMemo(() => koloneZaFai(kolone), [kolone]);
-  const faiPotreban = koloneFai.length > 0;
+  const faiPotreban = useMemo(
+    () => faiPotrebanZaDeo(karakteristike, idDeo, pogonKod),
+    [karakteristike, idDeo, pogonKod],
+  );
+  const faiRezimAktivan = jeLinija && faiPotreban && !faiOdobren && !faiCekaOdobrenje;
+  const brojFaiDimenzija = useMemo(
+    () => (faiPotreban ? koloneFaiZaDeo(karakteristike, idDeo, pogonKod).length : 0),
+    [faiPotreban, karakteristike, idDeo, pogonKod],
+  );
 
   const proveriFai = useCallback(async () => {
     if (!jeLinija || !idDeo || idDeo.length < 3) {
       setFaiOdobren(!jeLinija);
+      setFaiCekaOdobrenje(false);
+      setFaiPoslednjiId(null);
       return;
     }
     if (!faiPotreban) {
       setFaiOdobren(true);
+      setFaiCekaOdobrenje(false);
+      setFaiPoslednjiId(null);
       return;
     }
     try {
-      const r = await ucitajOdobrenFai(supabase, {
+      const odobren = await ucitajOdobrenFai(supabase, {
         idDeo,
         pogonKod,
         radniNalog,
         smena,
       });
-      setFaiOdobren(!!r);
+      if (odobren) {
+        setFaiOdobren(true);
+        setFaiCekaOdobrenje(false);
+        setFaiPoslednjiId(odobren.id);
+        return;
+      }
+      const poslednji = await ucitajPoslednjiFai(supabase, {
+        idDeo,
+        pogonKod,
+        radniNalog,
+        smena,
+      });
+      if (poslednji?.status === "ceka") {
+        setFaiOdobren(false);
+        setFaiCekaOdobrenje(true);
+        setFaiPoslednjiId(poslednji.id);
+      } else {
+        setFaiOdobren(false);
+        setFaiCekaOdobrenje(false);
+        setFaiPoslednjiId(null);
+      }
     } catch {
       setFaiOdobren(false);
+      setFaiCekaOdobrenje(false);
+      setFaiPoslednjiId(null);
     }
   }, [jeLinija, idDeo, pogonKod, radniNalog, smena, faiPotreban]);
 
   useEffect(() => { proveriFai(); }, [proveriFai]);
+
+  useEffect(() => {
+    if (!idDeo || !grupaAB || unosKorak !== "forma" || !faiRezimAktivan) return;
+    const cols = koloneFaiZaDeo(karakteristike, idDeo, pogonKod);
+    if (!cols.length) return;
+    setKolone(cols);
+    setFaiStranica(0);
+    setAktivnaKolona(indeksSledecePrazno(cols, 1, 0));
+    setTastMerenjaVidljiva(false);
+  }, [faiRezimAktivan, idDeo, grupaAB, pogonKod, karakteristike, unosKorak]);
+
+  const faiPaginacija = useMemo(() => {
+    if (!faiRezimAktivan) return null;
+    return kolonePetStranica(kolone, faiStranica, 5);
+  }, [faiRezimAktivan, kolone, faiStranica]);
+
+  const realniIndeksKolone = useCallback((slotIdx) => {
+    if (!faiRezimAktivan || !faiPaginacija) return slotIdx;
+    const p = faiPaginacija.prikaz[slotIdx];
+    return p?.realniIndeks ?? -1;
+  }, [faiRezimAktivan, faiPaginacija]);
+
+  const kolonaZaSlot = useCallback((slotIdx) => {
+    const ri = realniIndeksKolone(slotIdx);
+    if (ri >= 0) return kolone[ri];
+    if (faiRezimAktivan && faiPaginacija) return faiPaginacija.prikaz[slotIdx]?.kolona;
+    return kolone[slotIdx];
+  }, [realniIndeksKolone, kolone, faiRezimAktivan, faiPaginacija]);
 
   const zavrsiKontrolnuListu = useCallback(() => {
     const idZaListu = jeLinija && idDeo && idUcitano ? String(idDeo || "").trim().toUpperCase() : null;
@@ -973,6 +1041,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   }, [jeLinija, tab, punPristupTabovima]);
 
   const resetKolone = useCallback((broj) => {
+    poslednjaKolonaUnosRef.current = -1;
     setKolone(prazneKolone(broj));
     setFotoPoPoziciji({});
     setKomentarPoPoziciji({});
@@ -1226,6 +1295,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   };
 
   const prebaciGrupu = (ab, force = false) => {
+    if (!force && (faiRezimAktivan || faiCekaOdobrenje)) {
+      setPoruka("Završite FAI (prvo parče) pre promene serije.");
+      return;
+    }
     if (!force && ab !== grupaAB && !mozePreskociti) {
       const idxCilj = grupe.indexOf(ab);
       const idxTren = grupe.indexOf(grupaAB);
@@ -1280,7 +1353,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setAktivnaKolona(indeksSledecePrazno(cols, br, 0));
     if (idDeo && force) {
       setUnosKorak("forma");
-      if (jeLinija && koristiMobLinija) setLinijaKorak(4);
+      if (jeLinija && koristiMobLinija) setLinijaKorak(3);
     }
   };
 
@@ -1300,7 +1373,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     const sledeca = grupe[idx + 1];
     prebaciGrupu(sledeca, true);
     setUnosKorak("forma");
-    if (jeLinija && koristiMobLinija) setLinijaKorak(4);
+    if (jeLinija && koristiMobLinija) setLinijaKorak(3);
     setPoruka(`Serija ${sacuvanaSerija} sačuvana. Unos merenja — serija ${sledeca}.`);
     addToast(`Serija ${sacuvanaSerija} sačuvana → ${sledeca}`, "uspeh");
     return true;
@@ -1315,6 +1388,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setLinijaKorak(1);
     setUnosKorak("poka");
     setFaiOdobren(false);
+    setFaiCekaOdobrenje(false);
+    setFaiPoslednjiId(null);
     setPoruka("");
   };
 
@@ -1353,6 +1428,8 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       if (jeLinija) {
         setLinijaKorak(1);
         setFaiOdobren(false);
+        setFaiCekaOdobrenje(false);
+        setFaiPoslednjiId(null);
       }
     }
     if (!s) {
@@ -1441,12 +1518,19 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const mozeSacuvati = useMemo(() => {
     if (!idDeo) return false;
-    return imaBiloSta(kolone);
-  }, [idDeo, kolone]);
+    if (!imaBiloSta(kolone)) return false;
+    if (faiRezimAktivan) return svaMerenjaZavrsena(kolone, potrebanBroj);
+    return true;
+  }, [idDeo, kolone, faiRezimAktivan, potrebanBroj]);
   const mozeObrisati = useMemo(() => imaBiloSta(kolone), [kolone]);
+  const faiKompletno = useMemo(
+    () => faiRezimAktivan && svaMerenjaZavrsena(kolone, potrebanBroj),
+    [faiRezimAktivan, kolone, potrebanBroj],
+  );
+  const mozeOdobriFai = jeAdmin(korisnik?.uloga) || jeKvalitetIliVise(korisnik?.uloga);
 
   const kolonaJePuna = useCallback((k) => (
-    k?.naziv !== "-" && (k?.merenja?.length || 0) >= potrebanBroj
+    k?.naziv !== "-" && (k?.merenja?.length || 0) >= brojPotrebnihZaKolonu(k, potrebanBroj)
   ), [potrebanBroj]);
 
   useEffect(() => {
@@ -1483,7 +1567,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       return;
     }
     fokusirajKolonu(aktivnaKolona);
-  }, [aktivnaKolona, unosKorak, kolone, potrebanBroj, kolonaJePuna, fokusirajKolonu, koristiTastMerenja]);
+  }, [aktivnaKolona, unosKorak, potrebanBroj, kolonaJePuna, fokusirajKolonu, koristiTastMerenja]);
 
   const indeksiMerljivih = useMemo(
     () => kolone.map((k, i) => (k.naziv !== "-" ? i : -1)).filter(i => i >= 0),
@@ -1491,6 +1575,17 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   );
 
   const prikazIndeksKolone = useMemo(() => {
+    if (L.mobTabKarusel && faiRezimAktivan && faiPaginacija) {
+      const rel = aktivnaKolona - faiPaginacija.start;
+      if (rel >= 0 && rel < 5) {
+        const ri = faiPaginacija.prikaz[rel]?.realniIndeks ?? -1;
+        if (ri >= 0) return rel;
+      }
+      for (let s = 0; s < 5; s += 1) {
+        if ((faiPaginacija.prikaz[s]?.realniIndeks ?? -1) >= 0) return s;
+      }
+      return 0;
+    }
     if (L.mobTabKarusel) {
       if (aktivnaKolona >= 0 && aktivnaKolona < kolone.length) return aktivnaKolona;
       return 0;
@@ -1498,14 +1593,15 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     if (!indeksiMerljivih.length) return -1;
     if (indeksiMerljivih.includes(aktivnaKolona)) return aktivnaKolona;
     return indeksiMerljivih[0];
-  }, [L.mobTabKarusel, kolone.length, indeksiMerljivih, aktivnaKolona]);
+  }, [L.mobTabKarusel, kolone.length, indeksiMerljivih, aktivnaKolona, faiRezimAktivan, faiPaginacija]);
 
   useEffect(() => {
     if (!L.mobTabKarusel || unosKorak !== "forma") return;
+    if (faiRezimAktivan) return;
     if (aktivnaKolona < 0 || aktivnaKolona >= kolone.length) {
       setAktivnaKolona(0);
     }
-  }, [L.mobTabKarusel, aktivnaKolona, unosKorak, kolone.length]);
+  }, [L.mobTabKarusel, aktivnaKolona, unosKorak, kolone.length, faiRezimAktivan]);
 
   const idiPrethodnaKolona = useCallback(() => {
     if (!indeksiMerljivih.length) return;
@@ -1524,6 +1620,19 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   }, [indeksiMerljivih, aktivnaKolona]);
 
   const idiSledecaKolonaMob = useCallback(() => {
+    if (faiRezimAktivan && faiPaginacija) {
+      const rel = Math.max(0, aktivnaKolona - faiPaginacija.start);
+      for (let s = rel + 1; s < 5; s += 1) {
+        const ri = faiPaginacija.prikaz[s]?.realniIndeks ?? -1;
+        if (ri >= 0) {
+          setAktivnaKolona(ri);
+          setTastMerenjaVidljiva(false);
+          document.activeElement?.blur?.();
+          return;
+        }
+      }
+      return;
+    }
     setAktivnaKolona((i) => {
       const tren = i < 0 ? 0 : i;
       const prazna = indeksSledecePrazno(koloneRef.current, potrebanBroj, tren + 1);
@@ -1532,21 +1641,44 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     });
     setTastMerenjaVidljiva(false);
     document.activeElement?.blur?.();
-  }, [kolone.length, potrebanBroj]);
+  }, [kolone.length, potrebanBroj, faiRezimAktivan, faiPaginacija, aktivnaKolona]);
 
   const idiPrethodnaKolonaMob = useCallback(() => {
+    if (faiRezimAktivan && faiPaginacija) {
+      const rel = Math.max(0, aktivnaKolona - faiPaginacija.start);
+      for (let s = rel - 1; s >= 0; s -= 1) {
+        const ri = faiPaginacija.prikaz[s]?.realniIndeks ?? -1;
+        if (ri >= 0) {
+          setAktivnaKolona(ri);
+          setTastMerenjaVidljiva(false);
+          document.activeElement?.blur?.();
+          return;
+        }
+      }
+      return;
+    }
     setAktivnaKolona((i) => {
       const tren = i < 0 ? 0 : i;
       return tren > 0 ? tren - 1 : tren;
     });
     setTastMerenjaVidljiva(false);
     document.activeElement?.blur?.();
+  }, [faiRezimAktivan, faiPaginacija, aktivnaKolona]);
+
+  const promeniFaiStranicu = useCallback((nova) => {
+    setFaiStranica(nova);
+    setAktivnaKolona(-1);
+    setTimeout(() => {
+      const pag = kolonePetStranica(koloneRef.current, nova, 5);
+      const prvi = pag.prikaz.find((p) => p.realniIndeks >= 0);
+      if (prvi) setAktivnaKolona(prvi.realniIndeks);
+    }, 0);
   }, []);
 
   const dodajMerenje = useCallback((idx, rawOverride) => {
     const k0 = koloneRef.current[idx];
     if (!k0 || k0.naziv === "-") return false;
-    if (k0.merenja.length >= potrebanBroj) {
+    if (k0.merenja.length >= brojPotrebnihZaKolonu(k0, potrebanBroj)) {
       prebaciNaSledecuPraznuKolonu(idx + 1);
       return false;
     }
@@ -1582,6 +1714,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     setPoruka("");
     const status = proveriOkNok(val.vrednost, k0.lslDec, k0.uslDec, k0.jedinica);
     let sledecaIdx = idx;
+    poslednjaKolonaUnosRef.current = idx;
     setKolone(prev => {
       const next = [...prev];
       const col = { ...next[idx] };
@@ -1589,9 +1722,9 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       if (status === "OK") col.cntOK += 1;
       else col.cntNOK += 1;
       col.input = "";
-      col.ukupnoLabel = `${col.merenja.length} / ${potrebanBroj}`;
+      col.ukupnoLabel = `${col.merenja.length} / ${brojPotrebnihZaKolonu(col, potrebanBroj)}`;
       next[idx] = col;
-      if (col.merenja.length >= potrebanBroj) {
+      if (col.merenja.length >= brojPotrebnihZaKolonu(col, potrebanBroj)) {
         sledecaIdx = indeksSledecePrazno(next, potrebanBroj, idx + 1);
       }
       return next;
@@ -1702,17 +1835,127 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
   }, [pokusajDodajMerenje]);
 
   const obrisiPoslednje = () => {
-    setKolone(prev => prev.map(k => {
-      if (k.naziv === "-" || !k.merenja.length) return k;
+    const cols = koloneRef.current;
+    let idx = poslednjaKolonaUnosRef.current;
+    if (idx < 0 || !cols[idx]?.merenja?.length) {
+      if (aktivnaKolona >= 0 && cols[aktivnaKolona]?.merenja?.length) {
+        idx = aktivnaKolona;
+      } else {
+        for (let i = cols.length - 1; i >= 0; i -= 1) {
+          if (cols[i].naziv !== "-" && cols[i].merenja?.length) {
+            idx = i;
+            break;
+          }
+        }
+      }
+    }
+    if (idx < 0 || !cols[idx]?.merenja?.length) return;
+
+    setKolone(prev => {
+      const next = [...prev];
+      const k = next[idx];
+      if (!k || k.naziv === "-" || !k.merenja.length) return prev;
       const col = { ...k };
       const last = col.merenja[col.merenja.length - 1];
       const st = proveriOkNok(last.raw, col.lslDec, col.uslDec, col.jedinica);
       if (st === "OK") col.cntOK = Math.max(0, col.cntOK - 1);
       else col.cntNOK = Math.max(0, col.cntNOK - 1);
       col.merenja = col.merenja.slice(0, -1);
-      col.ukupnoLabel = `${col.merenja.length} / ${potrebanBroj}`;
-      return col;
-    }));
+      col.ukupnoLabel = `${col.merenja.length} / ${brojPotrebnihZaKolonu(col, potrebanBroj)}`;
+      next[idx] = col;
+      return next;
+    });
+    poslednjaKolonaUnosRef.current = idx;
+    setAktivnaKolona(idx);
+  };
+
+  const ucitajKoloneSerije = useCallback(() => {
+    if (!idDeo || !grupaAB) return;
+    const sopFb = sopZaPogon(sopMap, idDeo, pogonKod)?.broj_merenja || 5;
+    const br = brojMerenjaZaSeriju(karakteristike, idDeo, grupaAB, sopFb, pogonKod);
+    setPotrebanBroj(br);
+    const cols = koloneZaGrupu(karakteristike, idDeo, grupaAB, br, pogonKod);
+    setKolone(cols);
+    setAktivnaKolona(indeksSledecePrazno(cols, br, 0));
+  }, [idDeo, grupaAB, pogonKod, karakteristike, sopMap]);
+
+  const sacuvajFai = async (odobri = false) => {
+    if (snima || !idDeo || !faiRezimAktivan) return;
+    if (!imaBiloSta(kolone)) {
+      setPoruka("Nema FAI merenja.");
+      return;
+    }
+    if (!svaMerenjaZavrsena(kolone, potrebanBroj)) {
+      setPoruka("Unesite sva FAI merenja za sve dimenzije.");
+      return;
+    }
+    const merenjaJson = [];
+    for (const k of kolone) {
+      if (k.naziv === "-") continue;
+      for (const m of k.merenja) {
+        merenjaJson.push({
+          pozicija: k.naziv,
+          vrednost: m.raw,
+          status: proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica),
+        });
+      }
+    }
+    const imaNok = merenjaJson.some((e) => e.status === "NOK");
+    if (odobri && imaNok && !mozeOdobriFai) {
+      addToast("FAI ima NOK — samo kvalitet može odobriti", "greska");
+      return;
+    }
+    setSnima(true);
+    setPoruka("");
+    try {
+      const rec = await snimiFaiUnos(supabase, {
+        idDeo,
+        pogonKod,
+        radniNalog,
+        smena,
+        merenja: merenjaJson,
+        komentar: null,
+        korisnik,
+        odobri: odobri && (!imaNok || mozeOdobriFai),
+      });
+      setFaiPoslednjiId(rec.id);
+      if (rec.status === "odobren") {
+        setFaiOdobren(true);
+        setFaiCekaOdobrenje(false);
+        addToast("✓ FAI odobren — možete meriti seriju", "uspeh");
+        ucitajKoloneSerije();
+      } else {
+        setFaiCekaOdobrenje(true);
+        addToast(imaNok ? "FAI sa NOK — čeka kvalitet" : "FAI sačuvan — čeka odobrenje", "info");
+      }
+    } catch (e) {
+      addToast(e.message, "greska");
+    } finally {
+      setSnima(false);
+    }
+  };
+
+  const odobriFaiKasnije = async () => {
+    if (snima || !faiPoslednjiId || !mozeOdobriFai) return;
+    setSnima(true);
+    try {
+      const rec = await odobriFai(supabase, faiPoslednjiId, korisnik);
+      if (rec.status === "odobren") {
+        setFaiOdobren(true);
+        setFaiCekaOdobrenje(false);
+        addToast("✓ FAI odobren — možete meriti seriju", "uspeh");
+        ucitajKoloneSerije();
+      }
+    } catch (e) {
+      addToast(e.message, "greska");
+    } finally {
+      setSnima(false);
+    }
+  };
+
+  const onSacuvajAkcija = () => {
+    if (faiRezimAktivan) sacuvajFai(false);
+    else sacuvaj();
   };
 
   const parsirajDatum = (d) => {
@@ -1723,6 +1966,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
   const sacuvaj = async () => {
     if (snima || !idDeo) return;
+    if (faiRezimAktivan) {
+      sacuvajFai(false);
+      return;
+    }
     if (sacuvaneGrupe.includes(grupaAB)) {
       if (prebaciNaSledecuSerijuPosleSnimanja(grupaAB)) return;
       addToast(`Serija ${grupaAB} je već sačuvana.`, "info");
@@ -1842,7 +2089,13 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       setKalibracijaOdobrenId(null);
     }
     setSacuvaneGrupe(prev => [...prev, grupaAB]);
-    setKpiPanelOtvoren(false);
+    const neusTekucaSerija = Number(kpiSerija?.neusaglaseno) || 0;
+    if (neusTekucaSerija > 0) {
+      setKpiPanelOtvoren(true);
+      addToast(`KPI: ${neusTekucaSerija} neusaglašeno — unesite doradu/škart`, "info");
+    } else {
+      setKpiPanelOtvoren(false);
+    }
     await osveziPlanUzorkovanja();
 
     try {
@@ -1867,6 +2120,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       return;
     }
     const labelPrekid = !potpuna ? " (prekid sesije)" : "";
+    const deoZaKpi = idDeo;
+    const neusUkupno = agregirajKpiPoSerijama(
+      { ...kpiPoSeriji, [grupaAB]: kpiSerija },
+      grupaAB,
+      kpiSerija,
+    ).neusaglaseno || 0;
     setPoruka(`Serija ${grupaAB} sačuvana${labelPrekid}. Sva merenja za ovaj ID su kompletirana — forma se resetuje.`);
     novaSesija({ modul: "merljive", idDeo: "", smena, radniNalog: "" });
     setIdDeo("");
@@ -1890,6 +2149,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     kpiRucniUnos.current = false;
     setKpiPanelOtvoren(false);
     resetKolone(5);
+    if (neusUkupno > 0 && deoZaKpi) {
+      setKpiHubOtvoren(true);
+      addToast(`ID ${deoZaKpi}: unesite doradu za ${neusUkupno} neusaglašenih (KPI panel)`, "info");
+    }
   };
 
   const { stackVertikalno, desktopUnos } = L;
@@ -2032,7 +2295,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         }}>
         Obriši poslednje
       </button>
-      <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
+      <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={onSacuvajAkcija}
         style={{
           background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
           color: "#fff",
@@ -2040,22 +2303,29 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           cursor: mozeSacuvati ? "pointer" : "not-allowed",
           fontWeight: 700, fontSize: 11, boxSizing: "border-box",
         }}>
-        {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju")}
+        {snima ? "Snimam…" : (faiRezimAktivan
+          ? "Sačuvaj FAI"
+          : (prekidOdobrenId && !serijaPotpuna ? "Sačuvaj (prekid)" : "Sačuvaj seriju"))}
       </button>
     </div>
   );
 
   const prikaziMerljiveFormu = idDeo && grupaAB && unosKorak === "forma" && (
     !jeLinija || (
-      faiOdobren && (
-        (koristiMobLinija && linijaKorak === 4) || (jeLinija && !koristiMobLinija)
+      (faiRezimAktivan || faiOdobren || !faiPotreban) && (
+        (koristiMobLinija && linijaKorak >= 3) || (jeLinija && !koristiMobLinija)
       )
     )
   );
   const linijaListaDesktop = jeLinija && !koristiMobLinija && unosKorak === "forma"
-    && idUcitano && !ucitavaDeo && !nalogUcitava;
+    && idUcitano && !ucitavaDeo && !nalogUcitava
+    && (faiRezimAktivan || faiOdobren || faiCekaOdobrenje || !faiPotreban);
 
-  const kpiPanelBlok = prikaziMerljiveFormu && idDeo && grupaAB ? (
+  const kpiPanelVidljiv = idDeo && grupaAB && (
+    prikaziMerljiveFormu || serijaJeSacuvana || faiCekaOdobrenje
+  );
+
+  const kpiPanelBlok = kpiPanelVidljiv ? (
     <KpiSerijaPanel
       C={C}
       kompakt
@@ -2071,7 +2341,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       kpiUpisan={!!kpiDbId}
       snimaKpi={snimaKpi}
       onAzurirajKpi={azurirajKpiKasnije}
-      mozeAzurirati={!!kpiDbId || !!serijaJeSacuvana}
+      mozeAzurirati={(!faiRezimAktivan && (!!kpiDbId || !!serijaJeSacuvana))}
+      onOtvoriHub={() => setKpiHubOtvoren(true)}
+      faiRezim={!!faiRezimAktivan}
+      trakaJedanRed={L.mobTabKarusel}
     />
   ) : null;
 
@@ -2089,16 +2362,18 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         }}>
         {ekran.w < 340 ? "Obriši" : "Obriši poslednje"}
       </button>
-      <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={sacuvaj}
+      <button type="button" disabled={!mozeSacuvati || snima || !!greskaDb} onClick={onSacuvajAkcija}
         style={{
           background: mozeSacuvati ? C.zelena : C.hover, border: "none", borderRadius: 6,
           color: "#fff", padding: "5px 8px", minHeight: 30,
           cursor: mozeSacuvati ? "pointer" : "not-allowed",
           fontWeight: 700, fontSize: 9, flex: 1, maxWidth: "48%", whiteSpace: "nowrap",
         }}>
-        {snima ? "Snimam…" : (prekidOdobrenId && !serijaPotpuna
-          ? (ekran.w < 360 ? "Sačuvaj*" : "Sačuvaj (prekid)")
-          : (ekran.w < 360 ? "Sačuvaj" : "Sačuvaj seriju"))}
+        {snima ? "Snimam…" : (faiRezimAktivan
+          ? (ekran.w < 360 ? "FAI" : "Sačuvaj FAI")
+          : (prekidOdobrenId && !serijaPotpuna
+            ? (ekran.w < 360 ? "Sačuvaj*" : "Sačuvaj (prekid)")
+            : (ekran.w < 360 ? "Sačuvaj" : "Sačuvaj seriju")))}
       </button>
     </div>
   );
@@ -2341,6 +2616,23 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           {!grupe.length && <span style={{ color: C.sivi, fontSize: 10 }}>—</span>}
         </div>
       </label>
+      {faiRezimAktivan && (
+        <div style={{
+          flex: "0 0 auto",
+          alignSelf: "center",
+          background: `${C.zuta}18`,
+          border: `1px solid ${C.zuta}55`,
+          borderRadius: 6,
+          padding: "6px 10px",
+          maxWidth: 280,
+        }}>
+          <div style={{ color: C.zuta, fontSize: 10, fontWeight: 700 }}>FAI — prvo parče 1</div>
+          <div style={{ color: C.sivi, fontSize: 9, marginTop: 2, lineHeight: 1.35 }}>
+            <code style={{ fontSize: 9 }}>nivo_kontrole = DA</code>
+            {" "}· {brojFaiDimenzija} dim.
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -2411,7 +2703,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               marginBottom: K.plausibilnost.marginBottom,
               lineHeight: 1.35,
             }}>
-              Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
+              Opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
             </div>
           )}
           {kompakt ? (
@@ -2486,7 +2778,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   marginBottom: 3,
                   lineHeight: 1.3,
                 }}>
-                  Razuman opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
+                  Opseg: {formatOpsegPlausibilnosti(k.plausibilnost, k.jedinica)}
                 </div>
               )}
               {!kolonaPuna && !(koristiTastMerenja && tastMerenjaVidljiva && aktivnaKolona === i) && (
@@ -2662,6 +2954,24 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     );
   };
 
+  const faiCekaBlok = jeLinija && faiCekaOdobrenje && unosKorak === "forma" && (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, gap: 6, overflow: "hidden" }}>
+      {kpiPanelBlok}
+      <div style={{ flex: 1, padding: "0 0 8px", overflowY: "auto", minHeight: 0 }}>
+        <FaiUnosTraka
+          C={C}
+          idDeo={idDeo}
+          brojDimenzija={brojFaiDimenzija}
+          kompletno={false}
+          snima={snima}
+          mozeOdobri={mozeOdobriFai}
+          cekaOdobrenje
+          onOdobri={odobriFaiKasnije}
+        />
+      </div>
+    </div>
+  );
+
   const merljiveFormaBlok = prikaziMerljiveFormu && (() => {
     const aktivnaKol = aktivnaKolona >= 0 ? kolone[aktivnaKolona] : null;
     const prikaziTastMerenja = koristiTastMerenja
@@ -2698,7 +3008,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           registerSimuliraj={registerMeriloSimuliraj}
         />
       )}
-      {!L.mobTabKarusel && (
+      {!L.mobTabKarusel && !faiRezimAktivan && (
         <div style={{ fontSize: 10, color: C.zuta, marginBottom: 4, flexShrink: 0, flex: "0 0 auto" }}>
           {metaAktivneSerije ? labelSerije(metaAktivneSerije) : `Serija ${grupaAB}`}
           : unesi {potrebanBroj} merenja po koloni, pa Sačuvaj.
@@ -2707,6 +3017,26 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           )}
         </div>
       )}
+      {faiRezimAktivan && (
+        <FaiUnosTraka
+          C={C}
+          idDeo={idDeo}
+          brojDimenzija={brojFaiDimenzija}
+          kompletno={faiKompletno}
+          snima={snima}
+          mozeOdobri={mozeOdobriFai}
+          stranica={faiPaginacija?.stranica ?? 0}
+          ukupnoStranica={faiPaginacija?.ukupnoStranica ?? 1}
+          onPrethodnaStranica={() => promeniFaiStranicu(Math.max(0, (faiPaginacija?.stranica ?? 0) - 1))}
+          onSledecaStranica={() => promeniFaiStranicu(
+            Math.min((faiPaginacija?.ukupnoStranica ?? 1) - 1, (faiPaginacija?.stranica ?? 0) + 1),
+          )}
+          onSacuvaj={sacuvajFai}
+          onOdobri={() => sacuvajFai(true)}
+          kompakt={L.mobTabKarusel}
+        />
+      )}
+      {kpiPanelBlok}
       {prekidOdobrenId && imaNepotpunuSesiju && (
         <div style={{
           background: C.ok, border: `1px solid ${C.zelena}`, borderRadius: 6,
@@ -2735,11 +3065,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         {L.mobTabKarusel ? (
           <>
             {mobDugmadAkcije}
-            {kpiPanelBlok}
             <MerljivaMobTabKarusel
-              key={viewportKey}
+              key={`${viewportKey}-f${faiStranica}`}
               C={C}
-              brojKolona={kolone.length}
+              brojKolona={faiRezimAktivan ? 5 : kolone.length}
               aktivnaKolona={prikazIndeksKolone}
               onPrethodna={idiPrethodnaKolonaMob}
               onSledeca={idiSledecaKolonaMob}
@@ -2747,9 +3076,16 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
               slika={slika}
               idDeo={idDeo}
               onZoomSlika={() => setZoomSlika(true)}
-              sredinaZaglavlje={mobSerijaStatus}
+              sredinaZaglavlje={faiRezimAktivan ? null : mobSerijaStatus}
             >
-              {renderKolonaKartica(kolone[prikazIndeksKolone], prikazIndeksKolone, true)}
+              {(() => {
+                const slot = prikazIndeksKolone;
+                const ri = faiRezimAktivan && faiPaginacija
+                  ? (faiPaginacija.prikaz[slot]?.realniIndeks ?? -1)
+                  : slot;
+                const k = ri >= 0 ? kolone[ri] : kolonaZaSlot(slot);
+                return renderKolonaKartica(k, ri >= 0 ? ri : slot, true);
+              })()}
             </MerljivaMobTabKarusel>
           </>
         ) : (
@@ -2783,19 +3119,26 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 overflow: "hidden",
                 alignContent: "stretch",
               }}>
-                {kolone.map((k, i) => (
-                  <div key={i} style={{
+                {(faiRezimAktivan && faiPaginacija
+                  ? faiPaginacija.prikaz
+                  : kolone.map((k, i) => ({ kolona: k, realniIndeks: i, slot: i }))
+                ).map((p) => {
+                  const ri = p.realniIndeks ?? -1;
+                  const k = p.kolona;
+                  const key = faiRezimAktivan ? `f-${faiStranica}-${p.slot}` : `s-${p.slot}`;
+                  return (
+                  <div key={key} style={{
                     opacity: k.naziv === "-" ? 0.4 : 1,
                     height: "100%",
                     minHeight: 0,
                     display: "flex",
                     flexDirection: "column",
                   }}>
-                    {renderKolonaKartica(k, i, false)}
+                    {renderKolonaKartica(k, ri >= 0 ? ri : p.slot, false)}
                   </div>
-                ))}
+                  );
+                })}
               </div>
-              {kpiPanelBlok}
             </div>
             <aside style={{
               flex: `0 0 ${L.slikaSirina}px`,
@@ -2995,6 +3338,18 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         </div>
       )}
 
+      <KpiDoradaHub
+        C={C}
+        addToast={addToast}
+        modul="merljive"
+        otvoren={kpiHubOtvoren}
+        onZatvori={() => setKpiHubOtvoren(false)}
+        pocetniIdDeo={idDeo}
+        pocetnaSmena={smena}
+        pocetniDatum={datum}
+        pocetniRadniNalog={radniNalog}
+      />
+
       {tab === "unos" && !ucitava && !karakteristike.length && (
         <div style={{
           margin: "0 12px 8px",
@@ -3022,6 +3377,24 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           temaTamna={temaTamna}
           desnoExtra={(
             <>
+              <button
+                type="button"
+                onClick={() => setKpiHubOtvoren(true)}
+                title="KPI dorada i škart po ID delu"
+                style={{
+                  background: `${C.zelena}22`,
+                  border: `1px solid ${C.zelena}`,
+                  borderRadius: 5,
+                  color: C.zelena,
+                  fontSize: 8,
+                  padding: "1px 6px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
+              </button>
               {digitalniUnos && meriloPovezano && meriloSimulacija && (
                 <button
                   type="button"
@@ -3318,7 +3691,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
 
       {tab === "unos" && jeLinija && !koristiMobLinija && (
         <LinijaWizardNav
-          korak={!idDeo || !grupaAB ? "id" : unosKorak === "forma" ? "unos" : unosKorak === "fai" ? "fai" : unosKorak}
+          korak={!idDeo || !grupaAB ? "id" : unosKorak === "forma" ? "unos" : unosKorak}
           koraci={kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA}
           C={C}
           akcent={C.zelena}
@@ -3370,12 +3743,12 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           slikaNaziv={slika}
           urlSlike={urlSlike}
           kolone={kolone}
-          koloneFai={koloneFai}
           faiPotreban={faiPotreban}
-          onFaiOdobreno={() => setFaiOdobren(true)}
+          faiRezimAktivan={faiRezimAktivan}
+          faiCekaOdobrenje={faiCekaOdobrenje}
           C={C}
         >
-          {linijaKorak === 4 && merljiveFormaBlok}
+          {linijaKorak === 3 && (faiCekaBlok || merljiveFormaBlok)}
         </MobilniMerljiviUnos>
       )}
 
@@ -3578,28 +3951,10 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                   onZahtevKalibracija={() => setPokaziZahtevKal(true)}
                   onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
                   onDalje={() => {
-                    if (faiPotreban) setUnosKorak("fai");
-                    else setUnosKorak("forma");
-                  }}
-                  daljeLabel={faiPotreban ? "FAI (prvo parče) →" : "Unos merenja →"}
-                />
-              </div>
-            )}
-            {idUcitano && listaSpremna && unosKorak === "fai" && jeLinija && faiPotreban && (
-              <div style={{ flex: 1, padding: 14, overflowY: "auto", display: "flex", flexDirection: "column", minHeight: 0 }}>
-                <FaiLinijaKorak
-                  C={C}
-                  korisnik={korisnik}
-                  idDeo={idDeo}
-                  pogonKod={pogonKod}
-                  radniNalog={radniNalog}
-                  smena={smena}
-                  koloneFai={koloneFai}
-                  addToast={addToast}
-                  onOdobreno={() => {
-                    setFaiOdobren(true);
                     setUnosKorak("forma");
+                    if (jeLinija && koristiMobLinija) setLinijaKorak(3);
                   }}
+                  daljeLabel={faiPotreban ? "FAI / unos merenja →" : "Unos merenja →"}
                 />
               </div>
             )}
@@ -3612,7 +3967,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 overflow: "hidden",
                 padding: 14,
               }}>
-                {merljiveFormaBlok}
+                {faiCekaBlok || merljiveFormaBlok}
               </div>
             )}
           </div>
@@ -3813,30 +4168,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
                 onZahtevKalibracija={() => setPokaziZahtevKal(true)}
                 urlSlike={P.urlSlikeUPokaKomponenti ? urlSlike : undefined}
                 onToggleKalibracijaOdobrenje={toggleKalibracijaOdobrenje}
-                onDalje={() => setUnosKorak(jeLinija && faiPotreban ? "fai" : "forma")}
+                onDalje={() => setUnosKorak("forma")}
                 stekListaDugmeSlika
               />
             </div>
           </div>
         )}
 
-        {idDeo && grupaAB && unosKorak === "fai" && jeLinija && faiPotreban && (
-          <FaiLinijaKorak
-            C={C}
-            korisnik={korisnik}
-            idDeo={idDeo}
-            pogonKod={pogonKod}
-            radniNalog={radniNalog}
-            smena={smena}
-            koloneFai={koloneFai}
-            addToast={addToast}
-            onOdobreno={() => {
-              setFaiOdobren(true);
-              setUnosKorak("forma");
-            }}
-          />
-        )}
-
+        {faiCekaBlok}
         {merljiveFormaBlok}
       </div>
       )}

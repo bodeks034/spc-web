@@ -33,6 +33,26 @@ export function faiLinijaPotreban(kolone) {
   return koloneZaFai(kolone).length > 0;
 }
 
+/** Poslednji FAI zapis (odobren ili čeka) za smenu / RN. */
+export async function ucitajPoslednjiFai(supabase, { idDeo, pogonKod, radniNalog, smena, datum }) {
+  const deo = String(idDeo || "").trim().toUpperCase();
+  if (deo.length < 3) return null;
+  let q = supabase.from("fai_unosi")
+    .select("*")
+    .eq("id_deo", deo)
+    .eq("datum", datum || dISO())
+    .eq("smena", Number(smena) || 1)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const rn = String(radniNalog || "").trim().toUpperCase();
+  if (rn) q = q.eq("radni_nalog", rn);
+  const pg = String(pogonKod || "").trim().toUpperCase();
+  if (pg) q = q.eq("pogon_kod", pg);
+  const { data, error } = await q.maybeSingle();
+  if (error && !String(error.message || "").includes("does not exist")) throw error;
+  return data;
+}
+
 export async function ucitajOdobrenFai(supabase, { idDeo, pogonKod, radniNalog, smena, datum }) {
   const deo = String(idDeo || "").trim().toUpperCase();
   if (deo.length < 3) return null;

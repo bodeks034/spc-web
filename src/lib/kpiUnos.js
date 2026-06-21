@@ -148,6 +148,7 @@ export async function fetchKpiUnos(supabase, {
   smena,
   idDeo,
   limit = 200,
+  radniNalog,
 }) {
   let q = supabase.from("kpi_unos").select("*").eq("modul", modul);
   if (datum) q = q.eq("datum", datum);
@@ -155,6 +156,7 @@ export async function fetchKpiUnos(supabase, {
   if (datumDo) q = q.lte("datum", datumDo);
   if (smena != null && smena !== "") q = q.eq("smena", Number(smena));
   if (idDeo) q = q.eq("id_deo", String(idDeo).toUpperCase());
+  if (radniNalog) q = q.eq("radni_nalog", String(radniNalog).trim().toUpperCase());
   const { data, error } = await q.order("created_at", { ascending: false }).limit(limit);
   if (error) throw error;
   return data || [];

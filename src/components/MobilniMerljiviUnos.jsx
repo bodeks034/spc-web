@@ -8,14 +8,13 @@ import { TABLET } from "../layout/tokens/tablet.js";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
-import FaiLinijaKorak from "./FaiLinijaKorak.jsx";
 import { KontrolnaLista } from "../lib/kontrolaSesije.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
 import { idSpremanZaUcitavanje } from "../lib/varijabilneUtils.js";
 
 /**
- * Modul 1 — merljive: punoekranski koraci kao kod atributivnih (ID → poka → unos).
+ * Modul 1 — merljive: punoekranski koraci (ID → poka → unos; FAI u istom unosu).
  */
 export default function MobilniMerljiviUnos({
   linijaKorak,
@@ -60,10 +59,9 @@ export default function MobilniMerljiviUnos({
   onNoviDeo,
   slikaNaziv,
   urlSlike,
-  kolone = [],
-  koloneFai = [],
-  faiPotreban = true,
-  onFaiOdobreno,
+  faiPotreban = false,
+  faiRezimAktivan = false,
+  faiCekaOdobrenje = false,
   C,
   children,
 }) {
@@ -86,8 +84,16 @@ export default function MobilniMerljiviUnos({
   const wizardKoraci = kontrolorLinija ? KORACI_MERLJIVE_KONTROLOR : KORACI_MERLJIVE_LINIJA;
   const korakWizardId = linijaKorak === 1 ? "id"
     : linijaKorak === 2 ? "poka"
-    : linijaKorak === 3 ? "fai"
     : "unos";
+
+  const wizardPodnaslov = korakWizardId === "unos" && faiCekaOdobrenje
+    ? "FAI sačuvan — čeka odobrenje kvaliteta"
+    : korakWizardId === "unos" && (faiRezimAktivan || faiPotreban)
+      ? "FAI · prvo parče 1 · nivo_kontrole = DA"
+      : null;
+  const wizardLabelOverride = korakWizardId === "unos" && (faiRezimAktivan || faiPotreban)
+    ? "FAI / UNOS MERENJA"
+    : null;
 
   const INP = {
     width: "100%",
@@ -132,6 +138,8 @@ export default function MobilniMerljiviUnos({
         C={C}
         akcent={C.zelena}
         kompakt
+        korakLabelOverride={wizardLabelOverride}
+        podnaslov={wizardPodnaslov}
       />
       {content}
     </div>
@@ -401,43 +409,13 @@ export default function MobilniMerljiviUnos({
           onZahtevKalibracija={onZahtevKalibracija}
           onDalje={() => {
             if (!kontrolnaListaOk) return;
-            if (faiPotreban) {
-              setLinijaKorak(3);
-            } else {
-              setUnosKorak("forma");
-              setLinijaKorak(4);
-            }
+            setUnosKorak("forma");
+            setLinijaKorak(3);
           }}
-          daljeLabel={faiPotreban ? "FAI (prvo parče) →" : "Unos merenja →"}
+          daljeLabel={faiPotreban ? "FAI / unos merenja →" : "Unos merenja →"}
           prikaziNazad
           onNazad={() => setLinijaKorak(1)}
         />
-      </div>,
-      { skrol: true },
-    );
-  }
-
-  if (linijaKorak === 3 && faiPotreban) {
-    return omot(
-      <div key={viewportKey} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <FaiLinijaKorak
-          C={C}
-          korisnik={korisnik}
-          idDeo={idDeo}
-          pogonKod={pogonKod}
-          radniNalog={radniNalog}
-          smena={smena}
-          koloneFai={koloneFai}
-          onOdobreno={(rec) => {
-            onFaiOdobreno?.(rec);
-            setUnosKorak("forma");
-            setLinijaKorak(4);
-          }}
-        />
-        <button type="button" onClick={() => setLinijaKorak(2)}
-          style={{ ...BIG_BTN(C.hover), margin: "0 16px 16px", fontSize: 14, padding: 14 }}>
-          ← Nazad na poka-yoke
-        </button>
       </div>,
       { skrol: true },
     );
@@ -448,30 +426,29 @@ export default function MobilniMerljiviUnos({
       <div style={{
         flex: 1,
         display: "flex",
-        alignItems: "center",
+        flexDirection: "column",
         justifyContent: "center",
-        padding: 24,
-        textAlign: "center",
-        color: C.zuta,
-        fontSize: 13,
+        padding: 16,
       }}>
-        Završite kontrolnu listu smene pre unosa merenja.
+        <KontrolnaLista
+          korisnik={korisnik}
+          smena={Number(smena)}
+          idDeo={String(idDeo || "").trim().toUpperCase()}
+          naslovModul="Merljive"
+          akcent={C.zelena}
+          onZavrsena={onKontrolnaListaZavrsena}
+          C={C}
+          ugradjen
+        />
       </div>,
+      { skrol: true },
     );
   }
 
   return omot(
-    <div style={{
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      minHeight: 0,
-      overflow: ekran.tastaturaOtvorena ? "auto" : "hidden",
-      WebkitOverflowScrolling: ekran.tastaturaOtvorena ? "touch" : undefined,
-      gap: 8,
-    }}>
+    <div key={viewportKey} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
       {children}
     </div>,
-    { skrol: ekran.tastaturaOtvorena },
+    { skrol: false },
   );
 }

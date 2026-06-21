@@ -5,10 +5,13 @@ export default function LinijaWizardNav({
   C,
   akcent,
   kompakt = false,
+  korakLabelOverride = null,
+  podnaslov = null,
 }) {
   const boja = akcent || C.plava;
   const idx = koraci.findIndex(k => k.id === korak);
   const trenutni = idx >= 0 ? idx : 0;
+  const label = korakLabelOverride || koraci[trenutni]?.label || korak;
 
   return (
     <div style={{
@@ -38,18 +41,32 @@ export default function LinijaWizardNav({
       <div style={{
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: "flex-start",
         gap: 8,
       }}>
-        <span style={{
-          color: boja,
-          fontSize: kompakt ? 9 : 10,
-          fontWeight: 700,
-          letterSpacing: 0.8,
-        }}>
-          {koraci[trenutni]?.label || korak}
-        </span>
-        <span style={{ color: C.sivi, fontSize: kompakt ? 8 : 9 }}>
+        <div style={{ minWidth: 0 }}>
+          <span style={{
+            color: boja,
+            fontSize: kompakt ? 9 : 10,
+            fontWeight: 700,
+            letterSpacing: 0.8,
+            display: "block",
+          }}>
+            {label}
+          </span>
+          {podnaslov && (
+            <span style={{
+              color: C.sivi,
+              fontSize: kompakt ? 8 : 9,
+              display: "block",
+              marginTop: 3,
+              lineHeight: 1.4,
+            }}>
+              {podnaslov}
+            </span>
+          )}
+        </div>
+        <span style={{ color: C.sivi, fontSize: kompakt ? 8 : 9, flexShrink: 0 }}>
           {trenutni + 1} / {koraci.length}
         </span>
       </div>
@@ -74,13 +91,11 @@ export const KORACI_ATRIB_KONTROLOR = [
 export const KORACI_MERLJIVE_LINIJA = [
   { id: "id", label: "ID / SERIJA" },
   { id: "poka", label: "POKA-YOKE" },
-  { id: "fai", label: "FAI" },
   { id: "unos", label: "UNOS MERENJA" },
 ];
 
 export const KORACI_MERLJIVE_KONTROLOR = [
   { id: "id", label: "ID / SERIJA" },
   { id: "poka", label: "POKA-YOKE" },
-  { id: "fai", label: "FAI" },
   { id: "unos", label: "UNOS MERENJA" },
 ];

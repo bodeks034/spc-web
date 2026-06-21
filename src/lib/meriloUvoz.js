@@ -1,6 +1,6 @@
 /** Uvoz merenja sa digitalnih mernih uređaja (serial, paste, fajl). */
 
-import { validirajUnos, proveriOkNok } from "./varijabilneUtils.js";
+import { validirajUnos, proveriOkNok, brojPotrebnihZaKolonu } from "./varijabilneUtils.js";
 
 /** Iz jedne linije izvuci numeričku vrednost (Mitutoyo, generički CSV). */
 export function parsirajLinijuMerila(line) {
@@ -38,11 +38,13 @@ export function parsirajTekstMerila(text) {
 
 export function indeksSledecePrazno(kolone, potrebanBroj, odKolone = 0) {
   const n = kolone.length;
+  const podrazumevano = potrebanBroj || 5;
   for (let off = 0; off < n; off++) {
     const i = (odKolone + off) % n;
     const k = kolone[i];
     if (!k || k.naziv === "-") continue;
-    if ((k.merenja?.length || 0) < potrebanBroj) return i;
+    const potrebno = brojPotrebnihZaKolonu(k, podrazumevano);
+    if ((k.merenja?.length || 0) < potrebno) return i;
   }
   return -1;
 }
@@ -53,7 +55,8 @@ export function indeksSledecePrazno(kolone, potrebanBroj, odKolone = 0) {
 export function dodajMerenjeUKolonu(kolone, colIdx, rawVrednost, potrebanBroj) {
   const k = kolone[colIdx];
   if (!k || k.naziv === "-") return { kolone, greska: "Nepoznata kolona" };
-  if (k.merenja.length >= potrebanBroj) return { kolone, greska: `Kolona ${k.naziv} je puna` };
+  const potrebno = brojPotrebnihZaKolonu(k, potrebanBroj);
+  if (k.merenja.length >= potrebno) return { kolone, greska: `Kolona ${k.naziv} je puna` };
 
   const val = validirajUnos(rawVrednost, k.jedinica, {
     lslDec: k.lslDec,
@@ -69,7 +72,7 @@ export function dodajMerenjeUKolonu(kolone, colIdx, rawVrednost, potrebanBroj) {
   if (status === "OK") col.cntOK += 1;
   else col.cntNOK += 1;
   col.input = "";
-  col.ukupnoLabel = `${col.merenja.length} / ${potrebanBroj}`;
+  col.ukupnoLabel = `${col.merenja.length} / ${potrebno}`;
   next[colIdx] = col;
   return { kolone: next, status, kolona: col.naziv };
 }

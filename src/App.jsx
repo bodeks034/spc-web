@@ -59,6 +59,7 @@ import {
   procitajSmenuIzStorage,
 } from "./lib/kontrolaLista.js";
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
+import KpiDoradaHub from "./components/KpiDoradaHub.jsx";
 import { podrazumevaniKpiIzListeP } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf } from "./lib/kpiUnos.js";
 import { generisiPredajaSmenePdf } from "./lib/predajaSmenePdf.js";
@@ -1962,6 +1963,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const [naloziZaPogon, setNaloziZaPogon] = useState([]);
   const [atributivniPogoni, setAtributivniPogoni] = useState([]);
   const [kpiSerija, setKpiSerija] = useState(() => podrazumevaniKpiIzListeP([]));
+  const [kpiHubOtvoren, setKpiHubOtvoren] = useState(false);
   const fotoRef = useRef(null);
   const idRef   = useRef(null);
 
@@ -2634,6 +2636,18 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
         />
       )}
 
+      <KpiDoradaHub
+        C={C}
+        addToast={addToast}
+        modul="atributivne"
+        otvoren={kpiHubOtvoren}
+        onZatvori={() => setKpiHubOtvoren(false)}
+        pocetniIdDeo={idDeo}
+        pocetnaSmena={String(smena)}
+        pocetniDatum=""
+        pocetniRadniNalog={radniNalog}
+      />
+
       <AppHeader
         korisnik={korisnik}
         onOdjava={odjava}
@@ -2643,6 +2657,24 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
         temaTamna={C.naziv === "tamna"}
         desnoExtra={(
           <>
+            <button
+              type="button"
+              onClick={() => setKpiHubOtvoren(true)}
+              title="KPI dorada i škart po ID delu"
+              style={{
+                background: `${C.zelena}22`,
+                border: `1px solid ${C.zelena}`,
+                borderRadius: 5,
+                color: C.zelena,
+                fontSize: 8,
+                padding: "1px 6px",
+                cursor: "pointer",
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
+            </button>
             {(ekran.mob || ekran.tablet) && (
               <span title={online ? "Online" : `Offline (${offlineCounts.total})`} style={{ flexShrink: 0, display: "flex" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%",
@@ -4849,6 +4881,13 @@ export default function App() {
 // ============================================================
 function PocetniEkran({ korisnik, licenca, onIzbor, onOdjava, C, setC, rezimRada, onPromeniRezim, onOtvori8D }) {
   const ekran = useEkran();
+  const [kpiModul, setKpiModul] = useState("merljive");
+  const [kpiToast, setKpiToast] = useState(null);
+  const addKpiToast = useCallback((tekst, tip = "info") => {
+    setKpiToast({ tekst, tip });
+    window.setTimeout(() => setKpiToast(null), 4000);
+  }, []);
+  const pocetnaSmena = String(localStorage.getItem("spc_smena") || sessionStorage.getItem("spc_smena") || "1");
 
   const MODULI = [
     {
@@ -5029,6 +5068,72 @@ function PocetniEkran({ korisnik, licenca, onIzbor, onOdjava, C, setC, rezimRada
             </button>
           ))}
         </div>
+
+        <div style={{ width: "100%", maxWidth: 960 }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            marginBottom: 10,
+            flexWrap: "wrap",
+          }}>
+            <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2 }}>
+              KPI DORADA / ŠKART
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[
+                { id: "merljive", label: "Merljive" },
+                { id: "atributivne", label: "Atributivne" },
+              ].map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setKpiModul(m.id)}
+                  style={{
+                    background: kpiModul === m.id ? `${C.zelena}22` : C.panel,
+                    border: `1px solid ${kpiModul === m.id ? C.zelena : C.border}`,
+                    borderRadius: 6,
+                    color: kpiModul === m.id ? C.zelena : C.sivi,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <KpiDoradaHub
+            C={C}
+            addToast={addKpiToast}
+            modul={kpiModul}
+            inline
+            otvoren
+            pocetnaSmena={pocetnaSmena}
+            naslov={`KPI dorada · ${kpiModul === "merljive" ? "merljive" : "atributivne"}`}
+          />
+        </div>
+
+        {kpiToast && (
+          <div style={{
+            position: "fixed",
+            top: 12,
+            right: 12,
+            zIndex: 9999,
+            background: kpiToast.tip === "greska" ? C.crvena : kpiToast.tip === "uspeh" ? C.zelena : C.plava,
+            color: "#fff",
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 11,
+            maxWidth: 320,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          }}>
+            {kpiToast.tekst}
+          </div>
+        )}
 
         {licenca && jeLinijaUloga(korisnik.uloga) && (
           <div style={{ width: "100%", maxWidth: 960 }}>

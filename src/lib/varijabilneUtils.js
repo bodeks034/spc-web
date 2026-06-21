@@ -473,7 +473,7 @@ export function bojaUnosMerenja(raw, lslDec, uslDec, nominalDec, jedinica, C) {
 
   if (unosKaoUgao(jedinica, s, lslDec, uslDec)) {
     const cifre = samoCifre(s);
-    if (cifre.length >= 5) {
+    if (cifre.length >= 6) {
       const pl = proveriPlausibilnostUnosa(toDecStepen(cifre), lslDec, uslDec, nominalDec, "Ugao");
       if (!pl.ok) return C.nok || "#2d1010";
       return bojaMerenja(s, lslDec, uslDec, "Ugao", C);
@@ -571,19 +571,27 @@ export function validirajUnos(raw, jedinica, granice = {}) {
   return { ok: true, vrednost: s.replace(".", ","), dec };
 }
 
-/** Live format stepeni dok korisnik kuca */
+/** Live format stepeni dok korisnik kuca — DMS prikaz tek od 6. cifre (manje treperenja). */
 export function formatLiveStep(raw) {
   const cifre = samoCifre(raw);
-  if (cifre.length >= 5) return formatStep(cifre);
+  if (cifre.length >= 6) return formatStep(cifre);
   return cifre.length ? cifre : raw;
+}
+
+/** Broj merenja po koloni (FAI: fai_broj_merenja; serija: podrazumevano). */
+export function brojPotrebnihZaKolonu(k, podrazumevano = 5) {
+  const n = Number(k?.brojPotrebnih ?? k?.faiBrojMerenja);
+  if (Number.isFinite(n) && n > 0) return Math.round(n);
+  return podrazumevano || 5;
 }
 
 /** Da li su sve aktivne kolone popunjene do potrebnog broja */
 export function svaMerenjaZavrsena(kolone, potrebanBroj) {
-  const n = potrebanBroj || 5;
+  const podrazumevano = potrebanBroj || 5;
   const aktivne = (kolone || []).filter(k => k.naziv && k.naziv !== "-");
   if (!aktivne.length) return false;
   for (const k of aktivne) {
+    const n = brojPotrebnihZaKolonu(k, podrazumevano);
     if ((k.merenja?.length || 0) < n) return false;
   }
   return true;
@@ -876,6 +884,7 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj,
       klasaLabel: labelKlasaSaPragom(kn.klasa),
       faiObavezno: faiObaveznoIzReda(kn),
       faiBrojMerenja: faiObaveznoIzReda(kn) ? faiBrojMerenjaIzReda(kn) : 1,
+      brojPotrebnih: potrebanBroj || 5,
       merenja: [],
       input: "",
       cntOK: 0,
@@ -884,6 +893,103 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj,
     };
   });
   return cols;
+}
+
+/** Sve FAI dimenzije dela (nivo_kontrole = DA) — za prvo parče, neograničeno na 5 kolona serije. */
+export function koloneFaiZaDeo(karakteristike, idDeo, pogonKod) {
+  const rows = redoviZaDeo(karakteristike, idDeo, pogonKod)
+    .filter((k) => faiObaveznoIzReda(normalizujKarakteristikuRed(k)))
+    .filter((k) => {
+      const g = graniceIzKarakteristike(normalizujKarakteristikuRed(k));
+      return Number.isFinite(g.lslDec) && Number.isFinite(g.uslDec);
+    })
+    .sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+
+  return rows.map((k) => {
+    const kn = normalizujKarakteristikuRed(k);
+    const g = graniceIzKarakteristike(kn);
+    const nomFin = g.nominalDec;
+    const faiBr = faiBrojMerenjaIzReda(kn);
+    return {
+      id: kn.id,
+      naziv: kn.pozicija,
+      nazivMere: kn.naziv_mere || "",
+      lslText: g.lslText,
+      uslText: g.uslText,
+      instrument: kn.merni_instrument || "-",
+      jedinica: g.jedinica,
+      lslDec: g.lslDec,
+      uslDec: g.uslDec,
+      nominalDec: nomFin,
+      plausibilnost: granicePlausibilnostiUnosa(g.lslDec, g.uslDec, nomFin, g.jedinica),
+      klasa: kn.klasa || null,
+      klasaLabel: labelKlasaSaPragom(kn.klasa),
+      faiObavezno: true,
+      faiBrojMerenja: faiBr,
+      brojPotrebnih: faiBr,
+      merenja: [],
+      input: "",
+      cntOK: 0,
+      cntNOK: 0,
+      ukupnoLabel: `0 / ${faiBr}`,
+    };
+  });
+}
+
+export function faiPotrebanZaDeo(karakteristike, idDeo, pogonKod) {
+  return koloneFaiZaDeo(karakteristike, idDeo, pogonKod).length > 0;
+}
+
+/** Prazna kolona (slot bez dimenzije) — isti izgled kao serijski unos. */
+export function praznaKolonaMerenja(potrebanBroj = 5) {
+  return {
+    id: null,
+    naziv: "-",
+    lslText: "-",
+    uslText: "-",
+    instrument: "-",
+    nazivMere: "",
+    jedinica: "",
+    lslDec: 0,
+    uslDec: 0,
+    nominalDec: null,
+    plausibilnost: null,
+    faiObavezno: false,
+    faiBrojMerenja: 1,
+    brojPotrebnih: potrebanBroj,
+    merenja: [],
+    input: "",
+    cntOK: 0,
+    cntNOK: 0,
+    ukupnoLabel: `0 / ${potrebanBroj}`,
+  };
+}
+
+/**
+ * FAI / dugačke liste: prikaži uvek 5 kolona po stranici (kao serijski unos).
+ * Vraća mapiranje slot 0–4 → realni indeks u punoj listi.
+ */
+export function kolonePetStranica(kolone, stranica = 0, poStranici = 5) {
+  const lista = (kolone || []).filter((k) => k?.naziv && k.naziv !== "-");
+  const ukupnoStranica = Math.max(1, Math.ceil(lista.length / poStranici) || 1);
+  const str = Math.min(Math.max(0, stranica), ukupnoStranica - 1);
+  const start = str * poStranici;
+  const slice = lista.slice(start, start + poStranici);
+  const prikaz = [];
+  for (let slot = 0; slot < poStranici; slot += 1) {
+    if (slot < slice.length) {
+      prikaz.push({ kolona: slice[slot], realniIndeks: start + slot, slot });
+    } else {
+      prikaz.push({ kolona: praznaKolonaMerenja(1), realniIndeks: -1, slot });
+    }
+  }
+  return {
+    prikaz,
+    stranica: str,
+    ukupnoStranica,
+    ukupnoDimenzija: lista.length,
+    start,
+  };
 }
 
 /**

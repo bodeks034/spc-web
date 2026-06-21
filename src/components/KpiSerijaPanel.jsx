@@ -22,6 +22,9 @@ export default function KpiSerijaPanel({
   snimaKpi = false,
   onAzurirajKpi,
   mozeAzurirati = false,
+  onOtvoriHub,
+  faiRezim = false,
+  trakaJedanRed = false,
 }) {
   const prikaz = ukupnoZaDeo || vrednosti || {};
   const kpi = useMemo(() => izracunajOeeKpi(prikaz), [prikaz]);
@@ -33,17 +36,22 @@ export default function KpiSerijaPanel({
   const imaVrednosti = izPrve > 0 || dorada > 0 || skart > 0 || neusaglaseno > 0 || okPosle > 0;
 
   const zatvori = onZatvori || onToggle;
+  const padTraka = trakaJedanRed ? "4px 6px" : (kompakt ? "7px 10px" : "9px 12px");
+  const fsNaslov = trakaJedanRed ? 8 : (kompakt ? 10 : 11);
+  const fsChip = trakaJedanRed ? 8 : 9;
+  const padChip = trakaJedanRed ? "1px 4px" : "2px 6px";
 
   const chip = (label, val, boja) => (
     <span style={{
       background: `${boja}18`,
       border: `1px solid ${boja}40`,
-      borderRadius: 4,
-      padding: "2px 6px",
-      fontSize: 9,
+      borderRadius: trakaJedanRed ? 3 : 4,
+      padding: padChip,
+      fontSize: fsChip,
       color: boja,
       fontWeight: 700,
       whiteSpace: "nowrap",
+      flexShrink: 0,
     }}>
       {label} {val}
     </span>
@@ -68,8 +76,8 @@ export default function KpiSerijaPanel({
         zIndex: otvoren ? 130 : 1,
         background: C.panel,
         border: `1px solid ${imaVrednosti || serijaSacuvana ? C.zelena + "40" : C.border}`,
-        borderRadius: 8,
-        marginBottom: kompakt ? 4 : 8,
+        borderRadius: trakaJedanRed ? 6 : 8,
+        marginBottom: trakaJedanRed ? 2 : (kompakt ? 4 : 8),
         flexShrink: 0,
         overflow: "hidden",
         boxShadow: otvoren ? "0 8px 28px rgba(0,0,0,0.35)" : "none",
@@ -81,8 +89,9 @@ export default function KpiSerijaPanel({
             width: "100%",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            padding: kompakt ? "7px 10px" : "9px 12px",
+            gap: trakaJedanRed ? 4 : 8,
+            padding: padTraka,
+            minHeight: trakaJedanRed ? 28 : undefined,
             background: otvoren ? `${C.zelena}18` : "transparent",
             border: "none",
             cursor: "pointer",
@@ -91,27 +100,46 @@ export default function KpiSerijaPanel({
             position: "sticky",
             top: 0,
             zIndex: 2,
+            flexWrap: trakaJedanRed ? "nowrap" : "wrap",
+            overflow: trakaJedanRed ? "hidden" : "visible",
           }}
         >
-          <span style={{ color: C.zelena, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, flexShrink: 0 }}>
+          <span style={{
+            color: C.zelena,
+            fontSize: fsNaslov,
+            fontWeight: 700,
+            letterSpacing: trakaJedanRed ? 0.4 : 0.8,
+            flexShrink: 0,
+          }}>
             KPI
           </span>
-          <span style={{ color: C.sivi, fontSize: 9, flexShrink: 0 }}>
-            {idDeo ? `${idDeo} · sve serije` : `Serija ${grupaAB || "—"}`}
-          </span>
-          <span style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-            {chip("Iz prve", izPrve, C.zelena)}
+          {!trakaJedanRed && (
+            <span style={{ color: C.sivi, fontSize: 9, flexShrink: 0 }}>
+              {idDeo ? `${idDeo} · sve serije` : `Serija ${grupaAB || "—"}`}
+            </span>
+          )}
+          <span style={{
+            display: "flex",
+            gap: trakaJedanRed ? 3 : 4,
+            flexWrap: trakaJedanRed ? "nowrap" : "wrap",
+            flex: 1,
+            minWidth: 0,
+            overflow: trakaJedanRed ? "auto" : "visible",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+          }}>
+            {chip(trakaJedanRed ? "1." : "Iz prve", izPrve, C.zelena)}
             {chip("Neus.", neusaglaseno, C.zuta)}
             {chip("Dor.", dorada, C.narandzasta)}
             {chip("Šk.", skart, C.crvena)}
             {chip("OK↳", okPosle, C.plava)}
-            {kpi.oee != null && (
+            {!trakaJedanRed && kpi.oee != null && (
               <span style={{ color: C.sivi, fontSize: 9, alignSelf: "center" }}>
                 OEE {kpi.oee}%
               </span>
             )}
           </span>
-          {serijaSacuvana && (
+          {serijaSacuvana && !trakaJedanRed && (
             <span style={{
               fontSize: 8,
               color: kpiUpisan ? C.zelena : C.zuta,
@@ -121,8 +149,33 @@ export default function KpiSerijaPanel({
               {kpiUpisan ? "u bazi" : "sačuvano"}
             </span>
           )}
-          <span style={{ color: C.sivi, fontSize: 12, flexShrink: 0 }}>
-            {otvoren ? "▲ zatvori" : "▸"}
+          {onOtvoriHub && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOtvoriHub();
+              }}
+              title="KPI dorada po RN i datumu"
+              style={{
+                background: `${C.plava}18`,
+                border: `1px solid ${C.plava}44`,
+                borderRadius: trakaJedanRed ? 3 : 4,
+                color: C.plava,
+                fontSize: trakaJedanRed ? 7 : 8,
+                fontWeight: 700,
+                padding: trakaJedanRed ? "2px 4px" : "3px 6px",
+                cursor: "pointer",
+                flexShrink: 0,
+                fontFamily: "inherit",
+                lineHeight: 1.1,
+              }}
+            >
+              {trakaJedanRed ? "RN" : "Dorada RN"}
+            </button>
+          )}
+          <span style={{ color: C.sivi, fontSize: trakaJedanRed ? 10 : 12, flexShrink: 0, lineHeight: 1 }}>
+            {otvoren ? (trakaJedanRed ? "▲" : "▲ zatvori") : "▸"}
           </span>
         </button>
 
@@ -164,9 +217,11 @@ export default function KpiSerijaPanel({
                 ukupno={ukupnoZaDeo}
                 onChange={onChange}
                 podnaslov={
-                  serijaSacuvana
-                    ? "Serija je snimljena — dopuni doradu/škart pa Ažuriraj KPI."
-                    : "Popuni pre Sačuvaj seriju (sabira se u ukupno za deo)."
+                  faiRezim
+                    ? "FAI u toku — KPI za seriju popuni posle merenja. Za doradu po RN koristi „Dorada RN“."
+                    : serijaSacuvana
+                      ? "Serija je snimljena — dopuni doradu/škart pa Ažuriraj KPI."
+                      : "Popuni pre Sačuvaj seriju (sabira se u ukupno za deo)."
                 }
               />
               {serijaSacuvana && onAzurirajKpi && (
