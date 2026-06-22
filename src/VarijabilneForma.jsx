@@ -5,6 +5,7 @@ import {
   getListaOkSession,
   procitajSmenuIzStorage,
 } from "./lib/kontrolaLista.js";
+import { useAutoSmena } from "./hooks/useAutoSmena.js";
 import {
   toDec, isStepen, koristiUgaoUnosKolone, inputModeMerenja,
   validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
@@ -103,6 +104,7 @@ import {
 import { radniNalogIzDeoPogona } from "./lib/syncSifrarnikIzMerljivih.js";
 import IdDeoBarkodRed from "./components/IdDeoBarkodRed.jsx";
 import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
+import SmenaAutoPrikaz from "./components/SmenaAutoPrikaz.jsx";
 import PogonIzborPanel from "./components/PogonIzborPanel.jsx";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
 import { porukaDbGreske } from "./lib/dbGreske.js";
@@ -340,7 +342,7 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
     return C.zelena;
   };
   const [datum, setDatum] = useState(danasSr());
-  const [smena, setSmena] = useState(() => String(procitajSmenuIzStorage()));
+  const smena = useAutoSmena(true);
   const [idDeo, setIdDeo] = useState("");
   const [pogonKod, setPogonKod] = useState("");
   const [radniNalog, setRadniNalog] = useState("");
@@ -488,11 +490,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       prethodnaSmenaPoka.current = smena;
     }
   }, [smena, korisnik?.uloga, rezimRada]);
-
-  useEffect(() => {
-    localStorage.setItem("spc_smena", String(smena));
-    sessionStorage.setItem("spc_smena", String(smena));
-  }, [smena]);
 
   useEffect(() => {
     const sm = Number(smena);
@@ -1491,7 +1488,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
       : "";
     const res = primeniParsiraniBarkod(p, {
       postaviId: (id) => onIdChange(id, { potvrdi: true, radniNalogEksplicitni: eksplicitniRn }),
-      postaviSmena: setSmena,
     });
     if (!res) return;
     addToast(
@@ -2486,12 +2482,14 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
         Datum
         <input style={inpGen} value={datum} onChange={e => setDatum(e.target.value)} />
       </label>
-      <label style={{ ...lblGen, ...flexPolje(G.polja.smena) }}>
-        Smena
-        <select style={inpGen} value={smena} onChange={e => setSmena(e.target.value)}>
-          {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </label>
+      <div style={flexPolje(G.polja.smena)}>
+        <SmenaAutoPrikaz
+          smena={smena}
+          C={C}
+          lblStyle={lblGen}
+          inpStyle={inpGen}
+        />
+      </div>
       <div style={flexPolje(G.polja.idDeo)}>
         <IdDeoBarkodRed
           C={C}
@@ -3708,7 +3706,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
           onIdPotvrdi={potvrdiIdDeo}
           onBarkodSken={obradiBarkodSken}
           smena={smena}
-          setSmena={setSmena}
           grupe={grupe}
           grupaAB={grupaAB}
           onGrupaChange={onGrupaChange}
@@ -3829,7 +3826,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
             onBarkodSken={obradiBarkodSken}
             onIdPotvrdi={potvrdiIdDeo}
             smena={smena}
-            setSmena={setSmena}
             grupe={grupe}
             grupaAB={grupaAB}
             onGrupaChange={onGrupaChange}
@@ -4031,7 +4027,6 @@ export default function VarijabilneForma({ korisnik, onOdjava, onNazad, C, onTog
             C={C}
             akcent={C.zelena}
             smena={smena}
-            setSmena={setSmena}
             onBarkodSken={obradiBarkodSken}
             lblStyle={lbl}
             idLabel="ID deo *"

@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { izracunajOeeKpi } from "../lib/oeeKpi.js";
 import { supabase } from "../lib/supabaseClient.js";
+import { grupisiKpiRedove, kpiKljucZaModul } from "../lib/kpiUnos.js";
 
 const POLJA_RUCNO = [
   ["dorada", "Dorada"],
@@ -64,8 +65,10 @@ function KpiBrojPolje({ label, value, boja, C, onChange, readOnly = false }) {
 }
 
 export default function SkartDoradaOeePanel({
-  C, vrednosti, ukupno, onChange, naslov, podnaslov, kompakt,
+  C, vrednosti, ukupno, onChange, naslov, podnaslov, kompakt, modul,
 }) {
+  const jeAtributivne = modul === "atributivne";
+  const labelRucno = jeAtributivne ? "unos" : "serija";
   const kpiIzvor = ukupno || vrednosti || {};
   const kpi = useMemo(() => izracunajOeeKpi(kpiIzvor), [kpiIzvor]);
 
@@ -120,7 +123,9 @@ export default function SkartDoradaOeePanel({
             })}
           </div>
           <div style={{ color: C.sivi, fontSize: 8, marginBottom: 8 }}>
-            Ručni unos za tekuću seriju (sabira se u ukupno iznad):
+            {jeAtributivne
+              ? "Ručni unos dorade/škarta za tekuću kontrolu:"
+              : "Ručni unos za tekuću seriju (sabira se u ukupno iznad):"}
           </div>
           <div style={{
             display: "grid",
@@ -132,7 +137,7 @@ export default function SkartDoradaOeePanel({
               <KpiBrojPolje
                 key={key}
                 C={C}
-                label={`${label} (serija)`}
+                label={`${label} (${labelRucno})`}
                 value={vrednosti?.[key]}
                 boja={key === "dorada" ? C.narandzasta : key === "skart" ? C.crvena : C.plava}
                 onChange={val => promeniPolje(key, val)}
@@ -199,8 +204,8 @@ export default function SkartDoradaOeePanel({
           ["FPY", kpi.fpy != null ? `${kpi.fpy}%` : "—", C.plava],
           ["Dostupnost", kpi.availability != null ? `${kpi.availability}%` : "—", C.zuta],
           ["Performanse", kpi.performance != null ? `${kpi.performance}%` : "—",
-            (kpiIzvor?.planirano_kom > 0) ? C.plava : C.sivi],
-          ["Kvalitet", kpi.quality != null ? `${kpi.quality}%` : "—", C.zelena],
+            kpi.performance != null ? C.plava : C.sivi],
+          ["Kvalitet (FPY)", kpi.quality != null ? `${kpi.quality}%` : "—", C.zelena],
           ["Škart %", kpi.skartStopa != null ? `${kpi.skartStopa}%` : "—", C.crvena],
           ["Dorada %", kpi.doradaStopa != null ? `${kpi.doradaStopa}%` : "—", C.narandzasta],
         ].map(([n, v, b]) => (
@@ -212,6 +217,10 @@ export default function SkartDoradaOeePanel({
             <div style={{ color: b, fontSize: 16, fontWeight: 700 }}>{v}</div>
           </div>
         ))}
+      </div>
+      <div style={{ color: C.sivi, fontSize: 8, marginTop: 10, lineHeight: 1.55 }}>
+        Dostupnost = radno vreme bez zastoja · Performanse = output vs plan ·
+        FPY = prolaz jedne faze (lokalno) · OEE kvalitet = FPY te faze.
       </div>
     </div>
   );
@@ -290,16 +299,35 @@ export function OeeKpiTab({ C, modul, addToast, idDeoFilter, datumOd, datumDo, s
           </div>
         </div>
       )}
-      <SkartDoradaOeePregled C={C} podaci={podaci} />
+      <SkartDoradaOeePregled C={C} podaci={podaci} modul={modul} />
       <div style={{ color: C.sivi, fontSize: 9, marginTop: 16, lineHeight: 1.5 }}>
-        KPI se snimaju pri zapisu serije (dugme Zapiši / Sačuvaj seriju). Tabela: <strong>kpi_unos</strong>.
+        KPI se snimaju pri zapisu {modul === "atributivne" ? "kontrole" : "serije"} (dugme Zapiši / Sačuvaj seriju). Tabela: <strong>kpi_unos</strong>.
       </div>
     </div>
   );
 }
 
-export function SkartDoradaOeePregled({ C, podaci, naslov }) {
-  if (!podaci?.length) {
+export function SkartDoradaOeePregled({ C, podaci, naslov, modul }) {
+  const prikaz = useMemo(() => {
+    if (!podaci?.length) return [];
+    if (modul !== "atributivne") return podaci;
+    const { mapa, idMapa } = grupisiKpiRedove("atributivne", podaci);
+    return Object.entries(mapa).map(([kljuc, vrednosti]) => {
+      const src = podaci.find(r => kpiKljucZaModul("atributivne", r) === kljuc) || {};
+      return {
+        id: idMapa[kljuc],
+        modul: "atributivne",
+        id_deo: src.id_deo,
+        datum: src.datum,
+        smena: src.smena,
+        radni_nalog: src.radni_nalog,
+        serija: null,
+        ...vrednosti,
+      };
+    });
+  }, [podaci, modul]);
+
+  if (!prikaz?.length) {
     return (
       <div style={{ color: C.border, fontSize: 12, textAlign: "center", padding: 24 }}>
         Nema KPI unosa (škart / dorada / OEE)
@@ -313,16 +341,17 @@ export function SkartDoradaOeePregled({ C, podaci, naslov }) {
         <div style={{ color: C.sivi, fontSize: 10, letterSpacing: 1.2, marginBottom: 12 }}>{naslov}</div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {podaci.map(row => {
+        {prikaz.map(row => {
           const k = izracunajOeeKpi(row);
           return (
-            <div key={row.id} style={{
+            <div key={row.id || `${row.id_deo}-${row.datum}`} style={{
               background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
                 <span style={{ color: C.tekst, fontWeight: 700, fontSize: 12 }}>
                   {row.id_deo} · {row.datum} · S{row.smena}
-                  {row.serija ? ` · ${row.serija}` : ""}
+                  {modul === "merljive" && row.serija ? ` · serija ${row.serija}` : ""}
+                  {modul === "atributivne" && row.radni_nalog ? ` · RN ${row.radni_nalog}` : ""}
                 </span>
                 <span style={{
                   color: k.oee >= 85 ? C.zelena : k.oee >= 65 ? C.zuta : C.crvena,
@@ -338,6 +367,9 @@ export function SkartDoradaOeePregled({ C, podaci, naslov }) {
                 <span>Dorada: <strong style={{ color: C.narandzasta }}>{row.dorada}</strong></span>
                 <span>OK↳: <strong style={{ color: C.plava }}>{row.ok_nakon_dorade ?? 0}</strong></span>
                 <span>FPY: <strong style={{ color: C.plava }}>{k.fpy}%</strong></span>
+                <span>Dost.: <strong style={{ color: C.zuta }}>{k.availability != null ? `${k.availability}%` : "—"}</strong></span>
+                <span>Perf.: <strong style={{ color: C.plava }}>{k.performance != null ? `${k.performance}%` : "—"}</strong></span>
+                <span>Kval.: <strong style={{ color: C.zelena }}>{k.quality != null ? `${k.quality}%` : "—"}</strong></span>
               </div>
             </div>
           );

@@ -11,6 +11,7 @@ import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
 import { KontrolnaLista } from "../lib/kontrolaSesije.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
+import SmenaAutoPrikaz from "./SmenaAutoPrikaz.jsx";
 import { idSpremanZaUcitavanje } from "../lib/varijabilneUtils.js";
 
 /**
@@ -25,7 +26,6 @@ export default function MobilniMerljiviUnos({
   onIdPotvrdi,
   onBarkodSken,
   smena,
-  setSmena,
   grupe,
   grupaAB,
   onGrupaChange,
@@ -222,16 +222,12 @@ export default function MobilniMerljiviUnos({
           />
         )}
 
-        <label style={LBL}>Smena
-          <select
-            value={smena}
-            onChange={e => setSmena(e.target.value)}
-            onFocus={onFocusTastatura}
-            style={{ ...INP, fontSize: 16, padding: "14px" }}
-          >
-            {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
+        <SmenaAutoPrikaz
+          smena={smena}
+          C={C}
+          lblStyle={LBL}
+          inpStyle={{ ...INP, fontSize: 16, padding: "14px" }}
+        />
 
         {idUcitano ? (
           <div style={{ background: C.ok, border: `1px solid ${C.zelena}30`, borderRadius: 14, padding: 16 }}>

@@ -1,4 +1,16 @@
-/** OEE i prateći KPI (škart, dorada, FPY). */
+/** OEE i prateći KPI (škart, dorada, FPY / RTY).
+ *
+ * Dostupnost — (planirano_min − zastoj) / planirano_min
+ * Performanse — ukupno_kom / planirano_kom (brzina/output); bez plana = 100%
+ * Kvalitet (jedna faza) — FPY: ispravno_iz_prve / ukupno_kom
+ * Kvalitet (pogon, više faza) — RTY = proizvod FPY faza (v. izracunajOeePogon)
+ */
+
+import { calcFPY, calcRTYIzFaza, fazeKvalitetaPogona, izracunajOeeSaKvalitetom } from "./rtyFpy.js";
+
+function clamp01(x) {
+  return Math.max(0, Math.min(1, x));
+}
 
 export function izracunajOeeKpi({
   planirano_min = 0,
@@ -15,30 +27,82 @@ export function izracunajOeeKpi({
   const planKom = Number(planirano_kom) || 0;
   const uk = Number(ukupno_kom) || 0;
   const fp = Number(ispravno_iz_prve) || 0;
-  const okPosle = Number(ok_nakon_dorade) || 0;
-  const sk = Number(skart) || 0;
-  const dor = Number(dorada) || 0;
+  void ok_nakon_dorade;
+  void skart;
+  void dorada;
 
-  const availability = plan > 0 ? Math.max(0, (plan - zastoj) / plan) : null;
-  const performance = planKom > 0
-    ? Math.max(0, Math.min(1, uk / planKom))
-    : null;
+  const availability = plan > 0 ? clamp01((plan - zastoj) / plan) : null;
+
+  let performance = null;
+  if (planKom > 0) {
+    performance = clamp01(uk / planKom);
+  } else if (uk > 0) {
+    performance = 1;
+  }
+
+  const fpy = uk > 0 ? calcFPY(fp, uk) : null;
+  const quality = fpy != null ? fpy : null;
   const performancePct = performance != null ? performance : 1;
-  const quality = uk > 0 ? Math.max(0, Math.min(1, (fp + okPosle) / uk)) : null;
-  const oee = availability != null && quality != null
-    ? availability * performancePct * quality * 100
-    : (performance != null && quality != null
-      ? performancePct * quality * 100
-      : null);
+  const oee = izracunajOeeSaKvalitetom({
+    availability,
+    performance: performancePct,
+    fpy: quality,
+  });
 
   return {
     availability: availability != null ? +(availability * 100).toFixed(1) : null,
-    performance: performance != null ? +(performance * 100).toFixed(1) : 100,
-    quality: quality != null ? +(quality * 100).toFixed(1) : null,
-    oee: oee != null ? +oee.toFixed(1) : null,
-    fpy: uk > 0 ? +((fp / uk) * 100).toFixed(1) : null,
-    skartStopa: uk > 0 ? +((sk / uk) * 100).toFixed(2) : null,
-    doradaStopa: uk > 0 ? +((dor / uk) * 100).toFixed(2) : null,
+    performance: performance != null ? +(performance * 100).toFixed(1) : null,
+    quality,
+    fpy: quality,
+    rty: quality,
+    oee,
+    skartStopa: uk > 0 ? +((Number(skart) / uk) * 100).toFixed(2) : null,
+    doradaStopa: uk > 0 ? +((Number(dorada) / uk) * 100).toFixed(2) : null,
+    ukupno_kom: uk,
+  };
+}
+
+/** OEE pogona — kvalitet iz RTY (proizvod FPY faza), ne proseka. */
+export function izracunajOeePogon({
+  planirano_min = 0,
+  zastoj_min = 0,
+  planirano_kom = 0,
+  ukupno_kom = 0,
+  attr = null,
+  merljive = null,
+  faze = null,
+}) {
+  const plan = Number(planirano_min) || 0;
+  const zastoj = Math.min(Number(zastoj_min) || 0, plan);
+  const planKom = Number(planirano_kom) || 0;
+  const uk = Number(ukupno_kom) || 0;
+
+  const availability = plan > 0 ? clamp01((plan - zastoj) / plan) : null;
+  let performance = null;
+  if (planKom > 0) {
+    performance = clamp01(uk / planKom);
+  } else if (uk > 0) {
+    performance = 1;
+  }
+
+  const { faze: fazeLista, rty } = faze?.length
+    ? { faze, rty: calcRTYIzFaza(...faze) }
+    : fazeKvalitetaPogona({ attr, merljive });
+
+  const oee = izracunajOeeSaKvalitetom({
+    availability,
+    performance: performance ?? 1,
+    rty,
+  });
+
+  return {
+    availability: availability != null ? +(availability * 100).toFixed(1) : null,
+    performance: performance != null ? +(performance * 100).toFixed(1) : null,
+    quality: rty,
+    fpy: fazeLista.length === 1 ? fazeLista[0]?.fpy : null,
+    rty,
+    faze: fazeLista,
+    oee,
     ukupno_kom: uk,
   };
 }

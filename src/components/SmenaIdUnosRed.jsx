@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import CrtezZoomViewer from "./CrtezZoomViewer.jsx";
+import SmenaAutoPrikaz from "./SmenaAutoPrikaz.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { ucitajPrikazSliku } from "../lib/slikePaths.js";
 
@@ -138,6 +139,7 @@ export default function SmenaIdUnosRed({
   akcent = C?.plava,
   smena,
   setSmena,
+  autoSmena = true,
   onBarkodSken,
   lblStyle,
   inpStyle = {},
@@ -195,26 +197,37 @@ export default function SmenaIdUnosRed({
       minWidth: 0,
       flexShrink: 0,
     }}>
-      <label style={{
-        flex: `0 0 ${sirinaSmena}px`,
-        minWidth: sirinaSmena,
-        margin: 0,
-      }}>
-        <span style={lbl}>Smena</span>
-        <select
-          value={smena}
-          onChange={promeniSmenu}
-          style={{
-            ...inpPolje,
-            padding: "0 4px",
-            cursor: "pointer",
-            textAlign: "center",
-            fontWeight: 700,
-          }}
-        >
-          {["1", "2", "3"].map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </label>
+      {autoSmena ? (
+        <SmenaAutoPrikaz
+          smena={smena}
+          C={C}
+          lblStyle={lbl}
+          inpStyle={inpPolje}
+          sirina={sirinaSmena}
+          kompakt
+        />
+      ) : (
+        <label style={{
+          flex: `0 0 ${sirinaSmena}px`,
+          minWidth: sirinaSmena,
+          margin: 0,
+        }}>
+          <span style={lbl}>Smena</span>
+          <select
+            value={smena}
+            onChange={promeniSmenu}
+            style={{
+              ...inpPolje,
+              padding: "0 4px",
+              cursor: "pointer",
+              textAlign: "center",
+              fontWeight: 700,
+            }}
+          >
+            {["1", "2", "3"].map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+      )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <IdDeoBarkodRed

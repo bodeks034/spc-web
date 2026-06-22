@@ -3,7 +3,9 @@
  * na osnovu atributivnih (kontrolni_log) i merljivih (merenja_varijabilna) podataka.
  */
 
-import { aggregateLogRows, calcRTY, calcP, calcDPMO, buildParetoFromLog } from "./spcStats.js";
+import { aggregateLogRows, calcRTY, calcP, calcDPMO, buildParetoFromLog, kvalitetIzPrveKpi, kvalitetIzPrveLoga } from "./spcStats.js";
+import { fetchKpiUnos, agregirajKpiUnos } from "./kpiUnos.js";
+import { calcRTYIzFaza, najslabijaFaza } from "./rtyFpy.js";
 import {
   trendKvalitetaPoDanu, podgrupeMerenja, izracunajXbarRKarte,
   calcCpCpk, bojaKapabiliteta,
@@ -85,17 +87,78 @@ function spojiDnevniTrend(attrTrend, merTrend) {
     }));
 }
 
-function oceniStanjeModula({ rty, p, predikcijaP, minMerenja = 10 }) {
+function trendRtyPogona(trendAttr, trendMer) {
+  const dani = new Map();
+  (trendAttr || []).forEach(d => {
+    if (!d?.datum) return;
+    dani.set(d.datum, { ...(dani.get(d.datum) || { datum: d.datum }), attr: d });
+  });
+  (trendMer || []).forEach(d => {
+    if (!d?.datum) return;
+    const prev = dani.get(d.datum) || { datum: d.datum };
+    dani.set(d.datum, { ...prev, mer: d });
+  });
+  return [...dani.values()]
+    .sort((a, b) => String(a.datum).localeCompare(String(b.datum)))
+    .map(({ datum, attr, mer }) => {
+      const faze = [];
+      if (attr?.n > 0) faze.push(attr.fpy ?? attr.rty);
+      if (mer?.n > 0) faze.push(mer.fpy ?? mer.rty);
+      const rty = calcRTYIzFaza(...faze);
+      const ok = (attr?.ok || 0) + (mer?.ok || 0);
+      const nok = (attr?.nok || 0) + (mer?.nok || 0);
+      const n = (attr?.n || 0) + (mer?.n || 0);
+      return {
+        datum,
+        ok,
+        nok,
+        n,
+        rty: rty ?? 0,
+        p: n > 0 ? calcP(nok, n) : 0,
+        fpyAttr: attr?.fpy ?? attr?.rty,
+        fpyMer: mer?.fpy ?? mer?.rty,
+      };
+    });
+}
+
+function oceniStanjeModula({ rty, p, predikcijaP, minMerenja = 10, doradaStopa = 0, labela = "FPY" }) {
   if (minMerenja < 5) return { stanje: STANJE.NEDOVOLJNO, razlog: "Premalo merenja" };
-  if (p >= 15 || Number(rty) < 85) {
-    return { stanje: STANJE.KRITICNO, razlog: `NOK ${p}% · RTY ${rty}%` };
+  const rtyN = Number(rty) || 0;
+  const dor = Number(doradaStopa) || 0;
+  const metrika = labela;
+  if (p >= 15 || rtyN < 85 || dor >= 15) {
+    const delovi = [
+      p >= 15 ? `NOK ${p}%` : null,
+      rtyN < 85 ? `${metrika} ${rtyN}%` : null,
+      dor >= 15 ? `dorada ${dor}%` : null,
+    ].filter(Boolean);
+    return { stanje: STANJE.KRITICNO, razlog: delovi.join(" · ") };
   }
-  if (p >= 8 || Number(rty) < 92 || predikcijaP?.smer === "raste") {
+  if (p >= 8 || rtyN < 92 || dor >= 8 || predikcijaP?.smer === "raste") {
     return { stanje: STANJE.UPOZORENJE, razlog: predikcijaP?.smer === "raste"
       ? `Trend NOK raste (nagib +${predikcijaP.nagib}/dan)`
-      : `NOK ${p}% · RTY ${rty}%` };
+      : [p >= 8 ? `NOK ${p}%` : null, rtyN < 92 ? `${metrika} ${rtyN}%` : null, dor >= 8 ? `dorada ${dor}%` : null]
+        .filter(Boolean).join(" · ") || `${metrika} ${rtyN}%` };
   }
-  return { stanje: STANJE.U_KONTROLI, razlog: `RTY ${rty}% · NOK ${p}%` };
+  return { stanje: STANJE.U_KONTROLI, razlog: `${metrika} ${rtyN}% · NOK ${p}%` };
+}
+
+/** Kad nema 3+ dana trenda — prikaži trenutni snimak (bez ekstrapolacije). */
+function predikcijaSaRezervom(trend, polje, trenutnaVrednost, koraci = 3) {
+  const izTrenda = predikcijaTrenda(trend, polje, koraci);
+  if (izTrenda) return izTrenda;
+  const t = Number(trenutnaVrednost);
+  if (!Number.isFinite(t)) return null;
+  return {
+    polje,
+    trenutno: t,
+    sledeci: [{ korak: 1, vrednost: t }],
+    smer: "stabilno",
+    nagib: 0,
+    pouzdanost: 0,
+    brojDana: (trend || []).length || 1,
+    snimak: true,
+  };
 }
 
 function tezeStanja(a, b) {
@@ -143,30 +206,51 @@ export function analizirajProces({
   oee = {},
   period = 7,
   idDeo = null,
+  rtyPogon = null,
+  fazeKvaliteta = [],
 } = {}) {
-  const ukupnoTrend = spojiDnevniTrend(trendAttr, trendMer);
-  const predAttr = predikcijaTrenda(trendAttr, "p", 3);
-  const predMer = predikcijaTrenda(trendMer, "p", 3);
-  const predUkupno = predikcijaTrenda(ukupnoTrend, "p", 3);
-  const predRty = predikcijaTrenda(ukupnoTrend, "rty", 3);
+  const trendRty = trendRtyPogona(trendAttr, trendMer);
+  const ukupnoTrend = trendRty.length ? trendRty : spojiDnevniTrend(trendAttr, trendMer);
 
   const attrP = attr.ukN > 0 ? calcP(attr.ukNOK, attr.ukN) : 0;
   const merP = merljive.merenja > 0 ? calcP(merljive.nok, merljive.merenja) : 0;
+  const attrFpy = Number(attr.fpy ?? attr.rty) || 0;
+  const merFpy = Number(merljive.fpy ?? merljive.rty) || 0;
+  const ukupnoN = (attr.ukN || 0) + (merljive.merenja || 0);
+  const ukupnoNok = (attr.ukNOK || 0) + (merljive.nok || 0);
+  const ukupnoP = ukupnoN > 0 ? calcP(ukupnoNok, ukupnoN) : 0;
+  const ukupnoRty = rtyPogon != null
+    ? rtyPogon
+    : calcRTYIzFaza(attrFpy, merFpy);
+
+  const predAttr = predikcijaSaRezervom(trendAttr, "p", attrP);
+  const predMer = predikcijaSaRezervom(trendMer, "p", merP);
+  const predUkupno = predikcijaSaRezervom(ukupnoTrend, "p", ukupnoP);
+  const predRty = predikcijaSaRezervom(trendRty.length ? trendRty : ukupnoTrend, "rty", ukupnoRty);
 
   const stanjeAttr = oceniStanjeModula({
-    rty: attr.rty,
+    rty: attrFpy,
     p: attrP,
     predikcijaP: predAttr,
     minMerenja: attr.ukN || 0,
+    doradaStopa: attr.ukN > 0 ? +((Number(attr.dorada) || 0) / attr.ukN * 100).toFixed(1) : 0,
+    labela: "FPY",
   });
   const stanjeMer = oceniStanjeModula({
-    rty: merljive.rty,
+    rty: merFpy,
     p: merP,
     predikcijaP: predMer,
     minMerenja: merljive.merenja || 0,
+    doradaStopa: merljive.merenja > 0
+      ? +((Number(merljive.dorada) || 0) / merljive.merenja * 100).toFixed(1) : 0,
+    labela: "FPY",
   });
 
   let ukupnoStanje = tezeStanja(stanjeAttr.stanje, stanjeMer.stanje);
+  if (ukupnoRty != null && ukupnoRty < 85) ukupnoStanje = STANJE.KRITICNO;
+  else if (ukupnoRty != null && ukupnoRty < 92 && ukupnoStanje === STANJE.U_KONTROLI) {
+    ukupnoStanje = STANJE.UPOZORENJE;
+  }
   if (alarmi.some(a => a.nivo === "visok")) ukupnoStanje = STANJE.KRITICNO;
   if (!attr.ukN && !merljive.merenja) ukupnoStanje = STANJE.NEDOVOLJNO;
 
@@ -259,13 +343,18 @@ export function analizirajProces({
     },
     sumarno: {
       period,
-      ukupnoMerenja: (attr.ukN || 0) + (merljive.merenja || 0),
-      ukupnoNok: (attr.ukNOK || 0) + (merljive.nok || 0),
-      rtyAttr: attr.rty,
-      rtyMer: merljive.rty,
+      ukupnoMerenja: ukupnoN,
+      ukupnoNok,
+      fpyAttr: attrFpy,
+      fpyMer: merFpy,
+      rtyAttr: attrFpy,
+      rtyMer: merFpy,
+      rtyPogon: ukupnoRty,
       pAttr: attrP,
       pMer: merP,
       danaUTrendu: ukupnoTrend.length,
+      faze: fazeKvaliteta,
+      najslabijaFaza: najslabijaFaza(fazeKvaliteta),
     },
     korektivneMere: vidljive.slice(0, 8),
   };
@@ -371,7 +460,7 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
   if (!idDeo) return null;
   const od = datumOdDana(period);
 
-  const [logRes, merRes, karRes, sopRes] = await Promise.all([
+  const [logRes, merRes, karRes, sopRes, kpiRes] = await Promise.all([
     supabase.from("kontrolni_log")
       .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena,id_deo")
       .eq("id_deo", idDeo)
@@ -386,17 +475,36 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
     supabase.from("sop_deo_varijabilni")
       .select("broj_merenja,pogon_kod")
       .eq("id_deo", idDeo),
+    fetchKpiUnos(supabase, { idDeo, datumOd: od, limit: 200 }).catch(() => []),
   ]);
 
   const logData = logRes.data || [];
   const merData = merRes.data || [];
   const karakteristike = karRes.data || [];
+  const kpiRows = kpiRes || [];
   const nPodgrupa = brojMerenjaIzSop(sopRes.data || [], idDeo);
 
   const attrAgg = aggregateLogRows(logData) || {};
   const merN = merData.length;
   const merNok = merData.filter(r => (r.status || "").toUpperCase() === "NOK").length;
   const merOk = merN - merNok;
+
+  const kpiAttrAgg = agregirajKpiUnos(
+    kpiRows.filter((r) => r.modul === "atributivne"),
+    { modul: "atributivne" },
+  );
+  const kpiMerAgg = agregirajKpiUnos(
+    kpiRows.filter((r) => r.modul === "merljive"),
+    { modul: "merljive" },
+  );
+
+  const attrKval = kpiAttrAgg?.ukupno_kom > 0
+    ? kvalitetIzPrveKpi(kpiAttrAgg)
+    : kvalitetIzPrveLoga({ ok: attrAgg.ukOK || 0, nok: attrAgg.ukNOK || 0, n: attrAgg.ukN || 0 });
+
+  const merKval = kpiMerAgg?.ukupno_kom > 0
+    ? kvalitetIzPrveKpi(kpiMerAgg)
+    : kvalitetIzPrveLoga({ ok: merOk, nok: merNok, n: merN });
   const trendAttr = attrAgg.trend || [];
   const trendMer = trendKvalitetaPoDanu(merData);
 
@@ -421,16 +529,16 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
 
   const inteligencija = analizirajProces({
     attr: {
-      ukN: attrAgg.ukN || 0,
-      ukNOK: attrAgg.ukNOK || 0,
-      rty: attrAgg.rty || "0",
-      dpmo: attrAgg.dpmo || 0,
+      ukN: attrKval.ukupno,
+      ukNOK: attrKval.neusaglaseno,
+      rty: String(attrKval.rty),
+      dpmo: attrKval.dpmo,
     },
     merljive: {
-      merenja: merN,
-      nok: merNok,
-      rty: calcRTY(merOk, merN),
-      dpmo: calcDPMO(merNok, merN),
+      merenja: merKval.ukupno,
+      nok: merKval.neusaglaseno,
+      rty: merKval.rty,
+      dpmo: merKval.dpmo,
     },
     trendAttr,
     trendMer,

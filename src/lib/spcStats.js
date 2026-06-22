@@ -1,17 +1,87 @@
 /** Zajednička SPC / DPMO / Pareto logika — jedan izvor istine za dashboard, karte i unos. */
 
-import { predloziDodeljenogInzenjera } from "./eskalacijeHelper.js";
+import {
+  agregirajAtributivneJedinice,
+  agregirajAtributivnePoKljuču,
+  atributivniKomadKey,
+} from "./atributivneAgregacija.js";
 
-export function calcDPMO(nok, n) {
-  return n > 0 ? Math.round((nok / n) * 1e6) : 0;
+import { predloziDodeljenogInzenjera } from "./eskalacijeHelper.js";
+import { calcFPY } from "./rtyFpy.js";
+
+/** @deprecated Koristi calcFPY za jednu fazu; calcRTYIzFaza za više faza. */
+export function calcRTY(ispravnoIzPrve, ukupno) {
+  return calcFPY(ispravnoIzPrve, ukupno);
 }
 
-export function calcRTY(ok, n) {
-  return n > 0 ? +((ok / n) * 100).toFixed(1) : 0;
+/** KPI red — FPY jedne faze (prolaz iz prve / ukupno). */
+export function kvalitetIzPrveKpi(kpi = {}) {
+  const ukupno = Number(kpi.ukupno_kom) || 0;
+  const dorada = Number(kpi.dorada) || 0;
+  const skart = Number(kpi.skart) || 0;
+  let izPrve = Number(kpi.ispravno_iz_prve) || 0;
+  const neusUneto = Number(kpi.neusaglaseno) || 0;
+
+  // Dorada/škart smanjuju maks. prolaz iz prve (log često ima OK posle dorade u iz_prve).
+  if (ukupno > 0 && (dorada > 0 || skart > 0)) {
+    izPrve = Math.min(izPrve, Math.max(0, ukupno - dorada - skart));
+  }
+
+  const neusaglaseno = neusUneto > 0
+    ? Math.max(neusUneto, dorada + skart, ukupno - izPrve)
+    : Math.max(ukupno - izPrve, dorada + skart);
+
+  const fpy = calcFPY(izPrve, ukupno);
+
+  return {
+    ukupno,
+    ispravnoIzPrve: izPrve,
+    neusaglaseno,
+    okNakonDorade: Number(kpi.ok_nakon_dorade) || 0,
+    dorada,
+    skart,
+    fpy,
+    rty: fpy,
+    dpmo: calcDPMO(neusaglaseno, ukupno),
+    p: calcP(neusaglaseno, ukupno),
+  };
+}
+
+export function calcDPMO(neusaglaseno, ukupno) {
+  const uk = Number(ukupno) || 0;
+  const neus = Number(neusaglaseno) || 0;
+  return uk > 0 ? Math.round((neus / uk) * 1e6) : 0;
+}
+
+/** Kontrolni log / merenja — svaki unos = prva inspekcija tog komada/merenja. */
+export function kvalitetIzPrveLoga({ ok = 0, nok = 0, n } = {}) {
+  const izPrve = Number(ok) || 0;
+  const neusaglaseno = Number(nok) || 0;
+  const ukupno = Number(n) > 0 ? Number(n) : izPrve + neusaglaseno;
+  return kvalitetIzPrveKpi({
+    ukupno_kom: ukupno,
+    ispravno_iz_prve: izPrve,
+    neusaglaseno: neusaglaseno,
+  });
+}
+
+/** KPI ima prednost kad postoji ukupno_kom (dorada se ne računa u RTY). */
+export function kvalitetIzPrve({ kpi, ok, nok, n } = {}) {
+  if (kpi && Number(kpi.ukupno_kom) > 0) return kvalitetIzPrveKpi(kpi);
+  if (kpi && Number(kpi.ispravno_iz_prve) > 0) return kvalitetIzPrveKpi(kpi);
+  return kvalitetIzPrveLoga({ ok, nok, n });
 }
 
 export function calcP(nok, n) {
   return n > 0 ? +((nok / n) * 100).toFixed(2) : 0;
+}
+
+/** Procesni sigma nivo iz DPMO (Motorola skala, max 6σ). */
+export function sigmaIzDPMO(dpmo) {
+  if (dpmo <= 0) return 6.0;
+  const tbl = [[3.4, 6], [233, 5], [6210, 4], [66807, 3], [308538, 2], [691462, 1]];
+  for (const [lim, s] of tbl) if (dpmo <= lim) return s;
+  return 1;
 }
 
 const SPC_EPS = 1e-9;
@@ -86,9 +156,7 @@ export function westernElectric(niz, cl, ucl, lcl) {
 export function aggregateLogRows(data) {
   if (!data?.length) return null;
 
-  const ukN = data.reduce((s, r) => s + (r.ukupno_merenja || 0), 0);
-  const ukNOK = data.reduce((s, r) => s + (r.nok_kolicina || 0), 0);
-  const ukOK = data.reduce((s, r) => s + (r.ok_kolicina || 0), 0);
+  const { ok: ukOK, nok: ukNOK, n: ukN, komNok } = agregirajAtributivneJedinice(data);
   const dpmo = calcDPMO(ukNOK, ukN);
   const rty = calcRTY(ukOK, ukN).toFixed(1);
 
@@ -100,34 +168,72 @@ export function aggregateLogRows(data) {
   const pareto = Object.entries(gB).map(([naziv, count]) => ({ naziv, count }))
     .sort((a, b) => b.count - a.count);
 
-  const dani = {};
-  data.forEach(r => {
-    if (!dani[r.datum]) dani[r.datum] = { datum: r.datum, ok: 0, nok: 0, n: 0 };
-    dani[r.datum].ok += r.ok_kolicina || 0;
-    dani[r.datum].nok += r.nok_kolicina || 0;
-    dani[r.datum].n += r.ukupno_merenja || 0;
-  });
-  const trend = Object.values(dani).map(d => ({
-    ...d,
-    rty: calcRTY(d.ok, d.n),
-    p: calcP(d.nok, d.n),
-  }));
+  const daniGr = agregirajAtributivnePoKljuču(data, r => r.datum || "?");
+  const trend = [...daniGr.entries()].map(([datum, rows]) => {
+    const d = agregirajAtributivneJedinice(rows);
+    return {
+      datum,
+      ok: d.ok,
+      nok: d.nok,
+      n: d.n,
+      rty: calcRTY(d.ok, d.n),
+      p: calcP(d.nok, d.n),
+    };
+  }).sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
 
   const sm = { 1: { s: 1, ok: 0, nok: 0, n: 0 }, 2: { s: 2, ok: 0, nok: 0, n: 0 }, 3: { s: 3, ok: 0, nok: 0, n: 0 } };
-  data.forEach(r => {
-    const s = sm[r.smena];
-    if (s) {
-      s.ok += r.ok_kolicina || 0;
-      s.nok += r.nok_kolicina || 0;
-      s.n += r.ukupno_merenja || 0;
+  const smeneGr = agregirajAtributivnePoKljuču(data, r => Number(r.smena));
+  for (const [smena, rows] of smeneGr.entries()) {
+    const s = sm[smena];
+    if (!s) continue;
+    const d = agregirajAtributivneJedinice(rows);
+    s.ok = d.ok;
+    s.nok = d.nok;
+    s.n = d.n;
+  }
+
+  return { ukN, ukNOK, ukOK, dpmo, rty, pareto, trend, smene: Object.values(sm), komNok };
+}
+
+function groupSpcRowsByKomad(rawData) {
+  const buckets = new Map();
+  const sorted = [...(rawData || [])].sort((a, b) =>
+    (a.datum || "").localeCompare(b.datum || "")
+    || String(a.created_at || "").localeCompare(String(b.created_at || ""))
+    || (Number(a.id) || 0) - (Number(b.id) || 0));
+
+  sorted.forEach((r, idx) => {
+    const key = atributivniKomadKey(r) || `seq|${idx}`;
+    if (!buckets.has(key)) {
+      const redni = buckets.size + 1;
+      const label = r.datum?.substring(5)
+        ? `${r.datum.substring(5)} #${redni}`
+        : `#${redni}`;
+      buckets.set(key, { key, label, datum: r.datum, rows: [] });
     }
+    buckets.get(key).rows.push(r);
   });
 
-  return { ukN, ukNOK, ukOK, dpmo, rty, pareto, trend, smene: Object.values(sm) };
+  return [...buckets.values()].map(b => {
+    const { ok, nok, n, komNok } = agregirajAtributivneJedinice(b.rows);
+    return { key: b.key, label: b.label, datum: b.datum, nok, ok, n, c: komNok };
+  });
+}
+
+/** Preporučeno grupisanje kad je sve u jednom danu a ima puno unosa. */
+export function predloziGrupisanjeSpc(rawData, { vozilo = false } = {}) {
+  const rows = rawData || [];
+  if (!rows.length) return "dan";
+  if (vozilo) return "komad";
+  const poDanu = groupSpcRows(rows, "dan");
+  if (poDanu.length <= 1 && rows.length >= 5) return "komad";
+  return "dan";
 }
 
 export function groupSpcRows(rawData, grupisanje) {
-  const g = {};
+  if (grupisanje === "komad") return groupSpcRowsByKomad(rawData);
+
+  const buckets = {};
   rawData.forEach(r => {
     const k = grupisanje === "dan_smena" ? `${r.datum}|S${r.smena}`
       : grupisanje === "smena" ? `S${r.smena}`
@@ -135,13 +241,13 @@ export function groupSpcRows(rawData, grupisanje) {
     const label = grupisanje === "dan_smena" ? `${r.datum?.substring(5) || ""} S${r.smena}`
       : grupisanje === "smena" ? `Smena ${r.smena}`
         : r.datum?.substring(5) || r.datum;
-    if (!g[k]) g[k] = { key: k, label, datum: r.datum, nok: 0, ok: 0, n: 0, c: 0 };
-    g[k].nok += r.nok_kolicina || 0;
-    g[k].ok += r.ok_kolicina || 0;
-    g[k].n += r.ukupno_merenja || 0;
-    g[k].c += r.kom_nok || 0;
+    if (!buckets[k]) buckets[k] = { key: k, label, datum: r.datum, rows: [] };
+    buckets[k].rows.push(r);
   });
-  return Object.values(g).sort((a, b) =>
+  return Object.values(buckets).map(b => {
+    const { ok, nok, n, komNok } = agregirajAtributivneJedinice(b.rows);
+    return { key: b.key, label: b.label, datum: b.datum, nok, ok, n, c: komNok };
+  }).sort((a, b) =>
     (a.datum || "").localeCompare(b.datum || "") || String(a.key).localeCompare(String(b.key)));
 }
 
@@ -168,31 +274,33 @@ export function pendingFromLista(listaP) {
   return { ok, nok, merenja: (listaP || []).length };
 }
 
-export function mergeSmenaStat(dbStat, pending) {
+export function mergeSmenaStat(dbStat, pending, kpi = null) {
   const ok = (dbStat?.ok || 0) + (pending?.ok || 0);
   const nok = (dbStat?.nok || 0) + (pending?.nok || 0);
-  const merenja = (dbStat?.merenja || 0) + (pending?.merenja || 0);
   const n = ok + nok;
+  const k = kvalitetIzPrve({ kpi, ok, nok, n });
   return {
-    ok, nok, merenja,
-    rty: calcRTY(ok, n),
-    dpmo: calcDPMO(nok, n),
-    p: calcP(nok, n),
+    ok: k.ispravnoIzPrve,
+    nok: k.neusaglaseno,
+    merenja: k.ukupno,
+    okNakonDorade: k.okNakonDorade,
+    rty: k.rty,
+    dpmo: k.dpmo,
+    p: k.p,
   };
 }
 
 export async function fetchSmenaStat(supabase, { datum, smena, idDeo, kontrolorId }) {
   let q = supabase.from("kontrolni_log")
-    .select("ok_kolicina,nok_kolicina")
+    .select("ok_kolicina,nok_kolicina,kom_nok,inspekcija_id,sesija_id,created_at,id_deo,datum,smena,id")
     .eq("datum", datum)
     .eq("smena", smena);
   if (idDeo) q = q.eq("id_deo", idDeo);
   if (kontrolorId) q = q.eq("kontrolor_id", kontrolorId);
   const { data, error } = await q;
   if (error) throw error;
-  const ok = (data || []).reduce((s, r) => s + (r.ok_kolicina || 0), 0);
-  const nok = (data || []).reduce((s, r) => s + (r.nok_kolicina || 0), 0);
-  return { ok, nok, merenja: (data || []).length };
+  const { ok, nok } = agregirajAtributivneJedinice(data || []);
+  return { ok, nok, merenja: ok + nok };
 }
 
 export async function fetchAktuelniCilj(supabase, idDeo) {
@@ -207,13 +315,11 @@ export async function fetchAktuelniCilj(supabase, idDeo) {
 
 export async function fetchDeoStatDanas(supabase, idDeo, datum) {
   const { data } = await supabase.from("kontrolni_log")
-    .select("ok_kolicina,nok_kolicina,ukupno_merenja")
+    .select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,inspekcija_id,sesija_id,created_at,id_deo,datum,smena,id")
     .eq("id_deo", idDeo)
     .eq("datum", datum);
-  const ok = (data || []).reduce((s, r) => s + (r.ok_kolicina || 0), 0);
-  const nok = (data || []).reduce((s, r) => s + (r.nok_kolicina || 0), 0);
-  const n = (data || []).reduce((s, r) => s + (r.ukupno_merenja || 0), 0);
-  return { ok, nok, n, dpmo: calcDPMO(nok, n || ok + nok), rty: calcRTY(ok, n || ok + nok) };
+  const { ok, nok, n } = agregirajAtributivneJedinice(data || []);
+  return { ok, nok, n, dpmo: calcDPMO(nok, n), rty: calcRTY(ok, n) };
 }
 
 /** Mapiranje NOK stavki na AQL klase (heuristika po nazivu kategorije). */

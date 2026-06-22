@@ -128,7 +128,14 @@ export default function SpcKontrolnaGraf({
   const cl = podaci[0].cl;
   const ucl = podaci[0].ucl;
   const lcl = podaci[0].lcl;
-  const yDom = yDomain || ["auto", "auto"];
+  const vals = podaci.map(d => d.val).filter(Number.isFinite);
+  const maxVal = vals.length ? Math.max(...vals, ucl ?? 0, cl ?? 0) : 1;
+  const minVal = vals.length ? Math.min(...vals, lcl ?? 0, cl ?? 0) : 0;
+  const yPad = maxVal === minVal ? Math.max(Math.abs(maxVal) * 0.15, 0.01) : (maxVal - minVal) * 0.08;
+  const yDom = yDomain || [
+    Number.isFinite(minVal) ? minVal - yPad : "auto",
+    Number.isFinite(maxVal) ? maxVal + yPad : "auto",
+  ];
   const sigma = Number.isFinite(ucl) && Number.isFinite(cl) ? (ucl - cl) / 3 : 0;
   const prikaziSpec = Number.isFinite(lsl) || Number.isFinite(usl);
   const xInterval = Math.max(0, Math.floor(podaci.length / 10) - 1);
@@ -261,7 +268,7 @@ export default function SpcKontrolnaGraf({
           )}
 
           <Line
-            type="monotone"
+            type="linear"
             dataKey="val"
             stroke={bojaLinije}
             strokeWidth={3}

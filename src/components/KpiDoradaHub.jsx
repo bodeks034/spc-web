@@ -6,6 +6,8 @@ import {
   kpiVrednostiIzDb,
   snimiIliAzurirajKpiUnos,
   porukaKpiGreske,
+  grupisiKpiRedove,
+  oznakaKpiKljuca,
 } from "../lib/kpiUnos.js";
 import { datumSrUIso } from "../lib/planUzorkovanja.js";
 
@@ -18,22 +20,6 @@ function parsirajDatum(d) {
   const m = String(d || "").match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
   if (m) return `${m[3]}-${m[2]}-${m[1]}`;
   return datumSrUIso(d) || new Date().toISOString().slice(0, 10);
-}
-
-function kpiKljuc(red) {
-  const rn = String(red?.radni_nalog || "—").trim() || "—";
-  const serija = String(red?.serija || "—").trim() || "—";
-  return `${rn}|${serija}`;
-}
-
-function oznakaKljuca(kljuc) {
-  const [rn, serija] = String(kljuc || "").split("|");
-  const imaRn = rn && rn !== "—";
-  const imaSeriju = serija && serija !== "—";
-  if (imaRn && imaSeriju) return `RN ${rn} · serija ${serija}`;
-  if (imaRn) return `RN ${rn}`;
-  if (imaSeriju) return `Serija ${serija}`;
-  return "Bez RN / serije";
 }
 
 /**
@@ -91,15 +77,7 @@ export default function KpiDoradaHub({
         limit: 80,
       });
       setRedovi(rows);
-      const mapa = {};
-      const idMapa = {};
-      const meta = {};
-      for (const r of rows) {
-        const k = kpiKljuc(r);
-        mapa[k] = kpiVrednostiIzDb(r);
-        idMapa[k] = r.id;
-        meta[k] = { radni_nalog: r.radni_nalog || null, serija: r.serija || null };
-      }
+      const { mapa, idMapa, meta } = grupisiKpiRedove(modul, rows);
       setKpiPoKljucu(mapa);
       setKpiDbIdPoKljucu(idMapa);
       setMetaPoKljucu(meta);
@@ -149,7 +127,7 @@ export default function KpiDoradaHub({
         datum: parsirajDatum(datum),
         smena,
         id_deo: idDeo,
-        serija: meta.serija || null,
+        serija: modul === "atributivne" ? null : (meta.serija || null),
         radni_nalog: meta.radni_nalog || radniNalog || null,
         kpi: kpiSerija,
       }, dbId);
@@ -306,7 +284,7 @@ export default function KpiDoradaHub({
                       fontSize: 10, fontWeight: akt ? 700 : 500, color: C.tekst,
                     }}
                   >
-                    {oznakaKljuca(k)}
+                    {oznakaKpiKljuca(modul, k)}
                     {neus > 0 && <span style={{ color: C.zuta, marginLeft: 4 }}>· {neus} neus.</span>}
                   </button>
                 );
@@ -319,7 +297,7 @@ export default function KpiDoradaHub({
                 vrednosti={kpiSerija}
                 ukupno={ukupnoZaDeo}
                 onChange={promeniKpi}
-                podnaslov={`Dorada · škart · OK posle dorade — ${oznakaKljuca(izabraniKljuc)}`}
+                podnaslov={`Dorada · škart · OK posle dorade — ${oznakaKpiKljuca(modul, izabraniKljuc)}`}
               />
             )}
           </>

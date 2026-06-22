@@ -216,9 +216,10 @@ export function SpcOkNokBarGraf({
   );
 }
 
-/** RTY % + p % NOK trend (dual Y). */
+/** FPY % + p % NOK trend (dual Y) — jedna faza. */
 export function SpcRtyTrendGraf({
   data, C, height = 340, xKey = "label", prikaziRefernce = true,
+  serijaNaziv = "FPY %",
 }) {
   if (!data?.length) return null;
   return (
@@ -227,7 +228,7 @@ export function SpcRtyTrendGraf({
       height={height}
       legenda={(
         <SpcGrafLegendaTraka C={C} stavke={[
-          { boja: C.zelena, label: "RTY %", puna: true },
+          { boja: C.zelena, label: serijaNaziv, puna: true },
           { boja: C.crvena, label: "p % NOK", isprekid: true },
           { boja: "#a3e635", label: "4σ (99.38%)", isprekid: true },
         ]} />
@@ -251,7 +252,7 @@ export function SpcRtyTrendGraf({
           </>
         )}
         <Line yAxisId="l" type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={3}
-          dot={{ fill: C.zelena, r: 5 }} name="RTY %" connectNulls activeDot={{ r: 8 }} />
+          dot={{ fill: C.zelena, r: 5 }} name={serijaNaziv} connectNulls activeDot={{ r: 8 }} />
         <Line yAxisId="r" type="monotone" dataKey="p" stroke={C.crvena} strokeWidth={2}
           dot={{ fill: C.crvena, r: 4 }} name="p % NOK" strokeDasharray="6 3" connectNulls />
       </ComposedChart>
@@ -259,8 +260,10 @@ export function SpcRtyTrendGraf({
   );
 }
 
-/** RTY trend samo jedna linija (dashboard). */
-export function SpcRtyJednaLinija({ data, C, height = 220, xKey = "datum", naslov }) {
+/** FPY trend jedna linija (SPC karta / dashboard faze). */
+export function SpcRtyJednaLinija({
+  data, C, height = 220, xKey = "datum", naslov, serijaNaziv = "FPY %",
+}) {
   if (!data?.length) return null;
   return (
     <SpcGrafPanel C={C} naslov={naslov} height={height}>
@@ -271,7 +274,7 @@ export function SpcRtyJednaLinija({ data, C, height = 220, xKey = "datum", naslo
         <Tooltip content={<AnalitikaTooltip C={C} sufiks="%" />} />
         <ReferenceLine y={95} stroke={C.zelena} strokeDasharray="4 3" label={{ value: "95%", fill: C.zelena, fontSize: 9 }} />
         <ReferenceLine y={80} stroke={C.zuta} strokeDasharray="4 3" label={{ value: "80%", fill: C.zuta, fontSize: 9 }} />
-        <Line type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={2.5} dot={{ fill: C.zelena, r: 5 }} name="RTY %" />
+        <Line type="monotone" dataKey="rty" stroke={C.zelena} strokeWidth={2.5} dot={{ fill: C.zelena, r: 5 }} name={serijaNaziv} />
       </ComposedChart>
     </SpcGrafPanel>
   );

@@ -1,5 +1,7 @@
 /** Predlog SPC karata na osnovu tipa kontrole, dela i obima podataka. */
 
+import { LAB_FPY_TAB } from "./rtyFpy.js";
+
 export function jeKontrolaCelogVozila(deo) {
   if (!deo) return false;
   if (deo.tip_kontrole === "vozilo") return true;
@@ -91,7 +93,7 @@ export function predlogAtributivnihKarti({ deo, rawData = [], grupisanje = "dan"
     add("p", "p-Karta", "udeo neispravnih vozila po danu/smeni", 100);
     add("u", "u-Karta", "prosečan broj defekata po vozilu", 95);
     add("pareto", "Pareto", "dominantni defekti na celom autu", 90);
-    add("rty", "RTY/DPMO", "trend kvaliteta finalne kontrole", 85);
+    add("rty", LAB_FPY_TAB, "trend kvaliteta finalne kontrole", 85);
     stavke.sort((a, b) => b.score - a.score);
     return {
       naslov: "Kontrola celog vozila",
@@ -125,7 +127,7 @@ export function predlogAtributivnihKarti({ deo, rawData = [], grupisanje = "dan"
   }
 
   if (st.nRows >= 2) {
-    add("rty", "RTY/DPMO", "trend kvaliteta kroz vreme", 80);
+    add("rty", LAB_FPY_TAB, "trend kvaliteta kroz vreme", 80);
   }
 
   if (st.brojSmena >= 2) {
@@ -225,7 +227,7 @@ export function predlogMerljivihKarti({
   }
 
   if (st.nok > 0 || st.n >= 3) {
-    add("rty", "RTY/DPMO", "trend OK/NOK merenja", 78);
+    add("rty", LAB_FPY_TAB, "trend OK/NOK merenja", 78);
     add("sigma", "Sigma nivo", "DPMO i proces sigma", 76);
   }
 

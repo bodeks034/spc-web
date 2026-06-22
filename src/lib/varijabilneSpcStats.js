@@ -1,4 +1,4 @@
-import { chartDataWithWesternElectric, WE_MIN_PODGRUPA_OBRAZAC } from "./spcStats.js";
+import { chartDataWithWesternElectric, WE_MIN_PODGRUPA_OBRAZAC, sigmaIzDPMO, kvalitetIzPrveKpi, kvalitetIzPrveLoga } from "./spcStats.js";
 import { vrednostZaKarte } from "./varijabilneUtils.js";
 
 /** Konstante za X̄/R karte (n = veličina podgrupe, kao u Excel SPC listu). */
@@ -17,6 +17,8 @@ export const SPC_FACTORS = {
 /** I-MR konstante (parno merenje, n=2). */
 export const IMR_FACTORS = { d2: 1.128, D4: 3.267, D3: 0, E2: 2.659 };
 
+export { sigmaIzDPMO };
+
 export const SIGMA_BENCH = [
   { nivo: "6σ", dpmo: "3.4", rty: "99.9997%", opis: "World class", sigma: 6 },
   { nivo: "5σ", dpmo: "233", rty: "99.977%", opis: "Odlično", sigma: 5 },
@@ -25,13 +27,6 @@ export const SIGMA_BENCH = [
   { nivo: "2σ", dpmo: "308,538", rty: "69.15%", opis: "Loše", sigma: 2 },
   { nivo: "1σ", dpmo: "691,462", rty: "30.85%", opis: "Kritično", sigma: 1 },
 ];
-
-export function sigmaIzDPMO(dpmo) {
-  if (dpmo <= 0) return 6.0;
-  const tbl = [[3.4, 6], [233, 5], [6210, 4], [66807, 3], [308538, 2], [691462, 1]];
-  for (const [lim, s] of tbl) if (dpmo <= lim) return s;
-  return 1;
-}
 
 export function vrednostMerenja(m, jedinica) {
   return vrednostZaKarte(m.vrednost_raw, m.vrednost_dec, jedinica ?? m.jedinica);
@@ -400,16 +395,25 @@ export function trendKvalitetaPoDanu(merenja) {
     }));
 }
 
-/** Agregat kvaliteta za dashboard. */
-export function agregatKvaliteta(merenja) {
+/** Agregat kvaliteta za dashboard. KPI (komadi) ima prednost kad je prosleđen. */
+export function agregatKvaliteta(merenja, kpi = null) {
   const n = (merenja || []).length;
   const nok = (merenja || []).filter(m => m.status === "NOK").length;
   const ok = n - nok;
-  const rty = n > 0 ? +((ok / n) * 100).toFixed(3) : 0;
-  const dpmo = n > 0 ? Math.round((nok / n) * 1e6) : 0;
-  const sigma = sigmaIzDPMO(dpmo);
-  const p = n > 0 ? +((nok / n) * 100).toFixed(2) : 0;
-  return { n, ok, nok, rty, dpmo, sigma, p };
+  const k = kpi?.ukupno_kom > 0
+    ? kvalitetIzPrveKpi(kpi)
+    : kvalitetIzPrveLoga({ ok, nok, n });
+  const sigma = sigmaIzDPMO(k.dpmo);
+  return {
+    n: k.ukupno,
+    ok: k.ispravnoIzPrve,
+    nok: k.neusaglaseno,
+    okNakonDorade: k.okNakonDorade,
+    rty: k.rty,
+    dpmo: k.dpmo,
+    sigma,
+    p: k.p,
+  };
 }
 
 /** NOK po poziciji za dashboard deo. */

@@ -3,6 +3,7 @@ import PlanUzorkovanjaPanel from "./PlanUzorkovanjaPanel.jsx";
 import { useMemo } from "react";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
+import SmenaAutoPrikaz from "./SmenaAutoPrikaz.jsx";
 import { idBarkodInputHandleri } from "../lib/barkod.js";
 
 /** Levi panel — modul linija merljive (ID / poka; crtež ispod generalija). */
@@ -13,7 +14,6 @@ export default function MerljiveLinijaLeviPanel({
   onIdPotvrdi,
   onBarkodSken,
   smena,
-  setSmena,
   grupe,
   grupaAB,
   onGrupaChange,
@@ -167,11 +167,12 @@ export default function MerljiveLinijaLeviPanel({
         )}
       </div>
 
-      <label style={LBL}>Smena
-        <select style={INP} value={smena} onChange={e => setSmena(e.target.value)}>
-          {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </label>
+      <SmenaAutoPrikaz
+        smena={smena}
+        C={C}
+        lblStyle={LBL}
+        inpStyle={INP}
+      />
 
       {idUcitano && (
         <div style={{ background: C.ok, border: `1px solid ${C.zelena}26`, borderRadius: 6, padding: 8 }}>

@@ -1,3 +1,5 @@
+import { smenaPoSatu } from "./smena.js";
+
 /** Kontrolna lista smene — zajednička logika (obavezna za operatere). */
 
 export const LISTA_SESSION = {
@@ -71,7 +73,7 @@ export function kontrolnaListaSpremna(modul, smena, dbZavrsena = false, idDeo = 
 }
 
 export function procitajSmenuIzStorage() {
-  return Number(localStorage.getItem("spc_smena") || sessionStorage.getItem("spc_smena") || 1);
+  return smenaPoSatu();
 }
 
 function logZaIdDeo(logs, idDeo) {

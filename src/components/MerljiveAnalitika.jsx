@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { SpcOkNokBarGraf } from "./SpcAnalitikaGrafovi.jsx";
+import { LAB_FPY_PCT } from "../lib/rtyFpy.js";
 import { statPoGrupi, korelacijaPozicijaMasina } from "../lib/varijabilneSpcStats.js";
 import { formatVrednostKarte } from "../lib/varijabilneUtils.js";
 
 import { supabase } from "../lib/supabaseClient.js";
+import { exportOsmdIzvestajPdf, osmdPayloadIzForme } from "../lib/osmdIzvestajPdf.js";
 
 const BOJE_GRUPE = (C) => [C.plava, C.narandzasta, C.ljubicasta, C.zelena, "#22d3ee", "#f472b6"];
 
@@ -123,7 +125,7 @@ export function PoGrupiPanel({ merenja, polje, naslov, podnaslov, C }) {
           gridTemplateColumns: "1fr 70px 70px 70px 80px 80px",
           background: C.hover, padding: "9px 14px", fontSize: 9, color: C.sivi, gap: 8, letterSpacing: 1,
         }}>
-          <span>{naslov}</span><span>OK</span><span>NOK</span><span>n</span><span>RTY %</span><span>DPMO</span>
+          <span>{naslov}</span><span>OK</span><span>NOK</span><span>n</span><span>{LAB_FPY_PCT}</span><span>DPMO</span>
         </div>
         {arr.map((o, i) => (
           <div key={`${o.naziv}-${i}`} style={{
@@ -323,7 +325,7 @@ export function PoredjenjeMerljive({ idDeo, pozicija, C, addToast }) {
       ) : !podaci ? null : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
           {[
-            ["RTY %", podaci.tek.rty, podaci.prev.rty, false, "%"],
+            [LAB_FPY_PCT, podaci.tek.rty, podaci.prev.rty, false, "%"],
             ["NOK", podaci.tek.nok, podaci.prev.nok, true, ""],
             ["DPMO", podaci.tek.dpmo, podaci.prev.dpmo, true, ""],
             ["Merenja", podaci.tek.n, podaci.prev.n, false, ""],
@@ -530,6 +532,7 @@ function Editor8DMerljive({ izvestaj, sviDelovi, onSacuvaj, onNazad, onPDF, C })
     id: izvestaj.id || null,
     id_deo: izvestaj.id_deo || "",
     naziv_dela: izvestaj.naziv_dela || "",
+    created_at: izvestaj.created_at || null,
     status: izvestaj.status || "u_izradi",
     d1_tim: izvestaj.d1_tim || "",
     d2_opis_problema: izvestaj.d2_opis_problema || "",
@@ -644,11 +647,12 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
   }, [prefill, onPrefillUsed]);
 
   const sacuvaj = async (form) => {
+    const payload = osmdPayloadIzForme(form);
     const isNew = !form.id;
     const op = isNew
-      ? supabase.from("osmd_izvestaji").insert({ ...form, kreirao_id: korisnik.radnikId })
+      ? supabase.from("osmd_izvestaji").insert({ ...payload, kreirao_id: korisnik.radnikId })
         .select("*,kreirao:radnici!osmd_izvestaji_kreirao_id_fkey(ime)").single()
-      : supabase.from("osmd_izvestaji").update({ ...form, updated_at: new Date().toISOString() })
+      : supabase.from("osmd_izvestaji").update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", form.id)
         .select("*,kreirao:radnici!osmd_izvestaji_kreirao_id_fkey(ime)").single();
     const { data, error } = await op;
@@ -660,35 +664,12 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
   };
 
   const exportPDF8D = async (izv) => {
-    const { default: jsPDF } = await import("jspdf");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const W = pdf.internal.pageSize.getWidth();
-    pdf.setFillColor(28, 35, 51);
-    pdf.rect(0, 0, W, 30, "F");
-    pdf.setTextColor(88, 166, 255);
-    pdf.setFontSize(16);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("8D IZVEŠTAJ — MERLJIVE", 14, 12);
-    pdf.setTextColor(200, 210, 230);
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`${izv.id_deo} · ${new Date(izv.created_at || Date.now()).toLocaleDateString("sr-RS")}`, 14, 22);
-    let y = 40;
-    POLJA_8D.forEach((p, i) => {
-      if (y > 260) { pdf.addPage(); y = 20; }
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(80, 100, 120);
-      pdf.text(p.label.toUpperCase(), 14, y);
-      y += 6;
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(30, 32, 36);
-      const linije = pdf.splitTextToSize(izv[p.key] || "—", W - 28);
-      pdf.text(linije, 14, y);
-      y += linije.length * 5 + 6;
-    });
-    pdf.save(`8D_merljive_${izv.id_deo}_${new Date().toISOString().split("T")[0]}.pdf`);
+    try {
+      await exportOsmdIzvestajPdf(izv, { naslov: "8D IZVESTAJ — MERLJIVE", prefiksFajla: "8D_merljive" });
+    } catch (e) {
+      console.error(e);
+      addToast(e?.message || "PDF nije mogao da se generise", "greska");
+    }
   };
 
   if (aktivni !== null) {

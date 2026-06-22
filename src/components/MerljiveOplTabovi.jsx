@@ -3,6 +3,7 @@ import { SpcTrendLinijaGraf } from "./SpcAnalitikaGrafovi.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { fetchSmenaStatMerljive, generisiIzvestajSmeneMerljive } from "../lib/merljiveSmenaStat.js";
 import { HeatmapMerljivePanel } from "./MerljiveAnalitika.jsx";
+import { LAB_FPY_PCT, LAB_FPY_CILJ } from "../lib/rtyFpy.js";
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -63,7 +64,7 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
             ["MERENJA", stat.merenja, C.plava],
             ["OK", stat.ok, C.zelena],
             ["NOK", stat.nok, C.crvena],
-            ["RTY %", stat.rty > 0 ? `${stat.rty.toFixed(1)}%` : "—", C.zuta],
+            [LAB_FPY_PCT, stat.rty > 0 ? `${stat.rty.toFixed(1)}%` : "—", C.zuta],
             ["DPMO", stat.dpmo > 0 ? stat.dpmo.toLocaleString() : "—", C.ljubicasta],
             ["SPC ALARMI", extra.alarmi, C.crvena],
             ["OTVORENI 8D", extra.osmd, C.narandzasta || C.zuta],
@@ -187,7 +188,7 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
               </select>
             </div>
             <div>
-              <div style={{ color: C.sivi, fontSize: 9, marginBottom: 5 }}>RTY CILJ %</div>
+              <div style={{ color: C.sivi, fontSize: 9, marginBottom: 5 }}>{LAB_FPY_CILJ}</div>
               <input type="number" value={aktuelni.rty_cilj}
                 onChange={e => setAktuelni(p => ({ ...p, rty_cilj: e.target.value }))} style={INP} />
             </div>
@@ -220,7 +221,7 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
               <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 10 }}>{c.id_deo} · od {c.vazi_od}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 {[
-                  ["RTY %", `${c.rty_cilj}%`, ost.rty, false],
+                  [LAB_FPY_PCT, `${c.rty_cilj}%`, ost.rty, false],
                   ["DPMO", c.dpmo_cilj, ost.dpmo, true],
                   ["p %", `${c.p_cilj}%`, ost.p, true],
                 ].map(([naziv, cilj, o, manji]) => (
@@ -321,7 +322,7 @@ export function KupacMerljive({ C, addToast }) {
             ["MERENJA", podaci.stat.n, C.plava],
             ["OK", podaci.stat.ok, C.zelena],
             ["NOK", podaci.stat.nok, C.crvena],
-            ["RTY %", podaci.stat.rty, C.zuta],
+            [LAB_FPY_PCT, podaci.stat.rty, C.zuta],
             ["DPMO", podaci.stat.dpmo, C.ljubicasta],
           ].map(([n, v, b]) => (
             <div key={n} style={{ background: C.panel, border: `1px solid ${b}25`, borderRadius: 10, padding: 12, textAlign: "center" }}>

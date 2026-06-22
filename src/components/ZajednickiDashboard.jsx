@@ -27,6 +27,7 @@ function KpiKartica({ label, value, boja, C, sub }) {
 
 export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula, korisnik, onOtvori8D }) {
   const [period, setPeriod] = useState(kompakt ? "1" : "7");
+  const [idDeo, setIdDeo] = useState("");
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sakrijAlarme, setSakrijAlarme] = useState(false);
@@ -34,8 +35,16 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
   const [lokalniToast, setLokalniToast] = useState(null);
 
   useEffect(() => {
-    supabase.from("delovi").select("id_deo,naziv_dela").order("id_deo")
-      .then(({ data }) => setSviDelovi(data || []));
+    Promise.all([
+      supabase.from("delovi").select("id_deo,naziv_dela").order("id_deo"),
+      supabase.from("sop_deo_varijabilni").select("id_deo,naziv_dela").order("id_deo"),
+    ]).then(([dRes, sRes]) => {
+      const mapa = new Map();
+      [...(dRes.data || []), ...(sRes.data || [])].forEach(d => {
+        if (d?.id_deo) mapa.set(d.id_deo, d);
+      });
+      setSviDelovi([...mapa.values()].sort((a, b) => String(a.id_deo).localeCompare(String(b.id_deo))));
+    });
   }, []);
 
   const vidiInteligenciju = mozeInteligencijaProcesa(korisnik?.uloga);
@@ -53,6 +62,7 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
       const d = await fetchZajednickiDashboard(supabase, {
         period: Number(period),
         offlinePaketi: offline.total,
+        idDeo: idDeo || undefined,
       });
       setPodaci(d);
     } catch (e) {
@@ -61,7 +71,7 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
     } finally {
       setLoading(false);
     }
-  }, [period, addToast]);
+  }, [period, idDeo, addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
 
@@ -96,7 +106,19 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
         <span style={{ color: C.tekst, fontSize: kompakt ? 12 : 14, fontWeight: 700, letterSpacing: 1 }}>
           PREGLED PROIZVODNJE
         </span>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select value={idDeo} onChange={e => setIdDeo(e.target.value)}
+            title="Filter po ID dela"
+            style={{
+              background: C.input, border: `1px solid ${idDeo ? C.plava : C.border}`, borderRadius: 6,
+              color: C.tekst, fontSize: 10, padding: "6px 10px", cursor: "pointer", fontFamily: "inherit",
+              maxWidth: kompakt ? 120 : 160,
+            }}>
+            <option value="">Svi delovi</option>
+            {sviDelovi.map(d => (
+              <option key={d.id_deo} value={d.id_deo}>{d.id_deo}</option>
+            ))}
+          </select>
           <select value={period} onChange={e => setPeriod(e.target.value)}
             style={{
               background: C.input, border: `1px solid ${C.border}`, borderRadius: 6,
@@ -143,19 +165,43 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
       ) : (
         <>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-            <KpiKartica label="RTY ATR" value={`${podaci.attr.rty}%`} boja={C.plava} C={C}
-              sub={`DPMO ${podaci.attr.dpmo.toLocaleString()}`} />
-            <KpiKartica label="RTY MER" value={`${podaci.merljive.rty}%`} boja={C.zelena} C={C}
-              sub={`${podaci.merljive.merenja} merenja`} />
+            <KpiKartica label="FPY ATR" value={`${podaci.attr.fpy ?? podaci.attr.rty}%`} boja={C.plava} C={C}
+              sub={`faza · DPMO ${podaci.attr.dpmo.toLocaleString()}`} />
+            <KpiKartica label="FPY MER" value={`${podaci.merljive.fpy ?? podaci.merljive.rty}%`} boja={C.zelena} C={C}
+              sub={`faza · ${podaci.merljive.merenja} kom/mer.`} />
+            <KpiKartica label="RTY" value={podaci.rtyPogon != null ? `${podaci.rtyPogon}%` : "—"} boja={C.narandzasta} C={C}
+              sub={podaci.fazeKvaliteta?.length > 1
+                ? `pogon · ${podaci.fazeKvaliteta.map(f => `${f.naziv} ${f.fpy}%`).join(" × ")}`
+                : "ukupna prolaznost"} />
             <KpiKartica label="OEE" value={podaci.oee.prosek != null ? `${podaci.oee.prosek}%` : "—"}
-              boja={podaci.oee.prosek >= 65 ? C.zelena : C.crvena} C={C}
-              sub={podaci.oee.kpiBroj ? `${podaci.oee.kpiBroj} KPI unosa` : "bez KPI"} />
+              boja={podaci.oee.prosek >= 65 ? C.zelena : podaci.oee.prosek >= 40 ? C.zuta : C.crvena} C={C}
+              sub={podaci.oee.rty != null
+                ? `kvalitet = RTY ${podaci.oee.rty}%`
+                : podaci.oee.imaKpi ? `${podaci.oee.kpiBroj} KPI` : "unesi KPI"} />
             <KpiKartica label="ESKALACIJE" value={podaci.eskalacije.otvorene} boja={C.zuta} C={C}
-              sub="otvorene" />
-            <KpiKartica label="MERILA" value={podaci.merila.istekla}
-              boja={podaci.merila.istekla ? C.crvena : C.zelena} C={C}
-              sub={podaci.merila.uskoro ? `+${podaci.merila.uskoro} uskoro` : "kalibracija"} />
+              sub={podaci.eskalacije.auto > 0
+                ? `${podaci.eskalacije.rucne} ručne · ${podaci.eskalacije.auto} auto`
+                : "otvorene"} />
+            <KpiKartica label="MERILA" value={podaci.merila.upozorenja}
+              boja={podaci.merila.istekla ? C.crvena : podaci.merila.uskoro ? C.zuta : C.zelena} C={C}
+              sub={podaci.merila.istekla
+                ? `${podaci.merila.istekla} isteklih / ${podaci.merila.ukupno}`
+                : podaci.merila.uskoro
+                  ? `${podaci.merila.uskoro} uskoro / ${podaci.merila.ukupno}`
+                  : `${podaci.merila.ukupno} aktivnih`} />
           </div>
+
+          {podaci.najslabijaFaza && podaci.fazeKvaliteta?.length > 1 && (
+            <div style={{
+              color: C.sivi, fontSize: 10, marginBottom: 12, padding: "8px 10px",
+              background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
+            }}>
+              Dijagnostika faza: najslabija <strong style={{ color: C.narandzasta }}>
+                {podaci.najslabijaFaza.naziv} FPY {podaci.najslabijaFaza.fpy}%
+              </strong>
+              {" "}→ vuče RTY pogona ({podaci.rtyPogon}%)
+            </div>
+          )}
 
           {period === "1" && (
             <div style={{
@@ -175,6 +221,7 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
               korisnik={korisnik}
               addToast={toastFn}
               sviDelovi={sviDelovi}
+              defaultIdDeo={podaci.idDeoFilter || idDeo}
               onOtvori8D={onOtvori8D}
             />
           )}

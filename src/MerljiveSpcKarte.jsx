@@ -26,6 +26,7 @@ import {
   SpcParetoGraf, SpcOkNokBarGraf, SpcRtyTrendGraf, SpcRtyJednaLinija,
   SpcHistogramGraf, SpcSigmaBarGraf,
 } from "./components/SpcAnalitikaGrafovi.jsx";
+import { LAB_FPY_TAB, LAB_FPY_PCT, LAB_FPY_KRATKO, LAB_FPY_TREND } from "./lib/rtyFpy.js";
 import NormalnostPanel from "./components/NormalnostPanel.jsx";
 import {
   PoGrupiPanel, KorelacijaPozicijaMasinaPanel, PoredjenjeMerljive,
@@ -35,6 +36,7 @@ import { histogramIGaus, proceniNormalnost } from "./lib/normalnost.js";
 import { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 
 import { supabase } from "./lib/supabaseClient.js";
+import { fetchKpiUnos, agregirajKpiUnos } from "./lib/kpiUnos.js";
 import {
   ucitajAktivniBaseline,
   primeniBaselineNaPodatke,
@@ -186,6 +188,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   const [vodicSakrij, setVodicSakrij] = useState(false);
   const [osmdPrefill, setOsmdPrefill] = useState(null);
   const [baselineAktivan, setBaselineAktivan] = useState(null);
+  const [kpiPeriod, setKpiPeriod] = useState(null);
   const kartaRef = useRef(null);
   const alarmPoslat = useRef(new Set());
   const prevIdDeoRef = useRef("");
@@ -240,6 +243,31 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   }, [idDeo, pozicija, datumOd, datumDo, smena, addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (!idDeo) {
+      setKpiPeriod(null);
+      return undefined;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const rows = await fetchKpiUnos(supabase, {
+          modul: "merljive",
+          idDeo,
+          datumOd: datumOd || undefined,
+          datumDo: datumDo || undefined,
+          smena: smena || undefined,
+          limit: 500,
+        });
+        if (!alive) return;
+        setKpiPeriod(agregirajKpiUnos(rows, { modul: "merljive" }));
+      } catch {
+        if (alive) setKpiPeriod(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [idDeo, datumOd, datumDo, smena]);
 
   useEffect(() => {
     if (!idDeo || !pozicija || !KARTE_TIPOVI.has(tip)) {
@@ -313,7 +341,10 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
     [histPaket.vals],
   );
   const rtyTrend = useMemo(() => trendKvalitetaPoDanu(rawData), [rawData]);
-  const agregat = useMemo(() => agregatKvaliteta(rawData), [rawData]);
+  const agregat = useMemo(
+    () => agregatKvaliteta(rawData, !pozicija && kpiPeriod?.ukupno_kom > 0 ? kpiPeriod : null),
+    [rawData, kpiPeriod, pozicija],
+  );
   const poPoziciji = useMemo(() => nokPoPozicijiDashboard(rawData), [rawData]);
 
   const aktPodaciSirovi = useMemo(() => {
@@ -394,7 +425,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
     ["i", "I-Karta", "#22d3ee"],
     ["mr", "MR-Karta", C.ljubicasta],
     ["cpk", "Cp/Cpk", C.plava],
-    ["rty", "RTY/DPMO", "#22d3ee"],
+    ["rty", LAB_FPY_TAB, "#22d3ee"],
     ["sigma", "Sigma nivo", "#a3e635"],
     ["dashboard", "Dashboard", C.zuta],
     ["pareto", "Pareto NOK", C.crvena],
@@ -491,7 +522,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
         </button>
         {rawData.length > 0 && (
           <span style={{ color: C.sivi, fontSize: 10, alignSelf: "center" }}>
-            {agregat.n} merenja · RTY {agregat.rty}% · DPMO {agregat.dpmo.toLocaleString()} ·{" "}
+            {agregat.n} merenja · {LAB_FPY_KRATKO} {agregat.rty}% · DPMO {agregat.dpmo.toLocaleString()} ·{" "}
             <span style={{ color: agregat.nok > 0 ? C.crvena : C.zelena, fontWeight: 700 }}>
               {agregat.nok} NOK
             </span>
@@ -686,11 +717,13 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           {tip === "rty" && (
             <div>
               <KpiRed C={C} items={[
-                ["RTY %", `${agregat.rty}%`, C.zelena],
+                [LAB_FPY_PCT, `${agregat.rty}%`, C.zelena],
                 ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
                 ["Sigma", `${agregat.sigma.toFixed(1)}σ`, "#a3e635"],
                 ["Uk. mereno", agregat.n, C.plava],
-                ["Uk. NOK", agregat.nok, C.crvena],
+                ["Iz prve", agregat.ok, C.zelena],
+                ["NOK / neus.", agregat.nok, C.crvena],
+                ...(agregat.okNakonDorade > 0 ? [["OK posle dor.", agregat.okNakonDorade, "#22d3ee"]] : []),
               ]} />
               <SpcRtyTrendGraf data={rtyTrend} C={C} height={360} xKey="label" />
             </div>
@@ -714,7 +747,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, minWidth: 200 }}>
                   {[
                     ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
-                    ["RTY %", `${agregat.rty}%`, C.zelena],
+                    [LAB_FPY_PCT, `${agregat.rty}%`, C.zelena],
                     ["Cp", cpk.cp, bojaKapabiliteta(cpk.cp, C)],
                     ["Cpk", cpk.cpk, bojaKapabiliteta(cpk.cpk, C)],
                     ["σ̂ procesa", fmt(imr.sigmaHat || spc.sigmaHat, jedinica), "#22d3ee"],
@@ -764,7 +797,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           {tip === "dashboard" && (
             <div>
               <KpiRed C={C} items={[
-                ["RTY %", `${agregat.rty}%`, C.zelena],
+                [LAB_FPY_PCT, `${agregat.rty}%`, C.zelena],
                 ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
                 ["Sigma", `${sigmaNivo.toFixed(1)}σ`, sigmaBoja],
                 ["OK", agregat.ok, C.zelena],
@@ -772,7 +805,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 ["Merenja", agregat.n, C.plava],
               ]} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                <SpcRtyJednaLinija data={rtyTrend} C={C} height={220} xKey="label" naslov="RTY % trend" />
+                <SpcRtyJednaLinija data={rtyTrend} C={C} height={220} xKey="label" naslov={LAB_FPY_TREND} />
                 <SpcOkNokBarGraf data={poSmeni} C={C} height={220} xKey="s" naslov="Po smeni" />
               </div>
               {!pozicija && poPoziciji.length > 0 && (
@@ -785,7 +818,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                         gap: 8, fontSize: 11, padding: "6px 0", borderBottom: `1px solid ${C.hover}`,
                       }}>
                         <span style={{ color: C.tekst }}>{p.pozicija}</span>
-                        <span style={{ color: C.zelena }}>RTY {p.rty}%</span>
+                        <span style={{ color: C.zelena }}>{LAB_FPY_KRATKO} {p.rty}%</span>
                         <span style={{ color: C.ljubicasta }}>DPMO {p.dpmo.toLocaleString()}</span>
                         <span style={{ color: p.nok ? C.crvena : C.sivi }}>{p.nok} NOK</span>
                       </div>

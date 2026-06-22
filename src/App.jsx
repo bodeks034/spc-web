@@ -22,11 +22,12 @@ import {
   ucitajAqlPodesavanja, snimiAqlPodesavanja, lotVelicinaZaAql,
 } from "./lib/aqlIso2859.js";
 import {
-  westernElectric, aggregateLogRows, groupSpcRows, buildParetoFromLog,
+  westernElectric, aggregateLogRows, groupSpcRows, buildParetoFromLog, predloziGrupisanjeSpc,
   pendingFromLista, mergeSmenaStat, fetchSmenaStat, fetchAktuelniCilj, fetchDeoStatDanas,
   nokPoAqlKlasi, kreirajAutoEskalaciju, upisiSpcAlarm, chartDataWithWesternElectric,
-  calcDPMO, calcRTY,
+  calcDPMO, calcRTY, sigmaIzDPMO, kvalitetIzPrve, kvalitetIzPrveKpi, kvalitetIzPrveLoga,
 } from "./lib/spcStats.js";
+import { LAB_FPY_TAB, LAB_FPY_PCT, LAB_FPY_KRATKO, LAB_FPY_CILJ, LAB_FPY_TREND } from "./lib/rtyFpy.js";
 import { ucitajPrikazSliku, storagePutanjaSlike, STORAGE_BUCKET } from "./lib/slikePaths.js";
 import {
   jeKontrolaCelogVozila,
@@ -61,7 +62,7 @@ import {
 import SkartDoradaOeePanel, { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 import KpiDoradaHub from "./components/KpiDoradaHub.jsx";
 import { podrazumevaniKpiIzListeP } from "./lib/oeeKpi.js";
-import { snimiKpiUnos, porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf } from "./lib/kpiUnos.js";
+import { porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf, pronadjiAgregiraniKpiAtributivne, snimiIliAzurirajKpiUnos, kpiVrednostiIzDb, saberiKpiVrednosti } from "./lib/kpiUnos.js";
 import { generisiPredajaSmenePdf } from "./lib/predajaSmenePdf.js";
 import { useOfflineQueue } from "./lib/offlineQueue.js";
 import { ensureSesija, novaSesija, clearSveSesije, getAktivnaSesija } from "./lib/spcSesija.js";
@@ -69,6 +70,8 @@ import SchemaStatusPanel from "./components/SchemaStatusPanel.jsx";
 import ZajednickiDashboard from "./components/ZajednickiDashboard.jsx";
 import InteligencijaDeoPanel from "./components/InteligencijaDeoPanel.jsx";
 import { procitajNavigaciju8d, predloziDodeljenogInzenjera, prefill8dIzEskalacije } from "./lib/eskalacijeHelper.js";
+import { agregirajAtributivneJedinice, agregirajAtributivnePoKljuču, statAtributivneRedovi } from "./lib/atributivneAgregacija.js";
+import { exportOsmdIzvestajPdf, osmdPayloadIzForme } from "./lib/osmdIzvestajPdf.js";
 import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
 import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "./lib/barkod.js";
 import {
@@ -80,7 +83,10 @@ import {
 } from "./lib/radniNalog.js";
 import IdDeoBarkodRed from "./components/IdDeoBarkodRed.jsx";
 import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
+import SmenaAutoPrikaz from "./components/SmenaAutoPrikaz.jsx";
 import PogonIzborPanel from "./components/PogonIzborPanel.jsx";
+import { useAutoSmena } from "./hooks/useAutoSmena.js";
+import { smenaPoSatu } from "./lib/smena.js";
 import {
   pogoniZaDeoAtributivne,
   pogonIzRn,
@@ -565,11 +571,13 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
   const [smena,setSmena]     = useState("");
   const [masinaId,setMasinaId] = useState("");
   const [grupisanje,setGrupisanje] = useState("dan");
+  const [grupisanjeRucno,setGrupisanjeRucno] = useState(false);
   const [loading,setLoading] = useState(false);
   const [rawData,setRawData] = useState([]);
   const [masineList,setMasineList] = useState([]);
   const [vodicSakrij,setVodicSakrij] = useState(false);
   const [baselineAktivan, setBaselineAktivan] = useState(null);
+  const [kpiPeriod, setKpiPeriod] = useState(null);
   const kartaRef = useRef(null);
   const alarmPoslat = useRef(new Set());
   const prevIdDeoRef = useRef("");
@@ -600,23 +608,67 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
     supabase.from("masine").select("id,naziv").then(({ data }) => setMasineList(data || []));
   }, []);
 
+  useEffect(() => {
+    setGrupisanjeRucno(false);
+    setGrupisanje(jeKontrolaCelogVozila(deoIzabran) ? "komad" : "dan");
+  }, [idDeo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!idDeo || grupisanjeRucno || !rawData.length) return;
+    setGrupisanje(predloziGrupisanjeSpc(rawData, {
+      vozilo: jeKontrolaCelogVozila(deoIzabran),
+    }));
+  }, [idDeo, rawData, deoIzabran, grupisanjeRucno]);
+
   const ucitaj = useCallback(async()=>{
     if(!idDeo)return; setLoading(true);
+    const selectFull = "datum,smena,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,podkategorija,masina_id,inspekcija_id,sesija_id,created_at,id_deo,id,masina:masine(naziv),kontrolor:radnici!kontrolni_log_kontrolor_id_fkey(ime)";
+    const selectBase = "datum,smena,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,podkategorija,masina_id,sesija_id,created_at,id_deo,id,masina:masine(naziv),kontrolor:radnici!kontrolni_log_kontrolor_id_fkey(ime)";
+    const applyFilters = (q) => {
+      let f = q.eq("id_deo", idDeo).order("datum", { ascending: true }).order("created_at", { ascending: true });
+      if (datumOd) f = f.gte("datum", datumOd);
+      if (datumDo) f = f.lte("datum", datumDo);
+      if (smena) f = f.eq("smena", Number(smena));
+      if (masinaId) f = f.eq("masina_id", Number(masinaId));
+      return f;
+    };
     try{
-      let q=supabase.from("kontrolni_log")
-        .select("datum,smena,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,podkategorija,masina_id,masina:masine(naziv),kontrolor:radnici!kontrolni_log_kontrolor_id_fkey(ime)")
-        .eq("id_deo",idDeo).order("datum",{ascending:true}).order("created_at",{ascending:true});
-      if(datumOd)q=q.gte("datum",datumOd);
-      if(datumDo)q=q.lte("datum",datumDo);
-      if(smena)  q=q.eq("smena",Number(smena));
-      if(masinaId) q=q.eq("masina_id",Number(masinaId));
-      const{data,error}=await q; if(error)throw error;
+      let { data, error } = await applyFilters(supabase.from("kontrolni_log").select(selectFull));
+      if (error && /inspekcija_id/i.test(error.message)) {
+        ({ data, error } = await applyFilters(supabase.from("kontrolni_log").select(selectBase)));
+      }
+      if (error) throw error;
       setRawData(data||[]);
     }catch(e){addToast(e.message,"greska"); setRawData([]);}
     finally{setLoading(false);}
   },[idDeo,datumOd,datumDo,smena,masinaId,addToast]);
 
   useEffect(()=>{ucitaj();},[ucitaj]);
+
+  useEffect(() => {
+    if (!idDeo) {
+      setKpiPeriod(null);
+      return undefined;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const rows = await fetchKpiUnos(supabase, {
+          modul: "atributivne",
+          idDeo,
+          datumOd: datumOd || undefined,
+          datumDo: datumDo || undefined,
+          smena: smena || undefined,
+          limit: 500,
+        });
+        if (!alive) return;
+        setKpiPeriod(agregirajKpiUnos(rows, { modul: "atributivne" }));
+      } catch {
+        if (alive) setKpiPeriod(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [idDeo, datumOd, datumDo, smena]);
 
   useEffect(() => {
     if (!idDeo || !tip) {
@@ -637,8 +689,21 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
 
   const grupe = useMemo(() => groupSpcRows(rawData, grupisanje), [rawData, grupisanje]);
 
-  const ukNOK = grupe.reduce((s,g)=>s+g.nok,0);
-  const ukN   = grupe.reduce((s,g)=>s+g.n,0);
+  const kvalitetUk = useMemo(() => {
+    const logOk = grupe.reduce((s, g) => s + g.ok, 0);
+    const logNok = grupe.reduce((s, g) => s + g.nok, 0);
+    const logN = grupe.reduce((s, g) => s + g.n, 0);
+    return kvalitetIzPrve({
+      kpi: kpiPeriod,
+      ok: logOk,
+      nok: logNok,
+      n: logN,
+    });
+  }, [grupe, kpiPeriod]);
+
+  const ukOK = kvalitetUk.ispravnoIzPrve;
+  const ukNOK = kvalitetUk.neusaglaseno;
+  const ukN = kvalitetUk.ukupno;
   const pBar  = ukN>0?ukNOK/ukN:0;
   const cBar  = grupe.length>0?grupe.reduce((s,g)=>s+g.c,0)/grupe.length:0;
   const uBar  = ukN>0?grupe.reduce((s,g)=>s+g.c,0)/ukN:0;
@@ -754,24 +819,25 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
   const lcl = cd.length ? +(cd.reduce((s,d)=>s+d.lcl,0)/cd.length).toFixed(4) : 0;
 
   // ── Analiza po smeni ──────────────────────────────────────
-  const poSmeni = useMemo(()=>{
-    const sm={1:{s:"Smena 1",ok:0,nok:0,n:0},2:{s:"Smena 2",ok:0,nok:0,n:0},3:{s:"Smena 3",ok:0,nok:0,n:0}};
-    rawData.forEach(r=>{
-      const s=sm[r.smena]; if(!s)return;
-      s.ok +=r.ok_kolicina||0;
-      s.nok+=r.nok_kolicina||0;
-      s.n  +=r.ukupno_merenja||0;
+  const poSmeni = useMemo(() => {
+    const smeneGr = agregirajAtributivnePoKljuču(rawData, r => Number(r.smena));
+    return [1, 2, 3].map((sm) => {
+      const rows = smeneGr.get(sm) || [];
+      const d = statAtributivneRedovi(rows);
+      return {
+        s: `Smena ${sm}`,
+        ok: d.ok,
+        nok: d.nok,
+        n: d.n,
+        rty: d.rty,
+        p: d.p,
+      };
     });
-    return Object.values(sm).map(s=>({
-      ...s,
-      rty: s.n>0?+((s.ok/s.n)*100).toFixed(1):0,
-      p:   s.n>0?+((s.nok/s.n)*100).toFixed(2):0,
-    }));
-  },[rawData]);
+  }, [rawData]);
 
   const paretoData = useMemo(() => buildParetoFromLog(rawData, 8), [rawData]);
 
-  // ── RTY trend ────────────────────────────────────────────
+  // ── FPY trend (jedna faza) ───────────────────────────────
   const rtyTrend = useMemo(()=>grupe.map(g=>({
     datum: g.label||g.datum?.substring(5)||"",
     rty:   g.n>0?+((g.ok/g.n)*100).toFixed(1):0,
@@ -829,8 +895,9 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
         </div>
         <div>
           <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4}}>GRUPIŠI</div>
-          <select value={grupisanje} onChange={e=>setGrupisanje(e.target.value)} style={{...INP_S,cursor:"pointer"}}>
+          <select value={grupisanje} onChange={e=>{ setGrupisanjeRucno(true); setGrupisanje(e.target.value); }} style={{...INP_S,cursor:"pointer"}}>
             <option value="dan">Po danu</option>
+            <option value="komad">Po komadu</option>
             <option value="smena">Po smeni</option>
             <option value="dan_smena">Dan + smena</option>
           </select>
@@ -855,7 +922,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
         </button>
         <div style={{flex:1}}/>
         {rawData.length>0&&<span style={{color:C.sivi,fontSize:10,alignSelf:"center"}}>
-          {rawData.length} unosa · {grupe.length} dana ·{" "}
+          {rawData.length} unosa · {grupe.length} {grupisanje === "komad" ? "komada" : "dana"} ·{" "}
           <span style={{color:upozoreni.length>0?C.crvena:C.zelena,fontWeight:700}}>
             {upozoreni.length} van kontrole
           </span>
@@ -885,7 +952,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
           ["smena",    "Po smeni",    C.zuta],
           ["masina",   "Po mašini",   C.narandzasta],
           ["operater", "Po operateru",C.ljubicasta],
-          ["rty",      "RTY/DPMO",    "#22d3ee"],
+          ["rty",      LAB_FPY_TAB,    "#22d3ee"],
           ["heatmap",    "Heat mapa",   "#f472b6"],
           ["sigma",      "Sigma nivo",  "#a3e635"],
           ["korelacija", "Korelacija",  "#22d3ee"],
@@ -933,8 +1000,8 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                   ["TAČAKA",cd.length,C.plava,""],
                   ["VAN K.",upozoreni.length,upozoreni.length>0?C.crvena:C.zelena,
                    upozoreni.length>0?"⚠":"✓ OK"],
-                  ["RTY",ukN>0?((ukN-ukNOK)/ukN*100).toFixed(1)+"%":"-",C.ljubicasta,""],
-                  ["DPMO",ukN>0?Math.round(ukNOK/ukN*1e6).toLocaleString():"-","#f472b6",""],
+                  [LAB_FPY_KRATKO,ukN>0?`${kvalitetUk.rty}%`:"-",C.ljubicasta,""],
+                  ["DPMO",ukN>0?kvalitetUk.dpmo.toLocaleString():"-","#f472b6",""],
                 ].map(([n,v,b,o])=>(
                   <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:8,
                     padding:"10px 14px",textAlign:"center",minWidth:84}}>
@@ -952,7 +1019,29 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
               <div style={{color:C.sivi,fontSize:10,marginBottom:10}}>
                 <strong style={{color:akt.boja}}>{akt.naziv}</strong> — {akt.opis}
                 {(tip==="p"||tip==="np")&&<> · n̄ = {Math.round(nBar)}</>}
+                {grupisanje==="komad"&&<> · {grupe.length} komada na grafikonu</>}
               </div>
+
+              {grupisanje==="komad"&&grupe.length>1&&(
+                <div style={{
+                  background:`${C.plava}12`, border:`1px solid ${C.plava}35`,
+                  borderRadius:8, padding:"8px 12px", marginBottom:12,
+                  color:C.sivi, fontSize:11,
+                }}>
+                  Grupisanje <strong style={{color:C.plava}}>po komadu</strong> — svaki OK/NOK komad je jedna tačka.
+                  Za dnevni prosek izaberi «Po danu».
+                </div>
+              )}
+
+              {tip==="c"&&akt.podaci.length>0&&akt.podaci.every(d=>!d.val)&&(
+                <div style={{
+                  background:`${C.zuta}12`, border:`1px solid ${C.zuta}40`,
+                  borderRadius:8, padding:"8px 12px", marginBottom:12,
+                  color:C.zuta, fontSize:11,
+                }}>
+                  C-karta prati broj defekata — svi unosi su OK (nema grešaka za crtanje).
+                </div>
+              )}
 
               {baselineAktivan && (
                 <div style={{
@@ -1080,7 +1169,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                     borderRadius:10,padding:16,textAlign:"center"}}>
                     <div style={{color:C.plava,fontSize:14,fontWeight:700,marginBottom:10}}>{s.s}</div>
                     {[["OK",s.ok,C.zelena],["NOK",s.nok,C.crvena],
-                      ["RTY",s.rty+"%",C.zuta],["p",s.p+"%",C.narandzasta]].map(([l,v,b])=>(
+                      [LAB_FPY_KRATKO,s.rty+"%",C.zuta],["p",s.p+"%",C.narandzasta]].map(([l,v,b])=>(
                       <div key={l} style={{display:"flex",justifyContent:"space-between",
                         fontSize:11,marginBottom:5}}>
                         <span style={{color:C.sivi}}>{l}</span>
@@ -1094,19 +1183,21 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
             </div>
           )}
 
-          {/* ── RTY TREND ── */}
+          {/* ── FPY (faza) / DPMO ── */}
           {tip==="rty"&&(
             <div>
               <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
-                RTY % I DPMO TREND PO DANU
+                {LAB_FPY_PCT} I DPMO TREND PO DANU · FPY = prolaznost iz prve (bez OK posle dorade)
               </div>
               <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
                 {[
-                  ["RTY %",ukN>0?((ukN-ukNOK)/ukN*100).toFixed(2)+"%":"-",C.zelena],
-                  ["DPMO",ukN>0?Math.round(ukNOK/ukN*1e6).toLocaleString():"-",C.ljubicasta],
-                  ["Sigma nivo",ukN>0?(()=>{const p=ukNOK/ukN; const z=p>0?(-2.326*Math.log(p/(1-p))+1.5).toFixed(2):"6.00"; return z+"σ";})():"-","#a3e635"],
+                  [LAB_FPY_PCT,ukN>0?`${calcRTY(ukOK, ukN).toFixed(2)}%`:"-",C.zelena],
+                  ["DPMO",ukN>0?calcDPMO(ukNOK, ukN).toLocaleString():"-",C.ljubicasta],
+                  ["Sigma nivo",ukN>0?`${sigmaIzDPMO(calcDPMO(ukNOK, ukN)).toFixed(1)}σ`:"-","#a3e635"],
                   ["Uk. mereno",ukN,C.plava],
-                  ["Uk. NOK",ukNOK,C.crvena],
+                  ["Iz prve",ukOK,C.zelena],
+                  ["NOK / neus.",ukNOK,C.crvena],
+                  ...(kvalitetUk.okNakonDorade>0?[["OK posle dor.",kvalitetUk.okNakonDorade,"#22d3ee"]]:[]),
                 ].map(([n,v,b])=>(
                   <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:8,
                     padding:"10px 14px",textAlign:"center",minWidth:100}}>
@@ -1121,21 +1212,11 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
 
           {/* ── PO MAŠINI ── */}
           {tip==="masina"&&(()=>{
-            const poMas={};
-            rawData.forEach(r=>{
-              const k=r.masina?.naziv||"Nepoznata";
-              if(!poMas[k])poMas[k]={naziv:k,ok:0,nok:0,n:0,c:0};
-              poMas[k].ok +=r.ok_kolicina||0;
-              poMas[k].nok+=r.nok_kolicina||0;
-              poMas[k].n  +=r.ukupno_merenja||0;
-              poMas[k].c  +=r.kom_nok||0;
-            });
-            const arr=Object.values(poMas).map(m=>({
-              ...m,
-              rty:m.n>0?+((m.ok/m.n)*100).toFixed(1):0,
-              p:  m.n>0?+((m.nok/m.n)*100).toFixed(2):0,
-              dpmo:m.n>0?Math.round((m.nok/m.n)*1e6):0,
-            })).sort((a,b)=>b.nok-a.nok);
+            const grupe = agregirajAtributivnePoKljuču(rawData, r => r.masina?.naziv || "Nepoznata");
+            const arr = [...grupe.entries()].map(([naziv, rows]) => {
+              const d = statAtributivneRedovi(rows);
+              return { naziv, ...d };
+            }).sort((a, b) => b.nok - a.nok);
             const BOJE=[C.plava,C.zelena,C.narandzasta,C.ljubicasta,"#22d3ee","#f472b6"];
             return(
               <div>
@@ -1151,7 +1232,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                         <div key={m.naziv} style={{background:C.panel,border:`1px solid ${BOJE[i%BOJE.length]}30`,borderRadius:10,padding:14}}>
                           <div style={{color:BOJE[i%BOJE.length],fontWeight:700,fontSize:14,marginBottom:8}}>{m.naziv}</div>
                           {[["OK",m.ok,C.zelena],["NOK",m.nok,C.crvena],
-                            ["RTY",m.rty+"%",C.zuta],["DPMO",m.dpmo.toLocaleString(),C.ljubicasta]
+                            [LAB_FPY_KRATKO,m.rty+"%",C.zuta],["DPMO",m.dpmo.toLocaleString(),C.ljubicasta]
                           ].map(([l,v,b])=>(
                             <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
                               <span style={{color:C.sivi}}>{l}</span>
@@ -1174,20 +1255,11 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
 
           {/* ── PO OPERATERU ── */}
           {tip==="operater"&&(()=>{
-            const poOp={};
-            rawData.forEach(r=>{
-              const k=r.kontrolor?.ime||"Nepoznat";
-              if(!poOp[k])poOp[k]={ime:k,ok:0,nok:0,n:0,c:0};
-              poOp[k].ok +=r.ok_kolicina||0;
-              poOp[k].nok+=r.nok_kolicina||0;
-              poOp[k].n  +=r.ukupno_merenja||0;
-              poOp[k].c  +=r.kom_nok||0;
-            });
-            const arr=Object.values(poOp).map(o=>({
-              ...o,
-              rty:o.n>0?+((o.ok/o.n)*100).toFixed(1):0,
-              p:  o.n>0?+((o.nok/o.n)*100).toFixed(2):0,
-            })).sort((a,b)=>b.nok-a.nok);
+            const grupe = agregirajAtributivnePoKljuču(rawData, r => r.kontrolor?.ime || "Nepoznat");
+            const arr = [...grupe.entries()].map(([ime, rows]) => {
+              const d = statAtributivneRedovi(rows);
+              return { ime, ...d };
+            }).sort((a, b) => b.nok - a.nok);
             const BOJE=[C.plava,C.narandzasta,C.ljubicasta,C.zelena,"#22d3ee","#f472b6"];
             return(
               <div>
@@ -1202,7 +1274,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                       <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 70px 80px 80px",
                         background:C.hover,padding:"9px 14px",fontSize:9,color:C.sivi,gap:8,letterSpacing:1}}>
                         <span>IME</span><span>OK</span><span>NOK</span>
-                        <span>MERENJA</span><span>RTY %</span><span>DPMO</span>
+                        <span>MERENJA</span><span>{LAB_FPY_PCT}</span><span>DPMO</span>
                       </div>
                       {arr.map((o,i)=>(
                         <div key={o.ime} style={{display:"grid",
@@ -1310,16 +1382,9 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
 
           {/* ── SIGMA NIVO ── */}
           {tip==="sigma"&&(()=>{
-            const dpmo=ukN>0?ukNOK/ukN*1e6:0;
-            // Aproksimacija sigma nivoa iz DPMO
-            const sigmaIzDPMO=(d)=>{
-              if(d<=0)return 6.0;
-              const tbl=[[3.4,6],[233,5],[6210,4],[66807,3],[308538,2],[691462,1]];
-              for(const [lim,s] of tbl) if(d<=lim)return s;
-              return 1;
-            };
+            const dpmo=calcDPMO(ukNOK, ukN);
             const sigma=sigmaIzDPMO(dpmo);
-            const rty=ukN>0?((ukN-ukNOK)/ukN*100):0;
+            const rty=calcRTY(ukOK, ukN);
 
             // Benchmark tabela
             const bench=[
@@ -1352,7 +1417,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                   <div style={{display:"flex",flexDirection:"column",gap:10,flex:1,minWidth:200}}>
                     {[
                       ["DPMO",Math.round(dpmo).toLocaleString(),C.ljubicasta],
-                      ["RTY %",rty.toFixed(3)+"%",C.zelena],
+                      [LAB_FPY_PCT,rty.toFixed(3)+"%",C.zelena],
                       ["Uk. NOK",ukNOK,C.crvena],
                       ["Uk. mereno",ukN,C.plava],
                     ].map(([n,v,b])=>(
@@ -1384,7 +1449,7 @@ function SPCKarte({ sviDelovi, C, addToast, korisnik, onOtvori8D }) {
                 <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
                   <div style={{display:"grid",gridTemplateColumns:"60px 100px 100px 1fr",
                     background:C.hover,padding:"8px 14px",fontSize:9,color:C.sivi,gap:8,letterSpacing:1}}>
-                    <span>NIVO</span><span>DPMO</span><span>RTY</span><span>OCENA</span>
+                    <span>NIVO</span><span>DPMO</span><span>{LAB_FPY_KRATKO}</span><span>OCENA</span>
                   </div>
                   {bench.map((b,i)=>(
                     <div key={b.nivo} style={{display:"grid",
@@ -1439,7 +1504,7 @@ function Dashboard({C, addToast}) {
       const od = new Date();
       od.setDate(od.getDate() - Number(period));
       const { data, error } = await supabase.from("kontrolni_log")
-        .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena")
+        .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena,inspekcija_id,sesija_id,created_at,id_deo,id")
         .gte("datum", od.toISOString().split("T")[0]);
       if (error) throw error;
       setPodaci(aggregateLogRows(data) || {});
@@ -1501,7 +1566,7 @@ function Dashboard({C, addToast}) {
         <>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12,marginBottom:20}}>
             {[["MERENO",podaci.ukN,C.plava],["OK",podaci.ukOK,C.zelena],["NOK",podaci.ukNOK,C.crvena],
-              ["RTY %",podaci.rty+"%",C.zuta],["DPMO",podaci.dpmo.toLocaleString(),C.ljubicasta],
+              [LAB_FPY_PCT,podaci.rty+"%",C.zuta],["DPMO",podaci.dpmo.toLocaleString(),C.ljubicasta],
             ].map(([n,v,b])=>(
               <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:10,padding:"14px",textAlign:"center"}}>
                 <div style={{color:C.sivi,fontSize:9,letterSpacing:1.2,marginBottom:4}}>{n}</div>
@@ -1511,7 +1576,7 @@ function Dashboard({C, addToast}) {
           </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-            <SpcRtyJednaLinija data={podaci.trend} C={C} height={220} xKey="datum" naslov="RTY % trend" />
+            <SpcRtyJednaLinija data={podaci.trend} C={C} height={220} xKey="datum" naslov={LAB_FPY_TREND} />
             <SpcOkNokBarGraf
               data={podaci.smene.map(s => ({ ...s, label: `Smena ${s.s}` }))}
               C={C}
@@ -1626,27 +1691,37 @@ function Login({onLogin,C}) {
 function UnosCiljBanner({ idDeo, listaP, C }) {
   const [cilj, setCilj] = useState(null);
   const [ost, setOst] = useState(null);
+  const [kpiDanas, setKpiDanas] = useState(null);
 
   useEffect(() => {
-    if (!idDeo || idDeo.length < 3) { setCilj(null); setOst(null); return; }
+    if (!idDeo || idDeo.length < 3) { setCilj(null); setOst(null); setKpiDanas(null); return; }
+    const danas = dISO();
     (async () => {
-      const [c, s] = await Promise.all([
+      const [c, s, kpiRows] = await Promise.all([
         fetchAktuelniCilj(supabase, idDeo.toUpperCase()),
-        fetchDeoStatDanas(supabase, idDeo.toUpperCase(), dISO()),
+        fetchDeoStatDanas(supabase, idDeo.toUpperCase(), danas),
+        fetchKpiUnos(supabase, {
+          modul: "atributivne",
+          idDeo: idDeo.toUpperCase(),
+          datumOd: danas,
+          datumDo: danas,
+          limit: 50,
+        }).catch(() => []),
       ]);
       setCilj(c);
       setOst(s);
+      setKpiDanas(agregirajKpiUnos(kpiRows, { modul: "atributivne" }));
     })();
   }, [idDeo, listaP.length]);
 
   if (!cilj || !ost) return null;
   const pend = pendingFromLista(listaP);
-  const ok = ost.ok + pend.ok;
-  const nok = ost.nok + pend.nok;
-  const n = ok + nok;
+  const kpi = kpiDanas?.ukupno_kom > 0 ? kpiDanas : null;
+  const kval = mergeSmenaStat(ost, pend, kpi);
+  const n = kval.merenja;
   if (n < 3) return null;
-  const rty = calcRTY(ok, n);
-  const dpmo = calcDPMO(nok, n);
+  const rty = kval.rty;
+  const dpmo = kval.dpmo;
   const rtyLo = cilj.rty_cilj != null && rty < Number(cilj.rty_cilj);
   const dpmoHi = cilj.dpmo_cilj != null && dpmo > Number(cilj.dpmo_cilj);
   if (!rtyLo && !dpmoHi) return null;
@@ -1656,10 +1731,10 @@ function UnosCiljBanner({ idDeo, listaP, C }) {
       padding: "10px 12px", marginBottom: 8, fontSize: 10, lineHeight: 1.55 }}>
       <div style={{ color: C.crvena, fontWeight: 700, marginBottom: 4 }}>⚠ Van cilja kvaliteta (danas)</div>
       <div style={{ color: C.tekst }}>
-        Cilj: RTY ≥ {cilj.rty_cilj}% · DPMO ≤ {Number(cilj.dpmo_cilj).toLocaleString()}
+        Cilj: {LAB_FPY_CILJ} ≥ {cilj.rty_cilj}% · DPMO ≤ {Number(cilj.dpmo_cilj).toLocaleString()}
       </div>
       <div style={{ color: C.sivi, marginTop: 3 }}>
-        Stvarno: RTY {rty}% {rtyLo && <span style={{ color: C.crvena }}>↓</span>}
+        Stvarno: {LAB_FPY_KRATKO} {rty}% {rtyLo && <span style={{ color: C.crvena }}>↓</span>}
         {" · "}DPMO {dpmo.toLocaleString()} {dpmoHi && <span style={{ color: C.crvena }}>↑</span>}
       </div>
     </div>
@@ -1927,7 +2002,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const [defekt,setDefekt]         = useState("");
   const [voziloZona,setVoziloZona] = useState(null);
   const [kolicina,setKolicina]     = useState(1);
-  const [smena,setSmena]           = useState(()=>Number(localStorage.getItem("spc_smena")||sessionStorage.getItem("spc_smena")||1));
+  const smena = useAutoSmena(false);
   const [listaG,setListaG]         = useState([]);
   const [listaP,setListaP]         = useState([]);
   const [dbSmena,setDbSmena]       = useState({ ok: 0, nok: 0, merenja: 0 });
@@ -1963,6 +2038,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const [naloziZaPogon, setNaloziZaPogon] = useState([]);
   const [atributivniPogoni, setAtributivniPogoni] = useState([]);
   const [kpiSerija, setKpiSerija] = useState(() => podrazumevaniKpiIzListeP([]));
+  const [kpiDb, setKpiDb] = useState(null);
   const [kpiHubOtvoren, setKpiHubOtvoren] = useState(false);
   const fotoRef = useRef(null);
   const idRef   = useRef(null);
@@ -2015,7 +2091,16 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
   const voziloFormaEkran = voziloMode && deoInfo && unosKorakAtr === "forma";
   const prikaziLokaciju = !voziloMode;
   const pendingStat = useMemo(() => pendingFromLista(listaP), [listaP]);
-  const smenaStat = useMemo(() => mergeSmenaStat(dbSmena, pendingStat), [dbSmena, pendingStat]);
+  const smenaKpi = useMemo(() => {
+    if (kpiDb && kpiSerija?.ukupno_kom) return saberiKpiVrednosti(kpiDb, kpiSerija);
+    if (kpiSerija?.ukupno_kom) return kpiSerija;
+    return kpiDb;
+  }, [kpiDb, kpiSerija]);
+
+  const smenaStat = useMemo(
+    () => mergeSmenaStat(dbSmena, pendingStat, smenaKpi),
+    [dbSmena, pendingStat, smenaKpi],
+  );
   const smenaOK = smenaStat.ok;
   const smenaNOK = smenaStat.nok;
   const smenaTotal = smenaStat.merenja;
@@ -2183,7 +2268,26 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     } catch { /* offline */ }
   }, [smena]);
 
+  const osveziKpiDb = useCallback(async () => {
+    if (!idDeo || idDeo.length < 3) {
+      setKpiDb(null);
+      return;
+    }
+    try {
+      const row = await pronadjiAgregiraniKpiAtributivne(supabase, {
+        idDeo,
+        datum: dISO(),
+        smena,
+        radniNalog: radniNalog || undefined,
+      });
+      setKpiDb(row ? kpiVrednostiIzDb(row) : null);
+    } catch {
+      setKpiDb(null);
+    }
+  }, [idDeo, smena, radniNalog]);
+
   useEffect(() => { osveziSmenaStat(); }, [osveziSmenaStat]);
+  useEffect(() => { osveziKpiDb(); }, [osveziKpiDb]);
 
   useEffect(() => {
     const ch = supabase.channel("spc_smena_rt")
@@ -2204,8 +2308,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
       if (plan > 0) setKpiSerija(p => ({ ...p, planirano_kom: plan }));
     });
   }, [idDeo, nalogInfo?.broj_naloga]);
-
-  useEffect(()=>{ localStorage.setItem("spc_smena", String(smena)); sessionStorage.setItem("spc_smena", String(smena)); },[smena]);
 
   useEffect(() => {
     const sm = Number(smena);
@@ -2228,10 +2330,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           : "";
         setIdDeo(id);
         setTimeout(() => idRef.current?.blur(), 50);
-      },
-      postaviSmena: (s) => {
-        setSmena(Number(s));
-        localStorage.setItem("spc_smena", s);
       },
     });
     if (!res) return;
@@ -2386,17 +2484,51 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
     if(status==="NOK"&&(!kategorija||!podkat)){setModal({poruka:"Popuni NOK detalje!",tip:"greska"});return;}
     if(status==="NOK"&&koristiDefekte&&!defekt){setModal({poruka:"Izaberi DEFEKT (kontrola vozila)!",tip:"greska"});return;}
     const defektUnos = status==="OK" ? "-" : (koristiDefekte ? defekt : podkat);
-    setListaG(p=>[...p,{kat:status==="OK"?"OK":kategorija,pod:status==="OK"?"-":podkat,
-      defekt:defektUnos,status,kolicina,foto:status==="NOK"?foto:null,komentar:komentar||""}]);
-    setStatus("");setKategorija("");setPodkat("");setDefekt("");setKolicina(1);setFoto(null);setKomentar("");
+    const stavka = {
+      kat: status==="OK" ? "OK" : kategorija,
+      pod: status==="OK" ? "-" : podkat,
+      defekt: defektUnos,
+      status,
+      kolicina,
+      foto: status==="NOK" ? foto : null,
+      komentar: komentar || "",
+    };
+    const resetUnos = () => {
+      setStatus(""); setKategorija(""); setPodkat(""); setDefekt("");
+      setKolicina(1); setFoto(null); setKomentar("");
+    };
+    if (status === "OK") {
+      if (preostalo <= 0) {
+        setModal({ poruka: "Serija je već gotova!", tip: "greska" });
+        return;
+      }
+      const snimljena = {
+        ...stavka,
+        idDeo: idDeo.toUpperCase(),
+        datum: dISO(),
+        vreme: vreme(),
+        inspekcijaId: crypto.randomUUID(),
+      };
+      setListaP(p => [...p, snimljena]);
+      setPreostalo(p => Math.max(0, p - 1));
+      addToast(`✓ OK ×${kolicina} snimljeno`, "uspeh");
+      window._vibrirajOK?.();
+      resetUnos();
+      return;
+    }
+    setListaG(p => [...p, stavka]);
+    resetUnos();
   };
 
   const snimiDeo=()=>{
     if(!listaG.length){setModal({poruka:"Lista je prazna!",tip:"greska"});return;}
     if(preostalo<=0) {setModal({poruka:"Serija je već gotova!",tip:"greska"});return;}
     let ok=0,nok=0;
-    const np=listaG.map(s=>{if(s.status==="NOK")nok+=s.kolicina;else ok+=s.kolicina;
-      return{...s,idDeo:idDeo.toUpperCase(),datum:dISO(),vreme:vreme()};});
+    const inspId = crypto.randomUUID();
+    const np=listaG.map(s=>{
+      if(s.status==="NOK") nok+=s.kolicina||1; else ok+=s.kolicina||1;
+      return{...s,idDeo:idDeo.toUpperCase(),datum:dISO(),vreme:vreme(),inspekcijaId:inspId};
+    });
     setListaP(p=>[...p,...np]);
     setPreostalo(p=>Math.max(0,p-1));setListaG([]);
     addToast(`✓ Sačuvano (OK:${ok} NOK:${nok})`,"uspeh");
@@ -2433,8 +2565,12 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
       kontrolor_id:korisnik.radnikId,operater_id:korisnik.uloga==="operator"?korisnik.radnikId:null,
       status:s.status,
       greska_naziv:s.kat,podkategorija:s.pod,defekt:s.defekt||null,
-      kom_nok:j?0:s.kolicina,ok_kolicina:j?s.kolicina:0,
-      nok_kolicina:j?0:s.kolicina,ukupno_merenja:s.kolicina,potreban_broj:cilj,
+      inspekcija_id:s.inspekcijaId||null,
+      kom_nok:j?0:(s.kolicina||1),
+      ok_kolicina:j?(s.kolicina||1):0,
+      nok_kolicina:j?0:(s.kolicina||1),
+      ukupno_merenja:s.kolicina||1,
+      potreban_broj:cilj,
       komentar:s.komentar||null,
       sesija_id,
     });});
@@ -2457,7 +2593,20 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
       }
       const{error}=await supabase.from("kontrolni_log").insert(redovi);
       if(error)throw error;
-      const { error: errKpi } = await snimiKpiUnos(supabase, kpiPayload);
+      const postojeciKpi = await pronadjiAgregiraniKpiAtributivne(supabase, {
+        idDeo,
+        datum: dISO(),
+        smena,
+        radniNalog: radniNalog || undefined,
+      });
+      const kpiZaSnimanje = postojeciKpi
+        ? saberiKpiVrednosti(kpiVrednostiIzDb(postojeciKpi), kpiSerija)
+        : kpiSerija;
+      const { error: errKpi } = await snimiIliAzurirajKpiUnos(
+        supabase,
+        { ...kpiPayload, kpi: kpiZaSnimanje },
+        postojeciKpi?.id,
+      );
       if (errKpi) addToast(porukaKpiGreske(errKpi), "greska");
       const mirror = await mirrorKontrolniLogToExcel(supabase, redovi, { kpi: kpiSerija });
       if (mirror.storage) addToast("📊 Excel kopija ažurirana (Supabase Storage)","info");
@@ -2486,6 +2635,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
         } catch { /* */ }
       }
       await osveziSmenaStat();
+      await osveziKpiDb();
       if (prekidOdobrenId) {
         await supabase.from("prekidi_zahtevi").update({
           status: "zatvoren",
@@ -2727,14 +2877,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
             {tab !== "unos" && (
               <>
                 <span style={{ color: C.border }}>|</span>
-                <select value={smena}
-                  onChange={e => { setSmena(Number(e.target.value)); localStorage.setItem("spc_smena", e.target.value); }}
-                  style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4,
-                    color: C.tekst, fontSize: 10, padding: "2px 8px", cursor: "pointer" }}>
-                  <option value={1}>Smena 1</option>
-                  <option value={2}>Smena 2</option>
-                  <option value={3}>Smena 3</option>
-                </select>
+                <span style={{ color: C.sivi, fontSize: 10, fontWeight: 700 }}>S{smena}</span>
               </>
             )}
           </div>
@@ -2806,7 +2949,6 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
           lotIzvor={lotAqlIzvor}
           onLotVelicinaChange={promeniLotAql}
           onOtvoriAqlTab={mozeTabAtributivne("aql", korisnik.uloga, rezimRada) ? () => setTab("aql") : undefined}
-          setSmena={setSmena}
           dodajGresku={dodajGresku} snimiDeo={snimiDeo} zapisi={zapisi}
           noviNalog={noviNalog} saving={saving} online={online} offlineQueueTotal={offlineCounts.total} C={C}
           kpiSerija={kpiSerija} setKpiSerija={setKpiSerija}
@@ -2927,25 +3069,17 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                   {porukaPogon}
                 </div>
               )}
-              <label style={{ ...LBL, fontSize: Math.round(8 * H), letterSpacing: 1, marginTop: Math.round(6 * H), display: "block" }}>
-                Smena
-                <select
-                  value={smena}
-                  onChange={e => {
-                    setSmena(Number(e.target.value));
-                    localStorage.setItem("spc_smena", e.target.value);
-                  }}
-                  style={{
-                    ...INP,
-                    marginTop: 4,
-                    fontSize: Math.round(11 * H),
-                    padding: `${Math.round(6 * H)}px ${Math.round(4 * H)}px`,
-                    cursor: "pointer",
-                  }}
-                >
-                  {[1, 2, 3].map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </label>
+              <SmenaAutoPrikaz
+                smena={smena}
+                C={C}
+                lblStyle={{ ...LBL, fontSize: Math.round(8 * H), letterSpacing: 1, marginTop: Math.round(6 * H) }}
+                inpStyle={{
+                  ...INP,
+                  marginTop: 4,
+                  fontSize: Math.round(11 * H),
+                  padding: `${Math.round(6 * H)}px ${Math.round(4 * H)}px`,
+                }}
+              />
             </div>
 
             {deoSpreman && (
@@ -3171,9 +3305,11 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
                 style={{...INP, fontSize:12}}/>
             </div>
 
-            <button onClick={dodajGresku} disabled={!deoInfo}
-              style={{...BTN(C.plava,!deoInfo),fontSize:13,padding:"14px",fontWeight:700}}>
-              + DODAJ U LISTU
+            <button onClick={dodajGresku} disabled={!deoInfo || !status || (status === "NOK" && (
+              (voziloMode && !voziloZona) || !kategorija || !podkat || (koristiDefekte && !defekt)
+            ))}
+              style={{...BTN(status === "OK" ? C.zelena : C.plava, !deoInfo), fontSize:13, padding:"14px", fontWeight:700}}>
+              {status === "OK" ? "✓ SNIMI OK" : "+ DODAJ U LISTU"}
             </button>
 
             <label style={{...LBL,marginBottom:3}}>PRIVREMENA LISTA ({listaG.length})</label>
@@ -3232,7 +3368,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
               </div>
               <div style={{marginTop:7,textAlign:"center",fontSize:11,borderTop:`1px solid ${C.border}`,paddingTop:7}}>
                 <span style={{color:C.zuta,fontWeight:700}}>
-                  RTY: {smenaStat.rty > 0 ? smenaStat.rty.toFixed(1) : "—"}%
+                  {LAB_FPY_KRATKO}: {smenaStat.rty > 0 ? smenaStat.rty.toFixed(1) : "—"}%
                 </span>
                 <span style={{color:C.sivi,fontSize:9,marginLeft:10}}>
                   DPMO: {smenaStat.dpmo > 0 ? smenaStat.dpmo.toLocaleString() : "—"}
@@ -3287,9 +3423,10 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
               <SkartDoradaOeePanel
                 C={C}
                 kompakt
+                modul="atributivne"
                 vrednosti={kpiSerija}
                 onChange={setKpiSerija}
-                podnaslov="Snima se uz Zapiši u bazu"
+                podnaslov="Uz Zapiši u bazu (OK/NOK komadi, ne serije)"
               />
             )}
           </div>
@@ -3355,7 +3492,7 @@ function GlavnaForma({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analit
       {tab==="smena"&&(
         <div style={{padding:20,display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-start"}}>
           {[["MERENJA",smenaTotal,C.plava],["OK",smenaOK,C.zelena],["NOK",smenaNOK,C.crvena],
-            ["RTY %",smenaStat.rty > 0 ? smenaStat.rty.toFixed(1)+"%" : "-",C.zuta],
+            [LAB_FPY_PCT,smenaStat.rty > 0 ? smenaStat.rty.toFixed(1)+"%" : "-",C.zuta],
             ["DPMO",smenaStat.dpmo > 0 ? smenaStat.dpmo.toLocaleString() : "-",C.ljubicasta],
           ].map(([l,v,b])=>(
             <div key={l} style={{background:C.panel,border:`1px solid ${b}30`,borderRadius:10,
@@ -3499,7 +3636,6 @@ function MobilniUnos({
   linijaMode = false,
   kontrolorLinija = false,
   smena = 1,
-  setSmena,
   radniNalog = "",
   setRadniNalog,
   unosKorakAtr,
@@ -3589,7 +3725,6 @@ function MobilniUnos({
       C={C}
       akcent={C.plava}
       smena={String(smena)}
-      setSmena={(v) => setSmena?.(Number(v))}
       onBarkodSken={onBarkodSken}
       lblStyle={{ fontSize: ekran.tablet || ekran.linijaUredjaj ? 10 : 9, marginBottom: 2 }}
       inpStyle={analitikaInpStil}
@@ -3718,20 +3853,12 @@ function MobilniUnos({
             />
           </IdDeoBarkodRed>
 
-          <label style={LBL}>Smena
-            <select
-              value={smena}
-              onChange={e => {
-                const v = Number(e.target.value);
-                setSmena?.(v);
-                localStorage.setItem("spc_smena", String(v));
-              }}
-              onFocus={onFocusTastatura}
-              style={{ ...INP, fontSize: linijaMode ? 16 : 14, padding: linijaMode ? "14px" : "12px" }}
-            >
-              {[1, 2, 3].map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </label>
+          <SmenaAutoPrikaz
+            smena={smena}
+            C={C}
+            lblStyle={LBL}
+            inpStyle={{ ...INP, fontSize: linijaMode ? 16 : 14, padding: linijaMode ? "14px" : "12px" }}
+          />
         </>
       )}
 
@@ -3911,8 +4038,13 @@ function MobilniUnos({
     const dodajDis = !status || (status === "NOK" && (
       voziloMode && !voziloZona || !kategorija || !podkat || (koristiDefekte && !defekt)
     ));
-    const dodajUGresku = () => { dodajGresku(); setKorak(korakLista); };
+    const dodajUGresku = () => {
+      const bioOk = status === "OK";
+      dodajGresku();
+      if (!bioOk) setKorak(korakLista);
+    };
     const bojaDodaj = status === "OK" ? C.zelena : status === "NOK" ? C.crvena : C.hover;
+    const labelDodaj = status === "OK" ? "✓ Snimi OK" : "+ Dodaj u listu";
 
     return (
     <>
@@ -4084,14 +4216,14 @@ function MobilniUnos({
           onClick={dodajUGresku}
           disabled={dodajDis}
           style={{ ...BIG_BTN(bojaDodaj, dodajDis), fontSize: 17 }}>
-          + Dodaj u listu
+          {labelDodaj}
         </button>
       )}
     </div>
     {linijaMode && (
       <LinijaDonjaTraka ekran={ekran} C={C} rezerva={false}>
         <DugmeTraka boja={bojaDodaj} onClick={dodajUGresku} disabled={dodajDis}>
-          + Dodaj u listu
+          {labelDodaj}
         </DugmeTraka>
       </LinijaDonjaTraka>
     )}
@@ -4193,6 +4325,7 @@ function MobilniUnos({
         <SkartDoradaOeePanel
           C={C}
           kompakt
+          modul="atributivne"
           vrednosti={kpiSerija}
           onChange={setKpiSerija}
           podnaslov="Uz Zapiši u bazu"
@@ -4319,37 +4452,70 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
 
   const ucitaj = useCallback(async () => {
     if (!idDeo) return; setLoading(true);
+    const selectFull = "datum,smena,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,inspekcija_id,sesija_id,created_at,id_deo,id";
+    const selectBase = "datum,smena,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,sesija_id,created_at,id_deo,id";
     try {
-      const {data,error} = await supabase.from("kontrolni_log")
-        .select("datum,smena,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv")
-        .eq("id_deo",idDeo).order("datum",{ascending:true});
+      let { data, error } = await supabase.from("kontrolni_log")
+        .select(selectFull)
+        .eq("id_deo", idDeo)
+        .order("datum", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error && /inspekcija_id/i.test(error.message)) {
+        ({ data, error } = await supabase.from("kontrolni_log")
+          .select(selectBase)
+          .eq("id_deo", idDeo)
+          .order("datum", { ascending: true })
+          .order("created_at", { ascending: true }));
+      }
       if (error) throw error;
       setRawLog(data || []);
       if (!data?.length) { setPD([]); setCD([]); setUD([]); return; }
 
-      const gr={};
-      data.forEach(r=>{const k=r.datum;if(!gr[k])gr[k]={datum:k,nok:0,n:0,c:0};
-        gr[k].nok+=r.nok_kolicina||0;gr[k].n+=r.ukupno_merenja||0;gr[k].c+=r.kom_nok||0;});
-      const sg=Object.values(gr).sort((a,b)=>a.datum.localeCompare(b.datum));
-      const ukNOK=sg.reduce((s,g)=>s+g.nok,0),ukN=sg.reduce((s,g)=>s+g.n,0);
-      const pBar=ukN>0?ukNOK/ukN:0,cBar=sg.length>0?sg.reduce((s,g)=>s+g.c,0)/sg.length:0;
-      const uBar=ukN>0?sg.reduce((s,g)=>s+g.c,0)/ukN:0;
+      const mobGrup = predloziGrupisanjeSpc(data, {
+        vozilo: jeKontrolaCelogVozila(deoIzabran),
+      });
+      const sg = groupSpcRows(data, mobGrup);
+      const ukNOK = sg.reduce((s, g) => s + g.nok, 0);
+      const ukN = sg.reduce((s, g) => s + g.n, 0);
+      const pBar = ukN > 0 ? ukNOK / ukN : 0;
+      const cBar = sg.length > 0 ? sg.reduce((s, g) => s + g.c, 0) / sg.length : 0;
+      const uBar = ukN > 0 ? sg.reduce((s, g) => s + g.c, 0) / ukN : 0;
 
-      setPD(sg.map(g=>({datum:g.datum,p:g.n>0?g.nok/g.n:0,p_bar:pBar,nok_total:g.nok,n_total:g.n,
-        ucl:pBar+3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1)),
-        lcl:Math.max(0,pBar-3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1))),})));
-      const cgr={};
-      data.forEach(r=>{const k=`${r.datum}|${r.greska_naziv||""}`;
-        if(!cgr[k])cgr[k]={datum:r.datum,naziv:r.greska_naziv||"sve",c:0};cgr[k].c+=r.kom_nok||0;});
-      setCD(Object.values(cgr).sort((a,b)=>a.datum.localeCompare(b.datum)).map(g=>({
-        ...g,c_bar:cBar,ucl:cBar+3*Math.sqrt(Math.max(cBar,0.001)),
-        lcl:Math.max(0,cBar-3*Math.sqrt(Math.max(cBar,0.001))),})));
-      setUD(sg.map(g=>({datum:g.datum,u:g.n>0?g.c/g.n:0,u_bar:uBar,n:g.n,
-        ucl:uBar+3*Math.sqrt(uBar/Math.max(g.n,1)),
-        lcl:Math.max(0,uBar-3*Math.sqrt(uBar/Math.max(g.n,1))),})));
+      setPD(sg.map(g => ({
+        datum: g.datum,
+        label: g.label || g.datum?.substring(5) || "",
+        p: g.n > 0 ? g.nok / g.n : 0,
+        p_bar: pBar,
+        nok_total: g.nok,
+        n_total: g.n,
+        ucl: pBar + 3 * Math.sqrt(pBar * (1 - pBar) / Math.max(g.n, 1)),
+        lcl: Math.max(0, pBar - 3 * Math.sqrt(pBar * (1 - pBar) / Math.max(g.n, 1))),
+      })));
+      const cgr = {};
+      data.forEach(r => {
+        const k = `${r.datum}|${r.greska_naziv || ""}`;
+        if (!cgr[k]) cgr[k] = { datum: r.datum, naziv: r.greska_naziv || "sve", c: 0 };
+        cgr[k].c += r.kom_nok || 0;
+      });
+      setCD(Object.values(cgr).sort((a, b) => a.datum.localeCompare(b.datum)).map(g => ({
+        ...g,
+        label: g.naziv?.substring(0, 8) || g.datum?.substring(5) || "",
+        c_bar: cBar,
+        ucl: cBar + 3 * Math.sqrt(Math.max(cBar, 0.001)),
+        lcl: Math.max(0, cBar - 3 * Math.sqrt(Math.max(cBar, 0.001))),
+      })));
+      setUD(sg.map(g => ({
+        datum: g.datum,
+        label: g.label || g.datum?.substring(5) || "",
+        u: g.n > 0 ? g.c / g.n : 0,
+        u_bar: uBar,
+        n: g.n,
+        ucl: uBar + 3 * Math.sqrt(uBar / Math.max(g.n, 1)),
+        lcl: Math.max(0, uBar - 3 * Math.sqrt(uBar / Math.max(g.n, 1))),
+      })));
     } catch(e) { addToast(e.message,"greska"); }
     finally { setLoading(false); }
-  },[idDeo]);
+  },[idDeo, deoIzabran, addToast]);
 
   useEffect(()=>{ ucitaj(); },[ucitaj]);
 
@@ -4364,7 +4530,7 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
   const akt=karte.find(k=>k.id===tip);
   const cdRaw=(akt?.podaci||[]).map((d,i)=>({
     ...d,
-    label:d.datum?.substring(5)||"",
+    label:d.label||d.datum?.substring(5)||d.naziv?.substring(0,8)||`#${i+1}`,
     val:Number(d[akt.dKey]),
     cl:Number(d[akt.clKey]),
     ucl:Number(d.ucl),
@@ -4515,30 +4681,11 @@ function MobilniDashboard({ C, addToast }) {
       try{
         const od=new Date(); od.setDate(od.getDate()-Number(period));
         const{data,error}=await supabase.from("kontrolni_log")
-          .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena")
+          .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena,inspekcija_id,sesija_id,created_at,id_deo,id")
           .gte("datum",od.toISOString().split("T")[0]);
         if(error)throw error;
         if(!data?.length){setPodaci({});return;}
-
-        const ukN=data.reduce((s,r)=>s+(r.ukupno_merenja||0),0);
-        const ukNOK=data.reduce((s,r)=>s+(r.nok_kolicina||0),0);
-        const ukOK=data.reduce((s,r)=>s+(r.ok_kolicina||0),0);
-        const gB={};
-        data.forEach(r=>{if(r.greska_naziv&&r.greska_naziv!=="OK")
-          gB[r.greska_naziv]=(gB[r.greska_naziv]||0)+(r.kom_nok||0);});
-        const pareto=Object.entries(gB).map(([naziv,count])=>({naziv:naziv.substring(0,12),count}))
-          .sort((a,b)=>b.count-a.count).slice(0,6);
-        const dani={};
-        data.forEach(r=>{if(!dani[r.datum])dani[r.datum]={datum:r.datum,ok:0,nok:0,n:0};
-          dani[r.datum].ok+=r.ok_kolicina||0;dani[r.datum].nok+=r.nok_kolicina||0;dani[r.datum].n+=r.ukupno_merenja||0;});
-        const trend=Object.values(dani).map(d=>({
-          datum:d.datum.substring(5),
-          rty:d.n>0?+((d.ok/d.n)*100).toFixed(1):0}));
-
-        setPodaci({ukN,ukNOK,ukOK,
-          dpmo:ukN>0?Math.round((ukNOK/ukN)*1e6):0,
-          rty:ukN>0?((ukOK/ukN)*100).toFixed(1):"0",
-          pareto,trend});
+        setPodaci(aggregateLogRows(data) || {});
       }catch(e){addToast(e.message,"greska");}
       finally{setLoading(false);}
     })();
@@ -4573,7 +4720,7 @@ function MobilniDashboard({ C, addToast }) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             {[
               ["MERENO",    podaci.ukN,              C.plava],
-              ["RTY %",     podaci.rty+"%",           C.zelena],
+              [LAB_FPY_PCT,     podaci.rty+"%",           C.zelena],
               ["NOK",       podaci.ukNOK,             C.crvena],
               ["DPMO",      podaci.dpmo.toLocaleString(), C.ljubicasta],
             ].map(([n,v,b])=>(
@@ -4585,7 +4732,7 @@ function MobilniDashboard({ C, addToast }) {
             ))}
           </div>
 
-          <SpcRtyJednaLinija data={podaci.trend} C={C} height={200} xKey="datum" naslov="RTY % trend" />
+          <SpcRtyJednaLinija data={podaci.trend} C={C} height={200} xKey="datum" naslov={LAB_FPY_TREND} />
 
           {/* Pareto - horizontalni bar (lakši za čitanje na mob) */}
           <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:14}}>
@@ -4887,7 +5034,7 @@ function PocetniEkran({ korisnik, licenca, onIzbor, onOdjava, C, setC, rezimRada
     setKpiToast({ tekst, tip });
     window.setTimeout(() => setKpiToast(null), 4000);
   }, []);
-  const pocetnaSmena = String(localStorage.getItem("spc_smena") || sessionStorage.getItem("spc_smena") || "1");
+  const pocetnaSmena = String(useAutoSmena(true));
 
   const MODULI = [
     {
@@ -5874,21 +6021,21 @@ function PoredjenjePerioda({ idDeo, C, addToast }) {
       const fmt = d => d.toISOString().split("T")[0];
 
       const [r1, r2] = await Promise.all([
-        supabase.from("kontrolni_log").select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok")
+        supabase.from("kontrolni_log").select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,inspekcija_id,sesija_id,created_at,id_deo,datum,smena,id")
           .eq("id_deo",idDeo).gte("datum",fmt(od1)).lte("datum",fmt(danas)),
-        supabase.from("kontrolni_log").select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok")
+        supabase.from("kontrolni_log").select("ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,inspekcija_id,sesija_id,created_at,id_deo,datum,smena,id")
           .eq("id_deo",idDeo).gte("datum",fmt(od2)).lt("datum",fmt(od1)),
       ]);
 
       const calc = (rows) => {
-        const n   = rows.reduce((s,r)=>s+(r.ukupno_merenja||0),0);
-        const nok = rows.reduce((s,r)=>s+(r.nok_kolicina||0),0);
-        const ok  = rows.reduce((s,r)=>s+(r.ok_kolicina||0),0);
+        const d = statAtributivneRedovi(rows || []);
         return {
-          n, nok, ok,
-          rty:  n>0?((ok/n)*100).toFixed(2):0,
-          p:    n>0?((nok/n)*100).toFixed(3):0,
-          dpmo: n>0?Math.round((nok/n)*1e6):0,
+          n: d.n,
+          nok: d.nok,
+          ok: d.ok,
+          rty: d.n > 0 ? d.rty.toFixed(2) : 0,
+          p: d.n > 0 ? d.p.toFixed(3) : 0,
+          dpmo: d.dpmo,
         };
       };
 
@@ -5929,7 +6076,7 @@ function PoredjenjePerioda({ idDeo, C, addToast }) {
        : !podaci ? null : (
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           {[
-            ["RTY %", podaci.tek.rty, podaci.prev.rty, false, "%"],
+            [LAB_FPY_PCT, podaci.tek.rty, podaci.prev.rty, false, "%"],
             ["NOK",   podaci.tek.nok, podaci.prev.nok, true,  ""],
             ["DPMO",  podaci.tek.dpmo,podaci.prev.dpmo,true,  ""],
             ["Mereno",podaci.tek.n,   podaci.prev.n,   false, ""],
@@ -6078,26 +6225,24 @@ function PrioritizacijaDelova({ C, addToast }) {
       try {
         const od = new Date(); od.setDate(od.getDate()-7);
         const { data } = await supabase.from("kontrolni_log")
-          .select("id_deo,naziv_dela,ok_kolicina,nok_kolicina,ukupno_merenja,datum")
+          .select("id_deo,naziv_dela,ok_kolicina,nok_kolicina,ukupno_merenja,datum,inspekcija_id,sesija_id,created_at,id,smena")
           .gte("datum", od.toISOString().split("T")[0]);
 
         const mapa = {};
         (data||[]).forEach(r=>{
-          if(!mapa[r.id_deo]) mapa[r.id_deo]={id_deo:r.id_deo,naziv:r.naziv_dela,
-            ok:0,nok:0,n:0,dani:new Set()};
-          mapa[r.id_deo].ok  +=r.ok_kolicina||0;
-          mapa[r.id_deo].nok +=r.nok_kolicina||0;
-          mapa[r.id_deo].n   +=r.ukupno_merenja||0;
+          if(!mapa[r.id_deo]) mapa[r.id_deo]={id_deo:r.id_deo,naziv:r.naziv_dela,rows:[],dani:new Set()};
+          mapa[r.id_deo].rows.push(r);
           mapa[r.id_deo].dani.add(r.datum);
         });
 
         const arr = Object.values(mapa).map(d=>{
-          const rty = d.n>0?(d.ok/d.n)*100:100;
-          const p   = d.n>0?(d.nok/d.n)*100:0;
-          const dpmo= d.n>0?Math.round((d.nok/d.n)*1e6):0;
-          // Skor prioriteta: viši = hitnije (0-100)
+          const st = statAtributivneRedovi(d.rows);
+          const rty = st.n>0?st.rty:100;
+          const p = st.p;
+          const dpmo = st.dpmo;
           const skor = Math.min(100, p*5 + (dpmo/10000)*2 + (rty<80?30:rty<90?15:0));
-          return { ...d, rty:rty.toFixed(1), p:p.toFixed(2), dpmo, skor:Math.round(skor),
+          return { id_deo: d.id_deo, naziv: d.naziv, ok: st.ok, nok: st.nok, n: st.n,
+            rty:rty.toFixed(1), p:p.toFixed(2), dpmo, skor:Math.round(skor),
             dani_aktivni: d.dani.size };
         }).sort((a,b)=>b.skor-a.skor);
 
@@ -6146,7 +6291,7 @@ function PrioritizacijaDelova({ C, addToast }) {
                 </span>
               </div>
               <div style={{display:"flex",gap:12,fontSize:10}}>
-                <span style={{color:C.sivi}}>RTY: <strong style={{color:
+                <span style={{color:C.sivi}}>{LAB_FPY_KRATKO}: <strong style={{color:
                   d.rty>=95?C.zelena:d.rty>=80?C.zuta:C.crvena}}>{d.rty}%</strong></span>
                 <span style={{color:C.sivi}}>p: <strong style={{color:C.tekst}}>{d.p}%</strong></span>
                 <span style={{color:C.sivi}}>DPMO: <strong style={{color:C.tekst}}>
@@ -6738,12 +6883,13 @@ function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed
   }, [prefill]); // eslint-disable-line
 
   const sacuvaj = async (form) => {
+    const payload = osmdPayloadIzForme(form);
     const isNew = !form.id;
     const op = isNew
-      ? supabase.from("osmd_izvestaji").insert({...form,kreirao_id:korisnik.radnikId})
+      ? supabase.from("osmd_izvestaji").insert({ ...payload, kreirao_id: korisnik.radnikId })
           .select("*,kreirao:radnici!osmd_izvestaji_kreirao_id_fkey(ime)").single()
-      : supabase.from("osmd_izvestaji").update({...form,updated_at:new Date().toISOString()})
-          .eq("id",form.id)
+      : supabase.from("osmd_izvestaji").update({ ...payload, updated_at: new Date().toISOString() })
+          .eq("id", form.id)
           .select("*,kreirao:radnici!osmd_izvestaji_kreirao_id_fkey(ime)").single();
     const { data, error } = await op;
     if (!error) {
@@ -6754,33 +6900,12 @@ function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed
   };
 
   const exportPDF8D = async (izv) => {
-    const { default: jsPDF } = await import("jspdf");
-    const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-    const W = pdf.internal.pageSize.getWidth();
-    pdf.setFillColor(28,35,51);
-    pdf.rect(0,0,W,30,"F");
-    pdf.setTextColor(88,166,255); pdf.setFontSize(16); pdf.setFont("helvetica","bold");
-    pdf.text("8D IZVEŠTAJ O PROBLEMU",14,12);
-    pdf.setTextColor(200,210,230); pdf.setFontSize(10); pdf.setFont("helvetica","normal");
-    pdf.text(`${izv.id_deo} · ${new Date(izv.created_at).toLocaleDateString("sr-RS")}`,14,22);
-    let y=40;
-    const D_LABELE = ["D1 Tim","D2 Opis problema","D3 Privremena akcija",
-      "D4 Uzrok","D5 Korektivna akcija","D6 Implementacija","D7 Prevencija","D8 Zaključak"];
-    const D_POLJA  = ["d1_tim","d2_opis_problema","d3_privremena_akcija",
-      "d4_uzrok","d5_korektivna","d6_implementacija","d7_prevencija","d8_zakljucak"];
-    D_LABELE.forEach((lab,i)=>{
-      if(y>260){pdf.addPage();y=20;}
-      pdf.setFillColor(240,244,248); pdf.rect(14,y,W-28,6,"F");
-      pdf.setFontSize(9); pdf.setFont("helvetica","bold"); pdf.setTextColor(80,100,120);
-      pdf.text(lab.toUpperCase(),16,y+4.5);
-      y+=8;
-      pdf.setFontSize(10); pdf.setFont("helvetica","normal"); pdf.setTextColor(30,32,36);
-      const tekst = izv[D_POLJA[i]]||"—";
-      const linije = pdf.splitTextToSize(tekst, W-28);
-      pdf.text(linije,14,y);
-      y += linije.length*5+4;
-    });
-    pdf.save(`8D_${izv.id_deo}_${new Date(izv.created_at).toISOString().split("T")[0]}.pdf`);
+    try {
+      await exportOsmdIzvestajPdf(izv, { naslov: "8D IZVESTAJ O PROBLEMU", prefiksFajla: "8D" });
+    } catch (e) {
+      console.error(e);
+      addToast(e?.message || "PDF nije mogao da se generise", "greska");
+    }
   };
 
   const POLJA_8D = [
@@ -6828,7 +6953,7 @@ function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed
                 color:i.status==="zavrsen"?C.zelena:C.zuta,fontSize:9,
                 padding:"2px 8px",borderRadius:10}}>{i.status.replace("_"," ")}</span>
             </div>
-            <button onClick={e=>{e.stopPropagation();exportPDF8D(i);}}
+            <button type="button" onClick={e=>{e.stopPropagation();exportPDF8D(i);}}
               style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,
                 color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>
               📄 PDF
@@ -6849,6 +6974,7 @@ function Editor8D({ izvestaj, sviDelovi, polja, onSacuvaj, onNazad, onPDF, C }) 
     id:          izvestaj.id||null,
     id_deo:      izvestaj.id_deo||"",
     naziv_dela:  izvestaj.naziv_dela||"",
+    created_at:  izvestaj.created_at||null,
     status:      izvestaj.status||"u_izradi",
     d1_tim:               izvestaj.d1_tim||"",
     d2_opis_problema:     izvestaj.d2_opis_problema||"",
@@ -6871,7 +6997,7 @@ function Editor8D({ izvestaj, sviDelovi, polja, onSacuvaj, onNazad, onPDF, C }) 
         <button onClick={onNazad} style={{background:"none",border:"none",
           color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>← Nazad</button>
         <div style={{color:C.tekst,fontSize:13,fontWeight:700}}>8D Izveštaj</div>
-        <button onClick={()=>onPDF(form)}
+        <button type="button" onClick={() => onPDF(form)}
           style={{background:"#7c3aed",border:"none",borderRadius:7,color:"#fff",
             fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer"}}>
           📄 PDF
@@ -7340,22 +7466,21 @@ function CiljeviKvaliteta({ C, addToast, sviDelovi }) {
     // Učitaj ostvareno za sve delove - poslednih 30 dana
     const od = new Date(); od.setDate(od.getDate()-30);
     supabase.from("kontrolni_log")
-      .select("id_deo,ok_kolicina,nok_kolicina,ukupno_merenja")
+      .select("id_deo,ok_kolicina,nok_kolicina,ukupno_merenja,inspekcija_id,sesija_id,created_at,id,datum,smena")
       .gte("datum", od.toISOString().split("T")[0])
       .then(({data})=>{
         const mapa={};
         (data||[]).forEach(r=>{
-          if(!mapa[r.id_deo])mapa[r.id_deo]={n:0,nok:0,ok:0};
-          mapa[r.id_deo].n  +=r.ukupno_merenja||0;
-          mapa[r.id_deo].nok+=r.nok_kolicina||0;
-          mapa[r.id_deo].ok +=r.ok_kolicina||0;
+          if(!mapa[r.id_deo])mapa[r.id_deo]=[];
+          mapa[r.id_deo].push(r);
         });
         const rez={};
-        Object.entries(mapa).forEach(([id,d])=>{
+        Object.entries(mapa).forEach(([id,rows])=>{
+          const d = statAtributivneRedovi(rows);
           rez[id]={
-            rty:  d.n>0?((d.ok/d.n)*100).toFixed(1):null,
-            dpmo: d.n>0?Math.round((d.nok/d.n)*1e6):null,
-            p:    d.n>0?((d.nok/d.n)*100).toFixed(2):null,
+            rty:  d.n>0?d.rty.toFixed(1):null,
+            dpmo: d.n>0?d.dpmo:null,
+            p:    d.n>0?d.p.toFixed(2):null,
           };
         });
         setOstvaren(rez);
@@ -7407,7 +7532,7 @@ function CiljeviKvaliteta({ C, addToast, sviDelovi }) {
               </select>
             </div>
             <div>
-              <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>RTY CILJ %</div>
+              <div style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:5}}>{LAB_FPY_CILJ}</div>
               <input type="number" min="0" max="100" step="0.1"
                 value={aktuelni.rty_cilj} onChange={e=>setAktuelni(p=>({...p,rty_cilj:e.target.value}))} style={INP}/>
             </div>
@@ -7453,7 +7578,7 @@ function CiljeviKvaliteta({ C, addToast, sviDelovi }) {
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
               {[
-                ["RTY %", c.rty_cilj+"%", ost.rty, false],
+                [LAB_FPY_PCT, c.rty_cilj+"%", ost.rty, false],
                 ["DPMO",  c.dpmo_cilj,    ost.dpmo, true],
                 ["p %",   c.p_cilj+"%",   ost.p,    true],
               ].map(([naziv, cilj, ostvareno, manjiBolje]) => {
@@ -7541,7 +7666,7 @@ function IzvestajKupac({ C, addToast }) {
     pdf.setTextColor(30,32,36); pdf.setFontSize(12); pdf.setFont("helvetica","bold");
     pdf.text("STATISTIKE PERIODA",14,y); y+=8;
     const kpi=[["Mereno",podaci.stat.n,""],["OK",podaci.stat.ok,""],
-      ["NOK",podaci.stat.nok,""],["RTY",podaci.stat.rty,"%"],["DPMO",podaci.stat.dpmo,""]];
+      ["NOK",podaci.stat.nok,""],[LAB_FPY_KRATKO,podaci.stat.rty,"%"],["DPMO",podaci.stat.dpmo,""]];
     kpi.forEach(([n,v,s],i)=>{
       const x=14+(i%4)*46;
       const yy=y+Math.floor(i/4)*22;
@@ -7597,7 +7722,7 @@ function IzvestajKupac({ C, addToast }) {
         <>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:10,marginBottom:16}}>
             {[["MERENO",podaci.stat.n,C.plava],["OK",podaci.stat.ok,C.zelena],
-              ["NOK",podaci.stat.nok,C.crvena],["RTY %",podaci.stat.rty+"%",C.zuta],
+              ["NOK",podaci.stat.nok,C.crvena],[LAB_FPY_PCT,podaci.stat.rty+"%",C.zuta],
               ["DPMO",podaci.stat.dpmo,C.ljubicasta]
             ].map(([n,v,b])=>(
               <div key={n} style={{background:C.panel,border:`1px solid ${b}25`,borderRadius:10,
@@ -7714,20 +7839,17 @@ function StabilnostProcesa({ sviDelovi, C, addToast }) {
     if (!idDeo) return; setLoading(true);
     try {
       const { data, error } = await supabase.from("kontrolni_log")
-        .select("datum,nok_kolicina,ukupno_merenja")
+        .select("datum,nok_kolicina,ok_kolicina,ukupno_merenja,inspekcija_id,sesija_id,created_at,id_deo,id,smena")
         .eq("id_deo",idDeo).order("datum",{ascending:true});
       if (error) throw error;
       if (!data?.length) { setPodaci(null); setLoading(false); return; }
 
-      // Grupiši po datumu
-      const gr = {};
-      data.forEach(r => {
-        if (!gr[r.datum]) gr[r.datum] = {datum:r.datum,nok:0,n:0};
-        gr[r.datum].nok += r.nok_kolicina||0;
-        gr[r.datum].n   += r.ukupno_merenja||0;
-      });
-      const niz = Object.values(gr).sort((a,b)=>a.datum.localeCompare(b.datum))
-        .map(d => ({datum:d.datum,p:d.n>0?(d.nok/d.n)*100:0}));
+      const niz = [...agregirajAtributivnePoKljuču(data, r => r.datum).entries()]
+        .map(([datum, rows]) => {
+          const d = statAtributivneRedovi(rows);
+          return { datum, p: d.n > 0 ? (d.nok / d.n) * 100 : 0 };
+        })
+        .sort((a, b) => a.datum.localeCompare(b.datum));
 
       if (niz.length < 6) { setPodaci({niz, shift:null, msg:"Premalo podataka (min 6 dana)"}); setLoading(false); return; }
 

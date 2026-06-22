@@ -1,5 +1,7 @@
 /** PDF predaja smene — škart/KPI, SPC alarmi, otvoreni 8D. */
 
+import { agregirajAtributivneJedinice } from "./atributivneAgregacija.js";
+
 function dISO() {
   return new Date().toISOString().split("T")[0];
 }
@@ -39,12 +41,10 @@ async function fetchPredajaPodataka(supabase, { datum, smena, modul }) {
     out.topNok = Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 8);
   } else {
     const { data } = await supabase.from("kontrolni_log")
-      .select("ukupno_merenja,ok_kolicina,nok_kolicina,greska_naziv,id_deo,naziv_dela")
+      .select("ukupno_merenja,ok_kolicina,nok_kolicina,kom_nok,greska_naziv,id_deo,naziv_dela,inspekcija_id,sesija_id,created_at,id,datum,smena")
       .eq("datum", datum).eq("smena", sm);
     const rows = data || [];
-    const n = rows.reduce((s, r) => s + (r.ukupno_merenja || 0), 0);
-    const nok = rows.reduce((s, r) => s + (r.nok_kolicina || 0), 0);
-    const ok = rows.reduce((s, r) => s + (r.ok_kolicina || 0), 0);
+    const { ok, nok, n } = agregirajAtributivneJedinice(rows);
     out.merenja = {
       n, ok, nok,
       rty: n > 0 ? +((ok / n) * 100).toFixed(2) : 0,
@@ -53,7 +53,7 @@ async function fetchPredajaPodataka(supabase, { datum, smena, modul }) {
     const g = {};
     rows.forEach((r) => {
       if (r.greska_naziv && r.greska_naziv !== "OK") {
-        g[r.greska_naziv] = (g[r.greska_naziv] || 0) + (r.nok_kolicina || 0);
+        g[r.greska_naziv] = (g[r.greska_naziv] || 0) + (r.kom_nok || 0);
       }
     });
     out.topNok = Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -145,7 +145,7 @@ export async function generisiPredajaSmenePdf(supabase, {
   pdf.setTextColor(60, 70, 80);
   [
     `Ukupno: ${pod.merenja.n} · OK: ${pod.merenja.ok} · NOK: ${pod.merenja.nok}`,
-    `RTY: ${pod.merenja.rty}% · DPMO: ${pod.merenja.dpmo.toLocaleString()}`,
+    `FPY: ${pod.merenja.rty}% · DPMO: ${pod.merenja.dpmo.toLocaleString()}`,
   ].forEach((ln) => { pdf.text(ln, 14, y); y += 5; });
 
   if (pod.skartKpi) {

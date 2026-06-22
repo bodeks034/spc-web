@@ -39,7 +39,8 @@ function PredikcijaRed({ naslov, pred, jedinica, C }) {
         </span>
       </div>
       <div style={{ color: C.sivi, fontSize: 9, marginTop: 2 }}>
-        Trenutno {pred.trenutno}{jedinica} · {pred.brojDana} dana · pouzdanost R²={pred.pouzdanost}
+        Trenutno {pred.trenutno}{jedinica}
+        {pred.snimak ? " · snimak perioda" : ` · ${pred.brojDana} dana · pouzdanost R²=${pred.pouzdanost}`}
       </div>
     </div>
   );
@@ -225,6 +226,9 @@ export default function StanjePredikcijaPanel({
         }}>
           <span style={{ color: C.tekst, fontSize: kompakt ? 10 : 11, fontWeight: 700, letterSpacing: 1 }}>
             STANJE · PREDIKCIJA · KOREKTIVNE MERE
+            {podaci.idDeoFilter && (
+              <span style={{ color: C.plava, marginLeft: 6 }}>· {podaci.idDeoFilter}</span>
+            )}
           </span>
           <span style={{
             background: bojaUk + "22", color: bojaUk,
@@ -235,21 +239,28 @@ export default function StanjePredikcijaPanel({
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <KarticaStanja naslov="ATRIBUTIVNE" stanje={izv.stanjeAttr.stanje}
+          <KarticaStanja naslov="ATRIBUTIVNE (FPY)" stanje={izv.stanjeAttr.stanje}
             razlog={izv.stanjeAttr.razlog} C={C} />
-          <KarticaStanja naslov="MERLJIVE" stanje={izv.stanjeMer.stanje}
+          <KarticaStanja naslov="MERLJIVE (FPY)" stanje={izv.stanjeMer.stanje}
             razlog={izv.stanjeMer.razlog} C={C} />
           {!kompakt && (
             <div style={{
               flex: "1 1 140px", background: C.bg, border: `1px solid ${C.border}`,
               borderRadius: 8, padding: "10px 12px",
             }}>
-              <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, marginBottom: 4 }}>PERIOD</div>
-              <div style={{ color: C.tekst, fontSize: 12, fontWeight: 700 }}>
-                {izv.sumarno.ukupnoMerenja} merenja
+              <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, marginBottom: 4 }}>RTY POGONA</div>
+              <div style={{ color: C.narandzasta, fontSize: 12, fontWeight: 700 }}>
+                {izv.sumarno.rtyPogon != null ? `${izv.sumarno.rtyPogon}%` : "—"}
               </div>
-              <div style={{ color: C.sivi, fontSize: 9, marginTop: 4 }}>
-                NOK {izv.sumarno.ukupnoNok} · {izv.sumarno.danaUTrendu} dana u trendu
+              <div style={{ color: C.sivi, fontSize: 9, marginTop: 4, lineHeight: 1.45 }}>
+                {izv.sumarno.faze?.length > 1
+                  ? izv.sumarno.faze.map(f => `${f.naziv} ${f.fpy}%`).join(" × ")
+                  : `FPY atr ${izv.sumarno.fpyAttr}% · mer ${izv.sumarno.fpyMer}%`}
+                {izv.sumarno.najslabijaFaza && (
+                  <span style={{ display: "block", marginTop: 4, color: C.narandzasta }}>
+                    Najslabija: {izv.sumarno.najslabijaFaza.naziv}
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -263,11 +274,11 @@ export default function StanjePredikcijaPanel({
             PREDVIĐENO KRETANJE (linearni trend)
           </div>
           <PredikcijaRed naslov="Ukupni NOK %" pred={izv.predikcija.ukupnoNok} jedinica="%" C={C} />
-          <PredikcijaRed naslov="Ukupni RTY" pred={izv.predikcija.ukupnoRty} jedinica="%" C={C} />
+          <PredikcijaRed naslov="RTY pogona" pred={izv.predikcija.ukupnoRty} jedinica="%" C={C} />
           {!kompakt && (
             <>
-              <PredikcijaRed naslov="Atributivne NOK" pred={izv.predikcija.atributivne} jedinica="%" C={C} />
-              <PredikcijaRed naslov="Merljive NOK" pred={izv.predikcija.merljive} jedinica="%" C={C} />
+              <PredikcijaRed naslov="FPY atributivne" pred={izv.predikcija.atributivne} jedinica="%" C={C} />
+              <PredikcijaRed naslov="FPY merljive" pred={izv.predikcija.merljive} jedinica="%" C={C} />
             </>
           )}
         </div>

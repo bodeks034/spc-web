@@ -1,7 +1,7 @@
 /** Zajednički offline red — IndexedDB (+ migracija sa localStorage). */
 
 import { useState, useEffect, useCallback } from "react";
-import { snimiKpiUnos } from "./kpiUnos.js";
+import { snimiKpiUnos, pronadjiAgregiraniKpiAtributivne, snimiIliAzurirajKpiUnos, kpiVrednostiIzDb, saberiKpiVrednosti } from "./kpiUnos.js";
 import {
   idbPodrzan,
   idbUcitajSve,
@@ -247,7 +247,23 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
       if (mirrorKontrolniLog) await mirrorKontrolniLog(supabase, batch).catch(() => {});
     }
     if (kpi) {
-      const { error: eK } = await snimiKpiUnos(supabase, { ...kpi, sesija_id: sid });
+      let kpiId = null;
+      let kpiZaSnimanje = kpi.kpi || kpi;
+      const postojeci = await pronadjiAgregiraniKpiAtributivne(supabase, {
+        idDeo: kpi.id_deo,
+        datum: kpi.datum,
+        smena: kpi.smena,
+        radniNalog: kpi.radni_nalog || undefined,
+      });
+      if (postojeci) {
+        kpiId = postojeci.id;
+        kpiZaSnimanje = saberiKpiVrednosti(kpiVrednostiIzDb(postojeci), kpi.kpi || kpi);
+      }
+      const { error: eK } = await snimiIliAzurirajKpiUnos(supabase, {
+        ...kpi,
+        sesija_id: sid,
+        kpi: kpiZaSnimanje,
+      }, kpiId);
       if (eK) throw eK;
     }
     return batch.length + (kpi ? 1 : 0);
