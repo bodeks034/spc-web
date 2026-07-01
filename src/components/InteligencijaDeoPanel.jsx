@@ -108,6 +108,14 @@ export default function InteligencijaDeoPanel({
             defaultIdDeo={idDeo}
             onOtvori8D={onOtvori8D}
             kompakt={false}
+            asistentMeta={{
+              idDeo,
+              nazivDela: sviDelovi.find((d) => d.id_deo === idDeo)?.naziv_dela || "",
+              period: podaci.period,
+              inteligencija: podaci.inteligencija,
+              topNok: podaci.topNok,
+              kapabilitet: podaci.kapabilitet,
+            }}
           />
 
           {podaci.kapabilitet?.length > 0 && (

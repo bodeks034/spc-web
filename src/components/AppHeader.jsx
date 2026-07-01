@@ -1,4 +1,5 @@
 import { useEkran } from "../layout/useEkran.js";
+import LogoBrend from "./LogoBrend.jsx";
 
 const SKRACENA_ULOGA = {
   kontrolor: "KON",
@@ -18,7 +19,7 @@ function naslovPodstrana(ekran) {
 /**
  * Zajednički header — 52px.
  * Stranice 1–4 (mob/tablet, sa ←): jedan red — ← SPC | KONTROLA KVALITETA · tema · uloga · ime · Odjava.
- * Stranica 0: ⚙ SPC | KONTROLA KVALITETA | tema · uloga · ime · Odjava.
+ * Stranica 0: logo | TRI-CORE QC | KONTROLA KVALITETA · tema · uloga · ime · Odjava.
  */
 export default function AppHeader({
   korisnik,
@@ -45,14 +46,9 @@ export default function AppHeader({
     }}>←</button>
   ) : null;
 
-  const levoSpc = (
+  const levoBrending = (
     <>
-      <span style={{
-        color: C.plava, fontWeight: 700, fontSize: podstrana ? 12 : kompakt ? 12 : 14,
-        letterSpacing: podstrana ? 1 : kompakt ? 1 : 2, flexShrink: 0, whiteSpace: "nowrap",
-      }}>
-        {podstrana ? "SPC" : "⚙ SPC"}
-      </span>
+      <LogoBrend C={C} velicina="header" />
       {podNaslov && (
         <>
           <span style={{ color: C.border, flexShrink: 0 }}>|</span>
@@ -142,7 +138,7 @@ export default function AppHeader({
           display: "flex", alignItems: "center", gap,
           minWidth: 0, flex: "1 1 0", overflow: "hidden",
         }}>
-          {btnNazad}{levoSpc}
+          {btnNazad}{levoBrending}
         </div>
         {desnoAkcije}
       </div>

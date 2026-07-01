@@ -9,21 +9,21 @@ NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,visinsko odstupanje u odn
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,"oštećenja boje (tačke, prašina u laku)"
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,loše zatvaranje bravice.
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,buka
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,"Ogrebotine,,"
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,Ogrebotine
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,ulubljenja (kontura)
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,loš spoj sa pragom i A-stubom.
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,"Ogrebotine,,"
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,Ogrebotine
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,ulubljenja (kontura)
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,loš spoj sa pragom i A-stubom.
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, , , ."
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, ."
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,zvuk škripanja pri otvaranju
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,ogrebotine oko kvake
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,loše nalepljena zaptivna guma (kedera)
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, , , ."
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, ."
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,zvuk škripanja pri otvaranju
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,ogrebotine oko kvake
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,loše nalepljena zaptivna guma (kedera)
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, , , ."
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, ."
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,zvuk škripanja pri otvaranju
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,ogrebotine oko kvake
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,loše nalepljena zaptivna guma (kedera)
@@ -41,11 +41,11 @@ NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,prelazi boja
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,loš spoj sa C-stubom i branikom
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,"poklopac rezervoara/priključka za punjenje (labavost, zazor)"
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"Loše poravnanje sa svetlima i krilima, i."
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"ogrebotine pri dnu,"
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,ogrebotine pri dnu
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,labavi nosač
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"Teško zatvaranje,"
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,Teško zatvaranje
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,neujednačen zazor sa svetlosnim grupama
-NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"visinska odstupanja,"
+NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,visinska odstupanja
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,loše zaptivanje gume.
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,Talasi na limu
 NTV-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,oštećenja boje od transporta
@@ -54,65 +54,65 @@ NTV-KAROS-001,STAKLENE POVRŠINE,Vetrobran,Pukotine (zvezdice)
 NTV-KAROS-001,STAKLENE POVRŠINE,Vetrobran,ogrebotine od brisača
 NTV-KAROS-001,STAKLENE POVRŠINE,Vetrobran,loša aplikacija lepka (curenje vode)
 NTV-KAROS-001,STAKLENE POVRŠINE,Vetrobran,fabrički mehurići u staklu.
-NTV-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"Ogrebotine od podizanja/spuštanja,"
-NTV-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"zazor pri zatvaranju (prolaz vazduha),"
+NTV-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,Ogrebotine od podizanja/spuštanja
+NTV-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,zazor pri zatvaranju (prolaz vazduha)
 NTV-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,oštećenja toniranog filma.
-NTV-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,"Nizak nivo tečnosti (ulje, rashladna, kočiona),"
+NTV-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,"Nizak nivo tečnosti (ulje, rashladna, kočiona)"
 NTV-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,labave obujmice creva
 NTV-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,nepravilno rutirani kablovi
 NTV-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,nedostatak plastičnih poklopaca.
-NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,"Curenje tečnosti na spojevima (menjač, karter), , ,"
+NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,"Curenje tečnosti na spojevima (menjač, karter)"
 NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,labave zaštitne plastike (šuspleh)
 NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,korozija na spojevima
 NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,loše zategnuti elementi oslanjanja.
-NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,"Ogrebotine na alu-felnama, ,"
-NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,"pogrešan smer rotacije gume,"
+NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,Ogrebotine na alu-felnama
+NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,pogrešan smer rotacije gume
 NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,nedovoljan pritisak
 NTV-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,nedostatak kapica na ventilima.
-NTV-INT-001,ENTERIJER (Kabina),Instrument tabla,"Loš zazor na spojevima plastika,, , ."
+NTV-INT-001,ENTERIJER (Kabina),Instrument tabla,"Loš zazor na spojevima plastika, ."
 NTV-INT-001,ENTERIJER (Kabina),Instrument tabla,cvrčanje/škripa pri pritisku
 NTV-INT-001,ENTERIJER (Kabina),Instrument tabla,ogrebotine na mekim površinama
 NTV-INT-001,ENTERIJER (Kabina),Instrument tabla,loše uklopljen vazdušni jastuk suvozača
-NTV-INT-001,ENTERIJER (Kabina),Centralna konzola,"Labavost naslona za ruku, , ,."
+NTV-INT-001,ENTERIJER (Kabina),Centralna konzola,"Labavost naslona za ruku, ."
 NTV-INT-001,ENTERIJER (Kabina),Centralna konzola,loš hod poklopaca/pregrada
 NTV-INT-001,ENTERIJER (Kabina),Centralna konzola,ogrebotine na sjajnim (Piano black) površinama
 NTV-INT-001,ENTERIJER (Kabina),Centralna konzola,labava ručica menjača
-NTV-INT-001,ENTERIJER (Kabina),Sedište vozača,"Oštećenje šavova,, ."
+NTV-INT-001,ENTERIJER (Kabina),Sedište vozača,"Oštećenje šavova, ."
 NTV-INT-001,ENTERIJER (Kabina),Sedište vozača,naborana koža/tkanina
-NTV-INT-001,ENTERIJER (Kabina),Sedište vozača,"neispravan mehanizam pomeranja (ručni/elektro),"
+NTV-INT-001,ENTERIJER (Kabina),Sedište vozača,neispravan mehanizam pomeranja (ručni/elektro)
 NTV-INT-001,ENTERIJER (Kabina),Sedište vozača,klimanje sedišta u šinama
-NTV-INT-001,ENTERIJER (Kabina),Sedište suvozača,"Oštećenje šavova,, ."
+NTV-INT-001,ENTERIJER (Kabina),Sedište suvozača,"Oštećenje šavova, ."
 NTV-INT-001,ENTERIJER (Kabina),Sedište suvozača,naborana koža/tkanina
-NTV-INT-001,ENTERIJER (Kabina),Sedište suvozača,"neispravan mehanizam pomeranja (ručni/elektro),"
+NTV-INT-001,ENTERIJER (Kabina),Sedište suvozača,neispravan mehanizam pomeranja (ručni/elektro)
 NTV-INT-001,ENTERIJER (Kabina),Sedište suvozača,klimanje sedišta u šinama
-NTV-INT-001,ENTERIJER (Kabina),Zadnja sedišta,"Loše fiksiran donji deo klupe,"
-NTV-INT-001,ENTERIJER (Kabina),Zadnja sedišta,"problem sa preklapanjem naslona,"
+NTV-INT-001,ENTERIJER (Kabina),Zadnja sedišta,Loše fiksiran donji deo klupe
+NTV-INT-001,ENTERIJER (Kabina),Zadnja sedišta,problem sa preklapanjem naslona
 NTV-INT-001,ENTERIJER (Kabina),Zadnja sedišta,oštećenja ISOFIX priključaka.
-NTV-INT-001,ENTERIJER (Kabina),Enterijer,"Oštećenja tapacirunga krova (nebo),"
-NTV-INT-001,ENTERIJER (Kabina),Enterijer,"ogrebotine na oblogama stubova (A, B, C),"
-NTV-INT-001,ENTERIJER (Kabina),Enterijer,"labavi rukohvati na krovu,"
+NTV-INT-001,ENTERIJER (Kabina),Enterijer,Oštećenja tapacirunga krova (nebo)
+NTV-INT-001,ENTERIJER (Kabina),Enterijer,"ogrebotine na oblogama stubova (A, B, C)"
+NTV-INT-001,ENTERIJER (Kabina),Enterijer,labavi rukohvati na krovu
 NTV-INT-001,ENTERIJER (Kabina),Enterijer,loše postavljeni tepisi/patosnice.
-NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,"Greška na instrument tabli, , ,"
+NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,Greška na instrument tabli
 NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,nefunkcionalan USB/12V priključak
 NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,otkaz podizača prozora
 NTV-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,problem sa audio sistemom.
-NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,"Kondenzacija (vlaga) unutar fara/stop svetla, , ,"
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,Kondenzacija (vlaga) unutar fara/stop svetla
 NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,nefunkcionalna LED traka
 NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,loš intenzitet svetla
 NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
 NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
-NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,"Labavost parking senzora (upali unutra), ,"
+NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,Labavost parking senzora (upali unutra)
 NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,prljava ili izgrebana sočiva kamera (rikverc/360)
 NTV-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,loša kalibracija radara.
-NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"Labav pod gepeka, ,"
+NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,Labav pod gepeka
 NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,oštećenje bočnih tapacirunga
-NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica),"
+NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica)"
 NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,neispravno svetlo gepeka.
-NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), , ."
+NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), ."
 NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,neispravna klima/grejanje
 NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
 NTV-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
-NTV-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu,, , ."
+NTV-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu, ."
 NTV-FINAL-001,OSTALO,Ostalo,tragovi voska za zaštitu
 NTV-FINAL-001,OSTALO,Ostalo,nedostajuće zaštitne folije
 NTV-FINAL-001,OSTALO,Ostalo,nepravilna prateća dokumentacija u vozilu
@@ -126,21 +126,21 @@ MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,visinsko odstupanje u od
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,"oštećenja boje (tačke, prašina u laku)"
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,loše zatvaranje bravice.
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,buka
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,"Ogrebotine,,"
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,Ogrebotine
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,ulubljenja (kontura)
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,loš spoj sa pragom i A-stubom.
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,"Ogrebotine,,"
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,Ogrebotine
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,ulubljenja (kontura)
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,loš spoj sa pragom i A-stubom.
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, , , ."
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, ."
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,zvuk škripanja pri otvaranju
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,ogrebotine oko kvake
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,loše nalepljena zaptivna guma (kedera)
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, , , ."
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, ."
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,zvuk škripanja pri otvaranju
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,ogrebotine oko kvake
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,loše nalepljena zaptivna guma (kedera)
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, , , ."
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, ."
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,zvuk škripanja pri otvaranju
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,ogrebotine oko kvake
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,loše nalepljena zaptivna guma (kedera)
@@ -158,11 +158,11 @@ MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,prelazi boj
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,loš spoj sa C-stubom i branikom
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,"poklopac rezervoara/priključka za punjenje (labavost, zazor)"
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"Loše poravnanje sa svetlima i krilima, i."
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"ogrebotine pri dnu,"
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,ogrebotine pri dnu
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,labavi nosač
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"Teško zatvaranje,"
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,Teško zatvaranje
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,neujednačen zazor sa svetlosnim grupama
-MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"visinska odstupanja,"
+MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,visinska odstupanja
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,loše zaptivanje gume.
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,Talasi na limu
 MRAP-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,oštećenja boje od transporta
@@ -171,65 +171,65 @@ MRAP-KAROS-001,STAKLENE POVRŠINE,Vetrobran,Pukotine (zvezdice)
 MRAP-KAROS-001,STAKLENE POVRŠINE,Vetrobran,ogrebotine od brisača
 MRAP-KAROS-001,STAKLENE POVRŠINE,Vetrobran,loša aplikacija lepka (curenje vode)
 MRAP-KAROS-001,STAKLENE POVRŠINE,Vetrobran,fabrički mehurići u staklu.
-MRAP-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"Ogrebotine od podizanja/spuštanja,"
-MRAP-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"zazor pri zatvaranju (prolaz vazduha),"
+MRAP-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,Ogrebotine od podizanja/spuštanja
+MRAP-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,zazor pri zatvaranju (prolaz vazduha)
 MRAP-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,oštećenja toniranog filma.
-MRAP-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,"Nizak nivo tečnosti (ulje, rashladna, kočiona),"
+MRAP-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,"Nizak nivo tečnosti (ulje, rashladna, kočiona)"
 MRAP-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,labave obujmice creva
 MRAP-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,nepravilno rutirani kablovi
 MRAP-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,nedostatak plastičnih poklopaca.
-MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,"Curenje tečnosti na spojevima (menjač, karter), , ,"
+MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,"Curenje tečnosti na spojevima (menjač, karter)"
 MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,labave zaštitne plastike (šuspleh)
 MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,korozija na spojevima
 MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,loše zategnuti elementi oslanjanja.
-MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,"Ogrebotine na alu-felnama, ,"
-MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,"pogrešan smer rotacije gume,"
+MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,Ogrebotine na alu-felnama
+MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,pogrešan smer rotacije gume
 MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,nedovoljan pritisak
 MRAP-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,nedostatak kapica na ventilima.
-MRAP-INT-001,ENTERIJER (Kabina),Instrument tabla,"Loš zazor na spojevima plastika,, , ."
+MRAP-INT-001,ENTERIJER (Kabina),Instrument tabla,"Loš zazor na spojevima plastika, ."
 MRAP-INT-001,ENTERIJER (Kabina),Instrument tabla,cvrčanje/škripa pri pritisku
 MRAP-INT-001,ENTERIJER (Kabina),Instrument tabla,ogrebotine na mekim površinama
 MRAP-INT-001,ENTERIJER (Kabina),Instrument tabla,loše uklopljen vazdušni jastuk suvozača
-MRAP-INT-001,ENTERIJER (Kabina),Centralna konzola,"Labavost naslona za ruku, , ,."
+MRAP-INT-001,ENTERIJER (Kabina),Centralna konzola,"Labavost naslona za ruku, ."
 MRAP-INT-001,ENTERIJER (Kabina),Centralna konzola,loš hod poklopaca/pregrada
 MRAP-INT-001,ENTERIJER (Kabina),Centralna konzola,ogrebotine na sjajnim (Piano black) površinama
 MRAP-INT-001,ENTERIJER (Kabina),Centralna konzola,labava ručica menjača
-MRAP-INT-001,ENTERIJER (Kabina),Sedište vozača,"Oštećenje šavova,, ."
+MRAP-INT-001,ENTERIJER (Kabina),Sedište vozača,"Oštećenje šavova, ."
 MRAP-INT-001,ENTERIJER (Kabina),Sedište vozača,naborana koža/tkanina
-MRAP-INT-001,ENTERIJER (Kabina),Sedište vozača,"neispravan mehanizam pomeranja (ručni/elektro),"
+MRAP-INT-001,ENTERIJER (Kabina),Sedište vozača,neispravan mehanizam pomeranja (ručni/elektro)
 MRAP-INT-001,ENTERIJER (Kabina),Sedište vozača,klimanje sedišta u šinama
-MRAP-INT-001,ENTERIJER (Kabina),Sedište suvozača,"Oštećenje šavova,, ."
+MRAP-INT-001,ENTERIJER (Kabina),Sedište suvozača,"Oštećenje šavova, ."
 MRAP-INT-001,ENTERIJER (Kabina),Sedište suvozača,naborana koža/tkanina
-MRAP-INT-001,ENTERIJER (Kabina),Sedište suvozača,"neispravan mehanizam pomeranja (ručni/elektro),"
+MRAP-INT-001,ENTERIJER (Kabina),Sedište suvozača,neispravan mehanizam pomeranja (ručni/elektro)
 MRAP-INT-001,ENTERIJER (Kabina),Sedište suvozača,klimanje sedišta u šinama
-MRAP-INT-001,ENTERIJER (Kabina),Zadnja sedišta,"Loše fiksiran donji deo klupe,"
-MRAP-INT-001,ENTERIJER (Kabina),Zadnja sedišta,"problem sa preklapanjem naslona,"
+MRAP-INT-001,ENTERIJER (Kabina),Zadnja sedišta,Loše fiksiran donji deo klupe
+MRAP-INT-001,ENTERIJER (Kabina),Zadnja sedišta,problem sa preklapanjem naslona
 MRAP-INT-001,ENTERIJER (Kabina),Zadnja sedišta,oštećenja ISOFIX priključaka.
-MRAP-INT-001,ENTERIJER (Kabina),Enterijer,"Oštećenja tapacirunga krova (nebo),"
-MRAP-INT-001,ENTERIJER (Kabina),Enterijer,"ogrebotine na oblogama stubova (A, B, C),"
-MRAP-INT-001,ENTERIJER (Kabina),Enterijer,"labavi rukohvati na krovu,"
+MRAP-INT-001,ENTERIJER (Kabina),Enterijer,Oštećenja tapacirunga krova (nebo)
+MRAP-INT-001,ENTERIJER (Kabina),Enterijer,"ogrebotine na oblogama stubova (A, B, C)"
+MRAP-INT-001,ENTERIJER (Kabina),Enterijer,labavi rukohvati na krovu
 MRAP-INT-001,ENTERIJER (Kabina),Enterijer,loše postavljeni tepisi/patosnice.
-MRAP-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,"Greška na instrument tabli, , ,"
+MRAP-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,Greška na instrument tabli
 MRAP-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,nefunkcionalan USB/12V priključak
 MRAP-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,otkaz podizača prozora
 MRAP-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,problem sa audio sistemom.
-MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,"Kondenzacija (vlaga) unutar fara/stop svetla, , ,"
+MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,Kondenzacija (vlaga) unutar fara/stop svetla
 MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,nefunkcionalna LED traka
 MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,loš intenzitet svetla
 MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
 MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
-MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,"Labavost parking senzora (upali unutra), ,"
+MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,Labavost parking senzora (upali unutra)
 MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,prljava ili izgrebana sočiva kamera (rikverc/360)
 MRAP-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,loša kalibracija radara.
-MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"Labav pod gepeka, ,"
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,Labav pod gepeka
 MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,oštećenje bočnih tapacirunga
-MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica),"
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica)"
 MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,neispravno svetlo gepeka.
-MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), , ."
+MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), ."
 MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,neispravna klima/grejanje
 MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
 MRAP-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
-MRAP-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu,, , ."
+MRAP-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu, ."
 MRAP-FINAL-001,OSTALO,Ostalo,tragovi voska za zaštitu
 MRAP-FINAL-001,OSTALO,Ostalo,nedostajuće zaštitne folije
 MRAP-FINAL-001,OSTALO,Ostalo,nepravilna prateća dokumentacija u vozilu
@@ -243,21 +243,21 @@ MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,visinsko odstupanje u o
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,"oštećenja boje (tačke, prašina u laku)"
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,loše zatvaranje bravice.
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Hauba,buka
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,"Ogrebotine,,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,Ogrebotine
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,ulubljenja (kontura)
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo,loš spoj sa pragom i A-stubom.
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,"Ogrebotine,,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,Ogrebotine
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,ulubljenja (kontura)
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo,loš spoj sa pragom i A-stubom.
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, , , ."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,"Loš zazor/poravnanje, ."
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,zvuk škripanja pri otvaranju
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,ogrebotine oko kvake
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata,loše nalepljena zaptivna guma (kedera)
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, , , ."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,"Loš zazor/poravnanje, ."
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,zvuk škripanja pri otvaranju
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,ogrebotine oko kvake
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata,loše nalepljena zaptivna guma (kedera)
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, , , ."
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,"Loš zazor/poravnanje, ."
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,zvuk škripanja pri otvaranju
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,ogrebotine oko kvake
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata,loše nalepljena zaptivna guma (kedera)
@@ -275,11 +275,11 @@ MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,prelazi bo
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,loš spoj sa C-stubom i branikom
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo,"poklopac rezervoara/priključka za punjenje (labavost, zazor)"
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"Loše poravnanje sa svetlima i krilima, i."
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,"ogrebotine pri dnu,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,ogrebotine pri dnu
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Zadnji branik,labavi nosač
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"Teško zatvaranje,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,Teško zatvaranje
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,neujednačen zazor sa svetlosnim grupama
-MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,"visinska odstupanja,"
+MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,visinska odstupanja
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka,loše zaptivanje gume.
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,Talasi na limu
 MRAP1-KAROS-001,EKSTERIJER (Karoserija i Limarija),Krov,oštećenja boje od transporta
@@ -288,65 +288,65 @@ MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,Pukotine (zvezdice)
 MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,ogrebotine od brisača
 MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,loša aplikacija lepka (curenje vode)
 MRAP1-KAROS-001,STAKLENE POVRŠINE,Vetrobran,fabrički mehurići u staklu.
-MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"Ogrebotine od podizanja/spuštanja,"
-MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,"zazor pri zatvaranju (prolaz vazduha),"
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,Ogrebotine od podizanja/spuštanja
+MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,zazor pri zatvaranju (prolaz vazduha)
 MRAP1-KAROS-001,STAKLENE POVRŠINE,Bočna stakla,oštećenja toniranog filma.
-MRAP1-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,"Nizak nivo tečnosti (ulje, rashladna, kočiona),"
+MRAP1-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,"Nizak nivo tečnosti (ulje, rashladna, kočiona)"
 MRAP1-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,labave obujmice creva
 MRAP1-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,nepravilno rutirani kablovi
 MRAP1-MOTOR-001,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor,nedostatak plastičnih poklopaca.
-MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,"Curenje tečnosti na spojevima (menjač, karter), , ,"
+MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,"Curenje tečnosti na spojevima (menjač, karter)"
 MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,labave zaštitne plastike (šuspleh)
 MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,korozija na spojevima
 MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Podvozje,loše zategnuti elementi oslanjanja.
-MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,"Ogrebotine na alu-felnama, ,"
-MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,"pogrešan smer rotacije gume,"
+MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,Ogrebotine na alu-felnama
+MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,pogrešan smer rotacije gume
 MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,nedovoljan pritisak
 MRAP1-TRANS-001,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume,nedostatak kapica na ventilima.
-MRAP1-INT-001,ENTERIJER (Kabina),Instrument tabla,"Loš zazor na spojevima plastika,, , ."
+MRAP1-INT-001,ENTERIJER (Kabina),Instrument tabla,"Loš zazor na spojevima plastika, ."
 MRAP1-INT-001,ENTERIJER (Kabina),Instrument tabla,cvrčanje/škripa pri pritisku
 MRAP1-INT-001,ENTERIJER (Kabina),Instrument tabla,ogrebotine na mekim površinama
 MRAP1-INT-001,ENTERIJER (Kabina),Instrument tabla,loše uklopljen vazdušni jastuk suvozača
-MRAP1-INT-001,ENTERIJER (Kabina),Centralna konzola,"Labavost naslona za ruku, , ,."
+MRAP1-INT-001,ENTERIJER (Kabina),Centralna konzola,"Labavost naslona za ruku, ."
 MRAP1-INT-001,ENTERIJER (Kabina),Centralna konzola,loš hod poklopaca/pregrada
 MRAP1-INT-001,ENTERIJER (Kabina),Centralna konzola,ogrebotine na sjajnim (Piano black) površinama
 MRAP1-INT-001,ENTERIJER (Kabina),Centralna konzola,labava ručica menjača
-MRAP1-INT-001,ENTERIJER (Kabina),Sedište vozača,"Oštećenje šavova,, ."
+MRAP1-INT-001,ENTERIJER (Kabina),Sedište vozača,"Oštećenje šavova, ."
 MRAP1-INT-001,ENTERIJER (Kabina),Sedište vozača,naborana koža/tkanina
-MRAP1-INT-001,ENTERIJER (Kabina),Sedište vozača,"neispravan mehanizam pomeranja (ručni/elektro),"
+MRAP1-INT-001,ENTERIJER (Kabina),Sedište vozača,neispravan mehanizam pomeranja (ručni/elektro)
 MRAP1-INT-001,ENTERIJER (Kabina),Sedište vozača,klimanje sedišta u šinama
-MRAP1-INT-001,ENTERIJER (Kabina),Sedište suvozača,"Oštećenje šavova,, ."
+MRAP1-INT-001,ENTERIJER (Kabina),Sedište suvozača,"Oštećenje šavova, ."
 MRAP1-INT-001,ENTERIJER (Kabina),Sedište suvozača,naborana koža/tkanina
-MRAP1-INT-001,ENTERIJER (Kabina),Sedište suvozača,"neispravan mehanizam pomeranja (ručni/elektro),"
+MRAP1-INT-001,ENTERIJER (Kabina),Sedište suvozača,neispravan mehanizam pomeranja (ručni/elektro)
 MRAP1-INT-001,ENTERIJER (Kabina),Sedište suvozača,klimanje sedišta u šinama
-MRAP1-INT-001,ENTERIJER (Kabina),Zadnja sedišta,"Loše fiksiran donji deo klupe,"
-MRAP1-INT-001,ENTERIJER (Kabina),Zadnja sedišta,"problem sa preklapanjem naslona,"
+MRAP1-INT-001,ENTERIJER (Kabina),Zadnja sedišta,Loše fiksiran donji deo klupe
+MRAP1-INT-001,ENTERIJER (Kabina),Zadnja sedišta,problem sa preklapanjem naslona
 MRAP1-INT-001,ENTERIJER (Kabina),Zadnja sedišta,oštećenja ISOFIX priključaka.
-MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,"Oštećenja tapacirunga krova (nebo),"
-MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,"ogrebotine na oblogama stubova (A, B, C),"
-MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,"labavi rukohvati na krovu,"
+MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,Oštećenja tapacirunga krova (nebo)
+MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,"ogrebotine na oblogama stubova (A, B, C)"
+MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,labavi rukohvati na krovu
 MRAP1-INT-001,ENTERIJER (Kabina),Enterijer,loše postavljeni tepisi/patosnice.
-MRAP1-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,"Greška na instrument tabli, , ,"
+MRAP1-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,Greška na instrument tabli
 MRAP1-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,nefunkcionalan USB/12V priključak
 MRAP1-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,otkaz podizača prozora
 MRAP1-EL-001,FUNKCIONALNE ZONE I PODVOZJE,Elektrika,problem sa audio sistemom.
-MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,"Kondenzacija (vlaga) unutar fara/stop svetla, , ,"
+MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,Kondenzacija (vlaga) unutar fara/stop svetla
 MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,nefunkcionalna LED traka
 MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,loš intenzitet svetla
 MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
 MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta,neispravni migavci ili maglenke.
-MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,"Labavost parking senzora (upali unutra), ,"
+MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,Labavost parking senzora (upali unutra)
 MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,prljava ili izgrebana sočiva kamera (rikverc/360)
 MRAP1-EL-001,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori,loša kalibracija radara.
-MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"Labav pod gepeka, ,"
+MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,Labav pod gepeka
 MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,oštećenje bočnih tapacirunga
-MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica),"
+MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,"nedostatak prateće opreme (rezervni točak/kit, dizalica)"
 MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor,neispravno svetlo gepeka.
-MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), , ."
+MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,"Loš odziv multimedije (ekrana na dodir), ."
 MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,neispravna klima/grejanje
 MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
 MRAP1-FINAL-001,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test,otkaz električne ručne kočnice
-MRAP1-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu,, , ."
+MRAP1-FINAL-001,OSTALO,Ostalo,"Prljavština na vozilu, ."
 MRAP1-FINAL-001,OSTALO,Ostalo,tragovi voska za zaštitu
 MRAP1-FINAL-001,OSTALO,Ostalo,nedostajuće zaštitne folije
 MRAP1-FINAL-001,OSTALO,Ostalo,nepravilna prateća dokumentacija u vozilu

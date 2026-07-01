@@ -5,7 +5,11 @@ import { statPoGrupi, korelacijaPozicijaMasina } from "../lib/varijabilneSpcStat
 import { formatVrednostKarte } from "../lib/varijabilneUtils.js";
 
 import { supabase } from "../lib/supabaseClient.js";
-import { exportOsmdIzvestajPdf, osmdPayloadIzForme } from "../lib/osmdIzvestajPdf.js";
+import { exportOsmdIzvestajPdf, osmdPayloadIzForme, stampajOsmdIzvestaj, exportOsmdIzvestajWord } from "../lib/osmdIzvestajPdf.js";
+import { normalizujPrefill8d } from "../lib/eskalacijeHelper.js";
+import { ucitajPfmeaCpPaketZa8d } from "../lib/osmdPfmeaCpPaket.js";
+import { exportKvalitetPaketZip } from "../lib/kvalitetPaket.js";
+import OsmdEditor, { OsmdScrollOkvir } from "./OsmdEditor.jsx";
 
 const BOJE_GRUPE = (C) => [C.plava, C.narandzasta, C.ljubicasta, C.zelena, "#22d3ee", "#f472b6"];
 
@@ -516,113 +520,6 @@ export function ArhivaNokMerljive({ merenja, idDeo, C }) {
   );
 }
 
-const POLJA_8D = [
-  { key: "d1_tim", label: "D1 — Tim", ph: "Članovi tima i voditelj…" },
-  { key: "d2_opis_problema", label: "D2 — Opis problema", ph: "Dimenzija, vrednost, trend, mašina…" },
-  { key: "d3_privremena_akcija", label: "D3 — Privremena akcija", ph: "Zaštita procesa / sortiranje…" },
-  { key: "d4_uzrok", label: "D4 — Uzrok", ph: "5×Zašto, koren uzroka…" },
-  { key: "d5_korektivna", label: "D5 — Korektivna akcija", ph: "Eliminacija uzroka…" },
-  { key: "d6_implementacija", label: "D6 — Implementacija", ph: "Ko, šta, rok…" },
-  { key: "d7_prevencija", label: "D7 — Prevencija", ph: "SPC, kalibracija, obuka…" },
-  { key: "d8_zakljucak", label: "D8 — Zaključak", ph: "Tim, validacija…" },
-];
-
-function Editor8DMerljive({ izvestaj, sviDelovi, onSacuvaj, onNazad, onPDF, C }) {
-  const [form, setForm] = useState({
-    id: izvestaj.id || null,
-    id_deo: izvestaj.id_deo || "",
-    naziv_dela: izvestaj.naziv_dela || "",
-    created_at: izvestaj.created_at || null,
-    status: izvestaj.status || "u_izradi",
-    d1_tim: izvestaj.d1_tim || "",
-    d2_opis_problema: izvestaj.d2_opis_problema || "",
-    d3_privremena_akcija: izvestaj.d3_privremena_akcija || "",
-    d4_uzrok: izvestaj.d4_uzrok || "",
-    d5_korektivna: izvestaj.d5_korektivna || "",
-    d6_implementacija: izvestaj.d6_implementacija || "",
-    d7_prevencija: izvestaj.d7_prevencija || "",
-    d8_zakljucak: izvestaj.d8_zakljucak || "",
-  });
-
-  const INP = {
-    width: "100%", background: C.input, border: `1px solid ${C.border}`, borderRadius: 8,
-    color: C.tekst, fontSize: 13, padding: "10px 12px", boxSizing: "border-box",
-    outline: "none", fontFamily: "inherit",
-  };
-  const popunjeno = POLJA_8D.filter(p => form[p.key]?.trim()).length;
-
-  return (
-    <div style={{ maxWidth: 680 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <button type="button" onClick={onNazad}
-          style={{ background: "none", border: "none", color: C.sivi, fontSize: 14, cursor: "pointer" }}>← Nazad</button>
-        <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700 }}>8D izveštaj</div>
-        <button type="button" onClick={() => onPDF(form)}
-          style={{
-            background: "#7c3aed", border: "none", borderRadius: 7, color: "#fff",
-            fontSize: 11, fontWeight: 700, padding: "7px 14px", cursor: "pointer",
-          }}>📄 PDF</button>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        <div>
-          <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 5 }}>ID DELA</div>
-          <select value={form.id_deo} onChange={e => {
-            const d = sviDelovi.find(x => x.id_deo === e.target.value);
-            setForm(p => ({ ...p, id_deo: e.target.value, naziv_dela: d?.naziv_dela || "" }));
-          }} style={{ ...INP, cursor: "pointer" }}>
-            <option value="">— Izaberi —</option>
-            {sviDelovi.map(d => (
-              <option key={d.id_deo} value={d.id_deo}>{d.id_deo} — {d.naziv_dela}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 5 }}>STATUS</div>
-          <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
-            style={{ ...INP, cursor: "pointer" }}>
-            <option value="u_izradi">U izradi</option>
-            <option value="pregled">Na pregledu</option>
-            <option value="zavrsen">Završen</option>
-          </select>
-        </div>
-      </div>
-      <div style={{
-        background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12,
-      }}>
-        <div style={{ flex: 1, background: C.hover, borderRadius: 3, height: 6 }}>
-          <div style={{
-            background: C.plava, width: `${(popunjeno / 8) * 100}%`, height: 6, borderRadius: 3,
-          }} />
-        </div>
-        <span style={{ color: C.sivi, fontSize: 11 }}>{popunjeno}/8</span>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {POLJA_8D.map((p, i) => (
-          <div key={p.key}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-              <span style={{
-                background: form[p.key]?.trim() ? C.zelena : C.hover,
-                color: form[p.key]?.trim() ? "#fff" : C.sivi,
-                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, minWidth: 24, textAlign: "center",
-              }}>{i + 1}</span>
-              <span style={{ color: C.tekst, fontSize: 12, fontWeight: 600 }}>{p.label}</span>
-            </div>
-            <textarea value={form[p.key] || ""} onChange={e => setForm(pr => ({ ...pr, [p.key]: e.target.value }))}
-              placeholder={p.ph} rows={3} style={{ ...INP, resize: "vertical", minHeight: 70 }} />
-          </div>
-        ))}
-      </div>
-      <button type="button" onClick={() => onSacuvaj(form)} style={{
-        width: "100%", background: C.plava, border: "none", borderRadius: 10, color: "#fff",
-        fontSize: 14, fontWeight: 700, padding: "14px", cursor: "pointer", marginTop: 16,
-      }}>
-        💾 Sačuvaj 8D
-      </button>
-    </div>
-  );
-}
-
 export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed }) {
   const [izvestaji, setIzvestaji] = useState([]);
   const [aktivni, setAktivni] = useState(null);
@@ -637,12 +534,7 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
 
   useEffect(() => {
     if (!prefill) return;
-    setAktivni({
-      id_deo: prefill.id_deo || "",
-      d2_opis_problema: prefill.opis || prefill.d2_opis_problema || "",
-      d3_privremena_akcija: prefill.d3_privremena_akcija || "",
-      d5_korektivna: prefill.d5_korektivna || prefill.korektivna_akcija || "",
-    });
+    setAktivni(normalizujPrefill8d(prefill));
     onPrefillUsed?.();
   }, [prefill, onPrefillUsed]);
 
@@ -660,27 +552,84 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
       setIzvestaji(p => (isNew ? [data, ...p] : p.map(i => (i.id === data.id ? data : i))));
       setAktivni(data);
       addToast(`✓ 8D ${isNew ? "kreiran" : "sačuvan"}`, "uspeh");
-    } else addToast(error.message, "greska");
+      return data;
+    }
+    addToast(error.message, "greska");
+    return null;
+  };
+
+  const exportPaketZip = async (form) => {
+    let f = form;
+    if (!f?.id) {
+      f = await sacuvaj(form);
+      if (!f) return;
+    }
+    try {
+      const { dokument } = await ucitajPfmeaCpPaketZa8d(supabase, {
+        osmdId: f.id,
+        broj8d: f.broj_8d,
+        idDeo: f.id_deo,
+      });
+      await exportKvalitetPaketZip(f, dokument, {
+        imeFajla: `Paket_8D_merljive_${f.broj_8d || f.id_deo || f.id}`,
+      });
+      addToast("✓ Paket preuzet (ZIP: Word 8D + RPN + Excel PFMEA/CP)", "uspeh");
+    } catch (e) {
+      console.error(e);
+      addToast(e?.message || "Paket nije mogao da se generiše", "greska");
+    }
+  };
+
+  const exportWord8D = (izv) => {
+    try {
+      exportOsmdIzvestajWord(izv, {
+        naslov: "8D izveštaj — merljive",
+        podnaslov: "Merljive karakteristike · metoda 8 disciplina",
+        prefiksFajla: "8D_merljive",
+      });
+      addToast("✓ Word dokument preuzet", "uspeh");
+    } catch (e) {
+      addToast(e?.message || "Word izvoz nije uspeo", "greska");
+    }
   };
 
   const exportPDF8D = async (izv) => {
     try {
-      await exportOsmdIzvestajPdf(izv, { naslov: "8D IZVESTAJ — MERLJIVE", prefiksFajla: "8D_merljive" });
+      await exportOsmdIzvestajPdf(izv, {
+        naslov: "8D izveštaj — merljive",
+        podnaslov: "Merljive karakteristike · metoda 8 disciplina",
+        prefiksFajla: "8D_merljive",
+      });
     } catch (e) {
       console.error(e);
-      addToast(e?.message || "PDF nije mogao da se generise", "greska");
+      addToast(e?.message || "PDF nije mogao da se generiše", "greska");
+    }
+  };
+
+  const stampaj8D = async (izv) => {
+    try {
+      await stampajOsmdIzvestaj(izv, {
+        naslov: "8D izveštaj — merljive",
+        podnaslov: "Merljive karakteristike · metoda 8 disciplina",
+      });
+    } catch (e) {
+      addToast(e?.message || "Štampa nije uspela", "greska");
     }
   };
 
   if (aktivni !== null) {
     return (
-      <Editor8DMerljive izvestaj={aktivni} sviDelovi={sviDelovi}
-        onSacuvaj={sacuvaj} onNazad={() => setAktivni(null)} onPDF={exportPDF8D} C={C} />
+      <OsmdEditor izvestaj={aktivni} sviDelovi={sviDelovi} padding={0}
+        onSacuvaj={sacuvaj} onNazad={() => setAktivni(null)} onPDF={exportPDF8D}
+        onWord={exportWord8D} onStampaj={stampaj8D}
+        onExportPaket={exportPaketZip} supabase={supabase}
+        C={C} addToast={addToast} />
     );
   }
 
   return (
-    <div>
+    <OsmdScrollOkvir>
+    <div style={{ padding: "0 4px", maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>8D izveštaji</div>
         <button type="button" onClick={() => setAktivni({})}
@@ -702,7 +651,10 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
                 padding: "12px 14px", cursor: "pointer",
               }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: C.tekst, fontWeight: 700, fontSize: 12 }}>{i.id_deo}</span>
+                <span style={{ color: C.tekst, fontWeight: 700, fontSize: 12 }}>{i.broj_8d || i.id_deo}</span>
+                {i.broj_reklamacije && (
+                  <span style={{ color: C.sivi, fontSize: 10 }}>· {i.broj_reklamacije}</span>
+                )}
                 <span style={{ color: C.sivi, fontSize: 10 }}>
                   {new Date(i.created_at).toLocaleDateString("sr-RS")}
                 </span>
@@ -718,5 +670,6 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
         </div>
       )}
     </div>
+    </OsmdScrollOkvir>
   );
 }

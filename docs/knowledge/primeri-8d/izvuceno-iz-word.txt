@@ -1,0 +1,819 @@
+KONTROLA KVALITETA · SPC
+8D Izveštaj — Nosač motora
+Defekt: Pukotina zavara na nosačima  ·  ID: 8D-NM-001
+ZAGLAVLJE 8D IZVEŠTAJA
+Broj 8D izveštaja
+8D-NM-001
+Naziv dela (SPC ID)
+Nosač motora (8D-NM-001)
+Defekt / nedostatak
+Pukotina zavara na nosačima
+Količina u reklamaciji
+12 kom (LOT: NM-2026-042)
+Kupac / Korisnik
+OEM — Interní kupac (Montaža vozila)
+Datum prijema reklamacije
+05.06.2026.
+Datum otvaranja 8D
+06.06.2026.
+Ciljani datum zatvaranja
+04.07.2026.
+Status
+Završen
+D1    Tim
+ČLANOVI TIMA
+Vodja tima
+Ing. M. Petrović (Kvalitet)
+Proizvodnja
+D. Jovanović (Supervizor zavarivanja)
+Inženjering
+T. Nikolić (Procesni inž.)
+Nabavka
+S. Đorđević (Kontakt dobavljača)
+Održavanje
+R. Marković (Tehničar zavariv.)
+D2    Opis problema (5W1H)
+INICIJALNI OPIS POJAVE / NEDOSTATKA
+Na nosačima motora (NM-2026-042) otkrivene su pukotine u zavarenim spojevima tokom finalnog pregleda montaže. Pukotine se nalaze u zoni HAZ (heat-affected zone) na poziciji P3 i P7. Defekt uzrokuje neispunjenje zahteva čvrstoće EM-STD-112.
+5W1H — ANALIZA PROBLEMA
+ŠTA? (What?)
+Pukotina zavara u HAZ zoni — pozicije P3, P7
+KADA? (When?)
+Otkriveno tokom finalnog pregleda montaže — smena 2, 05.06.2026.
+GDE? (Where?)
+Stanica zavarivanja WS-04, Hala B, Linija 2
+KO? (Who?)
+Otkrio: kontrolor K. Vasić; uoočeno na: montažna linija
+KOJI? (Which?)
+Serijski defekt — zahvatio 12 od 80 kom u LOT-u (15%)
+KAKO? (How?)
+Vizuelni pregled + penetrantsko ispitivanje (PT metoda)
+KVANTIFIKACIJA
+12 kom neispravnih / 80 kom u LOT-u = 15% NCR stopa
+D3    Privremena akcija (Containment)
+Neposredne mere:
+Zaustaviti puštanje LOT-a NM-2026-042 — status HOLD.
+Izvršiti 100% PT pregled svih 80 kom u LOT-u.
+Izolovati neispravne nosače u crvenu yonu karantin (Red-Tag area).
+Nabaviti zamenski LOT od rezervnog dobavljača.
+Izvestiti kupca o statusu — rok: 24h.
+Odgovorni za containment:
+Vodja kvaliteta (izolacija i pregled)
+Supervizor zavarivanja (containment LOT)
+Logistika (blokada otpreme)
+D4    Analiza uzroka (5×Zašto + 6M Ishikawa)
+5×ZAŠTO — ANALIZA KORENOG UZROKA
+5×ZAŠTO ANALIZA
+Problem
+Pukotina zavara u HAZ zoni nosača motora
+1. Zašto
+Parametri zavarivanja (napon, brzina) bili izvan specifikacije.
+2. Zašto
+Automatska verifikacija parametara na WS-04 nije bila aktivna.
+3. Zašto
+PM plan za senzorski sistem verifikacije nije bio ažuriran.
+4. Zašto
+Procedura preventivnog održavanja je zastarela (rev. 2022).
+5. Zašto
+Nema procesa periodičnog pregleda PM planova prema zahtevima IATF 16949.
+Korenski uzrok
+Nepostojanje procesa periodičnog pregleda PM planova — zastarela procedura iz 2022.
+Privremena protivmera
+Ručna verifikacija parametara zavarivanja pri svakom komadu; pojačani PT pregled 100%.
+Definitivna protivmera
+Uvođenje SPC praćenja parametara zavarivanja; revizija PM plana; digitalni alarming.
+ISHIKAWA — 6M DIJAGRAM
+Kategorija (M)
+Potencijalni uzroci
+Čovek
+Man
+• Nedovoljna obuka operatera za zavarivanje
+• Zamena iskusnog operatera neiskusnim
+• Umor — duga smena bez rotacije
+Mašina
+Machine
+• Istrošeni kontakti MIG pištolja
+• Neispravni senzori kontrole napona na WS-04
+• Loše kalibrisani regulator žice
+Metoda
+Method
+• Parametri zavarivanja van WPS specifikacije
+• Nema online verifikacije parametara
+• WPS dokument nije ažuriran
+Materijal
+Material
+• Viša vlažnost žice za zavarivanje od spec.
+• Varijacija hemijskog sastava čelika S355
+• Nedovoljna priprema površine (masnoća)
+Merenje
+Measurement
+• PT pregled samo na uzorku — ne 100%
+• Oprema za PT pregled nije kalibrisana
+• Nedovoljno osvetljenje radnog mesta
+Okolina
+Environment
+• Promaja u hali — brzo hlađenje zavara
+• Visoka vlažnost vazduha na lokaciji WS-04
+D5    Korektivne mere
+Implementirati  praćenje parametara zavarivanja (napon, struja, brzina) u realnom vremenu na WS-04.
+Revidirati WPS dokument — uvesti granice tolerancije i alarm pri prekoračenju.
+Obaviti rekalibaciju celokupne merne i procesnog opreme na WS-04 (rok: 3 dana).
+Revidirati PM plan za WS-04 — uključiti kvartalnu proveru senzorskih sistema.
+Uvesti obaveznu obuku operatera pri promeni procesa ili opreme.
+D6    Plan implementacije i verifikacija efikasnosti
+#
+Akcija
+Odgovorni
+Rok
+Status
+1
+Praćenje parametara zavarivanja (napon, struja, brzina)
+Ing. Nikolić / IT
+15.06.2026.
+Završeno
+2
+Revizija WPS dokumenta i implementacija alarma
+Ing. Nikolić
+10.06.2026.
+Završeno
+3
+Rekalibracija opreme WS-04 (napon, senzori)
+Marković / Metrolog
+08.06.2026.
+Završeno
+4
+Revizija PM plana za WS-04
+Marković / Tehnolog
+20.06.2026.
+Završeno
+5
+Obuka operatera (zavarivanje, parametri)
+Jovanović / HR
+25.06.2026.
+Završeno
+6
+Validacija 3 uzastopne serije bez defekta
+Petrović (KK)
+04.07.2026.
+Završeno
+D7    Preventivne mere
+Mere za sprečavanje ponovne pojave defekta:
+Trajno uvesti SPC kartu za napon i struju zavarivanja (X̄-R karta, Cp ≥ 1.67).
+Ugraditi poka-yoke zaustavljanje linije pri prekoračenju parametara WPS.
+Revidirati PFMEA i Control Plan sa novim kontrolama — godišnji review.
+Uvesti Layered Process Audit (LPA) za stanicu WS-04 — nedeljna učestalost.
+Distribuirati Lesson Learned na sve stanice zavarivanja u pogonu.
+Kriterijumi verifikacije efikasnosti:
+0 reklamacija vezano za pukotine zavara u narednih 60 dana.
+Cp/Cpk ≥ 1.67 za parametre zavarivanja (SPC verifikacija).
+100% poštovanje PM plana u narednih 6 ciklusa.
+3 uzastopne serije (LOT) bez pukotine zavara za nosač motora.
+D8    Zaključak i zatvaranje izveštaja
+ZAKLJUČAK 8D IZVEŠTAJA
+Sve korektivne i preventivne mere su uspešno implementirane i verifikacijom efikasnosti potvrđene. SPC praćenje parametara zavarivanja aktivno je na WS-04. PM plan je ažuriran i odobren. Validacijom 3 uzastopnih serija bez defekta potvrđena je efikasnost mera. Izveštaj se zatvara s datumom 04.07.2026. Lesson Learned distribuiran svim relevantnim stanicama.
+LL    Lesson Learned
+Naučene lekcije:
+Parametri zavarivanja moraju biti praćeni u realnom vremenu SPC-om — ručna kontrola nije dovoljna.
+PM planovi moraju biti periodično preispitani — minimum godišnje ili uz izmenu procesa/opreme.
+100% PT pregled pri promeni dobavljača materijala ili pri pojavi prvog defekta.
+WPS dokument mora sadržavati granice tolerancije s automatskim alarmom.
+Lesson Learned deljenje između svih stanica zavarivanja je ključan preventivni korak.
+REF    Veza sa PFMEA i Control Plan
+PFMEA — REFERENCA
+Proces
+Zavarivanje nosača motora — WS-04, MIG postupak
+Potencijalni mod greške
+Pukotina zavara u HAZ zoni (P3, P7)
+Potencijalni efekat
+Neispunjenje zahtjeva čvrstoće EM-STD-112; kvar u eksploataciji
+Otkrivanje (D) — pre
+D = 8 (PT samo na uzorku; bez online verifikacije)
+Otkrivanje (D) — posle
+D = 2 (100% PT + SPC praćenje parametara u realnom vremenu)
+RPN — pre
+RPN = 8×8×9 = 576 (KRITIČNO)
+RPN — posle
+RPN = 3×2×4 = 24 (PRIHVATLJIVO)
+CONTROL PLAN — REFERENCA
+Operacija / Proces
+Zavarivanje — WS-04 / Finalni pregled
+Karakteristika
+Čvrstoća zavarenog spoja; geometrija HAZ zone
+Metoda kontrole
+Uzorak PT pregled (5% LOT); vizuelni pregled
+Učestalost
+Svaki 20. kom (5%)
+Korigovana metoda kontrole
+100% PT pregled + SPC online monitoring (napon, struja, brzina)
+Odgovornost
+Operater WS-04 + KK inspektor (podpisuje svaki LOT)
+</w:pBdr><w:spacing w:before="400" w:after="80"/></w:pPr><w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t>Generisano: 28. 06. 2026.    ·    ID: 8D-NM-001    ·    KONTROLA KVALITETA · SPC
+KONTROLA KVALITETA · SPC
+8D Izveštaj — Šasija vozila
+Defekt: Geometrija šasije van tolerancije (merna tačka B7)  ·  ID: 8D-SA-002
+ZAGLAVLJE 8D IZVEŠTAJA
+Broj 8D izveštaja
+8D-SA-002
+Naziv dela (SPC ID)
+Šasija vozila (8D-SA-002)
+Defekt / nedostatak
+Geometrija šasije van tolerancije (merna tačka B7)
+Količina u reklamaciji
+6 kom (LOT: SA-2026-019)
+Kupac / Korisnik
+OEM — Pogon montaže karoserije
+Datum prijema reklamacije
+10.06.2026.
+Datum otvaranja 8D
+11.06.2026.
+Ciljani datum zatvaranja
+09.07.2026.
+Status
+Završen
+D1    Tim
+ČLANOVI TIMA
+Vodja tima
+Ing. A. Kovač (Kvalitet)
+Proizvodnja
+B. Lazić (Menadžer linije)
+Inženjering
+N. Ristić (CMM)
+Tehnolog
+M. Stanić
+Dobavljač čelika
+D. Filipović
+D2    Opis problema (5W1H)
+INICIJALNI OPIS POJAVE / NEDOSTATKA
+Na šasijama iz LOT-a SA-2026-019 izmerena je devijacija geometrije u mernoj tački B7 (poprečni nosač) od +3.2 mm (specifikacija: ±1.0 mm). Greška uzrokuje nemogućnost montaže prednje osovine i zadovoljenja geometrije kotrljanja prema ŠKODA-VSK-0112.
+5W1H — ANALIZA PROBLEMA
+ŠTA? (What?)
+Geometrija poprečnog nosača — tačka B7 van tolerancije +3.2 mm (spec ±1.0 mm)
+KADA? (When?)
+Otkriveno na CMM merenju — smena 1, 10.06.2026.
+GDE? (Where?)
+CMM merna soba, Hala A; zahvata stanice S-02, S-03
+KO? (Who?)
+Otkrio: metrolog N. Ristić; utiče: montaža prednje osovine
+KOJI? (Which?)
+6 od 40 kom u LOT-u (15%) — merna tačka B7, varijacija sistematska
+KAKO? (How?)
+CMM merenje po protokolu QP-SA-7 — 3D koordinatni uređaj Zeiss Contura
+KVANTIFIKACIJA
+6 kom NCR / 40 kom LOT = 15%; max devijacija: +3.2 mm
+D3    Privremena akcija (Containment)
+Neposredne mere:
+Blokirati LOT SA-2026-019 — oznaka HOLD na svim 40 kom.
+Provesti CMM 100% merenje svih 40 komada — posebno tačka B7.
+Izolovati komade s devijacijom > ±1.0 mm u crvenu zonu karantin.
+Proveriti stanje fiksture FX-SA-07 — geometrijsku verifikaciju.
+Privremeno produžiti interval CMM provere fiksture na svaka 2 sata.
+Odgovorni za containment:
+Metrolog N. Ristić (CMM merenje)
+Tooling M. Stanić (pregled fiksture)
+Logistika (blokada LOT)
+D4    Analiza uzroka (5×Zašto + 6M Ishikawa)
+5×ZAŠTO — ANALIZA KORENOG UZROKA
+5×ZAŠTO ANALIZA
+Problem
+Geometrija šasije — tačka B7 van tolerancije +3.2 mm
+1. Zašto
+Fixtura FX-SA-07 za pozicioniranje poprečnog nosača bila pomerena za 2.8 mm.
+2. Zašto
+Fikstura nije prošla planirani PM pregled u maju 2026.
+3. Zašto
+PM pregled fiksture bio je zakasnio zbog nedostatka resursa (mehaničara).
+4. Zašto
+Plan radnih naloga za PM nije bio prioritetan — ručni sistem bez alarma.
+5. Zašto
+Nema automatiziranog sistema praćenja rokova PM fikstura i alata s eskalacijom.
+Koreni uzrok
+Nepostojanje automatiziranog sistema praćenja PM rokova za fiksture — ručni sistem bez alarma eskalacije.
+Privremena protivmera
+100% CMM provera svake šasije; ručna provera fiksture svaka 2 sata.
+Definitivna protivmera
+Digitalni PM sistem s automatskom eskalacijom; SPC praćenje B7 na liniji.
+ISHIKAWA — 6M DIJAGRAM
+Kategorija (M)
+Potencijalni uzroci
+Čovek
+Man
+• Propust mehaničara pri PM pregledu fiksture
+• Nedostatak stručnog osoblja za PM
+Mašina
+Machine
+• Istrošeni oslonci fiksture FX-SA-07
+• Oštećeni pozicioneri na stanici S-02
+• Istrošeni vijci za fiksiranje fiksture
+Metoda
+Method
+• Ručni PM sistem bez automatskog alarma
+• Interval PM provere fiksture nedovoljan (nedeljni)
+• CMM merenje samo na uzorku — ne 100%
+Materijal
+Material
+• Varijacija debljine lima poprečnog nosača ±0.3 mm
+• Deformacija materijala tokom transporta
+Merenje
+Measurement
+• CMM merenje samo 5% uzorka
+• Protokol merenja B7 nije uključen u linijsku kontrolu
+Okolina
+Environment
+• Vibracije od susednih stanica utiču na fiksaciju
+• Temperaturne varijacije utiču na dimenzije
+D5    Korektivne mere
+Uvesti digitalni sistem praćenja PM rokova fikstura i alata s automatskom eskalacijom (rok: 14 dana).
+Povećati učestalost PM pregleda fiksture FX-SA-07 na dnevni pregled geometrije.
+Uvesti inline merenje tačke B7 na liniji S-03 (laserski senzor) — praćenje u realnom vremenu.
+Implementirati SPC kartu za devijaciju B7 (X̄-R karta, Cp ≥ 1.33).
+Revidirati CMM protokol — uvrstiti 100% merenje pri svakoj promeni LOT-a.
+D6    Plan implementacije i verifikacija efikasnosti
+#
+Akcija
+Odgovorni
+Rok
+Status
+1
+Implementacija digitalnog PM sistema s eskalacijom za fiksture
+Stanić / IT
+25.06.2026.
+Završeno
+2
+Dnevni PM pregled fiksture FX-SA-07 (geometrija)
+Stanić / Mehanicar
+12.06.2026.
+Završeno
+3
+Ugradnja inline laserskog senzora za B7 na S-03
+Ristić / Inženjering
+30.06.2026.
+Završeno
+4
+SPC karta za B7 — implementacija i praćenje
+Kovač / KK
+02.07.2026.
+Završeno
+5
+Revizija CMM protokola — 100% LOT merenje
+Ristić
+15.06.2026.
+Završeno
+6
+Validacija 3 uzastopne serije u toleranciji B7
+Kovač
+09.07.2026.
+Završeno
+D7    Preventivne mere
+Mere za sprečavanje ponovnog pojave defekta:
+Poka-yoke: linija se zaustavlja ako B7 devijacija prekorači ±0.8 mm (Warning limit).
+Godišnja re-verifikacija svih fikstura prema mernom protokolu CMM.
+Revidirati PFMEA za šasiju — uključiti novu FMEA liniju za PM fiksture.
+Distribuirati Lesson Learned na sve pogone koji koriste isti tip fiksture FX serije.
+Kriterijumi verifikacije efikasnosti:
+0 NCR za geometriju šasije u narednih 60 dana.
+Cp/Cpk ≥ 1.33 za tačku B7 (SPC verifikacija).
+100% PM pridržavanje u narednih 12 PM ciklusa.
+3 uzastopna LOT-a bez devijacije B7 > ±1.0 mm.
+D8    Zaključak i zatvaranje izveštaja
+ZAKLJUČAK 8D IZVEŠTAJA
+Geometrijska devijacija šasije u tački B7 otklonjena je uvođenjem dnevnog PM pregleda fiksture FX-SA-07, inline laserskog merenja.SPC praćenje potvrđuje Cp = 1.58 za B7. Validacijom 3 uzastopna LOT-a bez NCR-a, izveštaj se zatvara 09.07.2026. Lesson Learned distribuiran svim pogonima FX serije fikstura.
+LL    Lesson Learned
+Naučene lekcije:
+Geometrijska provera fiksture mora biti deo svakodnevne kontrolne liste (ne samo nedeljne
+Inline merenje kritičnih mernih tačaka na liniji sprečava propuštanje serija s NCR-om.
+Varijacija materijala dobavljača mora biti praćena SPC-om na ulaznoj kontroli.
+REF    Veza sa PFMEA i Control Plan
+PFMEA — REFERENCA
+Proces
+Formiranje i sklapanje šasije — stanice S-02, S-03
+Potencijalni mod greške
+Devijacija geometrije poprečnog nosača — tačka B7
+Potencijalni efekat
+Nemogućnost montaže osovine; geometrija kotrljanja izvan zahteva ŠKODA-VSK-0112
+Otkrivanje (D) — pre
+D = 7 (CMM samo 5% uzorka — kasna detekcija)
+Otkrivanje (D) — posle
+D = 2 (100% inline laserski senzor + SPC + CMM svakog LOT-a)
+RPN — pre
+RPN = 9×7×8 = 504 (KRITIČNO)
+RPN — posle
+RPN = 3×2×3 = 18 (PRIHVATLJIVO)
+CONTROL PLAN — REFERENCA
+Operacija / Proces
+Sklapanje šasije S-02/S-03 / CMM merna soba
+Karakteristika
+Geometrija tačke B7 — devijacija poprečnog nosača [mm]
+Metoda kontrole
+CMM merenje 5% uzorka po protokolu QP-SA-7
+Učestalost
+Svaki 20. kom (5%)
+Korigovana metoda kontrole
+100% inline laserski senzor na S-03 + CMM 100% pri izmeni LOT-a
+Odgovornost
+Metrolog (CMM) + Operater S-03 (inline) + Vodja smene (sign-off)
+</w:pBdr><w:spacing w:before="400" w:after="80"/></w:pPr><w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t>Generisano: 28. 06. 2026.    ·    ID: 8D-SA-002    ·    KONTROLA KVALITETA · SPC
+KONTROLA KVALITETA · SPC
+8D Izveštaj — Pogonska osovina
+Defekt: Prečnik rukavca van tolerancije ( tačka OS-Ø2)  ·  ID: 8D-OS-003
+ZAGLAVLJE 8D IZVEŠTAJA
+Broj 8D izveštaja
+8D-OS-003
+Naziv dela (SPC ID)
+Pogonska osovina (8D-OS-003)
+Defekt / nedostatak
+Prečnik rukavca van tolerancije ( tačka OS-Ø2)
+Količina u reklamaciji
+18 kom (LOT: OS-2026-031)
+Kupac / Korisnik
+OEM — Pogon pogonskog sklopa
+Datum prijema reklamacije
+14.06.2026.
+Datum otvaranja 8D
+15.06.2026.
+Ciljani datum zatvaranja
+14.07.2026.
+Status
+Završen
+D1    Tim
+ČLANOVI TIMA
+Vodja tima
+Ing. K. Simić (Kvalitet)
+Proizvodnja / Obrada
+L. Đukić (Menadžer CNC)
+Inženjering
+P. Milić (Procesni inž. obrade)
+Metrolog
+T. Vujić (Mjerna tehnika)
+Alati
+S. Bogdanović (Alat i obrađivanje)
+D2    Opis problema (5W1H)
+INICIJALNI OPIS POJAVE / NEDOSTATKA
+Na pogonskim osovinama iz LOT-a OS-2026-031 izmeren je prečnik rukavca OS-Ø2 u iznosu Ø49.965–49.972 mm (specifikacija: Ø50.000 ± 0.015 mm, tj. Ø49.985–50.015 mm). Mera od 0.013–0.020 mm uzrokuje labavo naleganje ležaja i vibracije u pogonskom sklopu.
+5W1H — ANALIZA PROBLEMA
+ŠTA? (What?)
+Prečnik rukavca OS-Ø2 — mera 0.013–0.020 mm ispod donje tolerancije
+KADA? (When?)
+Otkriveno pri 100% ulaznoj kontroli u montaži — smena 1, 14.06.2026.
+GDE? (Where?)
+Ulazna kontrola, Hala C; obrada CNC stanica T-07
+KO? (Who?)
+Otkrio: metrolog T. Vujić; utiče na: montaža ležaja pogonskog sklopa
+KOJI? (Which?)
+18 od 60 kom u LOT-u (30%) — sistematska negativna varijacija OS-Ø2
+KAKO? (How?)
+Merač prečnika (tolerancija ±0.001 mm); CMM verifikacija
+KVANTIFIKACIJA
+18 kom NCR / 60 kom LOT = 30%; max mera: 0.020 mm ispod spec.
+D3    Privremena akcija (Containment)
+Neposredne mere:
+Blokirati LOT OS-2026-031 — status HOLD na svim 60 kom.
+Provesti 100% merenje prečnika OS-Ø2 svih 60 kom.
+Izolovati loše komade; sortirati: prihvatljivi / popravljivi / škart.
+Privremeno zaustaviti CNC stanicu T-07 do identifikacije uzroka.
+Pokrenuti hitnu isporuku zamenskog LOT-a sa T-05 (backup stanica).
+Odgovorni za containment:
+Metrolog T. Vujić (100% mjerenje)
+Menadžer CNC L. Đukić (zaustavljanje T-07)
+Logistika (zamenski LOT)
+D4    Analiza uzroka (5×Zašto + 6M Ishikawa)
+5×ZAŠTO — ANALIZA KORENSKOG UZROKA
+5×ZAŠTO ANALIZA
+Problem
+Prečnik rukavca OS-Ø2 ispod donje tolerancije (mera 0.013–0.020 mm)
+1. Zašto
+Alat za struganje (insert) na T-07 bio je istrošen — wear > 80% životnog veka.
+2. Zašto
+Sistem nadzora trošenja alata nije javio alarm za zamenu alata.
+3. Zašto
+Tool life management u CNC softveru bio je konfiguriran na previsokim limitima.
+4. Zašto
+Parametri tool life management-a nisu bili verifikacijom usaglašeni s aktualnim insertima.
+5. Zašto
+Ne postoji procesna validacija (Process Approval) pri promeni dobavljača.
+Korenski uzrok
+Nepostojanje procesne validacije (Process Approval) pri promeni dobavljača/tipa CNC  — tool life limiti nisu bili usaglašeni.
+Privremena protivmera
+Zamena istrošenog alata; 100% merenje prečnika OS-Ø2; produženi monitoring T-07.
+Definitivna protivmera
+Tool life management per aktualnom insertu; SPC X̄-R karta za OS-Ø2; Process Approval checklist.
+ISHIKAWA — 6M DIJAGRAM
+Kategorija (M)
+Potencijalni uzroci
+Čovek
+Man
+• Operater nije prepoznao znakove trošenja alata
+• Propust pri unošenju aktualnih parametara tool life-a
+Mašina
+Machine
+• CNC T-07: tool life alarm konfigurisan na pogrešnim limitima
+• Istrošen insert — > 80% životnog veka
+• Senzor trošenja alata nije kalibrisan
+Metoda
+Method
+• Tool life management nije validiran pri promeni dobavljača inzerta
+• Nema Process Approval checkiste pri promeni alata
+• CNC program nema in-process merenje prečnika
+Materijal
+Material
+• Novi dobavljač inzerta — drugačija otpornost na trošenje
+• Varijacija tvrdoće čelika osovine (42CrMo4) između toplinski obrađenih šarži
+Merenje
+Measurement
+• In-process merenje OS-Ø2 samo na uzorku (10%)
+• Metrološka potvrda alata nije uključena u changeover proceduru
+Okolina
+Environment
+• Temperatura rashladnog sredstva utiče na dimenziju — varijacija ±3°C
+• Nakupljanje odvojka utiče na pozicioniranje
+D5    Korektivne mere
+Revidirati tool life parametre za sve inserte prema stvarnim podacima dobavljača alata (rok: 5 dana).
+Uvesti in-process merenje prečnika OS-Ø2 na CNC T-07
+Implementirati SPC kartu za OS-Ø2 (X̄-R karta, Cp ≥ 1.67 za KSK karakteristiku).
+Uvesti Process Approval checklist pri svakoj promeni tipa ili dobavljača inzerta.
+Implementirati automatski alarm i zaustavljanje linije pri prekoračenju tool life limita.
+D6    Plan implementacije i verifikacija efikasnosti
+#
+Akcija
+Odgovorni
+Rok
+Status
+1
+Revizija tool life parametara za sve inserte na T-05, T-07
+Bogdanović / Milić
+20.06.2026.
+Završeno
+2
+SPC X̄-R karta za OS-Ø2 — implementacija i SPC analiza
+Simić / KK
+02.07.2026.
+Završeno
+3
+Process Approval checklist — kreiranje i implementacija
+Milić
+22.06.2026.
+Završeno
+4
+Automatski alarm i stop pri prekoračenju tool life limita
+IT / CNC programer
+25.06.2026.
+Završeno
+5
+Validacija 3 uzastopna LOT-a — Cpk ≥ 1.67 OS-Ø2
+Simić / Vujić
+14.07.2026.
+Završeno
+D7    Preventivne mere
+Mere za sprečavanje ponovnog pojave defekta:
+Tool life management uskladiti s aktualnim dobavljačem i tipom inzerta — godišnji review.
+In-process merenje prečnika na svim CNC stanicama obrade osovine.
+SPC praćenje OS-Ø2 (KSK) s kontrolnim granicama — automatski alarm na SPC sistemu.
+Process Approval obavezan pri svakoj promeni: alata, programa, materijala, dobavljača.
+Distribuirati Lesson Learned na sve CNC stanice za obradu osovine i sličnih rotacionih delova.
+Kriterijumi verifikacije efikasnosti:
+Cpk ≥ 1.67 za OS-Ø2 u 3 uzastopna LOT-a.
+0 NCR za podmjer prečnika u narednih 60 dana.
+100% tool life alarma aktivna i verifikovana na T-07 i T-05.
+Process Approval dokumentiran za sve izmene inzerta.
+D8    Zaključak i zatvaranje izveštaja
+ZAKLJUČAK 8D IZVEŠTAJA
+Merenje prečnika rukavca OS-Ø2 otklonjen je revizijom tool life parametara, implementacijom SPC praćenja. Validacijom 3 uzastopna LOT-a postignuto Cpk = 1.74 za OS-Ø2. Process Approval checklist implementiran i standardizovan. Izveštaj se zatvara 14.07.2026.
+LL    Lesson Learned
+Naučene lekcije:
+Promena dobavljača ili tipa CNC inzerta zahteva  Process Approval — tool life limiti nisu prenosivi.
+SPC praćenje KSK karakteristika mora biti definisano u Control Plan-u i praćeno u realnom vremenu.
+Tool life alarmi moraju biti fabričke postavke — promena parametara isključivo kroz ECR (Engineering Change Request).
+REF    Veza sa PFMEA i Control Plan
+PFMEA — REFERENCA
+Proces
+CNC obrada rukavca osovine — stanica T-07 (struganje, brušenje)
+Potencijalni mod greške
+Prečnik rukavca OS-Ø2 ispod tolerancije
+Potencijalni efekat
+Labavo naleganje ležaja; vibracije u pogonskom sklopu; kvar u eksploataciji
+Otkrivanje (D) — pre
+D = 8 (merenje samo 10% uzorka — kasna detekcija)
+Otkrivanje (D) — posle
+D = 1 (100% automatska merna glava Blum — in-process)
+RPN — pre
+RPN = 9×8×8 = 576 (KRITIČNO)
+RPN — posle
+RPN = 3×1×3 = 9 (PRIHVATLJIVO)
+CONTROL PLAN — REFERENCA
+Operacija / Proces
+CNC struganje/brušenje rukavca — T-07 / Ulazna KK kontrola
+Karakteristika
+Prečnik OS-Ø2 = Ø50.000 ± 0.015 mm (KSK karakteristika)
+Metoda kontrole
+Merenje uzorka meračem (10% LOT-a)
+Učestalost
+Svaki 6. kom (10%)
+Korigovana metoda kontrole
+100% automatska merna glava Blum (in-process) + SPC X̄-R karta + CMM verifikacija svakog LOT-a
+Odgovornost
+CNC operater T-07 (in-process) + KK metrolog (CMM LOT verifikacija)
+</w:pBdr><w:spacing w:before="400" w:after="80"/></w:pPr><w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t>Generisano: 28. 06. 2026.    ·    ID: 8D-OS-003    ·    KONTROLA KVALITETA · SPC
+KONTROLA KVALITETA · SPC
+8D Izveštaj — Nosač menjača
+Defekt: Otvor za pričvršćivanje van pozicije (poziciona greška ∆X=+1.8 mm)  ·  ID: 8D-NME-004
+ZAGLAVLJE 8D IZVEŠTAJA
+Broj 8D izveštaja
+8D-NME-004
+Naziv dela (SPC ID)
+Nosač menjača (8D-NME-004)
+Defekt / nedostatak
+Otvor za pričvršćivanje van pozicije (poziciona greška ∆X=+1.8 mm)
+Količina u reklamaciji
+9 kom (LOT: NME-2026-015)
+Kupac / Korisnik
+OEM — Pogonl montaže transmisije
+Datum prijema reklamacije
+18.06.2026.
+Datum otvaranja 8D
+19.06.2026.
+Ciljani datum zatvaranja
+17.07.2026.
+Status
+Završen
+D1    Tim
+ČLANOVI TIMA
+Vodja tima
+Ing. V. Ilić (Kvalitet)
+Proizvodnja
+M. Savić (Menadžer bušenja)
+Inženjering
+G. Pavić (Procesni inž.)
+Alati
+J. Stevanović (Tooling)
+Programer
+F. Knežević (CNC/DNC programer)
+D2    Opis problema (5W1H)
+INICIJALNI OPIS POJAVE / NEDOSTATKA
+Na nosačima menjača iz LOT-a NME-2026-015 izmerena je poziciona greška otvora za pričvršćivanje (M14, pozicija P-4L) u iznosu ΔX = +1.8 mm (specifikacija: ±0.3 mm). Greška uzrokuje nemogućnost montaže menjača i nesklađenost s geometrijskim zahtevima TRANS-STD-088.
+5W1H — ANALIZA PROBLEMA
+ŠTA? (What?)
+Pozicija otvora P-4L (M14) van tolerancije — ΔX = +1.8 mm (spec ±0.3 mm)
+KADA? (When?)
+Otkriveno CMM merenjem pri ulaznoj kontroli montaže transmisije, 18.06.2026.
+GDE? (Where?)
+CMM merna soba, Hala D; bušenje na CNC centru BM-12
+KO? (Who?)
+Otkrio: KK kontrolor V. Lazić; utiče na montaža transmisije
+KOJI? (Which?)
+9 od 40 kom u LOT-u (22.5%) — sistematska greška pozicije u X osi
+KAKO? (How?)
+CMM 3D merenje po protokolu QP-NME-4; verifikacija mernom pločom
+KVANTIFIKACIJA
+9 kom NCR / 40 kom LOT = 22.5%; max greška: ΔX = +1.8 mm
+D3    Privremena akcija (Containment)
+Neposredne mere:
+Blokirati LOT NME-2026-015 — status HOLD na svih 40 kom.
+Provesti CMM 100% merenje pozicije otvora P-4L na svim 40 kom.
+Izolovati nesuklađene komade; proveriti mogućnost korekcije.
+Zaustaviti CNC centar BM-12 do identifikacije i korekcije uzroka.
+Pribaviti zamenski LOT sa BM-10 (backup CNC centar) za kontinuitet montaže.
+Odgovorni za containment:
+KK V. Ilić (100% CMM)
+Tooling J. Stevanović (pregled fiksture BM-12)
+Menadžer M. Savić (zaustavljanje BM-12)
+D4    Analiza uzroka (5×Zašto + 6M Ishikawa)
+5×ZAŠTO — ANALIZA KORIJENOG UZROKA
+5×ZAŠTO ANALIZA
+Problem
+Otvor P-4L nosača menjača van pozicije — ΔX = +1.8 mm
+1. Zašto
+CNC program BM-12 imao je grešku u koordinatama bušenja otvora P-4L (neispravan offset).
+2. Zašto
+Revizija CNC programa nije prošla obaveznu verifikaciju (dry-run + CMM kontrolni komad).
+3. Zašto
+Procedura upravljanja CNC programima (DNC sustav) nije zahtevala CMM verifikaciju pri izmeni programa.
+4. Zašto
+Interna procedura PR-CNC-003 za upravljanje programima nije bila ažurirana uz poslednju izmenu BM-12 konfiguracije.
+5. Zašto
+Nema sistema automatske blokade puštanja LOT-a bez odobrene CMM verifikacije prvog komada (First Article Inspection).
+Korenski uzrok
+Nepostojanje obaveznog FAI (First Article Inspection) s CMM verifikacijom pri svakoj izmeni CNC programa — procedura PR-CNC-003 nije bila ažurirana.
+Privremena protivmera
+Ručna provera offset vrednosti BM-12; 100% CMM merenje svake serije; privremena instalacija BM-10.
+Definitivna protivmera
+Obavezan FAI s CMM pri svakoj izmeni CNC programa; digitalno odobrenje programa; SPC praćenje ΔX P-4L.
+ISHIKAWA — 6M DIJAGRAM
+Kategorija (M)
+Potencijalni uzroci
+Čovek
+Man
+• Programer nije proveo dry-run s CMM verifikacijom
+• Nedostatak poznavanja FAI procedure od strane DNC operatera
+Mašina
+Machine
+• CNC BM-12: pogrešan koordinatni offset u programu za P-4L
+• Fikstura FXNME-02 pokazuje lako odstupanje pozicije u X osi
+Metoda
+Method
+• Procedura PR-CNC-003 nije zahtevala FAI s CMM
+• DNC sistem nema blokadu bez odobrene verifikacije
+• Nema poka-yoke za krive offsets vrednosti
+Materijal
+Material
+• Varijacija tvrdoće materijala (EN-GJS-500-7) utiče na poziciju bušenja
+• Neravnomerna debljina odlivka utiče na pozicioniranje
+Merenje
+Measurement
+• CMM merenje pozicije P-4L samo na uzorku (5%)
+• Merni protokol QP-NME-4 nije uključivao X offset proveru
+Okolina
+Environment
+• Vibracije od BM-11 utiču na pozicioniranje FXNME-02
+• Nakupljanje odvojaka u fiksturi uzrokuje sile pozicioniranja
+D5    Korektivne mere
+Uvesti obavezan FAI (First Article Inspection) s CMM verifikacijom pri svakoj izmeni CNC programa (rok: odmah).
+Revidirati proceduru PR-CNC-003 — uključiti FAI CMM kao blokadu u DNC sistemu.
+Implementirati digitalno odobrenje CNC programa (e-sign) od strane KK pre puštanja u seriju.
+Ugraditi SPC praćenje pozicije P-4L (X,Y) na BM-12 — X̄-R karta.
+Povećati učestalost CMM merenja na 100% do potvrde Cpk ≥ 1.33.
+D6    Plan implementacije i verifikacija efikasnosti
+#
+Akcija
+Odgovorni
+Rok
+Status
+1
+Implementacija FAI s CMM verifikacijom pri izmeni CNC programa
+Ilić / Pavić
+22.06.2026.
+Završeno
+2
+Revizija procedure PR-CNC-003 — FAI blokada u DNC sistema
+Knežević / IT
+25.06.2026.
+Završeno
+3
+Digitalno odobrenje CNC programa (e-sign KK)
+Ilić / Knežević
+28.06.2026.
+Završeno
+4
+SPC X̄-R karta za poziciju P-4L (ΔX, ΔY)
+Ilić / KK
+30.06.2026.
+Završeno
+5
+100% CMM merenje P-4L do potvrde Cpk ≥ 1.33
+KK metrolog
+17.07.2026.
+Završeno
+6
+Validacija 3 uzastopna LOT-a bez NCR za P-4L
+Ilić
+17.07.2026.
+Završeno
+D7    Preventivne mere
+Mere za sprečavanje ponovne pojave defekta:
+FAI s CMM verifikacijom obavezan je za svaki novi ili izmenjeni CNC program — bez izuzetaka.
+DNC sistem blokira puštanje programa bez e-sign odobrenja KK — poka-yoke.
+SPC praćenje pozicija KSK otvora (P-4L i P-4R) kontinuirano s automatskim alarmom.
+Godišnja re-verifikacija svih CNC programa za kritične pozicije (FAI audit).
+Distribuirati Lesson Learned na sve CNC centre s bušenjem pozicioniranih otvora.
+Kriterijumi verifikacije efikasnosti:
+Cpk ≥ 1.33 za poziciju P-4L (ΔX i ΔY) u 3 uzastopna LOT-a.
+0 NCR za pozicione greške otvora u narednih 60 dana.
+100% FAI dokumentiran pri svakoj izmeni CNC programa.
+DNC sistem: 0 slučajeva puštanja bez e-sign odobrenja.
+D8    Zaključak i zatvaranje izveštaja
+ZAKLJUČAK 8D IZVEŠTAJA
+Poziciona greška otvora P-4L nosača menjača otklonjena je korekcijom CNC programa, uvođenjem obaveznog FAI s CMM verifikacijom i implementacijom digitalnog odobrenja programa u DNC sistemu. SPC praćenje potvrđuje Cpk = 1.41 za ΔX P-4L. Validacijom 3 uzastopna LOT-a bez NCR-a, izveštaj se zatvara 17.07.2026. Procedura PR-CNC-003 revidirana i distribuirana.
+LL    Lesson Learned
+Naučene lekcije:
+FAI (First Article Inspection) s CMM verifikacijom je obavezan pri svakoj izmeni CNC programa — bez izuzetaka.
+DNC sistem mora imati blokadu (poka-yoke) koja onemogućava seriju bez odobrene verifikacije prvog komada.
+Procedura upravljanja CNC programima mora biti ažurirana uz svaku izmenu  konfiguracije.
+SPC praćenje pozicija kritičnih otvora (KSK) mora biti standardno uključeno u Control Plan.
+REF    Veza sa PFMEA i Control Plan
+PFMEA — REFERENCA
+Proces
+CNC bušenje nosača menjača — BM-12, otvori P-4L, P-4R
+Potencijalni mod greške
+Pozicija otvora P-4L van tolerancije (ΔX greška)
+Potencijalni efekat
+Nemogućnost montaže menjača; geometrijska neusklađenost TRANS-STD-088
+Otkrivanje (D) — pre
+D = 8 (CMM samo 5% uzorka — kasna detekcija)
+Otkrivanje (D) — posle
+D = 2 (FAI CMM pri izmeni programa + SPC 100% praćenje pozicije)
+RPN — pre
+RPN = 8×8×8 = 512 (KRITIČNO)
+RPN — posle
+RPN = 3×2×3 = 18 (PRIHVATLJIVO)
+CONTROL PLAN — REFERENCA
+Operacija / Proces
+CNC bušenje nosača menjača BM-12 / CMM ulazna kontrola
+Karakteristika
+Pozicija otvora P-4L (M14): ΔX ±0.3 mm, ΔY ±0.3 mm (KSK)
+Metoda kontrole
+CMM merenje 5% uzorka po protokolu QP-NME-4
+Učestalost
+Svaki 20. kom (5%)
+Korigovana metoda kontrole
+FAI CMM pri svakoj izmeni programa + SPC X̄-R karta (ΔX, ΔY) + 100% CMM do Cpk ≥ 1.33
+Odgovornost
+CNC programer (FAI) + KK metrolog (CMM) + KK Vodja (e-sign odobrenje)
+</w:pBdr><w:spacing w:before="400" w:after="80"/></w:pPr><w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t>Generisano: 28. 06. 2026.    ·    ID: 8D-NME-004    ·    KONTROLA KVALITETA · SPC

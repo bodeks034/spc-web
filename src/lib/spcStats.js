@@ -53,6 +53,16 @@ export function calcDPMO(neusaglaseno, ukupno) {
   return uk > 0 ? Math.round((neus / uk) * 1e6) : 0;
 }
 
+/** Neispravni komadi po milion (PPM) — za SPC karte i izveštaje. */
+export function calcPPM(neispravniKomadi, ukupno) {
+  return calcDPMO(neispravniKomadi, ukupno);
+}
+
+/** DPMO po broju defekata (kom_nok) kad je različit od broja neispravnih komada. */
+export function calcDPMODefekti(brojDefekata, ukupnoPrilika) {
+  return calcDPMO(brojDefekata, ukupnoPrilika);
+}
+
 /** Kontrolni log / merenja — svaki unos = prva inspekcija tog komada/merenja. */
 export function kvalitetIzPrveLoga({ ok = 0, nok = 0, n } = {}) {
   const izPrve = Number(ok) || 0;

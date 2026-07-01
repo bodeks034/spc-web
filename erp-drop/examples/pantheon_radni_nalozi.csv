@@ -1,0 +1,3 @@
+BrojRN,Ident,NazivArtikla,Kolicina,Kupac,Datum,Rok,Status,Pogon
+RN-2026-201,5502-A,Osovina prednja,500,Kupac A,01.06.2026,15.06.2026,aktivan,A
+RN-2026-202,5503-B,Kućište,200,Kupac B,02.06.2026,20.06.2026,aktivan,B

@@ -1,0 +1,91 @@
+vozilo_kod,zona_id,zona_naziv,kategorija,podkategorija
+MRAP,EL-001,Elektrika,FUNKCIONALNE ZONE I PODVOZJE,Elektrika
+MRAP,EL-001,Elektrika,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta
+MRAP,EL-001,Elektrika,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori
+MRAP,FINAL-001,Finalna kontrola,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor
+MRAP,FINAL-001,Finalna kontrola,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test
+MRAP,FINAL-001,Finalna kontrola,OSTALO,Ostalo
+MRAP,INT-001,Enterijer,ENTERIJER (Kabina),Instrument tabla
+MRAP,INT-001,Enterijer,ENTERIJER (Kabina),Centralna konzola
+MRAP,INT-001,Enterijer,ENTERIJER (Kabina),Sedište vozača
+MRAP,INT-001,Enterijer,ENTERIJER (Kabina),Sedište suvozača
+MRAP,INT-001,Enterijer,ENTERIJER (Kabina),Zadnja sedišta
+MRAP,INT-001,Enterijer,ENTERIJER (Kabina),Enterijer
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Prednji branik
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Hauba
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnje levo krilo
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnji branik
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka
+MRAP,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Krov
+MRAP,KAROS-001,Karoserija,STAKLENE POVRŠINE,Vetrobran
+MRAP,KAROS-001,Karoserija,STAKLENE POVRŠINE,Bočna stakla
+MRAP,MOTOR-001,Motor,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor
+MRAP,TRANS-001,Transmisija,FUNKCIONALNE ZONE I PODVOZJE,Podvozje
+MRAP,TRANS-001,Transmisija,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume
+MRAP1,EL-001,Elektrika,FUNKCIONALNE ZONE I PODVOZJE,Elektrika
+MRAP1,EL-001,Elektrika,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta
+MRAP1,EL-001,Elektrika,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori
+MRAP1,FINAL-001,Finalna kontrola,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor
+MRAP1,FINAL-001,Finalna kontrola,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test
+MRAP1,FINAL-001,Finalna kontrola,OSTALO,Ostalo
+MRAP1,INT-001,Enterijer,ENTERIJER (Kabina),Instrument tabla
+MRAP1,INT-001,Enterijer,ENTERIJER (Kabina),Centralna konzola
+MRAP1,INT-001,Enterijer,ENTERIJER (Kabina),Sedište vozača
+MRAP1,INT-001,Enterijer,ENTERIJER (Kabina),Sedište suvozača
+MRAP1,INT-001,Enterijer,ENTERIJER (Kabina),Zadnja sedišta
+MRAP1,INT-001,Enterijer,ENTERIJER (Kabina),Enterijer
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Prednji branik
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Hauba
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnje levo krilo
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnji branik
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka
+MRAP1,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Krov
+MRAP1,KAROS-001,Karoserija,STAKLENE POVRŠINE,Vetrobran
+MRAP1,KAROS-001,Karoserija,STAKLENE POVRŠINE,Bočna stakla
+MRAP1,MOTOR-001,Motor,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor
+MRAP1,TRANS-001,Transmisija,FUNKCIONALNE ZONE I PODVOZJE,Podvozje
+MRAP1,TRANS-001,Transmisija,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume
+NTV,EL-001,Elektrika,FUNKCIONALNE ZONE I PODVOZJE,Elektrika
+NTV,EL-001,Elektrika,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Rasveta
+NTV,EL-001,Elektrika,"OSVETLJENJE, SIGNALIZACIJA I SENZORI",Kamere i senzori
+NTV,FINAL-001,Finalna kontrola,FUNKCIONALNE ZONE I PODVOZJE,Prtljažni prostor
+NTV,FINAL-001,Finalna kontrola,FUNKCIONALNE ZONE I PODVOZJE,Funkcionalni test
+NTV,FINAL-001,Finalna kontrola,OSTALO,Ostalo
+NTV,INT-001,Enterijer,ENTERIJER (Kabina),Instrument tabla
+NTV,INT-001,Enterijer,ENTERIJER (Kabina),Centralna konzola
+NTV,INT-001,Enterijer,ENTERIJER (Kabina),Sedište vozača
+NTV,INT-001,Enterijer,ENTERIJER (Kabina),Sedište suvozača
+NTV,INT-001,Enterijer,ENTERIJER (Kabina),Zadnja sedišta
+NTV,INT-001,Enterijer,ENTERIJER (Kabina),Enterijer
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Prednji branik
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Hauba
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Levo prednje krilo
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desno prednje krilo
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Leva prednja vrata
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desna prednja vrata
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Leva zadnja vrata
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Desna zadnja vrata
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnje levo krilo
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnje desno krilo
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Zadnji branik
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Poklopac gepeka
+NTV,KAROS-001,Karoserija,EKSTERIJER (Karoserija i Limarija),Krov
+NTV,KAROS-001,Karoserija,STAKLENE POVRŠINE,Vetrobran
+NTV,KAROS-001,Karoserija,STAKLENE POVRŠINE,Bočna stakla
+NTV,MOTOR-001,Motor,FUNKCIONALNE ZONE I PODVOZJE,Motorni prostor
+NTV,TRANS-001,Transmisija,FUNKCIONALNE ZONE I PODVOZJE,Podvozje
+NTV,TRANS-001,Transmisija,FUNKCIONALNE ZONE I PODVOZJE,Točkovi i gume

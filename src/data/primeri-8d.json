@@ -1,0 +1,259 @@
+{
+  "verzija": 1,
+  "opis": "4 industrijska 8D iz Word dokumenta",
+  "primeri": [
+    {
+      "id": "8d-nm-001",
+      "kljucevi": [
+        "pukotina",
+        "zavara",
+        "zavar",
+        "vara",
+        "visina",
+        "haz",
+        "spoj",
+        "mig",
+        "pt",
+        "pukotina zavara",
+        "nosačima",
+        "zoni",
+        "pozicije",
+        "motora"
+      ],
+      "problem": "Pukotina zavara na nosačima",
+      "uzrok": "Automatska verifikacija parametara na WS-04 nije bila aktivna.",
+      "korenskiUzrok": "Nepostojanje procesa periodičnog pregleda PM planova — zastarela procedura iz 2022.",
+      "privremena": "Ručna verifikacija parametara zavarivanja pri svakom komadu; pojačani PT pregled 100%.",
+      "resenje": "Implementirati  praćenje parametara zavarivanja (napon, struja, brzina) u realnom vremenu na WS-04.",
+      "m6": "metod",
+      "m6Detalj": {
+        "ljudi": "Nedovoljna obuka operatera za zavarivanje\nZamena iskusnog operatera neiskusnim\nUmor — duga smena bez rotacije",
+        "masina": "Istrošeni kontakti MIG pištolja\nNeispravni senzori kontrole napona na WS-04\nLoše kalibrisani regulator žice",
+        "metod": "Parametri zavarivanja van WPS specifikacije\nNema online verifikacije parametara\nWPS dokument nije ažuriran",
+        "materijal": "Viša vlažnost žice za zavarivanje od spec.\nVarijacija hemijskog sastava čelika S355\nNedovoljna priprema površine (masnoća)",
+        "merenje": "PT pregled samo na uzorku — ne 100%\nOprema za PT pregled nije kalibrisana\nNedovoljno osvetljenje radnog mesta",
+        "okruzenje": "Promaja u hali — brzo hlađenje zavara\nVisoka vlažnost vazduha na lokaciji WS-04"
+      },
+      "why": [
+        "Parametri zavarivanja (napon, brzina) bili izvan specifikacije.",
+        "Automatska verifikacija parametara na WS-04 nije bila aktivna.",
+        "PM plan za senzorski sistem verifikacije nije bio ažuriran.",
+        "Procedura preventivnog održavanja je zastarela (rev. 2022).",
+        "Nema procesa periodičnog pregleda PM planova prema zahtevima IATF 16949."
+      ],
+      "d2": {
+        "inicijalni": "Na nosačima motora (NM-2026-042) otkrivene su pukotine u zavarenim spojevima tokom finalnog pregleda montaže. Pukotine se nalaze u zoni HAZ (heat-affected zone) na poziciji P3 i P7. Defekt uzrokuje neispunjenje zahteva čvrstoće EM-STD-112.",
+        "sta": "Pukotina zavara u HAZ zoni — pozicije P3, P7",
+        "kada": "Otkriveno tokom finalnog pregleda montaže — smena 2, 05.06.2026.",
+        "gde": "Stanica zavarivanja WS-04, Hala B, Linija 2",
+        "ko": "Otkrio: kontrolor K. Vasić; uoočeno na: montažna linija",
+        "koji": "Serijski defekt — zahvatio 12 od 80 kom u LOT-u (15%)",
+        "kako": "Vizuelni pregled + penetrantsko ispitivanje (PT metoda)\n12 kom neispravnih / 80 kom u LOT-u = 15% NCR stopa"
+      },
+      "d7Stavke": [
+        "Trajno uvesti SPC kartu za napon i struju zavarivanja (X̄-R karta, Cp ≥ 1.67).",
+        "Ugraditi poka-yoke zaustavljanje linije pri prekoračenju parametara WPS.",
+        "Revidirati PFMEA i Control Plan sa novim kontrolama — godišnji review.",
+        "Uvesti Layered Process Audit (LPA) za stanicu WS-04 — nedeljna učestalost.",
+        "Distribuirati Lesson Learned na sve stanice zavarivanja u pogonu.",
+        "0 reklamacija vezano za pukotine zavara u narednih 60 dana.",
+        "100% poštovanje PM plana u narednih 6 ciklusa.",
+        "3 uzastopne serije (LOT) bez pukotine zavara za nosač motora."
+      ],
+      "proces": "atributivne",
+      "izvor": "Word: 8D_Izvestaji_Industrijski_Dijelovi.docx (8D-NM-001)",
+      "napomena": "",
+      "izUvoznogJson": true
+    },
+    {
+      "id": "8d-sa-002",
+      "kljucevi": [
+        "geometrija",
+        "šasija",
+        "šasije",
+        "b7",
+        "fikstura",
+        "cmm",
+        "devijacija",
+        "tolerancija",
+        "poprečni",
+        "tolerancije",
+        "poprečnog",
+        "nosača",
+        "šasijama",
+        "lot-a"
+      ],
+      "problem": "Geometrija šasije van tolerancije (merna tačka B7)",
+      "uzrok": "Fikstura nije prošla planirani PM pregled u maju 2026.",
+      "korenskiUzrok": "Fikstura nije prošla planirani PM pregled u maju 2026.",
+      "privremena": "100% CMM provera svake šasije; ručna provera fiksture svaka 2 sata.",
+      "resenje": "Uvesti digitalni sistem praćenja PM rokova fikstura i alata s automatskom eskalacijom (rok: 14 dana).",
+      "m6": "metod",
+      "m6Detalj": {
+        "ljudi": "Propust mehaničara pri PM pregledu fiksture\nNedostatak stručnog osoblja za PM",
+        "masina": "Istrošeni oslonci fiksture FX-SA-07\nOštećeni pozicioneri na stanici S-02\nIstrošeni vijci za fiksiranje fiksture",
+        "metod": "Ručni PM sistem bez automatskog alarma\nInterval PM provere fiksture nedovoljan (nedeljni)\nCMM merenje samo na uzorku — ne 100%",
+        "materijal": "Varijacija debljine lima poprečnog nosača ±0.3 mm\nDeformacija materijala tokom transporta",
+        "merenje": "CMM merenje samo 5% uzorka\nProtokol merenja B7 nije uključen u linijsku kontrolu",
+        "okruzenje": "Vibracije od susednih stanica utiču na fiksaciju\nTemperaturne varijacije utiču na dimenzije"
+      },
+      "why": [
+        "Fixtura FX-SA-07 za pozicioniranje poprečnog nosača bila pomerena za 2.8 mm.",
+        "Fikstura nije prošla planirani PM pregled u maju 2026.",
+        "PM pregled fiksture bio je zakasnio zbog nedostatka resursa (mehaničara).",
+        "Plan radnih naloga za PM nije bio prioritetan — ručni sistem bez alarma.",
+        "Nema automatiziranog sistema praćenja rokova PM fikstura i alata s eskalacijom.\nKoreni uzrok\nNepostojanje automatiziranog sistema praćenja PM rokova za fiksture — ručni sistem bez alarma eskalacije."
+      ],
+      "d2": {
+        "inicijalni": "Na šasijama iz LOT-a SA-2026-019 izmerena je devijacija geometrije u mernoj tački B7 (poprečni nosač) od +3.2 mm (specifikacija: ±1.0 mm). Greška uzrokuje nemogućnost montaže prednje osovine i zadovoljenja geometrije kotrljanja prema ŠKODA-VSK-0112.",
+        "sta": "Geometrija poprečnog nosača — tačka B7 van tolerancije +3.2 mm (spec ±1.0 mm)",
+        "kada": "Otkriveno na CMM merenju — smena 1, 10.06.2026.",
+        "gde": "CMM merna soba, Hala A; zahvata stanice S-02, S-03",
+        "ko": "Otkrio: metrolog N. Ristić; utiče: montaža prednje osovine",
+        "koji": "6 od 40 kom u LOT-u (15%) — merna tačka B7, varijacija sistematska",
+        "kako": "CMM merenje po protokolu QP-SA-7 — 3D koordinatni uređaj Zeiss Contura\n6 kom NCR / 40 kom LOT = 15%; max devijacija: +3.2 mm"
+      },
+      "d7Stavke": [
+        "Poka-yoke: linija se zaustavlja ako B7 devijacija prekorači ±0.8 mm (Warning limit).",
+        "Godišnja re-verifikacija svih fikstura prema mernom protokolu CMM.",
+        "Revidirati PFMEA za šasiju — uključiti novu FMEA liniju za PM fiksture.",
+        "Distribuirati Lesson Learned na sve pogone koji koriste isti tip fiksture FX serije.",
+        "0 NCR za geometriju šasije u narednih 60 dana.",
+        "100% PM pridržavanje u narednih 12 PM ciklusa.",
+        "3 uzastopna LOT-a bez devijacije B7 > ±1.0 mm."
+      ],
+      "proces": "atributivne",
+      "izvor": "Word: 8D_Izvestaji_Industrijski_Dijelovi.docx (8D-SA-002)",
+      "napomena": "",
+      "izUvoznogJson": true
+    },
+    {
+      "id": "8d-os-003",
+      "kljucevi": [
+        "prečnik",
+        "rukavac",
+        "osovina",
+        "cnc",
+        "insert",
+        "tool",
+        "podmjer",
+        "struganje",
+        "os-ø2",
+        "rukavca",
+        "tolerancije",
+        "mera",
+        "013–0",
+        "020"
+      ],
+      "problem": "Prečnik rukavca van tolerancije ( tačka OS-Ø2)",
+      "uzrok": "Sistem nadzora trošenja alata nije javio alarm za zamenu alata.",
+      "korenskiUzrok": "Nepostojanje procesne validacije (Process Approval) pri promeni dobavljača/tipa CNC  — tool life limiti nisu bili usaglašeni.",
+      "privremena": "Zamena istrošenog alata; 100% merenje prečnika OS-Ø2; produženi monitoring T-07.",
+      "resenje": "Revidirati tool life parametre za sve inserte prema stvarnim podacima dobavljača alata (rok: 5 dana).",
+      "m6": "metod",
+      "m6Detalj": {
+        "ljudi": "Operater nije prepoznao znakove trošenja alata\nPropust pri unošenju aktualnih parametara tool life-a",
+        "masina": "CNC T-07: tool life alarm konfigurisan na pogrešnim limitima\nIstrošen insert — > 80% životnog veka\nSenzor trošenja alata nije kalibrisan",
+        "metod": "Tool life management nije validiran pri promeni dobavljača inzerta\nNema Process Approval checkiste pri promeni alata\nCNC program nema in-process merenje prečnika",
+        "materijal": "Novi dobavljač inzerta — drugačija otpornost na trošenje\nVarijacija tvrdoće čelika osovine (42CrMo4) između toplinski obrađenih šarži",
+        "merenje": "In-process merenje OS-Ø2 samo na uzorku (10%)\nMetrološka potvrda alata nije uključena u changeover proceduru",
+        "okruzenje": "Temperatura rashladnog sredstva utiče na dimenziju — varijacija ±3°C\nNakupljanje odvojka utiče na pozicioniranje"
+      },
+      "why": [
+        "Alat za struganje (insert) na T-07 bio je istrošen — wear > 80% životnog veka.",
+        "Sistem nadzora trošenja alata nije javio alarm za zamenu alata.",
+        "Tool life management u CNC softveru bio je konfiguriran na previsokim limitima.",
+        "Parametri tool life management-a nisu bili verifikacijom usaglašeni s aktualnim insertima.",
+        "Ne postoji procesna validacija (Process Approval) pri promeni dobavljača."
+      ],
+      "d2": {
+        "inicijalni": "Na pogonskim osovinama iz LOT-a OS-2026-031 izmeren je prečnik rukavca OS-Ø2 u iznosu Ø49.965–49.972 mm (specifikacija: Ø50.000 ± 0.015 mm, tj. Ø49.985–50.015 mm). Mera od 0.013–0.020 mm uzrokuje labavo naleganje ležaja i vibracije u pogonskom sklopu.",
+        "sta": "Prečnik rukavca OS-Ø2 — mera 0.013–0.020 mm ispod donje tolerancije",
+        "kada": "Otkriveno pri 100% ulaznoj kontroli u montaži — smena 1, 14.06.2026.",
+        "gde": "Ulazna kontrola, Hala C; obrada CNC stanica T-07",
+        "ko": "Otkrio: metrolog T. Vujić; utiče na: montaža ležaja pogonskog sklopa",
+        "koji": "18 od 60 kom u LOT-u (30%) — sistematska negativna varijacija OS-Ø2",
+        "kako": "Merač prečnika (tolerancija ±0.001 mm); CMM verifikacija\n18 kom NCR / 60 kom LOT = 30%; max mera: 0.020 mm ispod spec."
+      },
+      "d7Stavke": [
+        "Tool life management uskladiti s aktualnim dobavljačem i tipom inzerta — godišnji review.",
+        "In-process merenje prečnika na svim CNC stanicama obrade osovine.",
+        "SPC praćenje OS-Ø2 (KSK) s kontrolnim granicama — automatski alarm na SPC sistemu.",
+        "Process Approval obavezan pri svakoj promeni: alata, programa, materijala, dobavljača.",
+        "Distribuirati Lesson Learned na sve CNC stanice za obradu osovine i sličnih rotacionih delova.",
+        "Cpk ≥ 1.67 za OS-Ø2 u 3 uzastopna LOT-a.",
+        "0 NCR za podmjer prečnika u narednih 60 dana.",
+        "100% tool life alarma aktivna i verifikovana na T-07 i T-05.",
+        "Process Approval dokumentiran za sve izmene inzerta."
+      ],
+      "proces": "atributivne",
+      "izvor": "Word: 8D_Izvestaji_Industrijski_Dijelovi.docx (8D-OS-003)",
+      "napomena": "",
+      "izUvoznogJson": true
+    },
+    {
+      "id": "8d-nme-004",
+      "kljucevi": [
+        "otvor",
+        "bušenje",
+        "offset",
+        "fai",
+        "poziciona",
+        "p-4l",
+        "pričvršćivanje",
+        "program",
+        "cmm",
+        "pozicije",
+        "greška",
+        "x=+1",
+        "pozicija",
+        "otvora"
+      ],
+      "problem": "Otvor za pričvršćivanje van pozicije (poziciona greška ∆X=+1.8 mm)",
+      "uzrok": "Revizija CNC programa nije prošla obaveznu verifikaciju (dry-run + CMM kontrolni komad).",
+      "korenskiUzrok": "Nepostojanje obaveznog FAI (First Article Inspection) s CMM verifikacijom pri svakoj izmeni CNC programa — procedura PR-CNC-003 nije bila ažurirana.",
+      "privremena": "Ručna provera offset vrednosti BM-12; 100% CMM merenje svake serije; privremena instalacija BM-10.",
+      "resenje": "Uvesti obavezan FAI (First Article Inspection) s CMM verifikacijom pri svakoj izmeni CNC programa (rok: odmah).",
+      "m6": "metod",
+      "m6Detalj": {
+        "ljudi": "Programer nije proveo dry-run s CMM verifikacijom\nNedostatak poznavanja FAI procedure od strane DNC operatera",
+        "masina": "CNC BM-12: pogrešan koordinatni offset u programu za P-4L\nFikstura FXNME-02 pokazuje lako odstupanje pozicije u X osi",
+        "metod": "Procedura PR-CNC-003 nije zahtevala FAI s CMM\nDNC sistem nema blokadu bez odobrene verifikacije\nNema poka-yoke za krive offsets vrednosti",
+        "materijal": "Varijacija tvrdoće materijala (EN-GJS-500-7) utiče na poziciju bušenja\nNeravnomerna debljina odlivka utiče na pozicioniranje",
+        "merenje": "CMM merenje pozicije P-4L samo na uzorku (5%)\nMerni protokol QP-NME-4 nije uključivao X offset proveru",
+        "okruzenje": "Vibracije od BM-11 utiču na pozicioniranje FXNME-02\nNakupljanje odvojaka u fiksturi uzrokuje sile pozicioniranja"
+      },
+      "why": [
+        "CNC program BM-12 imao je grešku u koordinatama bušenja otvora P-4L (neispravan offset).",
+        "Revizija CNC programa nije prošla obaveznu verifikaciju (dry-run + CMM kontrolni komad).",
+        "Procedura upravljanja CNC programima (DNC sustav) nije zahtevala CMM verifikaciju pri izmeni programa.",
+        "Interna procedura PR-CNC-003 za upravljanje programima nije bila ažurirana uz poslednju izmenu BM-12 konfiguracije.",
+        "Nema sistema automatske blokade puštanja LOT-a bez odobrene CMM verifikacije prvog komada (First Article Inspection)."
+      ],
+      "d2": {
+        "inicijalni": "Na nosačima menjača iz LOT-a NME-2026-015 izmerena je poziciona greška otvora za pričvršćivanje (M14, pozicija P-4L) u iznosu ΔX = +1.8 mm (specifikacija: ±0.3 mm). Greška uzrokuje nemogućnost montaže menjača i nesklađenost s geometrijskim zahtevima TRANS-STD-088.",
+        "sta": "Pozicija otvora P-4L (M14) van tolerancije — ΔX = +1.8 mm (spec ±0.3 mm)",
+        "kada": "Otkriveno CMM merenjem pri ulaznoj kontroli montaže transmisije, 18.06.2026.",
+        "gde": "CMM merna soba, Hala D; bušenje na CNC centru BM-12",
+        "ko": "Otkrio: KK kontrolor V. Lazić; utiče na montaža transmisije",
+        "koji": "9 od 40 kom u LOT-u (22.5%) — sistematska greška pozicije u X osi",
+        "kako": "CMM 3D merenje po protokolu QP-NME-4; verifikacija mernom pločom\n9 kom NCR / 40 kom LOT = 22.5%; max greška: ΔX = +1.8 mm"
+      },
+      "d7Stavke": [
+        "FAI s CMM verifikacijom obavezan je za svaki novi ili izmenjeni CNC program — bez izuzetaka.",
+        "DNC sistem blokira puštanje programa bez e-sign odobrenja KK — poka-yoke.",
+        "SPC praćenje pozicija KSK otvora (P-4L i P-4R) kontinuirano s automatskim alarmom.",
+        "Godišnja re-verifikacija svih CNC programa za kritične pozicije (FAI audit).",
+        "Distribuirati Lesson Learned na sve CNC centre s bušenjem pozicioniranih otvora.",
+        "Cpk ≥ 1.33 za poziciju P-4L (ΔX i ΔY) u 3 uzastopna LOT-a.",
+        "0 NCR za pozicione greške otvora u narednih 60 dana.",
+        "100% FAI dokumentiran pri svakoj izmeni CNC programa.",
+        "DNC sistem: 0 slučajeva puštanja bez e-sign odobrenja."
+      ],
+      "proces": "merljive",
+      "izvor": "Word: 8D_Izvestaji_Industrijski_Dijelovi.docx (8D-NME-004)",
+      "napomena": "",
+      "izUvoznogJson": true
+    }
+  ]
+}

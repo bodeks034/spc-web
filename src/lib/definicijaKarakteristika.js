@@ -3,6 +3,7 @@
  * Kolone A–L: dimenzije (legacy .xlsm), M–X: meta (popuni na prvom redu grupe po pogonu).
  */
 import { pogonIzLinijeFaze, radniNalogIzDeoPogona } from "./syncSifrarnikIzMerljivih.js";
+import { jeMerljivaPoInstrumentu } from "./karakteristikaMerljive.js";
 
 export const DEFINICIJA_COL = {
   id_deo: 0,
@@ -204,6 +205,10 @@ export function propagirajMetaKarakteristika(rows) {
     if (metaPrazno(out.pogon_kod) && out.radni_nalog) {
       const izRn = pogonIzRnMeta(out.radni_nalog);
       if (izRn) out.pogon_kod = izRn;
+    }
+
+    if (metaPrazno(out.pogon_kod) && jeMerljivaPoInstrumentu(out)) {
+      out.pogon_kod = "A";
     }
 
     if (!metaPrazno(out.pogon_kod)) {

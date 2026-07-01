@@ -1,4 +1,4 @@
-import LogoFirme from "./LogoFirme.jsx";
+import LogoBrend from "./LogoBrend.jsx";
 import { getBrending } from "../lib/brending.js";
 
 export default function LicencaBlokada({ poruka, kod, C }) {
@@ -34,7 +34,7 @@ export default function LicencaBlokada({ poruka, kod, C }) {
         textAlign: "center",
       }}>
         <div style={{ marginBottom: 16 }}>
-          <LogoFirme velicina="srednji" C={tema} />
+          <LogoBrend C={tema} velicina="srednji" centar showSlogan />
         </div>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⛔</div>
         <h1 style={{ fontSize: 16, margin: "0 0 12px", color: tema.crvena }}>

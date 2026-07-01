@@ -7,6 +7,7 @@ import {
   opisSpcAlarma,
 } from "../lib/spcAlarmWorkflow.js";
 import { jeAdmin, jeKvalitetIliVise } from "../lib/uloge.js";
+import { predloziAkcijeZaAlarm } from "../lib/reakcioniPlanSpc.js";
 
 /** Blokirajući modal na liniji kad je SPC van kontrole — obavezan komentar. */
 export default function SpcAlarmBlokada({
@@ -112,6 +113,7 @@ export default function SpcAlarmBlokada({
   };
 
   const fmt = (v) => (v == null || v === "" ? "—" : Number(v).toFixed(4));
+  const predlogAkcija = predloziAkcijeZaAlarm(alarm);
 
   return (
     <div
@@ -199,6 +201,23 @@ export default function SpcAlarmBlokada({
             </>
           )}
         </div>
+        {predlogAkcija.length > 0 && (
+          <div style={{
+            marginBottom: 14, padding: "10px 12px", borderRadius: 8,
+            border: `1px solid ${C.zuta}55`, background: `${C.zuta}10`,
+          }}>
+            <div style={{ color: C.zuta, fontSize: 9, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>
+              REAKCIONI PLAN (PREPORUKA)
+            </div>
+            {predlogAkcija.map((r) => (
+              <div key={r.id} style={{ fontSize: 11, color: C.tekst, marginBottom: 4 }}>
+                <span style={{ color: C.sivi }}>{r.situacija}</span>
+                {" → "}
+                <strong>{r.akcija}</strong>
+              </div>
+            ))}
+          </div>
+        )}
         {!jeKarantin && (
           <>
             <div style={{ color: C.sivi, fontSize: 10, letterSpacing: 1.1, marginBottom: 6 }}>

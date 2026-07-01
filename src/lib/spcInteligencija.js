@@ -466,7 +466,7 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
       .eq("id_deo", idDeo)
       .gte("datum", od),
     supabase.from("merenja_varijabilna")
-      .select("datum,status,id_deo,pozicija,smena,vrednost_raw,vrednost_dec,jedinica")
+      .select("datum,status,id_deo,pozicija,smena,vrednost_raw,vrednost_dec")
       .eq("id_deo", idDeo)
       .gte("datum", od),
     supabase.from("karakteristike_merljive")
@@ -570,6 +570,7 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
     od,
     inteligencija,
     kapabilitet,
+    topNok,
     imaPodatke: logData.length > 0 || merData.length > 0,
   };
 }

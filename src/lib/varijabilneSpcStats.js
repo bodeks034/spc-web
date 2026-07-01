@@ -392,6 +392,7 @@ export function trendKvalitetaPoDanu(merenja) {
       rty: d.n > 0 ? +((d.ok / d.n) * 100).toFixed(2) : 0,
       p: d.n > 0 ? +((d.nok / d.n) * 100).toFixed(2) : 0,
       dpmo: d.n > 0 ? Math.round((d.nok / d.n) * 1e6) : 0,
+      ppm: d.n > 0 ? Math.round((d.nok / d.n) * 1e6) : 0,
     }));
 }
 

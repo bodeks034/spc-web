@@ -51,6 +51,13 @@ export function resolvePogonKod(row) {
   return pk;
 }
 
+/** Pogon za SOP/RN — podrazumevano A kad deo ima merljive dimenzije bez pogona. */
+export function effectivePogonMerljive(meta) {
+  const pk = resolvePogonKod(meta);
+  if (pk) return pk;
+  return meta?.merljive ? "A" : "";
+}
+
 /** Grupiši redove po id_deo + pogon_kod (prazan pogon = jedan deo bez izbora pogona). */
 export function grupisiKarakteristike(rows) {
   const groups = new Map();
@@ -162,12 +169,14 @@ export function brojNalogaZaGrupu(m) {
 }
 
 import { pogonIzLinijeFaze, LINIJA_FAZA_POGON_DEFAULT as LINIJA_FAZA_POGON } from "./pogonLinijaLookup.js";
+import { metaZaDeo, deoMetaMapa } from "./glavniUnosDemo.js";
 
 export { pogonIzLinijeFaze, LINIJA_FAZA_POGON };
 
 /** Generiši sop + delovi redove iz karakteristika. */
-export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeciDelovi = [] } = {}) {
+export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeciDelovi = [], deoMeta } = {}) {
   const groups = grupisiKarakteristike(karRows);
+  const metaMap = deoMetaMapa(deoMeta);
   const sopByKey = new Map(
     (postojeciSop || []).map((r) => [deoPogonKey(r.id_deo, r.pogon_kod), r]),
   );
@@ -181,15 +190,17 @@ export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeci
 
   for (const rows of groups.values()) {
     const m = metaIzGrupe(rows);
-    const key = deoPogonKey(m.id_deo, m.pogon_kod);
-    const stariSop = sopByKey.get(key) || {};
-    const stariDeo = deloviByKey.get(key) || {};
+    const pogonEff = effectivePogonMerljive(m);
+    const key = deoPogonKey(m.id_deo, pogonEff);
+    const stariSop = sopByKey.get(key) || sopByKey.get(deoPogonKey(m.id_deo, m.pogon_kod)) || {};
+    const stariDeo = deloviByKey.get(key) || deloviByKey.get(deoPogonKey(m.id_deo, m.pogon_kod)) || {};
 
     const naziv = m.naziv_dela || stariSop.naziv_dela || stariDeo.naziv_dela || "";
     const rn = m.radni_nalog || stariSop.radni_nalog || stariDeo.radni_nalog || "";
     const slika = m.slika || stariSop.slika || stariDeo.slika_naziv || "";
     const linijaId = Number.isFinite(m.linija_id) ? m.linija_id : (stariDeo.linija_id ?? null);
     const masinaId = Number.isFinite(m.masina_id) ? m.masina_id : (stariDeo.masina_id ?? null);
+    const dm = metaZaDeo(metaMap, m.id_deo);
 
     if (!masterById.has(m.id_deo)) {
       masterById.set(m.id_deo, {
@@ -202,17 +213,17 @@ export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeci
         slika_naziv: slika || null,
         aktivan: true,
         napomena: napomenaDeloviIzMeta(m, stariDeo.napomena || ""),
-        tip_kontrole: stariDeo.tip_kontrole || "deo",
-        vozilo_katalog_id: stariDeo.vozilo_katalog_id || null,
+        tip_kontrole: dm.tip_kontrole || stariDeo.tip_kontrole || "deo",
+        vozilo_katalog_id: dm.vozilo_katalog_id ?? stariDeo.vozilo_katalog_id ?? null,
         greska_katalog_id: stariDeo.greska_katalog_id || null,
       });
     }
 
-    if (m.merljive && m.pogon_kod) {
+    if (m.merljive && pogonEff) {
       sopOut.push({
         id_deo: m.id_deo,
-        pogon_kod: m.pogon_kod,
-        radni_nalog: rn || null,
+        pogon_kod: pogonEff,
+        radni_nalog: rn || radniNalogIzDeoPogona(m.id_deo, pogonEff) || null,
         naziv_dela: naziv || null,
         slika: slika || null,
         masina: stariSop.masina || null,
@@ -222,11 +233,11 @@ export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeci
       });
     }
 
-    // Svaki pogon iz glavnog unosa → red u delovi (atributivni modul + RN izbor pogona).
-    if (m.eksplicitanPogon) {
+    // Svaki pogon → red za atributivni modul (izbor pogona, RN, vizuelna kontrola).
+    if (pogonEff) {
       deloviPogonOut.push({
         id_deo: m.id_deo,
-        pogon_kod: m.pogon_kod,
+        pogon_kod: pogonEff,
         radni_nalog: rn || null,
         naziv_dela: naziv || null,
         karakteristika: m.faza_naziv
@@ -329,7 +340,7 @@ export function spojiSopCsv(postojeciSop, sopRows) {
 }
 
 /** Generiši radni_nalozi redove iz karakteristika (po id_deo + pogon). */
-export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano = {} } = {}) {
+export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano = {}, kupacPoDeo = null } = {}) {
   const groups = grupisiKarakteristike(karRows);
   const postojeciKeys = new Set(
     (postojeciRn || []).map((r) => deoPogonKey(r.id_deo || r["id dela*"], r.pogon_kod)),
@@ -346,14 +357,16 @@ export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano =
     const rn = brojNalogaZaGrupu(m);
     if (!rn) continue;
 
+    const deoRn = kupacPoDeo?.get?.(m.id_deo) || kupacPoDeo?.[m.id_deo] || null;
+
     maxId += 1;
     out.push({
       id: maxId,
-      broj_naloga: rn,
+      broj_naloga: deoRn?.radni_nalog ? String(deoRn.radni_nalog).trim().toUpperCase() : rn,
       id_deo: m.id_deo,
-      naziv_dela: m.naziv_dela || "",
-      kolicina: m.ukupno_kom ?? podrazumevano.kolicina ?? 50,
-      kupac: podrazumevano.kupac ?? "",
+      naziv_dela: deoRn?.naziv_dela || m.naziv_dela || "",
+      kolicina: deoRn?.ukupno_kom ?? m.ukupno_kom ?? podrazumevano.kolicina ?? 50,
+      kupac: deoRn?.kupac || podrazumevano.kupac || "",
       datum_unosa: podrazumevano.datum_unosa ?? new Date().toISOString().slice(0, 10),
       rok_isporuke: podrazumevano.rok_isporuke ?? null,
       status: "aktivan",

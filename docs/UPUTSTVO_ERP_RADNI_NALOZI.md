@@ -1,8 +1,12 @@
 # Uvoz radnih naloga iz ERP (CSV)
 
-Dnevni izvoz iz SAP / Pantheon / custom ERP → SPC Web tabela `radni_nalozi`.
+Dnevni izvoz iz SAP / Pantheon / custom ERP → SPC Web (konfigurabilan uvoz u više tabela).
 
-## Kolone (redosled fleksibilan)
+**Nivo C — konfiguracija:** vidi `docs/UPUTSTVO_ERP_KONFIGURACIJA.md`  
+Preseti: `config/erp/presets/sap.json`, `pantheon.json`  
+Aktivni config: `config/erp/erp-uvoz.config.json`
+
+## Kolone radnih naloga (redosled fleksibilan)
 
 | Kolona | Obavezno | Primer | Alternativni nazivi |
 |--------|----------|--------|---------------------|

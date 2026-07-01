@@ -244,7 +244,7 @@ export async function posaljiObavestenje(supabase, settings, alarm) {
 /** Šalje obaveštenja za visoke/srednje alarme (dashboard, unos). */
 export async function obradiAlarmeNotifikacije(supabase, alarmi, settings) {
   if (!settings || !alarmi?.length) return;
-  const zaSlanje = alarmi.filter(a => a.nivo === "visok" || a.nivo === "srednji");
+  const zaSlanje = alarmi.filter(a => a.nivo === "visok" || a.nivo === "srednji" || a.nivo === "kriticno");
   for (const a of zaSlanje) {
     await posaljiObavestenje(supabase, settings, a);
   }

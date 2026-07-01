@@ -4,6 +4,11 @@
  */
 import { pogonIzLinijeFaze, radniNalogIzDeoPogona } from "./syncSifrarnikIzMerljivih.js";
 import { dedupeRowsForUpsert } from "./upsertUtil.js";
+import {
+  granicaZaSnimanje,
+  granicaTextZaKarakteristiku,
+} from "./glavniUnosGranice.js";
+import { isUgao } from "./varijabilneUtils.js";
 
 export const KARAKTERISTIKE_MERLJIVE_HEADER = [
   "id",
@@ -108,11 +113,11 @@ export function jeMerljivaPoInstrumentu(k) {
   if (!k || jeAtributivnaPoInstrumentu(k)) return false;
   const poz = String(k.pozicija || "").trim();
   if (!poz || poz === "-") return false;
+  const jed = String(k.jedinica || "").toLowerCase();
+  if (jed.includes("stepen") || jed.includes("°") || jed.includes("ugao")) return true;
   const lsl = Number(k.lsl);
   const usl = Number(k.usl);
   if (Number.isFinite(lsl) && Number.isFinite(usl) && usl >= lsl) return true;
-  const jed = String(k.jedinica || "").toLowerCase();
-  if (jed.includes("stepen") || jed.includes("°")) return true;
   return false;
 }
 
@@ -276,6 +281,11 @@ export function mapKarakteristikaMerljiveRow(r) {
 
   const kom = num(pick(r, "kom_za_kontrolu_n", "kom za kontrolu n"));
   const brojMerenja = brojMerenjaIzReda(r);
+  const jedinicaRaw = String(pick(r, "jedinica") || "").trim() || "mm";
+  const uslNum = granicaZaSnimanje(pick(r, "usl"), jedinicaRaw);
+  const lslNum = granicaZaSnimanje(pick(r, "lsl"), jedinicaRaw);
+  const nomNum = granicaZaSnimanje(pick(r, "nominala"), jedinicaRaw);
+  const jedinica = isUgao(jedinicaRaw) ? "stepen" : jedinicaRaw;
 
   const row = {
     id: num(r.id),
@@ -294,13 +304,13 @@ export function mapKarakteristikaMerljiveRow(r) {
     pozicija: String(pick(r, "pozicija", "dimenzija") || "").trim(),
     klasa: String(pick(r, "klasa", "Klasa") || "").trim() || null,
     naziv_mere: String(pick(r, "naziv_mere", "naziv mere") || "").trim() || null,
-    nominala: num(pick(r, "nominala")),
-    usl: num(pick(r, "usl")),
-    lsl: num(pick(r, "lsl")),
-    usl_text: pick(r, "usl_text") || (pick(r, "usl") !== "" ? String(pick(r, "usl")) : null),
-    lsl_text: pick(r, "lsl_text") || (pick(r, "lsl") !== "" ? String(pick(r, "lsl")) : null),
+    nominala: nomNum,
+    usl: uslNum,
+    lsl: lslNum,
+    usl_text: pick(r, "usl_text") || granicaTextZaKarakteristiku(uslNum, jedinica),
+    lsl_text: pick(r, "lsl_text") || granicaTextZaKarakteristiku(lslNum, jedinica),
     merni_instrument: String(pick(r, "merni_instrument", "merni instrument") || "").trim() || null,
-    jedinica: String(pick(r, "jedinica") || "").trim() || null,
+    jedinica,
     napomena: String(pick(r, "napomena") || "").trim() || null,
     nivo_kontrole: String(pick(r, "nivo_kontrole", "nivo kontrole") || "").trim() || null,
     fai_broj_merenja: (() => {
@@ -315,9 +325,9 @@ export function mapKarakteristikaMerljiveRow(r) {
     merljive: jeMerljivaPoInstrumentu({
       pozicija: pick(r, "pozicija", "dimenzija"),
       merni_instrument: pick(r, "merni_instrument", "merni instrument"),
-      lsl: num(pick(r, "lsl")),
-      usl: num(pick(r, "usl")),
-      jedinica: pick(r, "jedinica"),
+      lsl: lslNum,
+      usl: uslNum,
+      jedinica,
     })
       ? "DA"
       : "NE",
@@ -340,12 +350,23 @@ export function normalizujPogonKodKar(row) {
 
 /** Normalizuj prirodni ključ pre dedupe / upsert. */
 export function normalizujKarakteristikuRed(row) {
-  const r = normalizujPogonKodKar(row);
+  const r0 = normalizujPogonKodKar(row);
+  const jedRaw = String(r0.jedinica || "").trim() || "mm";
+  const usl = granicaZaSnimanje(r0.usl, jedRaw);
+  const lsl = granicaZaSnimanje(r0.lsl, jedRaw);
+  const nominala = granicaZaSnimanje(r0.nominala, jedRaw);
+  const jedinica = isUgao(jedRaw) ? "stepen" : jedRaw;
   return {
-    ...r,
-    id_deo: String(r.id_deo || "").trim().toUpperCase(),
-    sifra_merenja: String(r.sifra_merenja ?? "").trim(),
-    pozicija: String(r.pozicija ?? "").trim(),
+    ...r0,
+    id_deo: String(r0.id_deo || "").trim().toUpperCase(),
+    sifra_merenja: String(r0.sifra_merenja ?? "").trim(),
+    pozicija: String(r0.pozicija ?? "").trim(),
+    usl,
+    lsl,
+    nominala,
+    jedinica,
+    usl_text: r0.usl_text || granicaTextZaKarakteristiku(usl, jedinica),
+    lsl_text: r0.lsl_text || granicaTextZaKarakteristiku(lsl, jedinica),
   };
 }
 

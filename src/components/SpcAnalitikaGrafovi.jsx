@@ -260,6 +260,98 @@ export function SpcRtyTrendGraf({
   );
 }
 
+function PpmDpmoTooltip({ active, payload, label, C }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  return (
+    <div style={{
+      background: C.panel,
+      border: `1px solid ${C.border}`,
+      borderRadius: 10,
+      padding: "12px 14px",
+      fontSize: 12,
+      lineHeight: 1.55,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+    }}>
+      <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 6 }}>
+        {label || d?.label || d?.datum || "—"}
+      </div>
+      {d?.n > 0 && (
+        <div style={{ color: C.sivi, fontSize: 11, marginBottom: 4 }}>
+          n = {d.n} · NOK = {d.nok ?? "—"}
+        </div>
+      )}
+      {payload.map(p => (
+        <div key={p.name} style={{ color: p.color || C.tekst }}>
+          {p.name}: <strong>{Number(p.value).toLocaleString("sr-RS")}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** PPM / DPMO trend po danu (stubci + linija kad se razlikuju). */
+export function SpcPpmDpmoTrendGraf({
+  data,
+  C,
+  height = 280,
+  xKey = "label",
+  naslov = "PPM / DPMO po danu",
+}) {
+  if (!data?.length) return null;
+  const imaRazliku = data.some(
+    (d) => d.ppm != null && d.dpmo != null && Number(d.ppm) !== Number(d.dpmo),
+  );
+  const maxVal = Math.max(...data.flatMap(d => [Number(d.dpmo) || 0, Number(d.ppm) || 0]), 1);
+
+  return (
+    <SpcGrafPanel
+      C={C}
+      naslov={naslov}
+      height={height}
+      podnaslov={imaRazliku
+        ? "PPM = neispravni komadi/mil. · DPMO = defekti/mil. (kad ima više defekata po komadu)"
+        : "PPM i DPMO su identični (jedna prilika po merenju/komadu)"}
+      legenda={(
+        <SpcGrafLegendaTraka C={C} stavke={[
+          { boja: C.ljubicasta, label: imaRazliku ? "DPMO" : "PPM / DPMO", puna: true },
+          ...(imaRazliku ? [{ boja: C.narandzasta, label: "PPM", isprekid: true }] : []),
+        ]} />
+      )}
+    >
+      <ComposedChart data={data} margin={spcMargin({ right: 16, bottom: 48 })}>
+        {spcGrid(C)}
+        {spcXAxis(C, { dataKey: xKey, dataLength: data.length })}
+        {spcYAxis(C, {
+          domain: [0, Math.ceil(maxVal * 1.12)],
+          tickFormatter: v => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)),
+          width: 52,
+        })}
+        <Tooltip content={<PpmDpmoTooltip C={C} />} cursor={{ fill: `${C.ljubicasta}12` }} />
+        {spcLegend(C)}
+        <Bar
+          dataKey="dpmo"
+          fill={C.ljubicasta}
+          name={imaRazliku ? "DPMO" : "PPM / DPMO"}
+          radius={[4, 4, 0, 0]}
+          maxBarSize={44}
+        />
+        {imaRazliku && (
+          <Line
+            type="monotone"
+            dataKey="ppm"
+            stroke={C.narandzasta}
+            strokeWidth={2.5}
+            dot={{ fill: C.narandzasta, r: 5 }}
+            name="PPM"
+            connectNulls
+          />
+        )}
+      </ComposedChart>
+    </SpcGrafPanel>
+  );
+}
+
 /** FPY trend jedna linija (SPC karta / dashboard faze). */
 export function SpcRtyJednaLinija({
   data, C, height = 220, xKey = "datum", naslov, serijaNaziv = "FPY %",

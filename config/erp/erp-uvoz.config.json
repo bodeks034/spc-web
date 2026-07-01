@@ -1,0 +1,12 @@
+{
+  "verzija": 1,
+  "preset": "sap",
+  "opis": "Aktivna ERP konfiguracija — izmeni preset ili pojedinačne entitete ispod.",
+  "drop_dir": "erp-drop/incoming",
+  "min_age_min": 2,
+  "entiteti": {
+    "smene": { "ukljuceno": false },
+    "tipovi_vozila": { "ukljuceno": false },
+    "radnici": { "ukljuceno": false }
+  }
+}

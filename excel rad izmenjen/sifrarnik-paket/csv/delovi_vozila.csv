@@ -1,0 +1,4 @@
+id delo*,naziv dela*,vozilo katalog id,karakteristika kontrole*,linija id*,masina id*,kom za kontrolu n*,slika/crtez,aktivan,napomena
+MRAP-001,MRAP komplet,MRAP,Finalna vizuelna kontrola celog vozila,48,1,5,MRAP_SOP.jpg,DA,MRAP — oklopno vozilo
+MRAP1-001,MRAP1 komplet,MRAP1,Finalna vizuelna kontrola celog vozila,48,1,5,MRAP1_SOP.jpg,DA,MRAP1 — oklopno vozilo 6x6
+NTV-001,NTV komplet,NTV,Finalna vizuelna kontrola celog vozila,48,1,5,NTV_SOP.jpg,DA,NTV — novo terensko vozilo

@@ -5,7 +5,7 @@ import {
 } from "../lib/adminZahtevNotifikacije.js";
 
 /**
- * Realtime: admin dobija browser/Teams obaveštenje kad operater pošalje zahtev.
+ * Realtime: kvalitet / šef / admin dobija browser/Teams obaveštenje kad operater pošalje zahtev.
  * Radi dok je aplikacija otvorena (bilo koji tab/modul).
  */
 export default function useAdminZahtevNotifikacije({

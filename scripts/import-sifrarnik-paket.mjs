@@ -49,7 +49,23 @@ export async function importSifrarnikPaketToSupabase(supabase, { merljivePath, a
 
   const merljiveWb = readWb(paths.merljivePath);
   const atrWb = readWb(paths.atributivnePath);
-  const atrSheets = ["delovi", "radni_nalozi"].filter((s) => atrWb.Sheets[s]);
+  const atrSheetOrder = [
+    "linije",
+    "masine",
+    "smene",
+    "tipovi_vozila",
+    "greske_katalog",
+    "katalog_gresaka_vozilo",
+    "delovi",
+    "ciljevi",
+    "radni_nalozi",
+    "radnici",
+    "kupci",
+    "kontrolna_lista_stavke",
+    "merila",
+    "kalibracije",
+  ];
+  const atrSheets = atrSheetOrder.filter((s) => atrWb.Sheets[s]);
 
   // Prvo delovi (FK), pa merljive + SOP
   const atrResults = atrSheets.length

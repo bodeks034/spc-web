@@ -32,6 +32,8 @@ export default function FaiUnosTraka({
 
   onOdobri,
 
+  sacuvajLabel = "Sačuvaj FAI",
+
   kompakt = false,
 
 }) {
@@ -209,9 +211,10 @@ export default function FaiUnosTraka({
         <>
 
           <span style={{ color: C.zuta, fontSize: fs - 1, fontWeight: 600, flexShrink: 0 }}>
-
             Čeka odobrenje
-
+            {!mozeOdobri && (
+              <span style={{ color: C.sivi, fontWeight: 400 }}> · tab FAI</span>
+            )}
           </span>
 
           {mozeOdobri && (
@@ -350,7 +353,7 @@ export default function FaiUnosTraka({
 
           >
 
-            {snima ? "…" : "Sačuvaj FAI"}
+            {snima ? "…" : sacuvajLabel}
 
           </button>
 

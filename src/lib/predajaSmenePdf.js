@@ -1,6 +1,7 @@
 /** PDF predaja smene — škart/KPI, SPC alarmi, otvoreni 8D. */
 
 import { agregirajAtributivneJedinice } from "./atributivneAgregacija.js";
+import { dodajPdfBrendZaglavlje, dodajPdfBrendPodnozje } from "./pdfBrending.js";
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -125,20 +126,18 @@ export async function generisiPredajaSmenePdf(supabase, {
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = pdf.internal.pageSize.getWidth();
 
-  pdf.setFillColor(28, 35, 51);
-  pdf.rect(0, 0, W, 42, "F");
-  pdf.setTextColor(88, 166, 255);
-  pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("PREDAJA SMENE — KVALITET", 14, 14);
-  pdf.setTextColor(200, 210, 230);
-  pdf.setFontSize(10);
+  let y = await dodajPdfBrendZaglavlje(pdf, {
+    naslov: "Predaja smene — kvalitet",
+    podnaslov: `${modul === "merljive" ? "Merljive" : "Atributivne"} · smena ${smena} · ${datum}`,
+  });
+  y += 6;
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "normal");
-  pdf.text(`${modul === "merljive" ? "Merljive" : "Atributivne"} · smena ${smena} · ${datum}`, 14, 24);
-  pdf.text(`Generisao: ${korisnik?.ime || "—"} · ${new Date().toLocaleString("sr-RS")}`, 14, 32);
-  pdf.text("Dokument: škart/KPI · SPC alarmi · otvoreni 8D", 14, 38);
-
-  let y = 52;
+  pdf.setTextColor(60, 70, 80);
+  pdf.text(`Generisao: ${korisnik?.ime || "—"} · ${new Date().toLocaleString("sr-RS")}`, 14, y);
+  y += 5;
+  pdf.text("Dokument: škart/KPI · alarmi · otvoreni 8D", 14, y);
+  y += 10;
   y = pdfSekcija(pdf, y, "STATISTIKA SMENE", W);
   pdf.setFontSize(9);
   pdf.setFont("helvetica", "normal");
@@ -201,8 +200,9 @@ export async function generisiPredajaSmenePdf(supabase, {
   pdf.setFontSize(8);
   pdf.setTextColor(140, 150, 160);
   pdf.text("Potpis predaje smene: _________________________  Potpis primio: _________________________", 14, 285);
+  dodajPdfBrendPodnozje(pdf);
 
-  pdf.save(`Predaja_smene_${modul}_${smena}_${datum}.pdf`);
+  pdf.save(`TRI-CORE_Predaja_smene_${modul}_${smena}_${datum}.pdf`);
   addToast?.("✓ PDF predaja smene", "uspeh");
 }
 

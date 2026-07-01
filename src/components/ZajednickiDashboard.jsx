@@ -4,6 +4,7 @@ import { fetchZajednickiDashboard } from "../lib/zajednickiDashboard.js";
 import { queueCounts, loadQueue, ensureQueueReady } from "../lib/offlineQueue.js";
 import OperativniAlarmiStrip from "./OperativniAlarmiStrip.jsx";
 import StanjePredikcijaPanel from "./StanjePredikcijaPanel.jsx";
+import AnalitikaKpiSestPolja from "./analitika/AnalitikaKpiSestPolja.jsx";
 import { bojaNivoa } from "../lib/operativniAlarmi.js";
 import { mozeInteligencijaProcesa } from "../lib/uloge.js";
 import {
@@ -12,22 +13,9 @@ import {
   zatraziBrowserDozvolu,
 } from "../lib/notifikacije.js";
 
-function KpiKartica({ label, value, boja, C, sub }) {
-  return (
-    <div style={{
-      background: C.panel, border: `1px solid ${boja}35`, borderRadius: 10,
-      padding: "14px 16px", textAlign: "center", minWidth: 100, flex: "1 1 100px",
-    }}>
-      <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2, marginBottom: 6 }}>{label}</div>
-      <div style={{ color: boja, fontSize: 22, fontWeight: 700 }}>{value}</div>
-      {sub && <div style={{ color: C.border, fontSize: 8, marginTop: 4 }}>{sub}</div>}
-    </div>
-  );
-}
-
-export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula, korisnik, onOtvori8D }) {
-  const [period, setPeriod] = useState(kompakt ? "1" : "7");
-  const [idDeo, setIdDeo] = useState("");
+export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula, korisnik, onOtvori8D, filterIdDeo, filterPeriod, filterLinija, filterSmena, sakrijFilterTraku = false, sakrijNaslov = false, modul = null, onNavigacija, ugradi = false, sakrijKpiSest = false }) {
+  const [period, setPeriod] = useState(filterPeriod ?? (kompakt ? "1" : "7"));
+  const [idDeo, setIdDeo] = useState(filterIdDeo ?? "");
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sakrijAlarme, setSakrijAlarme] = useState(false);
@@ -63,6 +51,8 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
         period: Number(period),
         offlinePaketi: offline.total,
         idDeo: idDeo || undefined,
+        linija: filterLinija || undefined,
+        smena: filterSmena || undefined,
       });
       setPodaci(d);
     } catch (e) {
@@ -71,9 +61,17 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
     } finally {
       setLoading(false);
     }
-  }, [period, idDeo, addToast]);
+  }, [period, idDeo, filterLinija, filterSmena, addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (filterPeriod !== undefined) setPeriod(filterPeriod);
+  }, [filterPeriod]);
+
+  useEffect(() => {
+    if (filterIdDeo !== undefined) setIdDeo(filterIdDeo);
+  }, [filterIdDeo]);
 
   useEffect(() => {
     zatraziBrowserDozvolu();
@@ -98,15 +96,24 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
   const pad = kompakt ? 0 : 0;
 
   return (
-    <div style={{ width: "100%", maxWidth: 960, padding: pad, boxSizing: "border-box" }}>
+    <div style={{ width: "100%", maxWidth: ugradi ? "none" : 960, padding: pad, boxSizing: "border-box" }}>
+      {!sakrijNaslov && (
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 12, flexWrap: "wrap", gap: 8,
       }}>
         <span style={{ color: C.tekst, fontSize: kompakt ? 12 : 14, fontWeight: 700, letterSpacing: 1 }}>
           PREGLED PROIZVODNJE
+          {modul === "atributivne" && (
+            <span style={{ color: C.plava, fontSize: 10, marginLeft: 8, fontWeight: 600 }}>· ATR</span>
+          )}
+          {modul === "merljive" && (
+            <span style={{ color: C.zelena, fontSize: 10, marginLeft: 8, fontWeight: 600 }}>· MER</span>
+          )}
         </span>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {!sakrijFilterTraku && (
+            <>
           <select value={idDeo} onChange={e => setIdDeo(e.target.value)}
             title="Filter po ID dela"
             style={{
@@ -135,16 +142,30 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
             }}>
             {loading ? "…" : "↻"}
           </button>
+            </>
+          )}
         </div>
       </div>
+      )}
 
-      {!sakrijAlarme && podaci?.alarmi?.length > 0 && (
-        <OperativniAlarmiStrip
-          alarmi={podaci.alarmi}
-          C={C}
-          kompakt
-          onZatvori={() => setSakrijAlarme(true)}
-        />
+      {!ugradi && !sakrijAlarme && podaci?.alarmi?.length > 0 && (
+        <>
+          <OperativniAlarmiStrip
+            alarmi={podaci.alarmi}
+            C={C}
+            kompakt
+            onZatvori={() => setSakrijAlarme(true)}
+          />
+          {onNavigacija && (
+            <button type="button" onClick={() => onNavigacija({ tab: "odobrenja" })}
+              style={{
+                background: "none", border: "none", color: C.plava, fontSize: 10,
+                cursor: "pointer", marginBottom: 12, padding: 0, fontFamily: "inherit",
+              }}>
+              → Odobrenja QA ({podaci.alarmi.length})
+            </button>
+          )}
+        </>
       )}
 
       {lokalniToast && (
@@ -159,39 +180,37 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
       )}
 
       {loading ? (
-        <div style={{ color: C.sivi, fontSize: 12, padding: 24, textAlign: "center" }}>Učitavanje…</div>
+        <div style={{
+          color: C.sivi,
+          fontSize: ugradi ? 10 : 12,
+          padding: ugradi ? "2px 0 0" : 24,
+          textAlign: ugradi ? "left" : "center",
+        }}>
+          {ugradi ? "Učitavanje KPI…" : "Učitavanje…"}
+        </div>
       ) : !podaci ? (
-        <div style={{ color: C.border, fontSize: 12, padding: 24, textAlign: "center" }}>Nema podataka</div>
+        <div style={{
+          color: C.border,
+          fontSize: ugradi ? 10 : 12,
+          padding: ugradi ? "2px 0 0" : 24,
+          textAlign: ugradi ? "left" : "center",
+        }}>
+          {ugradi ? "Nema KPI podataka" : "Nema podataka"}
+        </div>
       ) : (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-            <KpiKartica label="FPY ATR" value={`${podaci.attr.fpy ?? podaci.attr.rty}%`} boja={C.plava} C={C}
-              sub={`faza · DPMO ${podaci.attr.dpmo.toLocaleString()}`} />
-            <KpiKartica label="FPY MER" value={`${podaci.merljive.fpy ?? podaci.merljive.rty}%`} boja={C.zelena} C={C}
-              sub={`faza · ${podaci.merljive.merenja} kom/mer.`} />
-            <KpiKartica label="RTY" value={podaci.rtyPogon != null ? `${podaci.rtyPogon}%` : "—"} boja={C.narandzasta} C={C}
-              sub={podaci.fazeKvaliteta?.length > 1
-                ? `pogon · ${podaci.fazeKvaliteta.map(f => `${f.naziv} ${f.fpy}%`).join(" × ")}`
-                : "ukupna prolaznost"} />
-            <KpiKartica label="OEE" value={podaci.oee.prosek != null ? `${podaci.oee.prosek}%` : "—"}
-              boja={podaci.oee.prosek >= 65 ? C.zelena : podaci.oee.prosek >= 40 ? C.zuta : C.crvena} C={C}
-              sub={podaci.oee.rty != null
-                ? `kvalitet = RTY ${podaci.oee.rty}%`
-                : podaci.oee.imaKpi ? `${podaci.oee.kpiBroj} KPI` : "unesi KPI"} />
-            <KpiKartica label="ESKALACIJE" value={podaci.eskalacije.otvorene} boja={C.zuta} C={C}
-              sub={podaci.eskalacije.auto > 0
-                ? `${podaci.eskalacije.rucne} ručne · ${podaci.eskalacije.auto} auto`
-                : "otvorene"} />
-            <KpiKartica label="MERILA" value={podaci.merila.upozorenja}
-              boja={podaci.merila.istekla ? C.crvena : podaci.merila.uskoro ? C.zuta : C.zelena} C={C}
-              sub={podaci.merila.istekla
-                ? `${podaci.merila.istekla} isteklih / ${podaci.merila.ukupno}`
-                : podaci.merila.uskoro
-                  ? `${podaci.merila.uskoro} uskoro / ${podaci.merila.ukupno}`
-                  : `${podaci.merila.ukupno} aktivnih`} />
-          </div>
+          {!sakrijKpiSest && (
+            <div style={{ width: "100%", marginBottom: ugradi ? 0 : 14, boxSizing: "border-box" }}>
+              <AnalitikaKpiSestPolja
+                C={C}
+                podaci={podaci}
+                modul={modul}
+                onNavigacija={onNavigacija}
+              />
+            </div>
+          )}
 
-          {podaci.najslabijaFaza && podaci.fazeKvaliteta?.length > 1 && (
+          {!ugradi && podaci.najslabijaFaza && podaci.fazeKvaliteta?.length > 1 && (
             <div style={{
               color: C.sivi, fontSize: 10, marginBottom: 12, padding: "8px 10px",
               background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
@@ -203,7 +222,7 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
             </div>
           )}
 
-          {period === "1" && (
+          {!ugradi && period === "1" && (
             <div style={{
               color: C.sivi, fontSize: 10, marginBottom: 12, padding: "8px 10px",
               background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
@@ -213,7 +232,7 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
             </div>
           )}
 
-          {vidiInteligenciju && (
+          {!ugradi && vidiInteligenciju && (
             <StanjePredikcijaPanel
               podaci={podaci}
               C={C}
@@ -226,17 +245,38 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
             />
           )}
 
-          {podaci.topNok.length > 0 && (
+          {!ugradi && podaci.topNok.length > 0 && (
             <div style={{
               background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10,
               padding: 12, marginBottom: 12,
             }}>
-              <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2, marginBottom: 8 }}>TOP NOK</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.2 }}>TOP NOK</div>
+                {onNavigacija && (
+                  <button type="button" onClick={() => onNavigacija({ tab: "karte" })}
+                    style={{
+                      background: "none", border: "none", color: C.plava, fontSize: 9,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}>
+                    SPC karte →
+                  </button>
+                )}
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {podaci.topNok.slice(0, kompakt ? 5 : 8).map((p, i) => (
-                  <div key={`${p.izvor}-${p.naziv}-${i}`} style={{
-                    display: "flex", justifyContent: "space-between", fontSize: 10,
-                  }}>
+                  <button
+                    key={`${p.izvor}-${p.naziv}-${i}`}
+                    type="button"
+                    onClick={onNavigacija ? () => onNavigacija({
+                      tab: p.izvor === "merljive" ? "karte" : "karte",
+                      spcTip: p.izvor === "merljive" ? "pareto" : "pareto",
+                    }) : undefined}
+                    style={{
+                      display: "flex", justifyContent: "space-between", fontSize: 10,
+                      background: "none", border: "none", padding: "2px 0", cursor: onNavigacija ? "pointer" : "default",
+                      fontFamily: "inherit", width: "100%", textAlign: "left",
+                    }}
+                  >
                     <span style={{ color: C.tekst }}>
                       <span style={{ color: p.izvor === "merljive" ? C.zelena : C.plava, fontSize: 8 }}>
                         {p.izvor === "merljive" ? "±" : "✓"}
@@ -244,13 +284,13 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
                       {" "}{p.naziv}
                     </span>
                     <span style={{ color: C.crvena, fontWeight: 700 }}>{p.count}×</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
           )}
 
-          {!kompakt && podaci.alarmi.length > 0 && (
+          {!ugradi && !kompakt && podaci.alarmi.length > 0 && (
             <div style={{
               background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12,
             }}>

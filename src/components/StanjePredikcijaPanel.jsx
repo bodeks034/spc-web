@@ -2,18 +2,19 @@ import { useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { labelaStanja, bojaStanja, kreirajEskalacijuIzPredloga } from "../lib/spcInteligencija.js";
 import { prefill8dIzEskalacije } from "../lib/eskalacijeHelper.js";
+import SpcAsistent8dDugme from "./spc/SpcAsistent8dDugme.jsx";
 import { mozeInteligencijaProcesa } from "../lib/uloge.js";
 
-function KarticaStanja({ naslov, stanje, razlog, C }) {
-  const boja = bojaStanja(stanje, C);
+function KarticaStanja({ naslov, stanje, razlog, vrednost, bojaVrednosti, C }) {
+  const boja = bojaVrednosti || (stanje != null ? bojaStanja(stanje, C) : C.tekst);
   return (
     <div style={{
-      flex: "1 1 140px", background: C.bg, border: `1px solid ${boja}40`,
-      borderRadius: 8, padding: "10px 12px",
+      flex: "1 1 140px", minWidth: 120, background: C.bg, border: `1px solid ${boja}40`,
+      borderRadius: 8, padding: "10px 12px", boxSizing: "border-box",
     }}>
       <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, marginBottom: 4 }}>{naslov}</div>
       <div style={{ color: boja, fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-        {labelaStanja(stanje)}
+        {vrednost != null ? vrednost : labelaStanja(stanje)}
       </div>
       <div style={{ color: C.sivi, fontSize: 9, lineHeight: 1.4 }}>{razlog}</div>
     </div>
@@ -179,6 +180,7 @@ function EskalacijaModal({
 
 export default function StanjePredikcijaPanel({
   podaci, C, kompakt, korisnik, addToast, sviDelovi = [], defaultIdDeo = "", onOtvori8D,
+  asistentMeta,
 }) {
   const [eskalacijaMera, setEskalacijaMera] = useState(null);
 
@@ -236,34 +238,35 @@ export default function StanjePredikcijaPanel({
           }}>
             {labelaStanja(izv.ukupnoStanje)}
           </span>
+          {onOtvori8D && asistentMeta && (
+            <SpcAsistent8dDugme
+              C={C}
+              korisnik={korisnik}
+              izvor="inteligencija"
+              kompakt
+              onOtvori8D={onOtvori8D}
+              addToast={addToast}
+              inteligencijaProps={asistentMeta}
+            />
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "stretch" }}>
           <KarticaStanja naslov="ATRIBUTIVNE (FPY)" stanje={izv.stanjeAttr.stanje}
             razlog={izv.stanjeAttr.razlog} C={C} />
           <KarticaStanja naslov="MERLJIVE (FPY)" stanje={izv.stanjeMer.stanje}
             razlog={izv.stanjeMer.razlog} C={C} />
-          {!kompakt && (
-            <div style={{
-              flex: "1 1 140px", background: C.bg, border: `1px solid ${C.border}`,
-              borderRadius: 8, padding: "10px 12px",
-            }}>
-              <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, marginBottom: 4 }}>RTY POGONA</div>
-              <div style={{ color: C.narandzasta, fontSize: 12, fontWeight: 700 }}>
-                {izv.sumarno.rtyPogon != null ? `${izv.sumarno.rtyPogon}%` : "—"}
-              </div>
-              <div style={{ color: C.sivi, fontSize: 9, marginTop: 4, lineHeight: 1.45 }}>
-                {izv.sumarno.faze?.length > 1
-                  ? izv.sumarno.faze.map(f => `${f.naziv} ${f.fpy}%`).join(" × ")
-                  : `FPY atr ${izv.sumarno.fpyAttr}% · mer ${izv.sumarno.fpyMer}%`}
-                {izv.sumarno.najslabijaFaza && (
-                  <span style={{ display: "block", marginTop: 4, color: C.narandzasta }}>
-                    Najslabija: {izv.sumarno.najslabijaFaza.naziv}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          <KarticaStanja
+            naslov="RTY POGONA"
+            vrednost={izv.sumarno.rtyPogon != null ? `${izv.sumarno.rtyPogon}%` : "—"}
+            bojaVrednosti={C.narandzasta}
+            razlog={
+              izv.sumarno.faze?.length > 1
+                ? izv.sumarno.faze.map(f => `${f.naziv} ${f.fpy}%`).join(" × ")
+                : `FPY atr ${izv.sumarno.fpyAttr}% · mer ${izv.sumarno.fpyMer}%`
+            }
+            C={C}
+          />
         </div>
 
         <div style={{
@@ -350,7 +353,7 @@ export default function StanjePredikcijaPanel({
 
         <div style={{ color: C.border, fontSize: 8, marginTop: 10, lineHeight: 1.4 }}>
           Eskalacija se automatski dodeljuje inženjeru kvaliteta sa najmanje otvorenih zadataka.
-          Dugme 8D otvara izveštaj sa popunjenim opisom i korektivnom akcijom.
+          „8D nacrt“ generiše kompletan šablonski izveštaj (D2–D8) iz analitike — Faza 1 asistenta.
         </div>
       </div>
     </>

@@ -263,7 +263,10 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
           <div style={{ color: C.border, fontSize: 9, marginTop: 8, lineHeight: 1.5 }}>
             Kolone: {ERP_CSV_KOLONE.join(" · ")}
             <br />
-            Isti broj naloga se ažurira (upsert). Vidi docs/UPUTSTVO_ERP_RADNI_NALOZI.md
+          <div style={{ color: C.sivi, fontSize: 10, marginTop: 8, lineHeight: 1.45 }}>
+            Za pun uvoz (delovi, kupci, linije…) koristi tab{" "}
+            <strong style={{ color: C.tekst }}>Alati → ERP uvoz</strong>.
+          </div>
           </div>
         </div>
       )}

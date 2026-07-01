@@ -1,0 +1,158 @@
+{
+  "verzija": 1,
+  "erp_sistem": "pantheon",
+  "opis": "Pantheon ERP — tipični nazivi kolona iz izvoza (Ident, Naziv, RN…)",
+  "redosled_uvoza": [
+    "linije",
+    "masine",
+    "smene",
+    "tipovi_vozila",
+    "delovi",
+    "kupci",
+    "radnici",
+    "radni_nalozi"
+  ],
+  "entiteti": {
+    "linije": {
+      "ukljuceno": true,
+      "opis": "Proizvodne linije",
+      "fajl": "linije.csv",
+      "fajl_alternativni": ["pantheon_linije.csv", "proizvodne_linije.csv"],
+      "tabela": "linije",
+      "upsert_strategija": "name_lookup",
+      "lookup_polje": "linija",
+      "obavezna_polja": ["linija"],
+      "kolone": {
+        "linija": { "iz": ["Linija", "linija", "ProizvodnaLinija", "radno_mesto"] },
+        "proces": { "iz": ["Proces", "proces", "OperacijaOpis"] },
+        "operacija": { "iz": ["Operacija", "operacija", "Korak"] }
+      }
+    },
+    "masine": {
+      "ukljuceno": true,
+      "opis": "Strojevi / mašine",
+      "fajl": "masine.csv",
+      "fajl_alternativni": ["pantheon_masine.csv", "strojevi.csv"],
+      "tabela": "masine",
+      "upsert_kljuc": "naziv",
+      "obavezna_polja": ["naziv"],
+      "kolone": {
+        "naziv": { "iz": ["Stroj", "stroj", "Masina", "masina", "naziv", "OznakaStroja"] }
+      }
+    },
+    "smene": {
+      "ukljuceno": false,
+      "fajl": "smene.csv",
+      "fajl_alternativni": ["pantheon_smene.csv"],
+      "tabela": "smene",
+      "upsert_kljuc": "naziv",
+      "obavezna_polja": ["naziv"],
+      "kolone": {
+        "naziv": { "iz": ["Smena", "smena", "naziv"] }
+      }
+    },
+    "tipovi_vozila": {
+      "ukljuceno": false,
+      "opis": "Grupe artikala / modeli vozila",
+      "fajl": "tipovi_vozila.csv",
+      "fajl_alternativni": ["pantheon_vozila.csv", "grupe_artikala.csv"],
+      "tabela": "tipovi_vozila",
+      "upsert_kljuc": "kod",
+      "obavezna_polja": ["kod", "naziv"],
+      "podrazumevano": { "aktivan": true },
+      "kolone": {
+        "kod": { "iz": ["KodGrupe", "kod", "SifraGrupe", "GrupaArt"], "transform": "upper" },
+        "naziv": { "iz": ["NazivGrupe", "naziv", "OpisGrupe"] },
+        "prefiks_id_deo": { "iz": ["Prefiks", "prefiks_id_deo"] },
+        "aktivan": { "iz": ["Aktivan", "aktivan"], "transform": "bool" },
+        "napomena": { "iz": ["Napomena", "napomena"] }
+      }
+    },
+    "delovi": {
+      "ukljuceno": true,
+      "opis": "Artikli / identi (šifarnik delova)",
+      "fajl": "delovi.csv",
+      "fajl_alternativni": ["pantheon_delovi.csv", "artikli.csv", "identi.csv"],
+      "tabela": "delovi",
+      "upsert_kljuc": "id_deo",
+      "merge_nulls": true,
+      "preserve_polja": ["karakteristika", "linija_id", "masina_id", "kom_za_kontrolu", "slika_naziv"],
+      "obavezna_polja": ["id_deo", "naziv_dela"],
+      "podrazumevano": { "aktivan": true, "tip_kontrole": "deo", "kom_za_kontrolu": 30 },
+      "kolone": {
+        "id_deo": { "iz": ["Ident", "ident", "Sifra", "sifra", "id_deo", "Artikal"], "transform": "upper" },
+        "naziv_dela": { "iz": ["Naziv", "naziv", "NazivArtikla", "naziv_dela", "Opis"] },
+        "pogon_kod": { "iz": ["Pogon", "pogon_kod", "Skladiste"], "transform": "upper" },
+        "radni_nalog": { "iz": ["RadniNalog", "radni_nalog"] },
+        "karakteristika": { "iz": ["Karakteristika", "karakteristika"] },
+        "linija_id": { "iz": ["LinijaId", "linija_id"], "transform": "int" },
+        "masina_id": { "iz": ["MasinaId", "masina_id"], "transform": "int" },
+        "kom_za_kontrolu": { "iz": ["KomZaKontrolu", "kom_za_kontrolu"], "transform": "int" },
+        "slika_naziv": { "iz": ["Crtez", "slika_naziv"] },
+        "aktivan": { "iz": ["Aktivan", "aktivan"], "transform": "bool" },
+        "napomena": { "iz": ["Napomena", "napomena"] },
+        "tip_kontrole": { "iz": ["TipKontrole", "tip_kontrole"], "transform": "tip_kontrole" },
+        "vozilo_katalog_id": { "iz": ["GrupaArt", "vozilo_katalog_id"] }
+      }
+    },
+    "kupci": {
+      "ukljuceno": true,
+      "opis": "Partneri — kupci",
+      "fajl": "kupci.csv",
+      "fajl_alternativni": ["pantheon_kupci.csv", "partneri.csv", "kupci_partneri.csv"],
+      "tabela": "kupci",
+      "upsert_kljuc": "naziv",
+      "merge_nulls": true,
+      "obavezna_polja": ["naziv"],
+      "podrazumevano": { "aktivan": true },
+      "kolone": {
+        "id": { "iz": ["Id", "id", "SifraPartnera"], "transform": "int" },
+        "naziv": { "iz": ["Naziv", "naziv", "NazivPartnera", "Kupac", "kupac"] },
+        "aktivan": { "iz": ["Aktivan", "aktivan"], "transform": "bool" }
+      }
+    },
+    "radnici": {
+      "ukljuceno": false,
+      "fajl": "radnici.csv",
+      "fajl_alternativni": ["pantheon_radnici.csv", "zaposleni.csv"],
+      "tabela": "radnici",
+      "upsert_strategija": "email_lookup",
+      "lookup_polje": "email",
+      "fallback_lookup": "ime",
+      "obavezna_polja": ["ime", "uloga"],
+      "podrazumevano": { "uloga": "operator", "aktivan": true },
+      "kolone": {
+        "ime": { "iz": ["Ime", "ime", "Zaposleni", "ImePrezime", "name"] },
+        "uloga": { "iz": ["Uloga", "uloga", "Pozicija"], "transform": "uloga" },
+        "email": { "iz": ["Email", "email", "e_mail"] },
+        "aktivan": { "iz": ["Aktivan", "aktivan"], "transform": "bool" },
+        "napomena": { "iz": ["Sifra", "napomena"] }
+      }
+    },
+    "radni_nalozi": {
+      "ukljuceno": true,
+      "opis": "Radni / proizvodni nalozi",
+      "fajl": "radni_nalozi.csv",
+      "fajl_alternativni": ["pantheon_radni_nalozi.csv", "proizvodni_nalozi.csv", "rn.csv"],
+      "tabela": "radni_nalozi",
+      "upsert_strategija": "legacy_radni_nalozi",
+      "sync_kupci": true,
+      "merge_nulls": true,
+      "obavezna_polja": ["broj_naloga", "id_deo"],
+      "podrazumevano": { "status": "aktivan" },
+      "kolone": {
+        "broj_naloga": { "iz": ["BrojRN", "broj_naloga", "RadniNalog", "RN", "rn", "Nalog"] },
+        "id_deo": { "iz": ["Ident", "ident", "SifraArtikla", "id_deo", "Artikal"] },
+        "pogon_kod": { "iz": ["Pogon", "pogon_kod"] },
+        "naziv_dela": { "iz": ["NazivArtikla", "naziv_dela", "Naziv"] },
+        "kolicina": { "iz": ["Kolicina", "kolicina", "PlaniranaKol"] },
+        "kupac": { "iz": ["Kupac", "kupac", "NazivKupca", "Partner"] },
+        "datum_unosa": { "iz": ["Datum", "datum_unosa", "DatumOtvaranja"] },
+        "rok_isporuke": { "iz": ["Rok", "rok_isporuke", "DatumIsporuke"] },
+        "status": { "iz": ["Status", "status", "StanjeRN"] },
+        "operater": { "iz": ["Operater", "operater"] },
+        "napomena": { "iz": ["Napomena", "napomena"] }
+      }
+    }
+  }
+}

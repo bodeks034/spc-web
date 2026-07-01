@@ -13,6 +13,7 @@ import { fazeKvalitetaPogona, najslabijaFaza } from "./rtyFpy.js";
 import { evaluirajAlarme } from "./operativniAlarmi.js";
 import { planiranoKomIzReda, ucitajAktivniRadniNalog } from "./radniNalog.js";
 import { analizirajProces } from "./spcInteligencija.js";
+import { idDeloviZaLinijuFilter, merenjeNaLiniji } from "./analitikaFilterData.js";
 
 function datumOd(dana) {
   const od = new Date();
@@ -35,19 +36,21 @@ function statusMerila(m, upozorenjeDana = 30) {
   return { kalStatus: "ok", dani };
 }
 
-export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePaketi = 0, idDeo = "" } = {}) {
+export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePaketi = 0, idDeo = "", linija = "", smena = "" } = {}) {
   const od = datumOd(period);
   const danas = new Date().toISOString().split("T")[0];
   const deoFilter = String(idDeo || "").trim().toUpperCase();
+  const linijaFilter = String(linija || "").trim();
+  const smenaFilter = smena !== "" && smena != null ? Number(smena) : null;
 
   const logQ = supabase.from("kontrolni_log")
     .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena,id_deo,inspekcija_id,sesija_id,created_at,id")
     .gte("datum", od);
   const merQ = supabase.from("merenja_varijabilna")
-    .select("datum,status,id_deo,pozicija,smena")
+    .select("datum,status,id_deo,pozicija,smena,linija")
     .gte("datum", od);
   const merDanasQ = supabase.from("merenja_varijabilna")
-    .select("datum,status,id_deo")
+    .select("datum,status,id_deo,linija")
     .eq("datum", danas);
   const eskQ = supabase.from("eskalacije")
     .select("id,id_deo,opis,prioritet,status,created_at,rok")
@@ -59,6 +62,15 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     merQ.eq("id_deo", deoFilter);
     merDanasQ.eq("id_deo", deoFilter);
     eskQ.eq("id_deo", deoFilter);
+  }
+  if (smenaFilter) {
+    logQ.eq("smena", smenaFilter);
+    merQ.eq("smena", smenaFilter);
+  }
+
+  let idDelovaLinija = null;
+  if (linijaFilter && !deoFilter) {
+    idDelovaLinija = await idDeloviZaLinijuFilter(linijaFilter);
   }
 
   const [
@@ -82,9 +94,24 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
         .eq("status", "aktivan"),
   ]);
 
-  const logData = logRes.data || [];
-  const merData = merRes.data || [];
-  const merDanas = merDanasRes.data || [];
+  let logData = logRes.data || [];
+  let merData = merRes.data || [];
+  let merDanas = merDanasRes.data || [];
+  if (linijaFilter && !deoFilter) {
+    const idSet = idDelovaLinija?.length ? new Set(idDelovaLinija) : null;
+    if (idSet) {
+      logData = logData.filter((r) => idSet.has(String(r.id_deo || "").toUpperCase()));
+      eskRes.data = (eskRes.data || []).filter((r) => idSet.has(String(r.id_deo || "").toUpperCase()));
+    }
+    merData = merData.filter((r) =>
+      merenjeNaLiniji(r, linijaFilter)
+      || (idSet?.has(String(r.id_deo || "").toUpperCase()) ?? false),
+    );
+    merDanas = merDanas.filter((r) =>
+      merenjeNaLiniji(r, linijaFilter)
+      || (idSet?.has(String(r.id_deo || "").toUpperCase()) ?? false),
+    );
+  }
   const kpiRows = kpiRes || [];
   const eskalacije = eskRes.data || [];
   const kpiAttrRows = kpiRows.filter((r) => r.modul === "atributivne");

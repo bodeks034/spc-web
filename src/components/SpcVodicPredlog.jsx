@@ -56,6 +56,11 @@ export default function SpcVodicPredlog({ C, predlog, tip, setTip, onZatvori, ko
           </button>
         ))}
       </div>
+      <div style={{ color: C.border, fontSize: 9, marginTop: 10 }}>
+        <strong style={{ color: C.plava }}>PDF izveštaj</strong> — sve ★ preporučene karte u jedan PDF.
+        {" "}
+        <strong style={{ color: C.plava }}>PDF ove karte</strong> — samo tab koji gledaš.
+      </div>
     </div>
   );
 }

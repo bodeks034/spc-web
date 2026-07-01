@@ -29,6 +29,16 @@ function dISO() {
   return new Date().toISOString().split("T")[0];
 }
 
+/** Teams/email obaveštenje adminu/inženjeru (sa operaterovog uređaja). */
+export function obavestiNoviSpcAlarm(supabase, alarm) {
+  if (!alarm?.id) return;
+  obavestiAdminZahtev(supabase, {
+    tip: "spc_alarm",
+    zahtev: alarm,
+    kanali: "remote",
+  }).catch(() => {});
+}
+
 export function normalizujIdDeo(idDeo) {
   return String(idDeo || "").trim().toUpperCase();
 }
@@ -352,10 +362,70 @@ export async function kreirajAlarmNokSerije(supabase, {
 
   if (alarm?.id) {
     const { data: pun } = await supabase.from("spc_alarmi").select("*").eq("id", alarm.id).maybeSingle();
-    return pun || alarm;
+    const rezultat = pun || alarm;
+    obavestiNoviSpcAlarm(supabase, rezultat);
+    return rezultat;
   }
 
   return alarm;
+}
+
+/** Atributivne: alarm kad NOK u seriji pređe 10%. */
+export async function kreirajAlarmNokAtributivne(supabase, {
+  idDeo,
+  nokKom,
+  okKom,
+  radnikId,
+  nazivDela = "",
+}) {
+  const uk = nokKom + okKom;
+  if (!idDeo || uk === 0 || nokKom / uk <= 0.1) return null;
+
+  const deo = normalizujIdDeo(idDeo);
+  const procTxt = Math.round((nokKom / uk) * 100);
+  const pravilo = `NOK ≥10% (${nokKom}/${uk}) · atributivne`;
+
+  const { data: otvoren } = await supabase
+    .from("spc_alarmi")
+    .select("*")
+    .eq("id_deo", deo)
+    .eq("pozicija", "Atributivne")
+    .eq("pravilo", pravilo)
+    .eq("status", "otvoren")
+    .limit(1);
+  if (otvoren?.length) return otvoren[0];
+
+  const alarm = await upisiSpcAlarm(supabase, {
+    id_deo: deo,
+    datum: dISO(),
+    tip_karte: "Linija",
+    pozicija: "Atributivne",
+    pravilo,
+  });
+
+  const esk = await kreirajAutoEskalaciju(supabase, {
+    id_deo: deo,
+    opis: `Visok NOK u seriji (${procTxt}%) — ${nazivDela || deo}`,
+    prioritet: "visok",
+    kreirao_id: radnikId,
+    prefiks: "AUTO-NOK",
+    korektivna_akcija: `Proveriti uzrok — ${procTxt}% neusaglašenih komada (atributivne).`,
+  });
+
+  if (alarm?.id && esk?.id) {
+    await supabase.from("spc_alarmi").update({
+      eskalacija_id: esk.id,
+      updated_at: new Date().toISOString(),
+    }).eq("id", alarm.id);
+  }
+
+  if (alarm?.id) {
+    const { data: pun } = await supabase.from("spc_alarmi").select("*").eq("id", alarm.id).maybeSingle();
+    const rezultat = pun || { ...alarm, id_deo: deo, pravilo, pozicija: "Atributivne", tip_karte: "Linija", status: "otvoren" };
+    obavestiNoviSpcAlarm(supabase, rezultat);
+    return rezultat;
+  }
+  return null;
 }
 
 /** Proveri snimljenu seriju i kreiraj alarm(e) za pozicije iznad NOK praga. */

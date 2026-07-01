@@ -1,16 +1,11 @@
 import { getBrending } from "../lib/brending.js";
+import DevelopedBy from "./DevelopedBy.jsx";
 
-/** Sitan footer — verzija i © (login, početni ekran). */
+/** Footer — verzija + Developed by (autor). */
 export default function AppFooter({ C, kompakt = false, prikaziAutora = false, prikaziAutoraMobil = false }) {
   const b = getBrending();
   const sivi = C?.sivi || "#94a3b8";
-  const delovi = [`v${b.verzija}`];
-  if (b.razvojNaziv) delovi.push(`© ${new Date().getFullYear()} ${b.razvojNaziv}`);
-
-  const autor = b.razvojAutor || "";
-  const autorDuplikat = autor && b.razvojNaziv
-    && autor.localeCompare(b.razvojNaziv, "sr", { sensitivity: "accent" }) === 0;
-  const prikaziAutorRed = (prikaziAutora || prikaziAutoraMobil) && autor && !autorDuplikat;
+  const prikaziDev = prikaziAutora || prikaziAutoraMobil;
 
   return (
     <div style={{
@@ -21,10 +16,10 @@ export default function AppFooter({ C, kompakt = false, prikaziAutora = false, p
       marginTop: kompakt ? 12 : 20,
       letterSpacing: 0.3,
     }}>
-      <div>{delovi.join(" · ")}</div>
-      {prikaziAutorRed && (
-        <div style={{ marginTop: 4, fontSize: kompakt ? 9 : 10, letterSpacing: 0.2 }}>
-          {autor}
+      <div>{b.nazivAplikacije} · v{b.verzija}</div>
+      {prikaziDev && (
+        <div style={{ marginTop: 6 }}>
+          <DevelopedBy C={C} kompakt={kompakt} centar prikaz="autor" />
         </div>
       )}
     </div>

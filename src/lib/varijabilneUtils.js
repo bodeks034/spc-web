@@ -44,10 +44,13 @@ export function excelDataG7(g7, tipO7) {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** DATA!O7="Ugao" ili jedinica stepen u šifarniku. */
+/** DATA!O7="Ugao" ili jedinica stepen/deg u šifarniku. */
 export function isUgao(tipO7) {
   const j = String(tipO7 || "").trim().toLowerCase();
-  return j === "ugao" || j.startsWith("step") || j.includes("ugao");
+  if (!j) return false;
+  if (j === "ugao" || j.includes("ugao")) return true;
+  if (j.startsWith("step") || j.startsWith("deg") || j === "degree" || j === "°" || j === "dms") return true;
+  return false;
 }
 
 /** Šifarnik / Excel ponekad ima jedinicu mm, a granice su u stepenima (44–46). */
@@ -759,23 +762,13 @@ export function porukaNepoznatIdDeo(karakteristike, idDeo) {
   const predlozi = predloziIdDeo(karakteristike, id);
   let msg = `ID ${id}: nema u karakteristike_merljive. Proveri unos`;
   if (/NM-000/i.test(id)) msg += " — u šifrarniku postoji NM-001, ne NM-000";
-  else msg += " (npr. NM-001, NT-001)";
+  else msg += " (npr. DEMO-NM-001, NM-001)";
   if (predlozi.length) msg += `. Poznati ID-ovi: ${predlozi.join(", ")}.`;
   return msg;
 }
 
 /** Da li je ID dovoljno potpun za učitavanje (ne okidati učitavanje na „NT-“). */
-export function idSpremanZaUcitavanje(id) {
-  const s = String(id || "").trim().toUpperCase();
-  if (s.length < 5) return false;
-  const dash = s.indexOf("-");
-  if (dash < 0) return s.length >= 6;
-  const pre = s.slice(0, dash);
-  const posle = s.slice(dash + 1);
-  if (!pre || !posle) return false;
-  if (/^[A-Z]{2,}$/.test(pre)) return posle.length >= 3;
-  return posle.length >= 1;
-}
+export { normalizujIdDeo, idSpremanZaUcitavanje } from "./idDeoUtil.js";
 
 /** Pogon sa najviše serija merenja (NM-001 / NT-001 multi-pogon). */
 export function podrazumevaniPogonMerljive(karakteristike, idDeo) {
@@ -799,12 +792,15 @@ export function pogoniSaMerenjima(karakteristike, idDeo) {
   const id = String(idDeo || "").trim().toUpperCase();
   const normalized = propagirajMetaKarakteristika(karakteristike);
   const set = new Set();
+  let imaMerljivih = false;
   for (const k of normalized) {
     if (String(k.id_deo || "").toUpperCase() !== id) continue;
     if (!jeMerljivaKarakteristika(k)) continue;
+    imaMerljivih = true;
     const pk = pogonKodKarakteristike(k, { multiPogon: true });
     if (pk) set.add(pk);
   }
+  if (!set.size && imaMerljivih) set.add("A");
   return [...set].sort();
 }
 

@@ -109,3 +109,40 @@ export async function odobriFai(supabase, faiId, korisnik) {
 export function faiBlokiraSeriju(faiRecord) {
   return !faiRecord || faiRecord.status !== "odobren";
 }
+
+/** FAI zapisi koji čekaju odobrenje (lista za kvalitet). */
+export async function ucitajFaiCekaju(supabase, { datum, smena, pogonKod, idDeo } = {}) {
+  let q = supabase.from("fai_unosi")
+    .select("*, kreirao:kreirao_id(ime), odobrio:odobrio_id(ime)")
+    .eq("status", "ceka")
+    .eq("datum", datum || dISO())
+    .order("created_at", { ascending: false });
+  if (smena != null && smena !== "") q = q.eq("smena", Number(smena) || 1);
+  const pg = String(pogonKod || "").trim().toUpperCase();
+  if (pg) q = q.eq("pogon_kod", pg);
+  const deo = String(idDeo || "").trim().toUpperCase();
+  if (deo.length >= 3) q = q.eq("id_deo", deo);
+  const { data, error } = await q;
+  if (error && !String(error.message || "").includes("does not exist")) throw error;
+  return data || [];
+}
+
+export async function ucitajFaiPoId(supabase, faiId) {
+  if (!faiId) return null;
+  const { data, error } = await supabase.from("fai_unosi")
+    .select("*, kreirao:kreirao_id(ime), odobrio:odobrio_id(ime)")
+    .eq("id", faiId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export function faiImaNok(merenjaJson) {
+  return (merenjaJson || []).some((m) => String(m?.status || "").toUpperCase() === "NOK");
+}
+
+export function formatFaiKreirao(rec) {
+  const k = rec?.kreirao;
+  if (!k) return "—";
+  return k.ime || "—";
+}

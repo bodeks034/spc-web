@@ -135,6 +135,21 @@ export const IMPORT_SHEETS = [
     valid: (r) => r.vozilo_id && r.defekt,
   },
   {
+    sheet: "tipovi_vozila",
+    table: "tipovi_vozila",
+    onConflict: "kod",
+    map: (r) => ({
+      kod: String(pick(r, "kod") || "").trim().toUpperCase(),
+      naziv: pick(r, "naziv"),
+      prefiks_id_deo: pick(r, "prefiks_id_deo", "prefiks id deo") || null,
+      slika_sop: pick(r, "slika_sop", "slika sop") || null,
+      dijagram_src: pick(r, "dijagram_src", "dijagram src", "dijagram") || null,
+      aktivan: daNe(pick(r, "aktivan", "aktivna"), true),
+      napomena: pick(r, "napomena") || null,
+    }),
+    valid: (r) => r.kod && r.naziv,
+  },
+  {
     sheet: "delovi",
     table: "delovi",
     onConflict: "id_deo",

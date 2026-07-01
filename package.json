@@ -6,13 +6,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "embed:pdf-logo": "python scripts/embed-pdf-logo.py",
+    "build": "npm run embed:pdf-logo && vite build",
     "preview": "vite preview",
     "import:docs": "node scripts/import-all-docs.mjs",
     "spoji:katalog-vozilo": "node scripts/spoji-katalog-vozilo.mjs",
     "import:radni-nalozi": "node scripts/import-radni-nalozi.mjs",
     "import:erp-dnevni": "node scripts/erp-dnevni-uvoz.mjs",
     "import:erp-dnevni:dry": "node scripts/erp-dnevni-uvoz.mjs --dry-run",
+    "import:erp-dnevni:sap": "node scripts/erp-dnevni-uvoz.mjs --preset sap",
+    "import:erp-dnevni:pantheon": "node scripts/erp-dnevni-uvoz.mjs --preset pantheon",
+    "erp:api": "node scripts/erp-uvoz-api.mjs",
     "sap:csv-excel": "node scripts/sap-csv-u-excel.mjs",
     "sap:csv-excel:dry": "node scripts/sap-csv-u-excel.mjs --dry-run",
     "sap:csv-excel:import": "node scripts/sap-csv-u-excel.mjs --import-db",
@@ -20,6 +24,7 @@
     "sync:glavni-unos:dry": "node scripts/sync-glavni-unos.mjs --dry-run",
     "sync:glavni-unos:import": "node scripts/sync-glavni-unos.mjs --import-db",
     "import:sifrarnik-paket": "node scripts/import-sifrarnik-paket.mjs",
+    "popuni:celo-vozilo": "node scripts/popuni-celo-vozilo-sifrarnik.mjs",
     "seed:5501-5503": "node scripts/seed-merljive-5501-5503.mjs",
     "build:merljive-xlsx": "node scripts/seed-merljive-5501-5503.mjs",
     "barkodi": "node scripts/generisi-barkod-etikete.mjs",
@@ -39,7 +44,12 @@
     "validiraj:nt-001": "node scripts/validiraj-nt-001-uvoz.mjs",
     "pakuj:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs && node scripts/pakuj-sifrarnik-folder.mjs",
     "migriraj:nm001": "node scripts/migriraj-nm001-pogon.mjs",
-    "ocisti:zastarele-pogone": "node scripts/ocisti-zastarele-pogone.mjs --import"
+    "ocisti:zastarele-pogone": "node scripts/ocisti-zastarele-pogone.mjs --import",
+    "build:primeri-8d": "node scripts/build-primeri-iz-word.mjs",
+    "build:primeri-8d:word": "node scripts/build-primeri-iz-word-foldera.mjs",
+    "build:pfmea-cp": "node scripts/build-pfmea-cp-iz-excel.mjs docs/knowledge/PFMEA_ControlPlan_Industrijski_Delovi.xlsx",
+    "build:pfmea-cp:all": "node scripts/build-pfmea-cp-iz-excel.mjs docs/knowledge/pfmea-cp",
+    "seed:pfmea-cp": "node scripts/seed-pfmea-cp-supabase.mjs"
   },
   "keywords": [],
   "author": "",
@@ -47,10 +57,13 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
     "@vitejs/plugin-react": "^6.0.2",
+    "bwip-js": "^4.11.1",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.16.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "recharts": "^3.8.1",
@@ -58,8 +71,6 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "bwip-js": "^4.11.1",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "qrcode": "^1.5.4"
+    "eslint-plugin-react-hooks": "^7.1.1"
   }
 }

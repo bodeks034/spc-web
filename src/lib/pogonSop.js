@@ -82,12 +82,15 @@ export function pogoniIzKarakteristikaSaMerenjima(karakteristike, idDeo) {
   const id = String(idDeo || "").trim().toUpperCase();
   const normalized = propagirajMetaKarakteristika(karakteristike);
   const set = new Set();
+  let imaMerljivih = false;
   for (const k of normalized) {
     if (String(k.id_deo || "").toUpperCase() !== id) continue;
     if (!jeMerljivaKarakteristika(k)) continue;
+    imaMerljivih = true;
     const pk = pogonKodKarakteristike(k, { multiPogon: true });
     if (pk) set.add(pk);
   }
+  if (!set.size && imaMerljivih) set.add("A");
   return [...set].sort();
 }
 
@@ -244,11 +247,11 @@ export function jePogonOmogucen({
     const karMer = filtrirajKarakteristikePoPogonu(karakteristike, idDeo, p)
       .filter(jeMerljivaKarakteristika);
     if (!karMer.length) return false;
+    if (sopZaPogon(sopMap, idDeo, p)) return true;
     if (imaAktivanRnZaPogon(naloziRows, id, p, {
       sopMap, deloviRows, atributivniPogonRows, modul,
     })) return true;
     if (karMer.some((k) => String(k.radni_nalog || "").trim())) return true;
-    if (sopZaPogon(sopMap, idDeo, p)?.radni_nalog) return true;
     return !!radniNalogIzDeoPogona(id, p);
   }
 
@@ -273,6 +276,10 @@ export function filtrirajKarakteristikePoPogonu(rows, idDeo, pogonKod) {
     if (!pogon) return true;
     const pk = pogonKodKarakteristike(r, { multiPogon: true });
     if (pk) return pk === pogon;
+    if (jeMerljivaKarakteristika(r)) {
+      if (!pogoni.size) return pogon === "A";
+      if (pogoni.size === 1 && pogoni.has(pogon)) return true;
+    }
     return false;
   });
 }

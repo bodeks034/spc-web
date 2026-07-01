@@ -13,6 +13,9 @@ import {
   metaIzGrupe,
 } from "./syncSifrarnikIzMerljivih.js";
 import { purgeStalePogonsForDelove } from "./purgeStalePogons.js";
+import { metaZaDeo, deoMetaMapa } from "./glavniUnosDemo.js";
+import { normalizujIdDeo } from "./idDeoUtil.js";
+import { ucitajRedovePoIdDeo } from "./idDeoQuery.js";
 
 async function upsertBatches(supabase, table, rows, onConflict) {
   if (!rows?.length) return 0;
@@ -34,14 +37,16 @@ function deoPogonKey(id, pogon) {
 }
 
 /** Minimalni master red u delovi (FK za karakteristike_merljive). */
-function minimalDeloviMasterIzKar(karRows) {
+function minimalDeloviMasterIzKar(karRows, deoMeta) {
   const groups = grupisiKarakteristike(karRows);
+  const metaMap = deoMetaMapa(deoMeta);
   const out = [];
   const seen = new Set();
   for (const rows of groups.values()) {
     const m = metaIzGrupe(rows);
     if (seen.has(m.id_deo)) continue;
     seen.add(m.id_deo);
+    const dm = metaZaDeo(metaMap, m.id_deo);
     out.push({
       id_deo: m.id_deo,
       naziv_dela: m.naziv_dela || m.id_deo,
@@ -51,7 +56,8 @@ function minimalDeloviMasterIzKar(karRows) {
       kom_za_kontrolu: m.kom_za_kontrolu_n ?? null,
       slika_naziv: m.slika || null,
       aktivan: true,
-      tip_kontrole: "deo",
+      tip_kontrole: dm.tip_kontrole || "deo",
+      vozilo_katalog_id: dm.vozilo_katalog_id || null,
     });
   }
   return out;
@@ -64,6 +70,89 @@ function spojiMasterDelovi(autoMaster, minimalMaster) {
     if (!byId.has(id)) byId.set(id, m);
   }
   return [...byId.values()];
+}
+
+function deloviPogonPayload(gen) {
+  return gen.deloviPogonRows.map((p) => ({
+    id_deo: p.id_deo,
+    pogon_kod: p.pogon_kod,
+    radni_nalog: p.radni_nalog,
+    naziv_dela: p.naziv_dela,
+    karakteristika: p.karakteristika,
+    linija_id: p.linija_id,
+    masina_id: p.masina_id,
+    kom_za_kontrolu: p.kom_za_kontrolu,
+    slika_naziv: p.slika_naziv,
+    aktivan: p.aktivan !== false,
+    napomena: p.napomena,
+    tip_kontrole: p.tip_kontrole || "deo",
+    vozilo_katalog_id: p.vozilo_katalog_id,
+    greska_katalog_id: p.greska_katalog_id,
+  }));
+}
+
+function spojiMasterZaUpsert(karRows, gen, deoMeta) {
+  const minimalMaster = minimalDeloviMasterIzKar(karRows, deoMeta);
+  const { masterRows: masterFromPogon, pogonRows } = podeliDeloviUvoz(deloviPogonPayload(gen));
+  const mergedMaster = spojiMasterDelovi(
+    spojiMasterDelovi(masterFromPogon, gen.masterRows),
+    minimalMaster,
+  );
+  return { mergedMaster, pogonRows };
+}
+
+/**
+ * FK: karakteristike_merljive → delovi(id_deo). Mora pre upserta karakteristika.
+ */
+export async function ensureDeloviMaster(supabase, karRows, deoMeta) {
+  if (!karRows?.length) return { delovi: 0, pogoni: 0 };
+
+  const gen = generisiIzKarakteristika(karRows, { deoMeta });
+  const { mergedMaster, pogonRows } = spojiMasterZaUpsert(karRows, gen, deoMeta);
+
+  let delovi = 0;
+  let pogoni = 0;
+  if (mergedMaster.length) {
+    delovi = await upsertBatches(supabase, "delovi", mergedMaster, "id_deo");
+  }
+  if (pogonRows.length) {
+    pogoni = await upsertBatches(supabase, "delovi_atributivni_pogon", pogonRows, "id_deo,pogon_kod");
+  }
+  return { delovi, pogoni };
+}
+
+/** Upsert delovi_atributivni_pogon iz glavnog unosa. */
+export async function upsertAtributivnePogone(supabase, pogonRows) {
+  if (!pogonRows?.length) return 0;
+  return upsertBatches(supabase, "delovi_atributivni_pogon", pogonRows, "id_deo,pogon_kod");
+}
+
+/** Minimalni red u delovi (FK za sop_deo_varijabilni / ručni SOP unos). */
+export async function ensureDeoMasterMinimal(supabase, { id_deo, naziv_dela } = {}) {
+  const id = String(id_deo || "").trim().toUpperCase();
+  if (!id) throw new Error("ID dela je obavezan");
+  const payload = {
+    id_deo: id,
+    naziv_dela: String(naziv_dela || id).trim(),
+    aktivan: true,
+    tip_kontrole: "deo",
+    karakteristika: "Merljive kontrola",
+  };
+  const { error } = await supabase.from("delovi").upsert(payload, { onConflict: "id_deo" });
+  if (error) throw error;
+}
+
+/** Posle ručnog unosa dimenzija/SOP — sinhronizuj delovi + SOP + RN za jedan deo. */
+export async function syncMerljiviSifrarnikZaDeo(supabase, idDeo) {
+  const id = normalizujIdDeo(idDeo);
+  if (!id) return [];
+  const kar = await ucitajRedovePoIdDeo(supabase, "karakteristike_merljive", id);
+  if (!kar?.length) {
+    await ensureDeoMasterMinimal(supabase, { id_deo: id });
+    return [];
+  }
+  await ensureDeloviMaster(supabase, kar, null);
+  return syncDerivedSifrarnikForDelove(supabase, [id], { karRows: kar });
 }
 
 async function ucitajPostojeceZaDelove(supabase, idDeos) {
@@ -79,12 +168,23 @@ async function ucitajPostojeceZaDelove(supabase, idDeos) {
     supabase.from("radni_nalozi").select("*").in("id_deo", ids),
   ]);
 
-  for (const err of [sopRes.error, pogonRes.error, delRes.error, rnRes.error]) {
+  const pogonData = pogonRes.error
+    && ((pogonRes.error.message || "").toLowerCase().includes("does not exist")
+      || pogonRes.error.code === "42P01")
+    ? []
+    : (pogonRes.data || []);
+
+  if (pogonRes.error && !pogonData.length && pogonRes.error.code !== "42P01") {
+    const m = (pogonRes.error.message || "").toLowerCase();
+    if (!m.includes("does not exist") && !m.includes("could not find")) throw pogonRes.error;
+  }
+
+  for (const err of [sopRes.error, delRes.error, rnRes.error]) {
     if (err) throw err;
   }
 
   const deloviById = new Map((delRes.data || []).map((d) => [d.id_deo, d]));
-  const postojeciDelovi = (pogonRes.data || []).map((p) => {
+  const postojeciDelovi = pogonData.map((p) => {
     const m = deloviById.get(p.id_deo) || {};
     return {
       id_deo: p.id_deo,
@@ -134,13 +234,21 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
   const gen = generisiIzKarakteristika(karRows, {
     postojeciSop: sop,
     postojeciDelovi: deloviPogon,
+    deoMeta: opts.deoMeta,
   });
+
+  const kupacPoDeo = opts.kupacPoDeo || null;
+  const podKupac = (idDeo) => {
+    const m = kupacPoDeo?.get?.(idDeo) || kupacPoDeo?.[idDeo];
+    return m?.kupac || "";
+  };
 
   const noviRn = generisiRadniNaloge(karRows, {
     postojeciRn: rn,
+    kupacPoDeo,
     podrazumevano: {
       kolicina: 50,
-      kupac: "Kupac",
+      kupac: "",
       datum_unosa: new Date().toISOString().slice(0, 10),
       rok_isporuke: null,
       operater: "PERA OPERATER",
@@ -161,7 +269,7 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
       id_deo: s.id_deo,
       naziv_dela: s.naziv_dela || "",
       kolicina: 50,
-      kupac: "Kupac",
+      kupac: podKupac(s.id_deo) || "",
       datum_unosa: new Date().toISOString().slice(0, 10),
       rok_isporuke: null,
       status: "aktivan",
@@ -181,28 +289,9 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
     });
   }
 
-  const deloviRows = gen.deloviPogonRows.map((p) => ({
-    id_deo: p.id_deo,
-    pogon_kod: p.pogon_kod,
-    radni_nalog: p.radni_nalog,
-    naziv_dela: p.naziv_dela,
-    karakteristika: p.karakteristika,
-    linija_id: p.linija_id,
-    masina_id: p.masina_id,
-    kom_za_kontrolu: p.kom_za_kontrolu,
-    slika_naziv: p.slika_naziv,
-    aktivan: p.aktivan !== false,
-    napomena: p.napomena,
-    tip_kontrole: p.tip_kontrole || "deo",
-    vozilo_katalog_id: p.vozilo_katalog_id,
-    greska_katalog_id: p.greska_katalog_id,
-  }));
+  const { mergedMaster, pogonRows } = spojiMasterZaUpsert(karRows, gen, opts.deoMeta);
 
-  const minimalMaster = minimalDeloviMasterIzKar(karRows);
-  const { masterRows: masterFromPogon, pogonRows } = podeliDeloviUvoz(deloviRows);
-  const mergedMaster = spojiMasterDelovi(spojiMasterDelovi(masterFromPogon, gen.masterRows), minimalMaster);
-
-  // FK: sop_deo_varijabilni i karakteristike_merljive → delovi(id_deo) — prvo delovi
+  // FK: sop_deo_varijabilni → delovi — delovi već upsertovani u ensureDeloviMaster ili ovde
   if (mergedMaster.length || pogonRows.length) {
     const mCount = mergedMaster.length
       ? await upsertBatches(supabase, "delovi", mergedMaster, "id_deo")

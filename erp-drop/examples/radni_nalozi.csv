@@ -1,0 +1,3 @@
+broj_naloga,id_deo,naziv_dela,kolicina,kupac,datum_unosa,rok_isporuke,status,pogon_kod
+RN-2026-101,5502-A,Osovina prednja,500,Kupac A,2026-06-01,2026-06-15,aktivan,A
+RN-2026-102,5503-B,Kućište,200,Kupac B,2026-06-02,2026-06-20,aktivan,B

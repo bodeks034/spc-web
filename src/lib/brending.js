@@ -5,17 +5,29 @@ export function getBrending() {
   const logoEnv = import.meta.env.VITE_LOGO_URL;
   const logoUrl = logoEnv === "none" || logoEnv === ""
     ? null
-    : (logoEnv || `${base}logo-firme.png`);
+    : (logoEnv || `${base}tri-core-qc-logo.png`);
+
+  const logoSymbolEnv = import.meta.env.VITE_LOGO_SYMBOL_URL;
+  const logoIconUrl = logoSymbolEnv === "none"
+    ? null
+    : (import.meta.env.VITE_LOGO_ICON_URL || `${base}tri-core-qc-icon.png`);
+
+  const logoSymbolUrl = logoSymbolEnv === "none"
+    ? null
+    : (logoSymbolEnv || `${base}tri-core-qc-icon.png`);
 
   const email = (import.meta.env.VITE_RAZVOJ_EMAIL || "").trim();
   const tel = (import.meta.env.VITE_RAZVOJ_TEL || "").trim();
   const kontakt = (import.meta.env.VITE_RAZVOJ_KONTAKT || "").trim();
 
   return {
-    nazivAplikacije: import.meta.env.VITE_NAZIV_APLIKACIJE || "SPC Kontrola kvaliteta",
+    nazivAplikacije: import.meta.env.VITE_NAZIV_APLIKACIJE || "TRI-CORE QC",
+    slogan: (import.meta.env.VITE_SLOGAN || "Tri modula. Jedan sistem kvaliteta.").trim(),
     nazivFirme: (import.meta.env.VITE_NAZIV_FIRME || "").trim(),
     logoUrl,
-    razvojNaziv: (import.meta.env.VITE_RAZVOJ_NAZIV || "SPC razvoj").trim(),
+    logoIconUrl,
+    logoSymbolUrl,
+    razvojNaziv: (import.meta.env.VITE_RAZVOJ_NAZIV || "").trim(),
     razvojAutor: (import.meta.env.VITE_RAZVOJ_AUTOR || "Dejan Bogdanovic").trim(),
     razvojEmail: email,
     razvojTel: tel,

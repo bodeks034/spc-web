@@ -1,0 +1,1 @@
+ALTER TABLE pfmea_stavke ADD COLUMN IF NOT EXISTS d_posle TEXT;

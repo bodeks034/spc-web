@@ -20,7 +20,7 @@ export function mapDeloviRedIzExcela(r, pick, num, daNe) {
     aktivan: daNe(pick(r, "aktivan")),
     napomena: pick(r, "napomena") || null,
     tip_kontrole: tip === "vozilo" ? "vozilo" : "deo",
-    vozilo_katalog_id: pick(r, "vozilo katalog id", "vozilo_katalog_id") || (tip === "vozilo" ? idDeo : null),
+    vozilo_katalog_id: pick(r, "vozilo katalog id", "vozilo_katalog_id") || (tip === "vozilo" ? idDeo.split("-")[0] : null),
     greska_katalog_id: pick(r, "greska katalog id", "greska_katalog_id") || null,
   };
 }

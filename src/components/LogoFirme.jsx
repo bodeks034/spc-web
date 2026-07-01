@@ -1,50 +1,95 @@
 import { useState } from "react";
 import { getBrending } from "../lib/brending.js";
 
-const VISINE = { veliki: 88, srednji: 56, mali: 40 };
-const SIRINE = { veliki: 280, srednji: 200, mali: 140 };
+const VISINE = { veliki: 120, srednji: 56, mali: 32, header: 26, lockup: 22 };
+const SIRINE = { veliki: 320, srednji: 200, mali: 140, header: 120, lockup: 180 };
 
-/** Logo firme iz public/logo-firme.png ili VITE_LOGO_URL; fallback na SPC. */
-export default function LogoFirme({ velicina = "srednji", C, centar = true }) {
+/** Logo TRI-CORE QC — pun PNG, simbol PNG/SVG, horizontalni lockup SVG. */
+export default function LogoFirme({
+  velicina = "srednji",
+  C,
+  centar = true,
+  tip = "pun",
+}) {
   const [greska, setGreska] = useState(false);
   const b = getBrending();
+  const base = import.meta.env.BASE_URL || "/";
   const h = VISINE[velicina] || VISINE.srednji;
-  const boja = C?.plava || "#3b82f6";
-  const sivi = C?.sivi || "#94a3b8";
+  const w = SIRINE[velicina] || SIRINE.srednji;
+  const boja = C?.plava || "#2c5282";
+  const narandzasta = C?.narandzasta || "#e67e22";
 
   const fallback = (
     <div style={{
       display: "flex",
       alignItems: "center",
       justifyContent: centar ? "center" : "flex-start",
-      gap: velicina === "mali" ? 6 : 10,
     }}>
-      <span style={{ fontSize: velicina === "veliki" ? 32 : velicina === "mali" ? 18 : 24 }}>⚙</span>
       <span style={{
         color: boja,
-        fontWeight: 700,
-        fontSize: velicina === "veliki" ? 18 : velicina === "mali" ? 12 : 15,
-        letterSpacing: velicina === "mali" ? 1 : 2,
+        fontWeight: 800,
+        fontSize: velicina === "veliki" ? 22 : velicina === "header" || velicina === "lockup" ? 13 : velicina === "mali" ? 12 : 16,
+        letterSpacing: velicina === "header" || velicina === "lockup" ? 0.4 : 0.8,
+        whiteSpace: "nowrap",
       }}>
-        SPC
+        TRI-CORE
+        <span style={{ color: narandzasta }}> QC</span>
       </span>
     </div>
   );
 
-  if (!b.logoUrl || greska) return fallback;
+  if (greska) return fallback;
+
+  if (tip === "lockup") {
+    return (
+      <img
+        src={`${base}tri-core-qc-lockup.svg`}
+        alt={b.nazivAplikacije}
+        onError={() => setGreska(true)}
+        style={{
+          display: "block",
+          margin: centar ? "0 auto" : 0,
+          height: h,
+          maxWidth: w,
+          width: "auto",
+          objectFit: "contain",
+        }}
+      />
+    );
+  }
+
+  if (tip === "mark") {
+    return (
+      <img
+        src={`${base}tri-core-qc-mark.svg`}
+        alt="TRI-CORE"
+        onError={() => setGreska(true)}
+        style={{
+          display: "block",
+          margin: centar ? "0 auto" : 0,
+          height: h,
+          width: h,
+          objectFit: "contain",
+        }}
+      />
+    );
+  }
+
+  const src = tip === "simbol" ? (b.logoSymbolUrl || `${base}tri-core-qc-symbol.png`) : b.logoUrl;
+  if (!src) return fallback;
 
   return (
     <img
-      src={b.logoUrl}
-      alt={b.nazivFirme || b.nazivAplikacije}
+      src={src}
+      alt={b.nazivAplikacije}
       onError={() => setGreska(true)}
       style={{
         display: "block",
         margin: centar ? "0 auto" : 0,
         maxHeight: h,
-        maxWidth: SIRINE[velicina] || SIRINE.srednji,
+        maxWidth: w,
         width: "auto",
-        height: "auto",
+        height: tip === "simbol" && velicina === "header" ? h : "auto",
         objectFit: "contain",
       }}
     />

@@ -14,10 +14,16 @@ export const MIGRACIJE_LISTA = [
   { id: "spc_alarmi_reakcije", naziv: "SPC alarm reakcije (linija)", fajl: "33_spc_alarmi_reakcije.sql" },
   { id: "spc_karantin", naziv: "SPC karantin (HOLD lot/RN)", fajl: "34_spc_karantin.sql" },
   { id: "faza5_qms", naziv: "QMS Faza 5 (plan, MSA, FAI, SMTP)", fajl: "35_faza5_qms.sql" },
+  { id: "pfmea_cp", naziv: "PFMEA / Control Plan (PPAP)", fajl: "48_pfmea_control_plan.sql" },
+  { id: "pfmea_stavke_ext", naziv: "PFMEA nova ocena + odobrenje", fajl: "50_pfmea_stavke_prosirenje.sql" },
+  { id: "pfmea_d_posle", naziv: "PFMEA D posle (nova ocena)", fajl: "53_pfmea_d_posle.sql" },
   { id: "fai_broj_merenja", naziv: "FAI broj merenja po dimenziji", fajl: "37_fai_broj_merenja.sql" },
   { id: "klasa_karakteristike", naziv: "AQL klasa dimenzije (Critical/Major/Minor)", fajl: "43_klasa_karakteristike.sql" },
   { id: "kar_unique_pogon", naziv: "Karakteristike UNIQUE po pogonu", fajl: "40_karakteristike_unique_pogon.sql" },
   { id: "erp_uvoz_log", naziv: "ERP automatski uvoz (log)", fajl: "38_erp_uvoz_log.sql" },
+  { id: "sifrarnik_modul", naziv: "Šifrarnik modul (tipovi vozila, barkod)", fajl: "39_sifrarnik_modul.sql" },
+  { id: "glavni_unos_app", naziv: "Glavni unos u aplikaciji", fajl: "40_glavni_unos_app.sql" },
+  { id: "sifrarnik_liste", naziv: "Dropdown liste šifrarnika", fajl: "41_sifrarnik_liste.sql" },
 ];
 
 const PROBES = [
@@ -37,6 +43,9 @@ const PROBES = [
   { id: "spc_alarmi_reakcije", table: "spc_alarmi", select: "id,komentar_operater,potvrdio_id" },
   { id: "spc_karantin", table: "karantin_lotovi", select: "id,id_deo,status,spc_alarm_id" },
   { id: "faza5_kplan", table: "kontrolni_plan", select: "id,id_deo,revizija" },
+  { id: "pfmea_cp", table: "pfmea_cp_dokumenti", select: "id,naziv,id_deo" },
+  { id: "pfmea_stavke_ext", table: "pfmea_stavke", select: "id,s_posle,odobrio" },
+  { id: "pfmea_d_posle", table: "pfmea_stavke", select: "id,d_posle" },
   { id: "faza5_msa", table: "msa_kalendar", select: "id,merilo_id,sledeca_studija" },
   { id: "faza5_fai", table: "fai_unosi", select: "id,id_deo,status" },
   { id: "fai_broj_merenja", table: "karakteristike_merljive", select: "id,fai_broj_merenja" },
@@ -44,6 +53,11 @@ const PROBES = [
   { id: "kar_unique_pogon", table: "karakteristike_merljive", select: "id,id_deo,pogon_kod,sifra_merenja,pozicija" },
   { id: "faza5_smtp", table: "app_podesavanja", select: "kljuc,vrednost" },
   { id: "erp_uvoz_log", table: "erp_uvoz_log", select: "id,izvor,uspeh,created_at" },
+  { id: "sifrarnik_tipovi", table: "tipovi_vozila", select: "kod,naziv" },
+  { id: "sifrarnik_barkod", table: "barkod_profili", select: "id_deo,format" },
+  { id: "glavni_unos_redovi", table: "glavni_unos_redovi", select: "id,sheet_naziv,id_deo" },
+  { id: "pogon_linija_mapa", table: "pogon_linija_mapa", select: "linija_faza,pogon_kod" },
+  { id: "sifrarnik_liste", table: "sifrarnik_liste_vrednosti", select: "id,lista_kljuc,vrednost" },
 ];
 
 function greskaNedostaje(error) {
@@ -90,6 +104,9 @@ export async function proveriSemu(supabase) {
     fai_broj_merenja: byId.fai_broj_merenja?.ok,
     kar_unique_pogon: byId.kar_unique_pogon?.ok,
     erp_uvoz_log: byId.erp_uvoz_log?.ok,
+    sifrarnik_modul: byId.sifrarnik_tipovi?.ok && byId.sifrarnik_barkod?.ok,
+    glavni_unos_app: byId.glavni_unos_redovi?.ok && byId.pogon_linija_mapa?.ok,
+    sifrarnik_liste: byId.sifrarnik_liste?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({
@@ -117,6 +134,11 @@ export async function proveriSemu(supabase) {
       m.id === "klasa_karakteristike" && byId.klasa_karakteristike,
       m.id === "kar_unique_pogon" && byId.kar_unique_pogon,
       m.id === "erp_uvoz_log" && byId.erp_uvoz_log,
+      m.id === "sifrarnik_modul" && byId.sifrarnik_tipovi,
+      m.id === "sifrarnik_modul" && byId.sifrarnik_barkod,
+      m.id === "glavni_unos_app" && byId.glavni_unos_redovi,
+      m.id === "glavni_unos_app" && byId.pogon_linija_mapa,
+      m.id === "sifrarnik_liste" && byId.sifrarnik_liste,
     ].filter(Boolean),
   }));
 }

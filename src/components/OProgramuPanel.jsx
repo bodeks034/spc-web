@@ -1,8 +1,9 @@
 import { getBrending } from "../lib/brending.js";
 import { formatujDatumLicence } from "../lib/licenca.js";
-import LogoFirme from "./LogoFirme.jsx";
+import LogoBrend from "./LogoBrend.jsx";
+import DevelopedBy from "./DevelopedBy.jsx";
 
-/** Admin — O programu, autor, podrška, licenca. */
+/** Admin — O programu, licenca, podrška. */
 export default function OProgramuPanel({ licenca, C }) {
   const b = getBrending();
 
@@ -39,13 +40,15 @@ export default function OProgramuPanel({ licenca, C }) {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <LogoFirme velicina="srednji" C={C} centar={false} />
+        <LogoBrend C={C} velicina="srednji" showSlogan />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <DevelopedBy C={C} centar={false} />
       </div>
 
       {red("Aplikacija", b.nazivAplikacije)}
       {red("Verzija", `v${b.verzija}`)}
-      {red("Firma (klijent)", b.nazivFirme)}
-      {red("Razvoj", b.razvojNaziv)}
+      {b.nazivFirme && red("Klijent (fabrika)", b.nazivFirme)}
       {red("Autor", b.razvojAutor)}
       {red("Email", b.razvojEmail)}
       {red("Telefon", b.razvojTel)}

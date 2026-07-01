@@ -22,6 +22,8 @@ const MODULI_DEFAULT = {
 
   admin: true,
 
+  sifrarnik: true,
+
 };
 
 
@@ -110,6 +112,8 @@ export function normalizujModuli(moduli) {
 
     admin: moduli.admin !== false,
 
+    sifrarnik: moduli.sifrarnik !== false,
+
   };
 
 }
@@ -127,6 +131,8 @@ export function modulDozvoljen(licenca, modulId) {
   if (modulId === "atributivne") return m.atributivne;
 
   if (modulId === "admin") return m.admin;
+
+  if (modulId === "sifrarnik") return m.sifrarnik;
 
   return true;
 

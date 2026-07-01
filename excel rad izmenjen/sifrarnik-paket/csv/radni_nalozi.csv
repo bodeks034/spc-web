@@ -24,3 +24,6 @@ id,radni nal,id dela*,naziv dela,količina,kupac,datum unosa,rok isporuke,status
 42,RN-2026-DEMO001-A,DEMO-001,Test nosač — demo,50,,2026-06-16,,aktivan,PERA OPERATER,,A
 43,RN-2026-5502A-G,5502-A,Osovina,100,,,,aktivan,,,G
 44,RN-2026-DEMO001-B,DEMO-001,Test nosač — demo,50,,,,aktivan,,,B
+45,RN-2026-NTV-001,NTV-001,NTV komplet,10,Kupac NT,2026-06-01,2026-12-01,aktivan,PERA OPERATER,Celo vozilo — finalna kontrola,
+46,RN-2026-MRAP-001,MRAP-001,MRAP komplet,5,Kupac NT,2026-06-01,2026-12-01,aktivan,PERA OPERATER,Celo vozilo — finalna kontrola,
+47,RN-2026-MRAP1-001,MRAP1-001,MRAP1 komplet,5,Kupac NT,2026-06-01,2026-12-01,aktivan,PERA OPERATER,Celo vozilo — finalna kontrola,

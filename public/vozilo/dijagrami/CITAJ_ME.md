@@ -33,11 +33,20 @@ Mapiranje u kodu: `src/lib/voziloDijagramConfig.js`
 
 ## Kako zameniš sliku
 
+### Preko aplikacije (preporučeno)
+
+**Modul 0 → Celo vozilo → Tipovi vozila → Izmeni**
+
+- polje **Dijagram (silueta)** — uvezi PNG ili upiši `/vozilo/dijagrami/MRAP.png`
+- upload ide u Supabase Storage; ručna putanja može ostati u `public/vozilo/dijagrami/`
+
+### Ručno na disku
+
 1. Nacrtaj siluetu u Inkscape / Illustrator / Figma (bočno vozilo).
 2. Izvezi kao **SVG** ili **PNG** (1364×1040 px za PNG).
-3. Sačuvaj preko postojećeg fajla, npr. `suv.svg`.
-4. Refresh aplikacije (Ctrl+F5).
-5. U aplikaciji unesi **AUTO-SUV** (ili deo sa `vozilo katalog id` = SUV).
+3. Sačuvaj preko postojećeg fajla, npr. `MRAP.png`.
+4. U Tipovima vozila postavi putanju `/vozilo/dijagrami/MRAP.png` ili uvezi sliku.
+5. Refresh aplikacije (Ctrl+F5).
 
 ### Novi tip vozila
 

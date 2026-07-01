@@ -1,5 +1,7 @@
 /** Pomoćne funkcije za eskalacije, dodelu inženjera i prefill 8D. */
 
+import { nacrtU8dEditorPrefill } from "./osmdWordPrimeri.js";
+
 const ULOGE_INZENJER = new Set(["kvalitet", "sef", "admin"]);
 const OTVORENE_STATUS = new Set(["otvoren", "u_toku", "aktivan", "open"]);
 
@@ -16,6 +18,24 @@ export function prefill8dIzEskalacije(e) {
     d3_privremena_akcija: korektivna,
     d5_korektivna: korektivna,
   };
+}
+
+/** Eskalacija (kratak prefill) ili pun nacrt iz SPC asistenta. */
+export function normalizujPrefill8d(e) {
+  if (!e) return {};
+  if (e._asistent || e.d4_uzrok || e.d6_implementacija || e.d7_prevencija || e.lesson_learned) {
+    return nacrtU8dEditorPrefill(e);
+  }
+  if (e.pfmea_ref || e.control_plan_ref) {
+    return {
+      id_deo: e.id_deo || "",
+      defekt_nedostatak: e.defekt_nedostatak || "",
+      pfmea_ref: e.pfmea_ref || "",
+      control_plan_ref: e.control_plan_ref || "",
+      opis: e.opis || e.defekt_nedostatak || "",
+    };
+  }
+  return prefill8dIzEskalacije(e);
 }
 
 export function sacuvajNavigaciju8d(prefill) {

@@ -10,7 +10,7 @@ import {
   trendKvalitetaPoDanu, agregatKvaliteta, nokPoPozicijiDashboard,
   SIGMA_BENCH, yDomainSpc, yDomainRangeChart, sigmaProcesa,
 } from "./lib/varijabilneSpcStats.js";
-import { kreirajAutoEskalaciju, WE_MIN_PODGRUPA_OBRAZAC } from "./lib/spcStats.js";
+import { kreirajAutoEskalaciju, WE_MIN_PODGRUPA_OBRAZAC, calcPPM } from "./lib/spcStats.js";
 import { downloadWorkbook, exportMerenjaVarijabilnaExcel } from "./lib/excelSync.js";
 import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi } from "./lib/varijabilneUtils.js";
 import { uniqueDeloviIzSop } from "./lib/pogonSop.js";
@@ -23,7 +23,7 @@ import {
 import SpcVodicPredlog, { tabJePreporucen } from "./components/SpcVodicPredlog.jsx";
 import SpcKontrolnaGraf from "./components/SpcKontrolnaGraf.jsx";
 import {
-  SpcParetoGraf, SpcOkNokBarGraf, SpcRtyTrendGraf, SpcRtyJednaLinija,
+  SpcParetoGraf, SpcOkNokBarGraf, SpcRtyTrendGraf, SpcRtyJednaLinija, SpcPpmDpmoTrendGraf,
   SpcHistogramGraf, SpcSigmaBarGraf,
 } from "./components/SpcAnalitikaGrafovi.jsx";
 import { LAB_FPY_TAB, LAB_FPY_PCT, LAB_FPY_KRATKO, LAB_FPY_TREND } from "./lib/rtyFpy.js";
@@ -34,6 +34,12 @@ import {
 } from "./components/MerljiveAnalitika.jsx";
 import { histogramIGaus, proceniNormalnost } from "./lib/normalnost.js";
 import { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
+import ReakcioniPlanSpcPanel from "./components/ReakcioniPlanSpcPanel.jsx";
+import { exportSpcPredlogPaketPdf, exportSpcTrenutnaKartaPdf } from "./lib/spcPaketPdf.js";
+import { jeKvalitetIliVise } from "./lib/uloge.js";
+import SpcKartaOpis from "./components/analitika/SpcKartaOpis.jsx";
+import { opisSpcKarte } from "./lib/analitikaOpisi.js";
+import { useSpcFilterSync, SpcFilterTrakaBaner } from "./hooks/useSpcFilterSync.jsx";
 
 import { supabase } from "./lib/supabaseClient.js";
 import { fetchKpiUnos, agregirajKpiUnos } from "./lib/kpiUnos.js";
@@ -44,6 +50,11 @@ import {
 } from "./lib/spcBaseline.js";
 
 const KARTE_TIPOVI = new Set(["xbar", "r", "i", "mr"]);
+
+const MERLJIVE_SPC_TAB_IDS = new Set([
+  "xbar", "r", "i", "mr", "cpk", "plan", "rty", "sigma", "dashboard", "pareto",
+  "smena", "heatmap", "masina", "operater", "korelacija", "poredi", "foto_spc", "8d", "hist", "oee",
+]);
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -172,7 +183,12 @@ function KpiRed({ items, C }) {
   );
 }
 
-export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
+import AnalitikaSpcSnapshot from "./components/analitika/AnalitikaSpcSnapshot.jsx";
+import SpcDashboardMerljive from "./components/spc/SpcDashboardMerljive.jsx";
+import SpcAsistent8dDugme from "./components/spc/SpcAsistent8dDugme.jsx";
+import { normalizujPrefill8d } from "./lib/eskalacijeHelper.js";
+
+export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter, pocetniTip, onPocetniTipPotrosen, onNavigacijaKarte, onOtvori8D }) {
   const ekran = useEkran();
   const [delovi, setDelovi] = useState([]);
   const [karakteristike, setKarakteristike] = useState([]);
@@ -190,9 +206,20 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
   const [baselineAktivan, setBaselineAktivan] = useState(null);
   const [kpiPeriod, setKpiPeriod] = useState(null);
   const kartaRef = useRef(null);
+  const sadrzajRef = useRef(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const alarmPoslat = useRef(new Set());
   const prevIdDeoRef = useRef("");
   const prevPozicijaRef = useRef("");
+
+  useSpcFilterSync(spoljniFilter, { setIdDeo, setDatumOd, setDatumDo, setSmena, setPozicija });
+
+  useEffect(() => {
+    if (pocetniTip) {
+      setTip(pocetniTip);
+      onPocetniTipPotrosen?.();
+    }
+  }, [pocetniTip, onPocetniTipPotrosen]);
 
   useEffect(() => {
     (async () => {
@@ -392,16 +419,12 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
 
   const trebaDimenzija = KARTE_TIPOVI.has(tip) || tip === "cpk" || tip === "hist";
 
-  const exportPDF = async () => {
-    if (!kartaRef.current) return;
-    const { default: jsPDF } = await import("jspdf");
-    const { default: h2c } = await import("html2canvas");
-    const canvas = await h2c(kartaRef.current, { scale: 2, useCORS: true });
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const w = pdf.internal.pageSize.getWidth();
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, canvas.height * w / canvas.width);
-    pdf.save(`SPC_merljive_${idDeo}_${pozicija || "sve"}_${dISO()}.pdf`);
-  };
+  const tabSpremanZaPdf = useCallback((tabId) => {
+    if (tabId === "8d") return false;
+    const trebaPoz = KARTE_TIPOVI.has(tabId) || tabId === "cpk" || tabId === "hist";
+    if (trebaPoz && !pozicija) return false;
+    return MERLJIVE_SPC_TAB_IDS.has(tabId);
+  }, [pozicija]);
 
   const exportExcel = async () => {
     try {
@@ -425,6 +448,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
     ["i", "I-Karta", "#22d3ee"],
     ["mr", "MR-Karta", C.ljubicasta],
     ["cpk", "Cp/Cpk", C.plava],
+    ["plan", "Reakcioni plan", C.crvena],
     ["rty", LAB_FPY_TAB, "#22d3ee"],
     ["sigma", "Sigma nivo", "#a3e635"],
     ["dashboard", "Dashboard", C.zuta],
@@ -441,21 +465,112 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
     ["oee", "OEE", C.narandzasta],
   ];
 
+  const pdfMeta = useCallback(() => ({
+    idDeo,
+    nazivDela: deoInfo?.naziv_dela,
+    pozicija: pozicija || undefined,
+    modul: "merljive",
+    datumOd,
+    datumDo,
+    smena: smena || undefined,
+    naslov: `SPC merljive · ${idDeo}`,
+    bgColor: C.bg,
+    tab: tip,
+  }), [idDeo, deoInfo?.naziv_dela, pozicija, datumOd, datumDo, smena, C.bg, tip]);
+
+  const nazivTrenutneKarte = useMemo(
+    () => TABOVI.find(([id]) => id === tip)?.[1] || tip,
+    [tip],
+  );
+
+  const exportPdfPaket = async () => {
+    if (pdfBusy || !idDeo || !predlog?.preporuceniIds?.length) return;
+    setPdfBusy(true);
+    try {
+      await exportSpcPredlogPaketPdf({
+        preporuceniIds: predlog.preporuceniIds,
+        stavke: predlog.stavke,
+        tab: tip,
+        setTab: setTip,
+        sadrzajRef,
+        meta: pdfMeta(),
+        tabSpreman: tabSpremanZaPdf,
+        addToast,
+      });
+    } catch (e) {
+      addToast(e.message || "PDF greška", "greska");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
+  const exportPdfOveKarte = async () => {
+    if (pdfBusy || !idDeo) return;
+    setPdfBusy(true);
+    try {
+      await exportSpcTrenutnaKartaPdf({
+        sadrzajRef,
+        meta: { ...pdfMeta(), tabNaziv: nazivTrenutneKarte },
+        addToast,
+      });
+    } catch (e) {
+      addToast(e.message || "PDF greška", "greska");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   const otvori8D = useCallback((d) => {
-    setOsmdPrefill({
-      id_deo: d.id_deo || idDeo,
-      opis: d.opis || "",
-    });
+    const prefill = normalizujPrefill8d(d);
+    if (onOtvori8D) {
+      onOtvori8D(prefill);
+      return;
+    }
+    setOsmdPrefill(prefill);
     setTip("8d");
-  }, [idDeo]);
+  }, [onOtvori8D]);
 
   const sigmaNivo = sigmaProcesa(cpk, imr.sigmaHat || spc.sigmaHat, agregat.dpmo);
   const sigmaBoja = sigmaNivo >= 5 ? C.zelena : sigmaNivo >= 4 ? C.zuta : sigmaNivo >= 3 ? C.narandzasta : C.crvena;
+
+  const vanXDash = (spc.xbarPodaci || []).filter((d) => d.upozVanGranica || d.upozObrazac).length;
+  const vanRDash = (spc.rPodaci || []).filter((d) => d.upozVanGranica || d.upozObrazac).length;
+  const periodKarte = datumOd && datumDo ? `${datumOd} — ${datumDo}` : (datumOd || "7");
+
+  const asistentMerljiveProps = useMemo(() => ({
+    idDeo,
+    nazivDela: deoInfo?.naziv_dela || "",
+    period: periodKarte,
+    pozicija,
+    agregat,
+    cpk,
+    spc,
+    paretoData,
+    poSmeni,
+    rawData,
+    vanX: vanXDash,
+    vanR: vanRDash,
+  }), [
+    idDeo, deoInfo, periodKarte, pozicija, agregat, cpk, spc,
+    paretoData, poSmeni, rawData, vanXDash, vanRDash,
+  ]);
+
+  const reakcioniKontekst = useMemo(() => ({
+    cpk: cpk.cpk,
+    cp: cpk.cp,
+    vanUclLcl: vanUclLcl.length,
+    weUpozorenja: upozoreni.length - vanUclLcl.length,
+    sigmaNivo,
+    vanLslUsl: false,
+  }), [cpk.cpk, cpk.cp, vanUclLcl.length, upozoreni.length, sigmaNivo]);
+
+  const mozeUrediPlan = jeKvalitetIliVise(korisnik?.uloga);
 
   const pad = ekran.mob ? 12 : ekran.tablet ? 14 : 18;
 
   return (
     <div style={{ padding: pad, overflowY: "auto", flex: 1, minHeight: 0, boxSizing: "border-box" }} ref={kartaRef}>
+      <SpcFilterTrakaBaner spoljniFilter={spoljniFilter} C={C} />
       <div style={{ display: "flex", gap: ekran.mob ? 8 : 10, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 4 }}>ID DELA</div>
@@ -504,13 +619,23 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           }}>
           {loading ? "..." : "↻"}
         </button>
-        <button type="button" onClick={exportPDF} disabled={!rawData.length}
+        <button type="button" onClick={exportPdfPaket} disabled={!rawData.length || pdfBusy || !idDeo || !predlog?.preporuceniIds?.length}
+          title="PDF svih ★ preporučenih karata iz vodiča"
           style={{
-            background: !rawData.length ? C.hover : "#7c3aed", border: "none", borderRadius: 6,
-            color: !rawData.length ? C.sivi : "#fff", fontSize: 11, fontWeight: 700,
-            padding: "8px 12px", cursor: !rawData.length ? "not-allowed" : "pointer", alignSelf: "flex-end",
+            background: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? C.hover : "#7c3aed", border: "none", borderRadius: 6,
+            color: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? C.sivi : "#fff", fontSize: 11, fontWeight: 700,
+            padding: "8px 12px", cursor: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? "not-allowed" : "pointer", alignSelf: "flex-end",
           }}>
-          📄 PDF
+          {pdfBusy ? "⏳ PDF…" : "📄 PDF izveštaj"}
+        </button>
+        <button type="button" onClick={exportPdfOveKarte} disabled={!rawData.length || pdfBusy || !idDeo}
+          title="PDF samo trenutno otvorene karte"
+          style={{
+            background: !rawData.length || pdfBusy ? C.hover : C.panel, border: `1px solid ${!rawData.length || pdfBusy ? C.border : C.plava}`, borderRadius: 6,
+            color: !rawData.length || pdfBusy ? C.sivi : C.plava, fontSize: 11, fontWeight: 700,
+            padding: "8px 12px", cursor: !rawData.length || pdfBusy ? "not-allowed" : "pointer", alignSelf: "flex-end",
+          }}>
+          PDF ove karte
         </button>
         <button type="button" onClick={exportExcel} disabled={!rawData.length}
           style={{
@@ -520,6 +645,16 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           }}>
           📊 Excel
         </button>
+        {idDeo && rawData.length > 0 && (
+          <SpcAsistent8dDugme
+            C={C}
+            korisnik={korisnik}
+            izvor="merljive"
+            onOtvori8D={otvori8D}
+            addToast={addToast}
+            merljiveProps={asistentMerljiveProps}
+          />
+        )}
         {rawData.length > 0 && (
           <span style={{ color: C.sivi, fontSize: 10, alignSelf: "center" }}>
             {agregat.n} merenja · {LAB_FPY_KRATKO} {agregat.rty}% · DPMO {agregat.dpmo.toLocaleString()} ·{" "}
@@ -529,6 +664,22 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           </span>
         )}
       </div>
+
+      <AnalitikaSpcSnapshot
+        C={C}
+        modul="merljive"
+        idDeoOverride={idDeo}
+        liveMerenja={rawData}
+        liveKarakteristike={karakteristike}
+        liveNPodgrupa={nPodgrupa}
+        liveKpiPeriod={kpiPeriod}
+        pozicijaOverride={pozicija}
+        nazivDelaOverride={deoInfo?.naziv_dela}
+        onNavigacija={onNavigacijaKarte ? (d) => {
+          if (d?.spcTip) setTip(d.spcTip);
+          onNavigacijaKarte(d);
+        } : (d) => { if (d?.spcTip) setTip(d.spcTip); }}
+      />
 
       {idDeo && !vodicSakrij && (
         <SpcVodicPredlog
@@ -548,7 +699,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
         {TABOVI.map(([id, naziv, boja]) => {
           const preporuka = tabJePreporucen(predlog, id);
           return (
-          <button key={id} type="button" onClick={() => setTip(id)} style={{
+          <button key={id} type="button" onClick={() => setTip(id)} title={opisSpcKarte(id, "merljive")} style={{
             background: "none", border: "none",
             borderBottom: tip === id ? `2px solid ${boja}` : "2px solid transparent",
             color: tip === id ? boja : C.sivi,
@@ -560,6 +711,9 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
         );})}
       </div>
 
+      {idDeo && <SpcKartaOpis tip={tip} modul="merljive" C={C} />}
+
+      <div ref={sadrzajRef}>
       {!idDeo ? (
         <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.border, fontSize: 12 }}>
           Izaberi ID dela
@@ -574,6 +728,31 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           datumDo={datumDo}
           smena={smena}
         />
+      ) : tip === "dashboard" ? (
+        loading ? (
+          <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.sivi }}>Učitavanje…</div>
+        ) : (
+          <SpcDashboardMerljive
+            C={C}
+            ekran={ekran}
+            idDeo={idDeo}
+            pozicija={pozicija}
+            kar={kar}
+            spc={spc}
+            cpk={cpk}
+            agregat={agregat}
+            sigmaNivo={sigmaNivo}
+            sigmaBoja={sigmaBoja}
+            paretoData={paretoData}
+            poPoziciji={poPoziciji}
+            poSmeni={poSmeni}
+            rtyTrend={rtyTrend}
+            podgrupe={podgrupe}
+            nPodgrupa={nPodgrupa}
+            onOpenTab={setTip}
+            onOpen8D={otvori8D}
+          />
+        )
       ) : loading ? (
         <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.sivi }}>Učitavanje…</div>
       ) : rawData.length === 0 ? (
@@ -614,6 +793,11 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 ["σ̂", fmt(imr.sigmaHat || spc.sigmaHat, jedinica), "#22d3ee"],
                 ["VAN UCL/LCL", vanUclLcl.length, vanUclLcl.length ? C.crvena : C.zelena],
                 ["WE OBRAZAC", upozoreni.length - vanUclLcl.length, (upozoreni.length - vanUclLcl.length) ? C.zuta : C.zelena],
+                ...(agregat.n > 0 ? [
+                  [LAB_FPY_KRATKO, `${agregat.rty}%`, C.zelena],
+                  ["PPM", calcPPM(agregat.nok, agregat.n).toLocaleString(), C.narandzasta],
+                  ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
+                ] : []),
               ]} />
               {kar && (
                 <div style={{ color: C.sivi, fontSize: 10, marginBottom: 8 }}>
@@ -711,13 +895,30 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                   interpretiraj indekse uz oprez ili proširi uzorak.
                 </div>
               )}
+              <ReakcioniPlanSpcPanel
+                C={C}
+                kompakt
+                kontekst={reakcioniKontekst}
+                mozeUredjivati={mozeUrediPlan}
+                addToast={addToast}
+              />
             </>
+          )}
+
+          {tip === "plan" && (
+            <ReakcioniPlanSpcPanel
+              C={C}
+              kontekst={idDeo ? reakcioniKontekst : null}
+              mozeUredjivati={mozeUrediPlan}
+              addToast={addToast}
+            />
           )}
 
           {tip === "rty" && (
             <div>
               <KpiRed C={C} items={[
                 [LAB_FPY_PCT, `${agregat.rty}%`, C.zelena],
+                ["PPM", calcPPM(agregat.nok, agregat.n).toLocaleString(), C.narandzasta],
                 ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
                 ["Sigma", `${agregat.sigma.toFixed(1)}σ`, "#a3e635"],
                 ["Uk. mereno", agregat.n, C.plava],
@@ -726,6 +927,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                 ...(agregat.okNakonDorade > 0 ? [["OK posle dor.", agregat.okNakonDorade, "#22d3ee"]] : []),
               ]} />
               <SpcRtyTrendGraf data={rtyTrend} C={C} height={360} xKey="label" />
+              <SpcPpmDpmoTrendGraf data={rtyTrend} C={C} height={280} xKey="label" />
             </div>
           )}
 
@@ -791,41 +993,6 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {tip === "dashboard" && (
-            <div>
-              <KpiRed C={C} items={[
-                [LAB_FPY_PCT, `${agregat.rty}%`, C.zelena],
-                ["DPMO", agregat.dpmo.toLocaleString(), C.ljubicasta],
-                ["Sigma", `${sigmaNivo.toFixed(1)}σ`, sigmaBoja],
-                ["OK", agregat.ok, C.zelena],
-                ["NOK", agregat.nok, C.crvena],
-                ["Merenja", agregat.n, C.plava],
-              ]} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                <SpcRtyJednaLinija data={rtyTrend} C={C} height={220} xKey="label" naslov={LAB_FPY_TREND} />
-                <SpcOkNokBarGraf data={poSmeni} C={C} height={220} xKey="s" naslov="Po smeni" />
-              </div>
-              {!pozicija && poPoziciji.length > 0 && (
-                <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
-                  <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>PO DIMENZIJI</div>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {poPoziciji.map(p => (
-                      <div key={p.pozicija} style={{
-                        display: "grid", gridTemplateColumns: "1fr 80px 80px 80px",
-                        gap: 8, fontSize: 11, padding: "6px 0", borderBottom: `1px solid ${C.hover}`,
-                      }}>
-                        <span style={{ color: C.tekst }}>{p.pozicija}</span>
-                        <span style={{ color: C.zelena }}>{LAB_FPY_KRATKO} {p.rty}%</span>
-                        <span style={{ color: C.ljubicasta }}>DPMO {p.dpmo.toLocaleString()}</span>
-                        <span style={{ color: p.nok ? C.crvena : C.sivi }}>{p.nok} NOK</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -949,6 +1116,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik }) {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }
