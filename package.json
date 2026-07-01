@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "embed:pdf-logo": "python scripts/embed-pdf-logo.py",
-    "build": "npm run embed:pdf-logo && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "import:docs": "node scripts/import-all-docs.mjs",
     "spoji:katalog-vozilo": "node scripts/spoji-katalog-vozilo.mjs",
