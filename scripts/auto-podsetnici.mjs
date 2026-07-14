@@ -10,7 +10,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { loadEnvZaSkripte } from "../src/lib/loadEnvFile.js";
-import { createDedupeStore } from "../src/lib/autoDedupe.js";
 import {
   proveriProaktivneDogadjaje,
   obradiProaktivneNotifikacije,
@@ -20,6 +19,7 @@ import {
 import { DEFAULTS } from "../src/lib/notifikacijeServer.js";
 import { AUTO_NOTIF_DEFAULTS } from "../src/lib/autoObavestenja.js";
 import { jeAutoPraviloUkljuceno, spojiAutoPodesavanja } from "../src/lib/autoPodesavanja.js";
+import { createFileDedupeStore } from "./lib/autoDedupeFile.mjs";
 import { kreirajSkriptaLog } from "./lib/skriptaLog.mjs";
 import { zapisAutoAkciju } from "./lib/autoRunLogDb.mjs";
 
@@ -72,7 +72,7 @@ async function main() {
     }
 
     const dedupePath = path.join(ROOT, ".cache", "auto-podsetnici-dedupe.json");
-    const dedupe = createDedupeStore({ tip: "file", putanjaFajla: dedupePath });
+    const dedupe = createFileDedupeStore({ putanjaFajla: dedupePath });
 
     let sviDogadjaji = [];
     for (const modul of moduli) {

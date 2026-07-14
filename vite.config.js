@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 
+/** Escape path sep for both Win and POSIX in module ids. */
+const nm = (pkgName) => new RegExp(`[\\\\/]node_modules[\\\\/]${pkgName}([\\\\/]|$)`)
+
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -11,17 +14,19 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    chunkSizeWarningLimit: 600,
-    rollupOptions: {
+    // DejaVu PDF font chunk (~2 MB) is one module; cannot be split further.
+    chunkSizeWarningLimit: 2000,
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          if (id.includes('recharts')) return 'vendor-recharts';
-          if (id.includes('xlsx')) return 'vendor-xlsx';
-          if (id.includes('html5-qrcode')) return 'vendor-qrcode';
-          if (id.includes('@supabase')) return 'vendor-supabase';
-          if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
-          return 'vendor';
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: nm('(?:react-dom|react|scheduler)') },
+            { name: 'vendor-recharts', test: nm('recharts') },
+            { name: 'vendor-xlsx', test: nm('xlsx') },
+            { name: 'vendor-qrcode', test: nm('(?:html5-qrcode|qrcode)') },
+            { name: 'vendor-supabase', test: nm('@supabase') },
+            { name: 'vendor-pdf', test: nm('(?:jspdf|html2canvas)') },
+          ],
         },
       },
     },
@@ -33,4 +38,3 @@ export default defineConfig({
   // Opciona jača obfuskacija (npm i -D vite-plugin-javascript-obfuscator):
   // plugins: [react(), obfuscator({ apply: 'build' })],
 })
-
