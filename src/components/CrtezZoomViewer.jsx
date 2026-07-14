@@ -1,6 +1,32 @@
 import { useRef, useState } from "react";
 
-export default function CrtezZoomViewer({ url, C, visina, onFullscreen, onClose }) {
+function HotspotKrugovi({ tacke, C, velicina = 26 }) {
+  if (!tacke?.length) return null;
+  return tacke.map((t, i) => (
+    <span
+      key={`${t.poz}-${i}`}
+      aria-hidden
+      style={{
+        position: "absolute",
+        left: `${t.x}%`,
+        top: `${t.y}%`,
+        transform: "translate(-50%, -50%)",
+        width: velicina,
+        height: velicina,
+        borderRadius: "50%",
+        border: `2.5px solid ${C.zelena}`,
+        background: "rgba(34,197,94,0.42)",
+        boxShadow: `0 0 0 2px ${C.zelena}44`,
+        pointerEvents: "none",
+        animation: "moment-poz-pulse 1.2s ease-in-out infinite",
+      }}
+    />
+  ));
+}
+
+export default function CrtezZoomViewer({
+  url, C, visina, onFullscreen, onClose, hotspotTacke = null, viewBox = null,
+}) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [drag, setDrag] = useState(false);
@@ -70,10 +96,7 @@ export default function CrtezZoomViewer({ url, C, visina, onFullscreen, onClose 
           touchAction: "none",
         }}
       >
-        <img
-          src={url}
-          alt="crtež dela"
-          draggable={false}
+        <div
           style={{
             position: "absolute",
             left: "50%",
@@ -81,13 +104,36 @@ export default function CrtezZoomViewer({ url, C, visina, onFullscreen, onClose 
             transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})`,
             maxWidth: "92%",
             maxHeight: "92%",
-            objectFit: "contain",
-            userSelect: "none",
-            pointerEvents: "none",
+            aspectRatio: viewBox ? `${viewBox[0]} / ${viewBox[1]}` : undefined,
           }}
-          onError={e => { e.target.style.opacity = "0.3"; }}
-        />
+        >
+          <img
+            src={url}
+            alt="crtež dela"
+            draggable={false}
+            style={{
+              display: "block",
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+            onError={e => { e.target.style.opacity = "0.3"; }}
+          />
+          {hotspotTacke?.length > 0 && (
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+              <HotspotKrugovi tacke={hotspotTacke} C={C} velicina={28} />
+            </div>
+          )}
+        </div>
       </div>
+      <style>{`
+        @keyframes moment-poz-pulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          50% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.92; }
+        }
+      `}</style>
     </div>
   );
 }

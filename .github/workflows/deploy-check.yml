@@ -1,0 +1,83 @@
+name: Deploy check
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+# Obavezujući gate pre Vercel deploy-a (GitHub branch protection → require this check)
+concurrency:
+  group: deploy-check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VITE_SUPABASE_URL: https://placeholder.supabase.co
+  VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder
+
+jobs:
+  verify-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Deploy check (PR)
+        run: npm run deploy:check
+
+      - name: Production build
+        run: npm run build
+
+  verify-firma:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Deploy check (firma gate)
+        run: npm run deploy:check:firma
+        env:
+          DEPLOY_STRICT: ${{ secrets.E2E_EMAIL != '' && '1' || '' }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_EMAIL_KVALITET: ${{ secrets.E2E_EMAIL_KVALITET }}
+          E2E_PASSWORD_KVALITET: ${{ secrets.E2E_PASSWORD_KVALITET }}
+
+  vercel-hint:
+    needs: verify-firma
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      needs.verify-firma.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate passed
+        run: |
+          echo "✓ Deploy check prošao — Vercel može da build-uje."
+          echo "Firma gate: DEPLOY_STRICT=1 kad su E2E_EMAIL / E2E_PASSWORD secrets u repo-u."
+          echo "Preporuka: Vercel → Settings → Git → Wait for checks → deploy-check."

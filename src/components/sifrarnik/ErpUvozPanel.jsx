@@ -20,6 +20,7 @@ import {
   podrazumevaniErpApiUrl,
 } from "../../lib/erpUvozApi.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
+import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
 
 const CARD = (C) => ({
   background: C.panel,
@@ -155,6 +156,7 @@ export default function ErpUvozPanel({ C, addToast }) {
 
   return (
     <div style={{ maxWidth: 820, color: C.sivi, fontSize: 11, lineHeight: 1.55 }}>
+      <ErpMonitoringStrip C={C} addToast={addToast} />
       <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
         ERP uvoz u bazu
       </div>
@@ -175,7 +177,7 @@ export default function ErpUvozPanel({ C, addToast }) {
               onClick={() => { setPreset(p.id); setPreview(null); setRezultat(null); }}
               style={btnStyle(C, preset === p.id ? "#7c3aed" : C.hover, {
                 disabled: false,
-                color: preset === p.id ? "#fff" : C.tekst,
+                color: preset === p.id ? C.onAkcent : C.tekst,
                 border: preset === p.id ? "none" : `1px solid ${C.border}`,
               })}
             >
@@ -219,7 +221,7 @@ export default function ErpUvozPanel({ C, addToast }) {
             onClick={() => setMod(id)}
             style={{
               ...btnStyle(C, mod === id ? C.plava : C.hover, {}),
-              color: mod === id ? "#fff" : C.tekst,
+              color: mod === id ? C.onAkcent : C.tekst,
               border: mod === id ? "none" : `1px solid ${C.border}`,
             }}
           >

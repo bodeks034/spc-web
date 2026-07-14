@@ -3,19 +3,28 @@ import { supabase } from "../lib/supabaseClient.js";
 import { fetchZajednickiDashboard } from "../lib/zajednickiDashboard.js";
 import { queueCounts, loadQueue, ensureQueueReady } from "../lib/offlineQueue.js";
 import OperativniAlarmiStrip from "./OperativniAlarmiStrip.jsx";
+import SefSmenaDashboard from "./SefSmenaDashboard.jsx";
+import StaUradiTiSadaPanel from "./StaUradiTiSadaPanel.jsx";
+import PrioritetSmenePanel from "./PrioritetSmenePanel.jsx";
 import StanjePredikcijaPanel from "./StanjePredikcijaPanel.jsx";
 import AnalitikaKpiSestPolja from "./analitika/AnalitikaKpiSestPolja.jsx";
 import { bojaNivoa } from "../lib/operativniAlarmi.js";
-import { mozeInteligencijaProcesa } from "../lib/uloge.js";
+import { mozeInteligencijaProcesa, jeAdmin } from "../lib/uloge.js";
 import {
   ucitajPodesavanjaNotifikacija,
   obradiAlarmeNotifikacije,
   zatraziBrowserDozvolu,
 } from "../lib/notifikacije.js";
+import {
+  proveriProaktivneDogadjaje,
+  obradiProaktivneNotifikacije,
+} from "../lib/proaktivneNotifikacije.js";
+import { odrediModulZaDeo } from "../lib/deoModul.js";
 
-export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula, korisnik, onOtvori8D, filterIdDeo, filterPeriod, filterLinija, filterSmena, sakrijFilterTraku = false, sakrijNaslov = false, modul = null, onNavigacija, ugradi = false, sakrijKpiSest = false }) {
+export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModula, korisnik, onOtvori8D, onOtvoriNcr, onWorkflow, filterIdDeo, filterPeriod, filterLinija, filterSmena, sakrijFilterTraku = false, sakrijNaslov = false, sakrijPregledSmene = false, modul = null, onNavigacija, ugradi = false, sakrijKpiSest = false }) {
   const [period, setPeriod] = useState(filterPeriod ?? (kompakt ? "1" : "7"));
   const [idDeo, setIdDeo] = useState(filterIdDeo ?? "");
+  const [modulDeo, setModulDeo] = useState(modul || "merljive");
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sakrijAlarme, setSakrijAlarme] = useState(false);
@@ -74,16 +83,49 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
   }, [filterIdDeo]);
 
   useEffect(() => {
+    const id = String(idDeo || "").trim().toUpperCase();
+    if (id.length < 3) {
+      setModulDeo(modul || "merljive");
+      return;
+    }
+    let otkaz = false;
+    odrediModulZaDeo(supabase, id).then((m) => {
+      if (!otkaz) setModulDeo(m);
+    });
+    return () => { otkaz = true; };
+  }, [idDeo, modul]);
+
+  useEffect(() => {
     zatraziBrowserDozvolu();
   }, []);
 
   useEffect(() => {
-    if (!podaci?.alarmi?.length) return;
+    if (!podaci) return;
+    let otkaz = false;
     (async () => {
       const settings = await ucitajPodesavanjaNotifikacija(supabase);
-      await obradiAlarmeNotifikacije(supabase, podaci.alarmi, settings);
+      if (podaci.alarmi?.length) {
+        await obradiAlarmeNotifikacije(supabase, podaci.alarmi, settings);
+      }
+      const proaktivni = await proveriProaktivneDogadjaje(supabase, {
+        modul: modul || "merljive",
+        smena: filterSmena,
+        alarmi: podaci.alarmi || [],
+      });
+      if (!otkaz && proaktivni.length) {
+        await obradiProaktivneNotifikacije(supabase, settings, proaktivni);
+      }
     })();
-  }, [podaci?.alarmi]);
+    return () => { otkaz = true; };
+  }, [podaci, filterSmena, modul]);
+
+  const workflowHandlers = {
+    ...(onWorkflow || {}),
+    onOtvoriNcr: onOtvoriNcr || onWorkflow?.onOtvoriNcr,
+    onOtvori8D: onOtvori8D || onWorkflow?.onOtvori8D,
+    onOtvoriModul: onIzborModula || onWorkflow?.onOtvoriModul,
+    onNavigacija: onNavigacija || onWorkflow?.onNavigacija,
+  };
 
   useEffect(() => {
     const ch = supabase.channel("dash_unified")
@@ -148,23 +190,59 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
       </div>
       )}
 
+      {(korisnik?.uloga === "sef" || korisnik?.uloga === "admin" || korisnik?.uloga === "kvalitet") && (
+        <>
+          <PrioritetSmenePanel
+            C={C}
+            modul={modul || "merljive"}
+            smena={filterSmena || undefined}
+            kompakt={kompakt}
+            onIzaberiDeo={(deo) => setIdDeo(deo)}
+            onWorkflow={workflowHandlers}
+          />
+          {idDeo && (
+            <StaUradiTiSadaPanel
+              C={C}
+              idDeo={idDeo}
+              modul={modul || "merljive"}
+              smena={filterSmena}
+              alarmi={podaci?.alarmi || []}
+              kompakt={kompakt}
+              onWorkflow={workflowHandlers}
+            />
+          )}
+          {!sakrijPregledSmene && (
+          <SefSmenaDashboard
+            C={C}
+            smena={filterSmena || undefined}
+            linija={filterLinija || ""}
+            idDeo={idDeo}
+            filterPeriod={period}
+            onNavigacija={onNavigacija}
+            onOtvoriAdmin={
+              jeAdmin(korisnik?.uloga) && onIzborModula
+                ? () => onIzborModula("admin")
+                : undefined
+            }
+          />
+          )}
+        </>
+      )}
+
       {!ugradi && !sakrijAlarme && podaci?.alarmi?.length > 0 && (
         <>
           <OperativniAlarmiStrip
             alarmi={podaci.alarmi}
             C={C}
             kompakt
+            kontekst={{
+              idDeo,
+              smena: filterSmena,
+              modul: modulDeo,
+            }}
             onZatvori={() => setSakrijAlarme(true)}
+            onWorkflow={workflowHandlers}
           />
-          {onNavigacija && (
-            <button type="button" onClick={() => onNavigacija({ tab: "odobrenja" })}
-              style={{
-                background: "none", border: "none", color: C.plava, fontSize: 10,
-                cursor: "pointer", marginBottom: 12, padding: 0, fontFamily: "inherit",
-              }}>
-              → Odobrenja QA ({podaci.alarmi.length})
-            </button>
-          )}
         </>
       )}
 

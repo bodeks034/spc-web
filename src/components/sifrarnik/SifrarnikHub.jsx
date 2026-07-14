@@ -4,6 +4,7 @@ import ListeVrednostiPanel from "./ListeVrednostiPanel.jsx";
 
 import GlavniUnosPanel from "./GlavniUnosPanel.jsx";
 import PogonMapaPanel from "./PogonMapaPanel.jsx";
+import LinijaDeoMapaPanel from "./LinijaDeoMapaPanel.jsx";
 
 import DeloviCrtezPanel from "./DeloviCrtezPanel.jsx";
 
@@ -36,11 +37,13 @@ import KarakteristikeMerljivePanel from "./KarakteristikeMerljivePanel.jsx";
 import SopMerljivePanel from "./SopMerljivePanel.jsx";
 
 import MerilaSifrarnikPanel from "./MerilaSifrarnikPanel.jsx";
+import MomentKljucHub from "./MomentKljucHub.jsx";
 
 import BarkodStampaPanel from "./BarkodStampaPanel.jsx";
 
 import SifrarnikIzvozPanel from "./SifrarnikIzvozPanel.jsx";
 import ErpUvozPanel from "./ErpUvozPanel.jsx";
+import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
 
@@ -61,6 +64,8 @@ const GRUPE = [
       ["glavni_unos", "Glavni unos"],
 
       ["pogon_mapa", "Pogon mapa"],
+
+      ["linija_deo", "Linija ↔ deo"],
 
       ["liste", "Liste (dropdown)"],
 
@@ -112,6 +117,8 @@ const GRUPE = [
 
       ["karakteristike", "Dimenzije (pregled)"],
 
+      ["spc_alarm", "SPC alarm %"],
+
       ["sop", "SOP po delu (pregled)"],
 
       ["merila", "Merila / kalibracija"],
@@ -133,6 +140,22 @@ const GRUPE = [
       ["defekti", "Defekti vozila"],
 
       ["delovi_vozilo", "Delovi vozila"],
+
+    ],
+
+  },
+
+  {
+
+    id: "moment",
+
+    naziv: "Moment ključ",
+
+    tabovi: [
+
+      ["moment_sifrarnik", "Šifrarnik JOB"],
+
+      ["moment_kljucevi", "Ključevi / kalibracija"],
 
     ],
 
@@ -333,6 +356,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
         {podtab === "glavni_unos" && <GlavniUnosPanel C={C} addToast={addToast} korisnik={korisnik} />}
 
         {podtab === "pogon_mapa" && <PogonMapaPanel C={C} addToast={addToast} />}
+        {podtab === "linija_deo" && <LinijaDeoMapaPanel C={C} addToast={addToast} />}
 
         {podtab === "liste" && <ListeVrednostiPanel C={C} addToast={addToast} />}
 
@@ -360,9 +384,15 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
         {podtab === "karakteristike" && <KarakteristikeMerljivePanel C={C} addToast={addToast} />}
 
+        {podtab === "spc_alarm" && <SpcAlarmPragoviPanel C={C} addToast={addToast} />}
+
         {podtab === "sop" && <SopMerljivePanel C={C} addToast={addToast} />}
 
         {podtab === "merila" && <MerilaSifrarnikPanel C={C} addToast={addToast} korisnik={korisnik} />}
+
+        {podtab === "moment_sifrarnik" && <MomentKljucHub C={C} addToast={addToast} />}
+
+        {podtab === "moment_kljucevi" && <MerilaSifrarnikPanel C={C} addToast={addToast} korisnik={korisnik} />}
 
         {podtab === "vozila" && (
 

@@ -138,7 +138,7 @@ export default function AnalitikaNav({
 
                 <span style={{
 
-                  background: C.crvena, color: "#fff", fontSize: 8,
+                  background: C.crvena, color: C.onAkcent, fontSize: 8,
 
                   borderRadius: 10, padding: "1px 5px", marginLeft: 5,
 
@@ -226,7 +226,7 @@ export default function AnalitikaNav({
 
                 <span style={{
 
-                  background: C.plava, color: "#fff", fontSize: 8,
+                  background: C.plava, color: C.onAkcent, fontSize: 8,
 
                   borderRadius: 10, padding: "1px 5px", marginLeft: 5,
 

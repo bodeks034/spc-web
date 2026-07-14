@@ -1,7 +1,6 @@
-import {
-  ComposedChart, BarChart, Bar, Line, XAxis, YAxis,
+import { ComposedChart, BarChart, Bar, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ReferenceLine, Legend,
-  ResponsiveContainer, Cell,
+  ResponsiveContainer, Cell, ReferenceDot,
 } from "recharts";
 
 /** Zajednički stil SPC analitičkih grafikona (Pareto, RTY, smena, histogram…). */
@@ -452,6 +451,89 @@ export function SpcTrendLinijaGraf({
         {referencaX && <ReferenceLine x={referencaX} stroke={C.crvena} strokeDasharray="6 3" strokeWidth={2} />}
         <Line type="monotone" dataKey={yKey} stroke={boja || C.zelena} strokeWidth={2.5}
           dot={{ r: 5, fill: boja || C.zelena }} name={naziv} connectNulls />
+      </ComposedChart>
+    </SpcGrafPanel>
+  );
+}
+
+/** OC kriva ISO 3951 (s-metod, Form k). */
+export function SpcOcKrivaIso3951Graf({
+  data, C, aql, n, k, height = 340, marker = null,
+}) {
+  if (!data?.length) return null;
+  const aqlNum = Number(aql);
+  const markerP = marker?.p != null ? Number(marker.p) : null;
+  const markerPa = marker?.pa != null ? Number(marker.pa) : null;
+  const prihvacen = marker?.prihvacen;
+
+  return (
+    <SpcGrafPanel
+      C={C}
+      height={height}
+      naslov="OC kriva — verovatnoća prihvatanja (ISO 3951)"
+      podnaslov={`n=${n ?? "—"}, k=${k != null ? Number(k).toFixed(3) : "—"} · s-metod · % neispravnih u lotu`}
+      legenda={(
+        <SpcGrafLegendaTraka C={C} stavke={[
+          { boja: C.plava, label: "Pa (ISO 3951)", puna: true },
+          ...(Number.isFinite(aqlNum) ? [{ boja: C.zuta, label: `AQL ${aql}%`, isprekid: true }] : []),
+          ...(markerP != null ? [{
+            boja: prihvacen ? C.zelena : C.crvena,
+            label: `Vaš uzorak (p̂=${markerP}%)`,
+            puna: true,
+          }] : []),
+          { boja: C.zelena, label: "Pa=95%", isprekid: true },
+        ]} />
+      )}
+    >
+      <ComposedChart data={data} margin={spcMargin({ bottom: 40, right: 20 })}>
+        {spcGrid(C)}
+        <XAxis
+          dataKey="p"
+          type="number"
+          domain={[0, "dataMax"]}
+          tick={{ fill: C.tekst, fontSize: 11 }}
+          tickFormatter={(v) => `${v}%`}
+          label={{ value: "% neispravnih u lotu", fill: C.sivi, fontSize: 10, position: "insideBottom", offset: -8 }}
+        />
+        {spcYAxis(C, { domain: [0, 100], tickFormatter: (v) => `${v}%`, width: 48 })}
+        <Tooltip content={<AnalitikaTooltip C={C} sufiks="%" />} />
+        {spcLegend(C)}
+        {Number.isFinite(aqlNum) && (
+          <ReferenceLine
+            x={aqlNum}
+            stroke={C.zuta}
+            strokeDasharray="4 3"
+            label={{ value: `AQL ${aql}%`, fill: C.zuta, fontSize: 9 }}
+          />
+        )}
+        {markerP != null && (
+          <ReferenceLine
+            x={markerP}
+            stroke={prihvacen ? C.zelena : C.crvena}
+            strokeDasharray="6 4"
+            label={{
+              value: `p̂=${markerP}%`,
+              fill: prihvacen ? C.zelena : C.crvena,
+              fontSize: 9,
+            }}
+          />
+        )}
+        {markerP != null && markerPa != null && (
+          <ReferenceDot
+            x={markerP}
+            y={markerPa}
+            r={7}
+            fill={prihvacen ? C.zelena : C.crvena}
+            stroke={C.tekst}
+            strokeWidth={1}
+          />
+        )}
+        <ReferenceLine y={95} stroke={C.zelena} strokeDasharray="5 3"
+          label={{ value: "Pa 95%", fill: C.zelena, fontSize: 9 }} />
+        <ReferenceLine y={10} stroke={C.crvena} strokeDasharray="5 3"
+          label={{ value: "Pa 10%", fill: C.crvena, fontSize: 9 }} />
+        <Line type="monotone" dataKey="pa" stroke={C.plava} strokeWidth={3}
+          dot={{ fill: C.plava, r: 5 }} name="Pa" connectNulls />
       </ComposedChart>
     </SpcGrafPanel>
   );

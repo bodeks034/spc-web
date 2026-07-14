@@ -31,6 +31,8 @@ import { exportPfmeaCpPdf } from "../lib/pfmeaCpPdf.js";
 import { jeKvalitetIliVise } from "../lib/uloge.js";
 import PfmeaCpUnosForma from "./pfmea/PfmeaCpUnosForma.jsx";
 import RpnSummaryPregled from "./pfmea/RpnSummaryPregled.jsx";
+import PfmeaSkaleOblacici from "./pfmea/PfmeaSkaleOblacic.jsx";
+import { PFMEA_TOOLTIP } from "../lib/analitikaOpisi.js";
 import {
   noviPfmeaCpDocIz8d,
   primeniPrefillNaPfmeaCpDoc,
@@ -635,7 +637,7 @@ export default function PfmeaCpModul({
   const BTN = (bg, opts = {}) => ({
     fontSize: 10, padding: "7px 12px", cursor: opts.dis ? "not-allowed" : "pointer",
     borderRadius: 6, border: opts.outline ? `1px solid ${bg}` : "none",
-    background: opts.outline ? C.hover : bg, color: opts.outline ? bg : "#fff",
+    background: opts.outline ? C.hover : bg, color: opts.outline ? bg : C.onAkcent,
     fontWeight: 700, opacity: opts.dis ? 0.5 : 1,
   });
   const INP = {
@@ -736,18 +738,19 @@ export default function PfmeaCpModul({
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>
+          <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, letterSpacing: 1 }} title={PFMEA_TOOLTIP}>
             PFMEA / CONTROL PLAN IZVEŠTAJI
           </div>
           {mozeEdit && (
             <button type="button" onClick={kreirajNoviDokument} style={{
-              background: C.plava, border: "none", borderRadius: 8, color: "#fff",
+              background: C.plava, border: "none", borderRadius: 8, color: C.onAkcent,
               fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
             }}>
               + Novi PFMEA/CP
             </button>
           )}
         </div>
+        <PfmeaSkaleOblacici C={C} kompakt naslov="PFMEA SKALE (S · O · D · RPN)" />
         {!dokumenti.length ? (
           <div style={{ color: C.border, fontSize: 12, textAlign: "center", padding: 40 }}>
             Nema sačuvanih PFMEA/CP izveštaja
@@ -825,9 +828,9 @@ export default function PfmeaCpModul({
           >
             ← Nazad na listu
           </button>
-          <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>PFMEA / CONTROL PLAN</div>
-          <div style={{ color: C.sivi, fontSize: 10, marginTop: 4 }}>
-            Popunite formu → <strong>Dodaj/Ažuriraj stavku</strong> → <strong>Sačuvaj dokument</strong>.
+          <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }} title={PFMEA_TOOLTIP}>PFMEA / CONTROL PLAN</div>
+          <div style={{ color: C.sivi, fontSize: 10, marginTop: 4 }} title={PFMEA_TOOLTIP}>
+            {PFMEA_TOOLTIP} · Popunite formu → <strong>Dodaj/Ažuriraj stavku</strong> → <strong>Sačuvaj dokument</strong>.
             Pri otvaranju dokumenta forma se puni prvom sačuvanom stavkom.
             {imaVezu8d && (
               <span style={{ color: C.zelena }}> · Povezan sa 8D {veza8d.broj8d || `#${veza8d.osmdId}`}</span>
@@ -931,12 +934,14 @@ export default function PfmeaCpModul({
             key={id}
             type="button"
             onClick={() => setPodtab(id)}
-            title={id === "pfmea" || id === "cp"
-              ? `Broj sačuvanih stavki u dokumentu`
-              : "Broj redova u RPN pregledu (iz PFMEA)"}
+            title={id === "pfmea"
+              ? PFMEA_TOOLTIP
+              : id === "cp"
+                ? "Control Plan — kontrolne mere u proizvodnji"
+                : "Broj redova u RPN pregledu (iz PFMEA)"}
             style={{
               ...BTN(podtab === id ? C.plava : C.hover, { outline: podtab !== id }),
-              color: podtab === id ? "#fff" : C.tekst,
+              color: podtab === id ? C.onAkcent : C.tekst,
             }}
           >
             {opis}
@@ -953,6 +958,13 @@ export default function PfmeaCpModul({
         />
         )}
       </div>
+
+      {(podtab === "pfmea" || podtab === "rpn") && (
+        <PfmeaSkaleOblacici
+          C={C}
+          naslov="PFMEA SKALE — klik na slovo za objašnjenje"
+        />
+      )}
 
       {podtab === "rpn" && (
         <RpnSummaryPregled

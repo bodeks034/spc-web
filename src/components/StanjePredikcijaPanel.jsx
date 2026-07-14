@@ -137,7 +137,7 @@ function EskalacijaModal({
               <button type="button" onClick={snimi} disabled={busy}
                 style={{
                   background: C.crvena, border: "none", borderRadius: 8,
-                  color: "#fff", fontSize: 11, fontWeight: 700, padding: "8px 16px", cursor: "pointer",
+                  color: C.onAkcent, fontSize: 11, fontWeight: 700, padding: "8px 16px", cursor: "pointer",
                 }}>
                 {busy ? "…" : "Kreiraj"}
               </button>
@@ -165,7 +165,7 @@ function EskalacijaModal({
                 <button type="button" onClick={otvori8d}
                   style={{
                     background: C.plava, border: "none", borderRadius: 8,
-                    color: "#fff", fontSize: 11, fontWeight: 700, padding: "8px 16px", cursor: "pointer",
+                    color: C.onAkcent, fontSize: 11, fontWeight: 700, padding: "8px 16px", cursor: "pointer",
                   }}>
                   Otvori 8D →
                 </button>

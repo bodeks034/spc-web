@@ -8,11 +8,11 @@ import { TABLET } from "../layout/tokens/tablet.js";
 import IdDeoBarkodRed from "./IdDeoBarkodRed.jsx";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./LinijaWizardNav.jsx";
 import UnosPokaYokeKorak from "./UnosPokaYokeKorak.jsx";
-import { KontrolnaLista } from "../lib/kontrolaSesije.jsx";
 import CrtezPregledPanel from "./CrtezPregledPanel.jsx";
 import PogonIzborPanel from "./PogonIzborPanel.jsx";
 import SmenaAutoPrikaz from "./SmenaAutoPrikaz.jsx";
 import { idSpremanZaUcitavanje } from "../lib/varijabilneUtils.js";
+import { labelPogona } from "../lib/pogonSop.js";
 
 /**
  * Modul 1 — merljive: punoekranski koraci (ID → poka → unos; FAI u istom unosu).
@@ -111,7 +111,7 @@ export default function MobilniMerljiviUnos({
     background: dis ? C.hover : bg,
     border: "none",
     borderRadius: 14,
-    color: dis ? C.sivi : "#fff",
+    color: dis ? C.sivi : C.onAkcent,
     fontSize: 18,
     fontWeight: 700,
     padding: "20px",
@@ -146,7 +146,7 @@ export default function MobilniMerljiviUnos({
   );
 
   if (linijaKorak === 1) {
-    const mozeDalje = idUcitano && grupaAB && !ucitava && kontrolnaListaOk;
+    const mozeDalje = idUcitano && grupaAB && !ucitava;
     return omot(
       <>
         {poruka && (
@@ -232,7 +232,12 @@ export default function MobilniMerljiviUnos({
         {idUcitano ? (
           <div style={{ background: C.ok, border: `1px solid ${C.zelena}30`, borderRadius: 14, padding: 16 }}>
             <div style={{ color: C.zelena, fontWeight: 700, fontSize: 18, marginBottom: 12 }}>
-              ✓ {nazivDela}
+              ✓ {nazivDela || idDeo}
+              {pogonKod ? (
+                <span style={{ color: C.plava, marginLeft: 8, fontSize: 13 }}>
+                  {labelPogona(pogonKod)}
+                </span>
+              ) : null}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {[["Linija", linija], ["Mašina", masina || "-"], ["RN", radniNalog || "—"], ["Merenja/kol.", potrebanBroj]].map(([l, v]) => (
@@ -329,21 +334,6 @@ export default function MobilniMerljiviUnos({
           />
         )}
 
-        {idUcitano && !kontrolnaListaOk && (
-          <div style={{ marginBottom: 12 }}>
-            <KontrolnaLista
-              korisnik={korisnik}
-              smena={Number(smena)}
-              idDeo={String(idDeo || "").trim().toUpperCase()}
-              naslovModul="Merljive"
-              akcent={C.zelena}
-              onZavrsena={onKontrolnaListaZavrsena}
-              C={C}
-              ugradjen
-            />
-          </div>
-        )}
-
         <div style={{ flex: 1 }} />
 
         <button
@@ -404,37 +394,12 @@ export default function MobilniMerljiviUnos({
           onToggleKalibracijaOdobrenje={onToggleKalibracijaOdobrenje}
           onZahtevKalibracija={onZahtevKalibracija}
           onDalje={() => {
-            if (!kontrolnaListaOk) return;
             setUnosKorak("forma");
             setLinijaKorak(3);
           }}
           daljeLabel={faiPotreban ? "FAI / unos merenja →" : "Unos merenja →"}
           prikaziNazad
           onNazad={() => setLinijaKorak(1)}
-        />
-      </div>,
-      { skrol: true },
-    );
-  }
-
-  if (!kontrolnaListaOk) {
-    return omot(
-      <div style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: 16,
-      }}>
-        <KontrolnaLista
-          korisnik={korisnik}
-          smena={Number(smena)}
-          idDeo={String(idDeo || "").trim().toUpperCase()}
-          naslovModul="Merljive"
-          akcent={C.zelena}
-          onZavrsena={onKontrolnaListaZavrsena}
-          C={C}
-          ugradjen
         />
       </div>,
       { skrol: true },

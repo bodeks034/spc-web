@@ -1,0 +1,2 @@
+id_deo,format,sadrzaj_barkoda,radni_nalog,tip_koda,aktivna
+5502-A,id_rn,{id_deo}|{radni_nalog},,oba,da

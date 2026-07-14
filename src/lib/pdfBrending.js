@@ -2,6 +2,7 @@
 
 import { getBrending } from "./brending.js";
 import { PDF_LOGO_DATA_URL } from "./pdfLogoEmbedded.js";
+import { registrujPdfFontLatin, PDF_FONT_SR } from "./pdfFontSr.js";
 
 let _logoFetchUrl = null;
 
@@ -44,7 +45,7 @@ export function developedByTekst() {
 }
 
 function crtajBrendTekst(pdf, textX, y) {
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(PDF_FONT_SR, "bold");
   pdf.setFontSize(11);
   pdf.setTextColor(...PDF_BREND.plava);
   pdf.text("TRI-CORE", textX, y);
@@ -68,6 +69,8 @@ export async function dodajPdfBrendZaglavlje(pdf, {
   const logo = await ucitajPdfLogo();
   const barH = visina || (podnaslov ? 28 : 24);
 
+  await registrujPdfFontLatin(pdf);
+
   pdf.setFillColor(...PDF_BREND.tamna);
   pdf.rect(0, 0, W, barH, "F");
 
@@ -88,7 +91,7 @@ export async function dodajPdfBrendZaglavlje(pdf, {
   const brandEndX = crtajBrendTekst(pdf, textX, barH / 2 + 1);
 
   if (naslov) {
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(PDF_FONT_SR, "normal");
     pdf.setFontSize(9);
     pdf.setTextColor(210, 218, 230);
     const maxW = W - brandEndX - margin - 2;
@@ -98,7 +101,7 @@ export async function dodajPdfBrendZaglavlje(pdf, {
   }
 
   if (podnaslov) {
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(PDF_FONT_SR, "normal");
     pdf.setFontSize(8);
     pdf.setTextColor(170, 180, 195);
     const lines = pdf.splitTextToSize(podnaslov, W - textX - margin);
@@ -114,7 +117,7 @@ export function dodajPdfBrendPodnozje(pdf) {
   const H = pdf.internal.pageSize.getHeight();
   const developed = developedByTekst();
 
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(PDF_FONT_SR, "normal");
   pdf.setFontSize(7);
   pdf.setTextColor(130, 140, 155);
   pdf.text(`${PDF_BREND.naziv} · ${PDF_BREND.slogan}`, 14, H - 8);

@@ -144,7 +144,7 @@ export default function TrasabilitetLinijaKorak({
         type="button"
         onClick={() => onDalje?.()}
         style={{
-          background: akcent, border: "none", borderRadius: 8, color: "#fff",
+          background: akcent, border: "none", borderRadius: 8, color: C.onAkcent,
           fontSize: 14, fontWeight: 800, padding: "14px 24px", cursor: "pointer",
           alignSelf: "flex-end",
         }}

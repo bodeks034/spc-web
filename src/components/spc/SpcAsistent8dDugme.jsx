@@ -91,7 +91,7 @@ export default function SpcAsistent8dDugme({
     background: disabled || !mozeGenerisati ? C.hover : "#0d9488",
     border: "none",
     borderRadius: 6,
-    color: disabled || !mozeGenerisati ? C.sivi : "#fff",
+    color: disabled || !mozeGenerisati ? C.sivi : C.onAkcent,
     fontSize: 11,
     fontWeight: 700,
     padding: "7px 14px",
@@ -160,7 +160,7 @@ export default function SpcAsistent8dDugme({
               <button type="button" onClick={otvori8d}
                 style={{
                   background: C.plava, border: "none", borderRadius: 8,
-                  color: "#fff", fontSize: 12, fontWeight: 700, padding: "10px 18px", cursor: "pointer",
+                  color: C.onAkcent, fontSize: 12, fontWeight: 700, padding: "10px 18px", cursor: "pointer",
                 }}>
                 Otvori u 8D editoru →
               </button>

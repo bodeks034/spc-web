@@ -33,7 +33,7 @@ export default function ModulBlokiran({ nazivModula, C, onNazad }) {
             background: C.plava,
             border: "none",
             borderRadius: 8,
-            color: "#fff",
+            color: C.onAkcent,
             fontSize: 12,
             fontWeight: 700,
             padding: "10px 20px",

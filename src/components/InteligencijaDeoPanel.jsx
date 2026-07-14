@@ -51,7 +51,18 @@ export default function InteligencijaDeoPanel({
   }
 
   return (
-    <div style={{ padding: 18, maxWidth: 900, margin: "0 auto" }}>
+    <div style={{
+      padding: 18,
+      maxWidth: 900,
+      margin: "0 auto",
+      width: "100%",
+      boxSizing: "border-box",
+      flex: 1,
+      minHeight: 0,
+      overflowY: "auto",
+      overflowX: "hidden",
+      WebkitOverflowScrolling: "touch",
+    }}>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 16, flexWrap: "wrap", gap: 10,

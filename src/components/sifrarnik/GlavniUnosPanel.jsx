@@ -102,7 +102,7 @@ const FIELD_META = {
   instrument: { type: "select", opcijeKey: "instrument" },
   tip: { type: "select", opcijeKey: "tip" },
   klasa: { type: "select", opcijeKey: "klasa" },
-  kupac: { type: "select", opcijeKey: "kupac" },
+  kupac: { type: "datalist", opcijeKey: "kupac", placeholder: "Npr. Lokalni servis — dodaje se u Kupci" },
   spc_broj_merenja: { hint: `Podrazumevano ${GLAVNI_UNOS_BROJ_MERENJA_DEFAULT} za merljive — promeni po potrebi` },
   nominal: { type: "granica" },
   usl: { type: "granica" },
@@ -244,7 +244,16 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
       addToast?.(`✓ ${aktivniSheet}: ${saved.length} redova`, "uspeh");
       return { redova: saved.length };
     } catch (e) {
-      addToast?.(e.message, "greska");
+      const msg = e?.message || String(e);
+      let hint = "";
+      if (/column.*kupac|could not find.*kupac/i.test(msg)) {
+        hint = " Pokreni SQL migraciju 45_glavni_unos_kupac.sql u Supabase SQL Editoru.";
+      } else if (/radni_nalozi.*duplicate|idx_radni_nalozi_broj/i.test(msg)) {
+        hint = " Konflikt broja naloga — RN mora biti jedinstven po pogonu.";
+      } else if (/kupci:/i.test(msg)) {
+        hint = " Proveri tabelu kupci (migracija 62_erp_uvoz_constraints.sql).";
+      }
+      addToast?.(msg + hint, "greska");
       throw e;
     } finally {
       setSnima(false);
@@ -515,10 +524,22 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
             + Dimenzije za {normalizujIdDeo(filter)}
           </button>
         )}
-        <button type="button" onClick={() => sacuvajSheet()} disabled={snima || !dirty} style={btnStyle(C, C.plava, { disabled: snima || !dirty })}>
+        <button
+          type="button"
+          onClick={() => sacuvajSheet()}
+          disabled={snima || !dirty}
+          style={btnStyle(C, C.plava, { disabled: snima || !dirty })}
+          title={dirty ? "Sačuvaj izmene u bazu i propagiraj u Merljive/Naloge" : "Nema nesačuvanih izmena — koristi „Propagiraj“ ako je sheet već sačuvan"}
+        >
           {snima ? "Čuvam…" : "Sačuvaj i propagiraj"}
         </button>
-        <button type="button" onClick={samoPropagiraj} disabled={propagira || dirty} style={btnStyle(C, C.hover, { disabled: propagira || dirty })} title="Ponovo propagiraj bez izmena redova">
+        <button
+          type="button"
+          onClick={samoPropagiraj}
+          disabled={propagira || dirty}
+          style={btnStyle(C, C.hover, { disabled: propagira || dirty })}
+          title={dirty ? "Prvo sačuvaj izmene („Sačuvaj i propagiraj“)" : "Ponovo propagiraj sačuvan sheet bez izmene redova"}
+        >
           {propagira ? "…" : "Propagiraj"}
         </button>
         <button type="button" onClick={() => fileRef.current?.click()} disabled={snima} style={btnStyle(C, C.narandzasta || "#f59e0b", { disabled: snima })}>

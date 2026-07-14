@@ -1,5 +1,57 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { primeniRpnKalkulaciju, pfmeaKljucMenjaRpn } from "../../lib/pfmeaCpPolja.js";
+import PfmeaSkaleOblacici, { PFMEA_SKALE_IDS } from "./PfmeaSkaleOblacic.jsx";
+import { MOMENT_PFMEA_SKALE, MOMENT_PFMEA_RPN } from "../../lib/momentPfmeaMetodologija.js";
+
+const SKALA_BOJE = { S: "#ef4444", O: "#f59e0b", D: "#3b82f6", RPN: "#a78bfa" };
+
+function OblacicPoredPolja({ id, C, otvoren, onToggle }) {
+  if (!PFMEA_SKALE_IDS.includes(id)) return null;
+  const boja = SKALA_BOJE[id] || C.plava;
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.preventDefault(); onToggle(id); }}
+      title={`${id} — objašnjenje skale`}
+      style={{
+        marginLeft: 6,
+        background: otvoren === id ? `${boja}28` : "transparent",
+        border: `1px solid ${otvoren === id ? boja : C.border}`,
+        borderRadius: 999,
+        color: otvoren === id ? boja : C.sivi,
+        fontSize: 8,
+        fontWeight: 700,
+        padding: "1px 5px",
+        cursor: "pointer",
+        verticalAlign: "middle",
+      }}
+    >
+      {id}
+    </button>
+  );
+}
+
+function TekstOblacica({ id }) {
+  if (id === "RPN") {
+    return (
+      <>
+        <strong>{MOMENT_PFMEA_RPN.label}</strong> — {MOMENT_PFMEA_RPN.formula} ({MOMENT_PFMEA_RPN.opseg}). {MOMENT_PFMEA_RPN.opis}
+      </>
+    );
+  }
+  const skala = MOMENT_PFMEA_SKALE[id];
+  if (!skala) return null;
+  return (
+    <>
+      <strong>{skala.label}</strong> ({skala.opseg}) — {skala.opis}
+      <ul style={{ margin: "6px 0 0", paddingLeft: 16 }}>
+        {skala.nivoi.map((n) => (
+          <li key={n.opseg} style={{ marginBottom: 4 }}><strong>{n.opseg}:</strong> {n.tekst}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
 
 /**
  * Forma za unos jedne PFMEA ili Control Plan stavke — sva polja po grupama.
@@ -17,6 +69,7 @@ export default function PfmeaCpUnosForma({
   onOtkazi,
   onObrisi,
 }) {
+  const [oblacic, setOblacic] = useState(null);
   const red = useMemo(
     () => (tip === "pfmea" ? primeniRpnKalkulaciju(vrednosti) : vrednosti),
     [tip, vrednosti],
@@ -116,7 +169,7 @@ export default function PfmeaCpUnosForma({
               type="button"
               onClick={onSacuvaj}
               style={{
-                background: C.plava, border: "none", borderRadius: 6, color: "#fff",
+                background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent,
                 fontSize: 11, fontWeight: 700, padding: "8px 16px", cursor: "pointer",
               }}
             >
@@ -150,6 +203,26 @@ export default function PfmeaCpUnosForma({
         )}
       </div>
 
+      {tip === "pfmea" && (
+        <PfmeaSkaleOblacici C={C} kompakt naslov="SKALE PRI UNOSU" />
+      )}
+
+      {tip === "pfmea" && oblacic && (
+        <div style={{
+          marginBottom: 12,
+          padding: "10px 12px",
+          background: C.panel,
+          border: `1px solid ${SKALA_BOJE[oblacic] || C.border}55`,
+          borderRadius: 8,
+          fontSize: 10,
+          lineHeight: 1.45,
+          color: C.tekst,
+        }}
+        >
+          <TekstOblacica id={oblacic} />
+        </div>
+      )}
+
       {grupe.map((g) => (
         <div key={g.id} style={{
           marginBottom: 14,
@@ -178,6 +251,14 @@ export default function PfmeaCpUnosForma({
               >
                 <label style={lbl}>
                   {p.label}
+                  {tip === "pfmea" && ["s", "o", "d", "rpn_before", "rpn_after", "s_posle", "o_posle", "d_posle"].includes(p.key) && (
+                    <OblacicPoredPolja
+                      id={p.key.startsWith("rpn") ? "RPN" : p.key.replace("_posle", "").toUpperCase()}
+                      C={C}
+                      otvoren={oblacic}
+                      onToggle={(id) => setOblacic((t) => (t === id ? null : id))}
+                    />
+                  )}
                   {p.required && <span style={{ color: C.crvena }}> *</span>}
                 </label>
                 {renderPolje(p)}

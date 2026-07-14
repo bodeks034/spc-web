@@ -30,9 +30,12 @@ import {
   formatErpUvozRezultat,
   sumErpRezultati,
 } from "../src/lib/erpUvozCore.js";
+import { kreirajSkriptaLog } from "./lib/skriptaLog.mjs";
+import { jeAutoPraviloUkljuceno, spojiAutoPodesavanja } from "../src/lib/autoPodesavanja.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
+const skriptaLog = kreirajSkriptaLog(ROOT, "erp-uvoz.log", { jobId: "erp-dnevni-uvoz" });
 
 function parseArgs(argv) {
   const args = {
@@ -62,12 +65,6 @@ function parseArgs(argv) {
   return args;
 }
 
-async function appendLog(logPath, line) {
-  await fs.mkdir(path.dirname(logPath), { recursive: true });
-  const stamp = new Date().toISOString();
-  await fs.appendFile(logPath, `[${stamp}] ${line}\n`, "utf8");
-}
-
 async function arhiviraj(csvPath, processedRoot) {
   const stamp = new Date().toISOString().slice(0, 10);
   const destDir = path.join(processedRoot, stamp);
@@ -91,6 +88,27 @@ async function main() {
   await loadEnvZaSkripte(ROOT);
   const args = parseArgs(process.argv);
 
+  await skriptaLog.run(`erp-uvoz${args.dryRun ? " (dry-run)" : ""}`, async () => {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    if (url && key) {
+      const supabase = createClient(url, key);
+      let settings = spojiAutoPodesavanja({});
+      try {
+        const { data } = await supabase.from("app_podesavanja").select("kljuc,vrednost");
+        (data || []).forEach((r) => { settings[r.kljuc] = r.vrednost ?? ""; });
+        settings = spojiAutoPodesavanja(settings);
+      } catch { /* */ }
+      if (!jeAutoPraviloUkljuceno(settings, "erp")) {
+        await skriptaLog.info("ERP uvoz iskljucen u podesavanjima");
+        return;
+      }
+    }
+    return pokreniErpUvozGlavni(args);
+  });
+}
+
+async function pokreniErpUvozGlavni(args) {
   const config = await ucitajErpConfig(ROOT, {
     configPath: args.config,
     preset: args.preset,
@@ -99,7 +117,6 @@ async function main() {
   const dropRel = config.drop_dir || process.env.ERP_DROP_DIR || "erp-drop/incoming";
   const dropDir = path.isAbsolute(dropRel) ? dropRel : path.join(ROOT, dropRel);
   const processedRoot = path.join(path.dirname(dropDir), "processed");
-  const logPath = path.join(ROOT, "logs", "erp-uvoz.log");
 
   console.log(`ERP uvoz — preset: ${config.preset} (${config.erp_sistem})`);
   console.log(`  Config: ${args.config || "config/erp/erp-uvoz.config.json"}`);
@@ -142,7 +159,7 @@ async function main() {
   if (nemaPosla && !args.dryRun) {
     const msg = `Nema CSV za uvoz u ${dropDir} — preskačem.`;
     console.log(`\n${msg}`);
-    await appendLog(logPath, msg);
+    await skriptaLog.info(msg);
     return;
   }
 
@@ -160,8 +177,8 @@ async function main() {
       greska: errMsg,
       detalj: `${formatErpUvozRezultat(res)}\n${detalj || ""}`.trim(),
     }).catch(() => {});
-    await appendLog(logPath, `GREŠKA: ${errMsg}`);
-    process.exit(1);
+    await skriptaLog.error(errMsg);
+    throw new Error(errMsg);
   }
 
   if (!args.dryRun && supabase) {
@@ -180,17 +197,16 @@ async function main() {
 
   const okMsg = args.dryRun
     ? "Gotovo (dry-run)."
-    : `✓ Upsert ukupno ${sum.upsertovano} redova`;
-  console.log(`\n${okMsg}`);
-  await appendLog(logPath, okMsg);
+    : `Upsert ukupno ${sum.upsertovano} redova`;
+  console.log(`\n${args.dryRun ? okMsg : `✓ ${okMsg}`}`);
+  await skriptaLog.info(okMsg);
 }
 
 main().catch(async (e) => {
   const msg = e.message || String(e);
   console.error(msg);
   try {
-    const logPath = path.join(ROOT, "logs", "erp-uvoz.log");
-    await appendLog(logPath, `FATAL: ${msg}`);
+    await skriptaLog.error(`FATAL: ${msg}`);
   } catch { /* */ }
   process.exit(1);
 });

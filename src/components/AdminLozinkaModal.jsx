@@ -101,7 +101,7 @@ export default function AdminLozinkaModal({ radnik, supabase, C, onClose, onSacu
             disabled={!!busy}
             style={{
               background: busy === "sacuvaj" ? C.hover : C.zelena,
-              border: "none", borderRadius: 6, color: "#fff",
+              border: "none", borderRadius: 6, color: C.onAkcent,
               fontSize: 12, fontWeight: 700, padding: "10px 16px",
               cursor: busy ? "not-allowed" : "pointer",
             }}

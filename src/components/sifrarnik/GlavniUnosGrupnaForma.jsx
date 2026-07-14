@@ -48,7 +48,7 @@ const FIELD_META = {
   linija: { type: "select", opcijeKey: "linija" },
   operacija: { type: "operacija" },
   masina_id: { type: "masina" },
-  kupac: { type: "select", opcijeKey: "kupac" },
+  kupac: { type: "datalist", opcijeKey: "kupac", placeholder: "Npr. Lokalni servis" },
   slika: { type: "slika", modul: "merljive" },
 };
 

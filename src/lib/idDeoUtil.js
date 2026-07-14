@@ -50,7 +50,7 @@ export function idSpremanZaUcitavanje(id) {
 
   const s = normalizujIdDeo(id);
 
-  if (s.length < 6) return false;
+  if (s.length < 4) return false;
 
   const segments = s.split("-").filter(Boolean);
 
@@ -58,7 +58,12 @@ export function idSpremanZaUcitavanje(id) {
 
   const suffix = segments[segments.length - 1];
 
-  return suffix.length >= 3;
+  if (suffix.length >= 3) return true;
+
+  /** npr. 5502-A, NT-1 — prefiks min. 3 znaka, sufiks 1+ */
+  if (suffix.length >= 1 && segments[0].length >= 3) return true;
+
+  return s.length >= 6;
 
 }
 
@@ -72,7 +77,13 @@ export function jePunIdDeo(id) {
 
   const segments = s.split("-").filter(Boolean);
 
-  return segments.length >= 2 && segments[segments.length - 1].length >= 3;
+  if (segments.length < 2) return s.length >= 6;
+
+  const suffix = segments[segments.length - 1];
+
+  if (suffix.length >= 3) return true;
+
+  return suffix.length >= 1 && segments[0].length >= 3;
 
 }
 

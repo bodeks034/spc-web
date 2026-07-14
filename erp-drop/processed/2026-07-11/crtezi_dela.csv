@@ -1,0 +1,4 @@
+id_deo,naziv,izvor_format,izvor_putanja,prikaz_format,prikaz_putanja,revizija,aktivna
+5502-A,Osovina prednja,dwg,crtezi/izvor/deo/5502-A/revA.dwg,svg,crtezi/prikaz/deo/5502-A/revA.svg,A,1
+5503-B,Kućište,dwg,crtezi/izvor/deo/5503-B/revA.dwg,svg,crtezi/prikaz/deo/5503-B/revA.svg,A,1
+AUTO-001,Celo vozilo NT-001,pdf,crtezi/izvor/deo/AUTO-001/revA.pdf,svg,/moment/dijagrami/Sklop_01_Motor.svg,A,1

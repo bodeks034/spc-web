@@ -46,6 +46,16 @@ const TIPOVI = {
   },
 };
 
+const SPC_TIPOVI = new Set(["spc_alarm", "spc_karantin"]);
+
+export function podesavanjaZaTip(settings, tip) {
+  if (!SPC_TIPOVI.has(tip)) return settings;
+  const eff = { ...settings };
+  if (eff.notif_email_spc === "1") eff.notif_email = "1";
+  if (eff.smtp_to_spc?.trim()) eff.smtp_to = eff.smtp_to_spc.trim();
+  return eff;
+}
+
 /**
  * Šalje obaveštenje adminu.
  * @param {"svi"|"remote"} kanali — remote = samo Teams/email (sa operaterovog uređaja);
@@ -56,9 +66,10 @@ export async function obavestiAdminZahtev(supabase, { tip, zahtev, kanali = "svi
   if (!cfg || !zahtev?.id) return { preskoceno: true };
 
   const settings = await ucitajPodesavanjaNotifikacija(supabase);
+  const effSettings = podesavanjaZaTip(settings, tip);
   const eff = kanali === "remote"
-    ? { ...settings, notif_browser: "0" }
-    : settings;
+    ? { ...effSettings, notif_browser: "0" }
+    : effSettings;
   return posaljiObavestenje(supabase, eff, {
     id: `zahtev_${tip}_${zahtev.id}`,
     nivo: cfg.nivo,

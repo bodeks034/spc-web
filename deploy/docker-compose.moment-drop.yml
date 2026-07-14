@@ -1,0 +1,25 @@
+# Moment-drop watcher — automatski uvoz šifrarnika i protokola
+# Pokreni uz glavni SPC stack:
+#   cd deploy && docker compose -f docker-compose.spc.yml -f docker-compose.moment-drop.yml --env-file .env.docker up -d
+
+services:
+  moment-drop-watcher:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    volumes:
+      - ..:/app
+      - moment_drop_processed:/app/moment-drop/processed
+    env_file:
+      - .env.docker
+    environment:
+      SUPABASE_URL: ${VITE_SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?postavi SUPABASE_SERVICE_ROLE_KEY}
+    command: >
+      sh -c "npm ci --omit=dev 2>/dev/null || npm ci &&
+             node scripts/watch-moment-drop.mjs --watch"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  moment_drop_processed:

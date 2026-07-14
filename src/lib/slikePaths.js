@@ -3,6 +3,7 @@
 export const SLIKE_FOLDER = "slike";
 export const SLIKE_ATRIBUTIVNE = "atributivne";
 export const SLIKE_MERLJIVE = "merljive";
+export const SLIKE_MOMENT = "moment";
 export const STORAGE_BUCKET = "spc-crtezi";
 
 export function imeFajlaSlika(vrednost) {
@@ -61,6 +62,22 @@ export function storageKandidati(tip, vrednost) {
 
 const EXT_SLIKE = ["jpg", "jpeg", "png", "webp"];
 
+/** SOP crteži vozila (MRAP_SOP.jpg → public/vozilo/dijagrami/MRAP.png). */
+const SOP_DIJAGRAM_LOKAL = {
+  MRAP: "/vozilo/dijagrami/MRAP.png",
+  MRAP1: "/vozilo/dijagrami/MRAP1.png",
+  NTV: "/vozilo/dijagrami/NTV.png",
+  OSOVINA: "/slike/atributivne/Osovina_SOP.jpg",
+};
+
+function sopDijagramKandidati(vrednost) {
+  const m = String(vrednost || "").trim().match(/^([A-Za-z0-9]+)_SOP\./i);
+  if (!m) return [];
+  const pref = m[1].toUpperCase();
+  const put = SOP_DIJAGRAM_LOKAL[pref];
+  return put ? [put] : [];
+}
+
 /** Lokalni + storage kandidati (ime iz šifrarnika, pa fallback po id_deo). */
 export function sviKandidatiSlike(tip, vrednost, idDeo) {
   const lokalni = new Set();
@@ -76,6 +93,7 @@ export function sviKandidatiSlike(tip, vrednost, idDeo) {
   };
 
   dodaj(tip, vrednost);
+  for (const l of sopDijagramKandidati(vrednost)) lokalni.add(l);
 
   const id = String(idDeo || "").trim().toUpperCase();
   if (id) {

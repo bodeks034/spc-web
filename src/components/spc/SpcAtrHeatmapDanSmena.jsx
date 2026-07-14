@@ -95,7 +95,7 @@ export default function SpcAtrHeatmapDanSmena({ rawData, C, maxDana = 14, kompak
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: v > 0 ? 8 : 0,
-                      color: "#fff",
+                      color: C.onAkcent,
                       fontWeight: 700,
                     }}
                   >

@@ -27,6 +27,29 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 21 | `20_radnici_uloge_kvalitet_sef.sql` | Uloge kvalitet / šef |
 | 22 | `21_licenca_gate.sql` | Licenca / uključivanje programa (`proveri_licencu`) |
 
+### Faza pilot / moment / NCR (54–59)
+
+| Red | Fajl | Šta dodaje |
+|-----|------|------------|
+| 54 | `54_crtez_assets_moment.sql` | `crtez_assets`, moment JOB/korak/protokol |
+| 55 | `55_moment_pilot_tockovi.sql` | Pilot sekvenca Točkovi (opciono, zahteva `MRAP1-001`) |
+| 56 | `56_moment_komplet_napomena.sql` | Napomena — kompletan uvoz preko UI |
+| 57 | `57_moment_unapredjenje.sql` | Tool master, error kodovi, torque_id |
+| 58 | `58_moment_pfmea_link.sql` | Veza moment korak ↔ PFMEA |
+| 59 | `59_ncr_capa.sql` | NCR / CAPA modul |
+| 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
+| 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
+
+**Automatski (ako imaš DATABASE_URL):**
+
+```bash
+npm run db:migrate          # samo 54–59
+npm run db:migrate:auto     # 61 — telemetrija automatizacije
+npm run db:verify           # provera kao Admin → Status šeme
+```
+
+**Ručno:** Supabase SQL Editor — redom 54 → 59.
+
 ## Provera u aplikaciji
 
 **Admin panel → Status šeme** — automatska provera da li tabele/kolone postoje.
@@ -41,11 +64,11 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 
 ## Lokalna kopija baze i rad offline
 
-Kompletno uputstvo (backup cloud-a, Docker, `.env.local`): **`docs/UPUTSTVO_LOKALNA_BAZA.md`**
+Kompletno uputstvo (backup cloud-a, Docker, `.env.local`): **`docs/obuka-paket/UPUTSTVO_LOKALNA_BAZA.md`**
 
 ## Deploy na server firme (on‑premise)
 
-Podaci samo u LAN-u — prenos sa računara na firminski server: **`docs/UPUTSTVO_FIRMINSKI_SERVER.md`** · IT checklist: **`deploy/IT_CHECKLIST.md`**
+Podaci samo u LAN-u — prenos sa računara na firminski server: **`docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md`** · IT checklist: **`deploy/IT_CHECKLIST.md`**
 
 ## Roadmap Faza 2 (šta dodati posle pilota)
 
@@ -53,11 +76,11 @@ Podaci samo u LAN-u — prenos sa računara na firminski server: **`docs/UPUTSTV
 
 ## Zaštita koda i licenca (uključi / isključi program)
 
-**`docs/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md`** — zaštita `dist/`, potpisana licenca, `21_licenca_gate.sql`
+**`docs/obuka-paket/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md`** — zaštita `dist/`, potpisana licenca, `21_licenca_gate.sql`
 
 ## Barkod i digitalna merila
 
-Uputstvo za povezivanje: **`docs/UPUTSTVO_BARKOD_I_MERILA.md`** · u aplikaciji: **Admin → Uputstvo · barkod čitač i digitalna merila** (merljive: i dugme **Uputstvo** na panelu merila).
+Uputstvo za povezivanje: **`docs/obuka-paket/UPUTSTVO_BARKOD_I_MERILA.md`** · u aplikaciji: **Admin → Uputstvo · barkod čitač i digitalna merila** (merljive: i dugme **Uputstvo** na panelu merila).
 
 ## Offline red (IndexedDB)
 

@@ -44,8 +44,12 @@ export async function ucitajRedovePoIdDeo(
   const poNorm = rows.filter((r) => idDeoPoklapaSe(r.id_deo, norm));
   if (poNorm.length) return poNorm;
 
+  rows = await run((q) => q.ilike("id_deo", `%${norm}%`));
+  const poPunom = rows.filter((r) => idDeoPoklapaSe(r.id_deo, norm));
+  if (poPunom.length) return poPunom;
+
   const suf = norm.split("-").filter(Boolean).pop();
-  if (suf && suf.length >= 3) {
+  if (suf && suf.length >= 1) {
     rows = await run((q) => q.ilike("id_deo", `%${suf}%`));
     const fuzzy = rows.filter((r) => idDeoPoklapaSe(r.id_deo, norm));
     if (fuzzy.length) return fuzzy;

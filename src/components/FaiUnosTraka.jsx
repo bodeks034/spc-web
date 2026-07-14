@@ -235,7 +235,7 @@ export default function FaiUnosTraka({
 
                 border: "none",
 
-                color: "#fff",
+                color: C.onAkcent,
 
                 cursor: snima ? "wait" : "pointer",
 
@@ -343,7 +343,7 @@ export default function FaiUnosTraka({
 
               border: "none",
 
-              color: kompletno ? "#fff" : C.sivi,
+              color: kompletno ? C.onAkcent : C.sivi,
 
               cursor: snima || !kompletno ? "not-allowed" : "pointer",
 
@@ -377,7 +377,7 @@ export default function FaiUnosTraka({
 
                 border: "none",
 
-                color: "#fff",
+                color: C.onAkcent,
 
                 cursor: snima || !kompletno ? "not-allowed" : "pointer",
 

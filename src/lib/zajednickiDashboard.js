@@ -74,7 +74,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   }
 
   const [
-    logRes, merRes, merDanasRes, kpiRes, eskRes, merilaRes, nalogRes,
+    logRes, merRes, merDanasRes, kpiRes, eskRes, merilaRes, msaRes, nalogRes,
   ] = await Promise.all([
     logQ,
     merQ,
@@ -84,6 +84,9 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     supabase.from("merila")
       .select("id,naziv,serijski_broj,kalibracije(sledeca_kal,datum_kal)")
       .eq("aktivno", true),
+    supabase.from("msa_kalendar")
+      .select("merilo_id,sledeca_studija,merilo:merila(naziv)")
+      .order("sledeca_studija", { ascending: true }),
     deoFilter
       ? supabase.from("radni_nalozi")
         .select("id_deo,broj_naloga,kolicina,status")
@@ -215,6 +218,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     oee: { prosek: oeeProsek, kpiBroj: kpiRows.length },
     eskalacije,
     merila,
+    msaStudije: msaRes.error ? [] : (msaRes.data || []),
     offlinePaketi,
     visokNokDelovi,
   });

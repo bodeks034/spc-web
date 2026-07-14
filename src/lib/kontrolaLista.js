@@ -25,20 +25,18 @@ function sessionKey(modul) {
   return modul === "varijabilne" ? LISTA_SESSION.varijabilne : LISTA_SESSION.atributivne;
 }
 
-function listaSessionMatch(parsed, smena, idDeo) {
+function listaSessionMatch(parsed, smena) {
   if (!parsed?.ok) return false;
-  if (Number(parsed.smena) !== Number(smena)) return false;
-  const idNorm = normalizujIdDeo(idDeo);
-  if (!idNorm) return true;
-  return normalizujIdDeo(parsed.id_deo) === idNorm;
+  if (parsed.datum && parsed.datum !== danasIso()) return false;
+  return Number(parsed.smena) === Number(smena);
 }
 
-/** Potvrda da je operater popunio listu za smenu (i ID deo na liniji). */
-export function setListaOkSession(modul, smena, idDeo = null) {
+/** Potvrda da je operater popunio listu za smenu (jednom po smeni 1/2/3). */
+export function setListaOkSession(modul, smena) {
   const sm = Number(smena);
   sessionStorage.setItem(sessionKey(modul), JSON.stringify({
     smena: Number.isFinite(sm) ? sm : null,
-    id_deo: normalizujIdDeo(idDeo) || null,
+    datum: danasIso(),
     ok: true,
   }));
 }
@@ -52,40 +50,36 @@ export function clearListaOkSession(modul) {
   sessionStorage.removeItem(LISTA_SESSION.legacy);
 }
 
-export function getListaOkSession(modul, smena, idDeo = null) {
+export function getListaOkSession(modul, smena) {
   const key = sessionKey(modul);
   const raw = sessionStorage.getItem(key);
   const sm = Number(smena);
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (listaSessionMatch(parsed, sm, idDeo)) return true;
+      if (listaSessionMatch(parsed, sm)) return true;
     } catch {
-      if (raw === "1" && !normalizujIdDeo(idDeo)) return true;
+      if (raw === "1") return false;
     }
   }
-  return !normalizujIdDeo(idDeo) && sessionStorage.getItem(LISTA_SESSION.legacy) === "1";
+  return false;
 }
 
 /** Sesija ili zapis u bazi — dovoljno za nastavak na poka-yoke / unos. */
-export function kontrolnaListaSpremna(modul, smena, dbZavrsena = false, idDeo = null) {
-  return !!dbZavrsena || getListaOkSession(modul, smena, idDeo);
+export function kontrolnaListaSpremna(modul, smena, dbZavrsena = false) {
+  return !!dbZavrsena || getListaOkSession(modul, smena);
 }
 
 export function procitajSmenuIzStorage() {
   return smenaPoSatu();
 }
 
-function logZaIdDeo(logs, idDeo) {
-  const idNorm = normalizujIdDeo(idDeo);
-  if (!idNorm) return logs?.[0] ?? null;
-  return (logs || []).find(
-    (l) => normalizujIdDeo(l.stavke_json?.id_deo) === idNorm,
-  ) ?? null;
+export function logZaSmenu(logs) {
+  return logs?.[0] ?? null;
 }
 
 /** Da li je lista završena danas u bazi + da li postoje aktivne stavke. */
-export async function proveriKontrolnaListaDanas(supabase, { radnikId, smena, idDeo = null }) {
+export async function proveriKontrolnaListaDanas(supabase, { radnikId, smena }) {
   const sm = Number(smena);
   if (!radnikId || !Number.isFinite(sm)) {
     return { zavrsena: false, imaStavki: false, greska: null };
@@ -110,7 +104,7 @@ export async function proveriKontrolnaListaDanas(supabase, { radnikId, smena, id
     if (stErr) throw stErr;
 
     return {
-      zavrsena: !!logZaIdDeo(logs, idDeo),
+      zavrsena: !!logZaSmenu(logs),
       imaStavki: (count ?? 0) > 0,
       greska: null,
     };

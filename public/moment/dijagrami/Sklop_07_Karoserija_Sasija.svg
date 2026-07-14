@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" font-family="Arial, sans-serif">
+  <rect width="1000" height="720" fill="#ffffff"/>
+
+  <text x="500" y="34" text-anchor="middle" font-size="22" font-weight="bold" fill="#1F4E78">SKLOP: KAROSERIJA, ŠASIJA I OPREMA — pozicije vijaka</text>
+  <text x="500" y="56" text-anchor="middle" font-size="12" fill="#595959">Brojevi pozicija odgovaraju koloni "Poz. br." u tabeli "Karoserija i šasija" (Excel šifrarnik)</text>
+
+  <!-- Vehicle side profile schematic -->
+  <g stroke="#404040" stroke-width="2">
+    <!-- Chassis rails -->
+    <rect x="80" y="360" width="840" height="24" fill="#D9D9D9"/>
+    <!-- Body tub -->
+    <rect x="180" y="220" width="560" height="150" rx="14" fill="#EAF1F8"/>
+    <!-- Windshield/cab area -->
+    <rect x="220" y="170" width="180" height="60" rx="10" fill="#E2EFDA"/>
+    <!-- Door -->
+    <rect x="420" y="240" width="140" height="120" rx="6" fill="#F2F2F2"/>
+    <!-- Door hinge -->
+    <rect x="415" y="245" width="10" height="100" fill="#8497B0"/>
+    <!-- Front bumper -->
+    <rect x="60" y="330" width="40" height="55" rx="6" fill="#FCE4D6"/>
+    <!-- Winch -->
+    <rect x="40" y="300" width="55" height="35" rx="6" fill="#FFF2CC"/>
+    <!-- Fuel tank -->
+    <rect x="640" y="330" width="90" height="45" rx="8" fill="#E2EFDA"/>
+    <!-- Seats (simplified) -->
+    <rect x="280" y="270" width="60" height="70" rx="8" fill="#D9E1F2"/>
+    <rect x="360" y="270" width="60" height="70" rx="8" fill="#D9E1F2"/>
+    <!-- Wheels -->
+    <circle cx="260" cy="400" r="45" fill="#F2F2F2" stroke="#404040" stroke-width="3"/>
+    <circle cx="700" cy="400" r="45" fill="#F2F2F2" stroke="#404040" stroke-width="3"/>
+  </g>
+
+  <text x="470" y="200" text-anchor="middle" font-size="10" fill="#404040" font-style="italic">kabina</text>
+  <text x="80" y="285" text-anchor="middle" font-size="10" fill="#404040" font-style="italic">vitlo</text>
+  <text x="80" y="410" text-anchor="middle" font-size="10" fill="#404040" font-style="italic">branik</text>
+  <text x="685" y="325" text-anchor="middle" font-size="10" fill="#404040" font-style="italic">rezervoar goriva</text>
+  <text x="310" y="360" text-anchor="middle" font-size="10" fill="#404040" font-style="italic">sedišta</text>
+  <text x="490" y="380" text-anchor="middle" font-size="10" fill="#404040" font-style="italic">vrata</text>
+
+  <g font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">
+    <!-- 1 body mount (karoserija na sasiju) -->
+    <circle cx="220" cy="372" r="14" fill="#C00000"/><text x="220" y="377" font-size="11">1</text>
+    <circle cx="400" cy="372" r="14" fill="#C00000"/><text x="400" y="377" font-size="11">1</text>
+    <circle cx="600" cy="372" r="14" fill="#C00000"/><text x="600" y="377" font-size="11">1</text>
+    <circle cx="740" cy="372" r="14" fill="#C00000"/><text x="740" y="377" font-size="11">1</text>
+
+    <!-- 2 branik nosac -->
+    <circle cx="80" cy="345" r="13" fill="#7F7F7F"/><text x="80" y="350" font-size="10">2</text>
+
+    <!-- 3 vitlo nosac -->
+    <circle cx="65" cy="310" r="13" fill="#C00000"/><text x="65" y="315" font-size="10">3</text>
+
+    <!-- 4 rezervoar obujmica -->
+    <circle cx="655" cy="345" r="12" fill="#ED7D31"/><text x="655" y="350" font-size="10">4</text>
+    <circle cx="715" cy="345" r="12" fill="#ED7D31"/><text x="715" y="350" font-size="10">4</text>
+
+    <!-- 5 sediste sina -->
+    <circle cx="300" cy="285" r="12" fill="#C00000"/><text x="300" y="290" font-size="10">5</text>
+    <circle cx="380" cy="285" r="12" fill="#C00000"/><text x="380" y="290" font-size="10">5</text>
+
+    <!-- 6 sigurnosni pojas sidriste -->
+    <circle cx="320" cy="325" r="13" fill="#C00000"/><text x="320" y="330" font-size="10">6</text>
+    <circle cx="400" cy="325" r="13" fill="#C00000"/><text x="400" y="330" font-size="10">6</text>
+
+    <!-- 7 vrata sarke -->
+    <circle cx="420" cy="260" r="12" fill="#7F7F7F"/><text x="420" y="264" font-size="10">7</text>
+    <circle cx="420" cy="330" r="12" fill="#7F7F7F"/><text x="420" y="334" font-size="10">7</text>
+
+    <!-- 8 panel dekorativni -->
+    <circle cx="450" cy="185" r="11" fill="#8497B0"/><text x="450" y="189" font-size="10">8</text>
+  </g>
+
+  <!-- Legend -->
+  <g font-size="12">
+    <rect x="40" y="470" width="920" height="200" fill="#F7F9FC" stroke="#BFBFBF"/>
+    <text x="55" y="492" font-weight="bold" fill="#1F4E78" font-size="13">LEGENDA POZICIJA (odgovara tabeli "Karoserija i šasija")</text>
+
+    <text x="55" y="515" fill="#404040">1</text>
+    <text x="90" y="515" fill="#404040">Karoserija na šasiju — glavni nosači (body mount, 4+ tačke) — 185 Nm — VSK</text>
+
+    <text x="55" y="535" fill="#404040">2</text>
+    <text x="90" y="535" fill="#404040">Branik (bumper) — nosač — 79 Nm — STD</text>
+
+    <text x="55" y="555" fill="#404040">3</text>
+    <text x="90" y="555" fill="#404040">Vitlo (winch) — nosač — 280 Nm — VSK</text>
+
+    <text x="55" y="575" fill="#404040">4</text>
+    <text x="90" y="575" fill="#404040">Rezervoar za gorivo — obujmica — 46 Nm — KSK</text>
+
+    <text x="500" y="515" fill="#404040">5</text>
+    <text x="530" y="515" fill="#404040">Sedište — šina/nosač (safety-relevant) — 67 Nm — VSK</text>
+
+    <text x="500" y="535" fill="#404040">6</text>
+    <text x="530" y="535" fill="#404040">Sigurnosni pojas — sidrište — 115 Nm — VSK (zakonski propisan spoj)</text>
+
+    <text x="500" y="555" fill="#404040">7</text>
+    <text x="530" y="555" fill="#404040">Vrata / šarke — 23 Nm — STD</text>
+
+    <text x="500" y="575" fill="#404040">8</text>
+    <text x="530" y="575" fill="#404040">Panel / obloga — dekorativni vijci — 5 Nm — STD</text>
+
+    <text x="55" y="605" font-size="11" fill="#8B0000" font-style="italic">Sigurnosni pojas i sedišta su bezbednosno-zakonski spojevi — obavezna 100% kontrola i evidencija.</text>
+    <text x="55" y="623" font-size="11" fill="#8B0000" font-style="italic">Crvena = VSK   Narandžasta = KSK   Siva/Plava = STD</text>
+  </g>
+
+  <text x="500" y="705" text-anchor="middle" font-size="10" fill="#8B0000">Napomena: generičke vrednosti (VDI 2230) — validirati protiv zvaničnog OEM/TM dokumenta.</text>
+</svg>

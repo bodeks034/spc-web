@@ -18,7 +18,7 @@ export function btnStyle(C, boja, { disabled = false } = {}) {
     background: boja,
     border: "none",
     borderRadius: 6,
-    color: "#fff",
+    color: C.onAkcent,
     fontSize: 10,
     fontWeight: 700,
     padding: "8px 12px",

@@ -2,7 +2,7 @@
  * PFMEA i Control Plan — uvoz iz Excel JSON, poklapanje po defektu, štampa.
  */
 
-import arhiva from "../data/pfmea-control-plan-industrijski.json";
+import arhiva from "../data/pfmea-control-plan-industrijski.json" with { type: "json" };
 import { scoreSablonZaDefekt } from "./troubleshootingPrimeri.js";
 import { izracunajRpn } from "./pfmeaCpPolja.js";
 

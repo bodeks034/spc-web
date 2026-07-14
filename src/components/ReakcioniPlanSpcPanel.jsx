@@ -86,7 +86,7 @@ export default function ReakcioniPlanSpcPanel({
             type="button"
             onClick={() => setIzmena(true)}
             style={{
-              background: C.plava, border: "none", borderRadius: 6, color: "#fff",
+              background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent,
               fontSize: 10, fontWeight: 700, padding: "6px 12px", cursor: "pointer",
             }}
           >
@@ -108,7 +108,7 @@ export default function ReakcioniPlanSpcPanel({
       {izmena && (
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <button type="button" onClick={sacuvaj} style={{
-            background: C.zelena, border: "none", borderRadius: 6, color: "#fff",
+            background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent,
             fontSize: 10, fontWeight: 700, padding: "6px 12px", cursor: "pointer",
           }}>
             Sačuvaj

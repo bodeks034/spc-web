@@ -3,7 +3,7 @@
 **Cilj:** od pilota (~70% zrelosti) do **stabilnog produkcionog sistema** na serveru firme.  
 **Prioritet:** shop-floor korist + inženjering kvaliteta, ne „još jedan graf“.
 
-Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/UPUTSTVO_FIRMINSKI_SERVER.md`
+Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md`
 
 ---
 
@@ -24,7 +24,7 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/UPUTSTVO_FIRMINSKI_SERVER.
 
 | Stavka | Fajlovi / alati | Checklist |
 |--------|-----------------|-----------|
-| Server + Docker Supabase | `docs/UPUTSTVO_FIRMINSKI_SERVER.md` | [ ] |
+| Server + Docker Supabase | `docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md` | [ ] |
 | SQL migracije 01–21 | `docs/MIGRACIJE.md`, `21_licenca_gate.sql` | [ ] |
 | `.env.production` + build | `deploy/env.production.example` | [ ] |
 | Nginx + HTTPS | `deploy/nginx-spc.conf.example` | [ ] |
@@ -61,7 +61,7 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/UPUTSTVO_FIRMINSKI_SERVER.
 |------|-------------------------|
 | Linija merljive | `MobilniMerljiviUnos.jsx`, `VarijabilneForma.jsx` |
 | Linija atributivne | `MobilniUnos` u `App.jsx` |
-| Barkod | `docs/UPUTSTVO_BARKOD_I_MERILA.md`, `barkod.js` |
+| Barkod | `docs/obuka-paket/UPUTSTVO_BARKOD_I_MERILA.md`, `barkod.js` |
 | Offline | `src/lib/offlineQueue.js`, `OfflineSyncPanel.jsx` |
 
 **Checklist:**
@@ -85,10 +85,10 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/UPUTSTVO_FIRMINSKI_SERVER.
 
 | # | Zadatak | Fajlovi za izmenu / novi |
 |---|---------|--------------------------|
-| 1 | Dnevni CSV/Excel uvoz naloga iz ERP | `scripts/import-radni-nalozi.mjs`, `src/lib/radniNaloziUvoz.js`, `docs/UPUTSTVO_ERP_RADNI_NALOZI.md` |
+| 1 | Dnevni CSV/Excel uvoz naloga iz ERP | `scripts/import-radni-nalozi.mjs`, `src/lib/radniNaloziUvoz.js`, `docs/obuka-paket/UPUTSTVO_ERP_RADNI_NALOZI.md` |
 | 2 | Pri skenu ID — automatski predloži RN iz `radni_nalozi` | `VarijabilneForma.jsx`, `App.jsx` (mobilni ID korak), `fetchPlaniranoKomZaDeo` pattern u `zajednickiDashboard.js` |
 | 3 | Validacija: RN mora postojati u šifrarniku (opciono upozorenje) | `src/lib/radniNalogValidacija.js` (novi) |
-| 4 | Dokumentacija barkod etikete sa RN | `docs/UPUTSTVO_PRAVLJENJE_BARKODOVA.md` — primer `5502-A\|RN-12345` |
+| 4 | Dokumentacija barkod etikete sa RN | `docs/obuka-paket/UPUTSTVO_PRAVLJENJE_BARKODOVA.md` — primer `5502-A\|RN-12345` |
 | 5 | Admin: poslednji uvoz naloga, broj aktivnih | `RadniNaloziPanel.jsx` proširenje |
 
 **SQL:** verovatno nije potrebno (tabela postoji). Opciono kolona `aktivan`, `kolicina_plan` u `22_radni_nalozi_erp.sql`.

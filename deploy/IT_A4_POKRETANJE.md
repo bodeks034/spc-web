@@ -99,4 +99,4 @@ systemctl start docker && cd /opt/supabase/docker && docker compose up -d && sys
 
 ---
 
-*Verzija dokumenta: SPC deploy · puno uputstvo: `docs/UPUTSTVO_FIRMINSKI_SERVER.md`*
+*Verzija dokumenta: SPC deploy · puno uputstvo: `docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md`*

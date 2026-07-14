@@ -20,6 +20,12 @@ import {
   podgrupeMerenja,
   sigmaProcesa,
 } from "./varijabilneSpcStats.js";
+import {
+  fetchMerenjaVarijabilna,
+  filtrirajMerenjaPoPoziciji,
+  nadjiKarakteristikuPoPoziciji,
+  pozicijaSePoklapa,
+} from "./merenjaVarijabilnaQuery.js";
 
 function filtrirajPeriod(rows, period) {
   if (!period || !rows?.length) return rows || [];
@@ -133,18 +139,18 @@ function fokusPozicijaMer(karakteristike, sva, poNok, nPodgrupa) {
 
   const kandidati = [];
   if (poNok[0]?.naziv) {
-    const karPareto = karakteristike.find((k) => k.pozicija === poNok[0].naziv);
+    const karPareto = karakteristike.find((k) => pozicijaSePoklapa(k.pozicija, poNok[0].naziv));
     if (karPareto) kandidati.push(karPareto);
   }
   pozicije.forEach((p) => {
-    const kar = karakteristike.find((k) => k.pozicija === p);
-    if (kar && !kandidati.some((k) => k.pozicija === p)) kandidati.push(kar);
+    const kar = karakteristike.find((k) => pozicijaSePoklapa(k.pozicija, p));
+    if (kar && !kandidati.some((k) => pozicijaSePoklapa(k.pozicija, p))) kandidati.push(kar);
   });
 
   let najbolji = kandidati[0] || null;
   let minCpk = Infinity;
   for (const kar of kandidati) {
-    const ms = sva.filter((m) => m.pozicija === kar.pozicija);
+    const ms = sva.filter((m) => pozicijaSePoklapa(m.pozicija, kar.pozicija));
     const { cpk } = kapabilitetPozicije(ms, kar, nPodgrupa);
     if (cpk != null && cpk < minCpk) {
       minCpk = cpk;
@@ -192,11 +198,11 @@ export function buildSpcSnapshotMerljive({
   let karFokus;
   let msFokus;
   if (poz) {
-    karFokus = kars.find((k) => k.pozicija === poz) || null;
-    msFokus = sva;
+    karFokus = nadjiKarakteristikuPoPoziciji(kars, deo, poz);
+    msFokus = filtrirajMerenjaPoPoziciji(sva, poz);
   } else {
     karFokus = fokusPozicijaMer(kars, sva, poNokSve, nPodgrupa);
-    msFokus = karFokus ? sva.filter((m) => m.pozicija === karFokus.pozicija) : [];
+    msFokus = karFokus ? filtrirajMerenjaPoPoziciji(sva, karFokus.pozicija) : [];
   }
 
   const kap = karFokus ? kapabilitetPozicije(msFokus, karFokus, nPodgrupa) : {
@@ -214,7 +220,7 @@ export function buildSpcSnapshotMerljive({
   }
 
   const agregat = agregatKvaliteta(
-    sva,
+    poz ? msFokus : sva,
     !poz && kpiPeriod?.ukupno_kom > 0 ? kpiPeriod : null,
   );
   const sigma = sigmaProcesa(
@@ -226,7 +232,7 @@ export function buildSpcSnapshotMerljive({
   const status = statusSpcMer({
     cpk: kap.cpk,
     vanKontrole,
-    merenja: poz ? sva.length : msFokus.length,
+    merenja: msFokus.length,
     podgrupe: kap.podgrupe,
   });
 
@@ -247,7 +253,7 @@ export function buildSpcSnapshotMerljive({
     vanKontrole,
     podgrupe: kap.podgrupe,
     merenjaUk: sva.length,
-    merenjaPozicija: poz ? sva.length : msFokus.length,
+    merenjaPozicija: msFokus.length,
     pareto: poNok,
     sparkXbar,
     sparkR,
@@ -263,18 +269,15 @@ export async function fetchSpcSnapshotMerljive(supabase, {
   const deo = String(idDeo || "").trim().toUpperCase();
   if (!deo) return null;
 
-  let qMer = supabase.from("merenja_varijabilna")
-    .select("datum,smena,status,id_deo,pozicija,vrednost_raw,vrednost_dec,created_at")
-    .eq("id_deo", deo)
-    .order("datum", { ascending: true })
-    .order("created_at", { ascending: true });
-  if (pozicija) qMer = qMer.eq("pozicija", pozicija);
-  if (datumOd) qMer = qMer.gte("datum", datumOd);
-  if (datumDo) qMer = qMer.lte("datum", datumDo);
-  qMer = primeniSmena(qMer, smena);
-
-  const { data: merenja, error: merErr } = await qMer;
-  if (merErr) throw merErr;
+  const od = datumOd || (period ? datumOdIzPerioda(period) : undefined);
+  const merenja = await fetchMerenjaVarijabilna(supabase, {
+    idDeo: deo,
+    select: "datum,smena,status,id_deo,pozicija,vrednost_raw,vrednost_dec,created_at",
+    datumOd: od,
+    datumDo,
+    smena,
+    pozicija,
+  });
 
   const { data: karakteristike } = await supabase
     .from("karakteristike_merljive")

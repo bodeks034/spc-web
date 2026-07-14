@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient.js";
 import { fetchTipoviVozila } from "./sifrarnikApi.js";
 import { dijagramSrcZaDeo, dijagramUrlZaPrikaz } from "./voziloDijagramConfig.js";
@@ -27,33 +27,66 @@ async function ucitajTipoviVozila() {
   return tipoviPromise;
 }
 
+function jeJavnaPutanja(src) {
+  const s = String(src || "").trim();
+  return s.startsWith("/") || /^https?:\/\//i.test(s);
+}
+
 /**
  * URL slike dijagrama za unos celog vozila (public ili Storage).
  * @param {{ id_deo?: string, vozilo_katalog_id?: string } | null | undefined} deoInfo
+ * @returns {{ url: string | null, loading: boolean }}
  */
 export function useVoziloDijagramSrc(deoInfo) {
-  const [url, setUrl] = useState(null);
+  const syncUrl = useMemo(() => {
+    if (!deoInfo) return null;
+    const raw = dijagramSrcZaDeo(deoInfo, []);
+    return jeJavnaPutanja(raw) ? String(raw).trim() : null;
+  }, [deoInfo?.id_deo, deoInfo?.vozilo_katalog_id]);
+
+  const [asyncUrl, setAsyncUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (syncUrl || !deoInfo) {
+      setAsyncUrl(null);
+      setLoading(false);
+      return undefined;
+    }
+
     let cancelled = false;
+    setLoading(true);
+    setAsyncUrl(null);
 
     (async () => {
-      if (!deoInfo) {
-        if (!cancelled) setUrl(null);
-        return;
-      }
       try {
         const tipovi = await ucitajTipoviVozila();
         const raw = dijagramSrcZaDeo(deoInfo, tipovi);
+        if (jeJavnaPutanja(raw)) {
+          if (!cancelled) {
+            setAsyncUrl(String(raw).trim());
+            setLoading(false);
+          }
+          return;
+        }
         const resolved = await dijagramUrlZaPrikaz(raw, supabase);
-        if (!cancelled) setUrl(resolved);
+        if (!cancelled) {
+          setAsyncUrl(resolved);
+          setLoading(false);
+        }
       } catch {
-        if (!cancelled) setUrl(null);
+        if (!cancelled) {
+          setAsyncUrl(null);
+          setLoading(false);
+        }
       }
     })();
 
     return () => { cancelled = true; };
-  }, [deoInfo, deoInfo?.id_deo, deoInfo?.vozilo_katalog_id]);
+  }, [deoInfo?.id_deo, deoInfo?.vozilo_katalog_id, syncUrl, deoInfo]);
 
-  return url;
+  return {
+    url: syncUrl || asyncUrl,
+    loading: loading && !syncUrl,
+  };
 }

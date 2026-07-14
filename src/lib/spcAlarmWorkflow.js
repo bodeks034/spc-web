@@ -209,6 +209,30 @@ export async function karantinSpcAlarm(supabase, {
   return { alarm: data, eskalacijaId: esk?.id };
 }
 
+/** Sistemsko zatvaranje (NCR zatvoren, auto-lifecycle) — bez obaveznog komentara operatera. */
+export async function zatvoriSpcAlarmSistemski(supabase, alarmId, {
+  razlog = "Auto-zatvaranje",
+  radnikId = null,
+} = {}) {
+  const txt = String(razlog || "Auto-zatvaranje").trim();
+  const trenutni = await ucitajAlarmPoId(supabase, alarmId);
+  if (!trenutni || trenutni.status === "zatvoren") return null;
+
+  const data = await azurirajAlarmJedan(
+    supabase,
+    alarmId,
+    {
+      status: "zatvoren",
+      komentar_zatvaranja: txt,
+      zatvorio_id: radnikId,
+      updated_at: new Date().toISOString(),
+    },
+    { dozvoljeniStari: ["otvoren", "potvrden", "karantin"] },
+  );
+  await pustiKarantinZaAlarm(supabase, alarmId, radnikId);
+  return data;
+}
+
 export async function zatvoriSpcAlarm(supabase, { alarmId, radnikId, komentar }) {
   const txt = String(komentar || "").trim();
   if (!txt) throw new Error("Komentar zatvaranja je obavezan.");
@@ -364,6 +388,10 @@ export async function kreirajAlarmNokSerije(supabase, {
     const { data: pun } = await supabase.from("spc_alarmi").select("*").eq("id", alarm.id).maybeSingle();
     const rezultat = pun || alarm;
     obavestiNoviSpcAlarm(supabase, rezultat);
+    try {
+      const { autoNcrIzSpcAlarma } = await import("./autoSpcAlarm.js");
+      await autoNcrIzSpcAlarma(supabase, rezultat, { kreiraoId: radnikId });
+    } catch { /* */ }
     return rezultat;
   }
 
@@ -423,6 +451,10 @@ export async function kreirajAlarmNokAtributivne(supabase, {
     const { data: pun } = await supabase.from("spc_alarmi").select("*").eq("id", alarm.id).maybeSingle();
     const rezultat = pun || { ...alarm, id_deo: deo, pravilo, pozicija: "Atributivne", tip_karte: "Linija", status: "otvoren" };
     obavestiNoviSpcAlarm(supabase, rezultat);
+    try {
+      const { autoNcrIzSpcAlarma } = await import("./autoSpcAlarm.js");
+      await autoNcrIzSpcAlarma(supabase, rezultat, { kreiraoId: radnikId });
+    } catch { /* */ }
     return rezultat;
   }
   return null;

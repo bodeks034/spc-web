@@ -79,7 +79,7 @@ export default function ZahtevKalibracija({
               flex: 1,
               background: razlog.trim() && !loading ? C.crvena : C.hover,
               border: "none", borderRadius: 8,
-              color: razlog.trim() ? "#fff" : "#666",
+              color: razlog.trim() ? C.onAkcent : C.sivi,
               fontSize: 13, fontWeight: 700, padding: "12px",
               cursor: razlog.trim() ? "pointer" : "not-allowed",
             }}

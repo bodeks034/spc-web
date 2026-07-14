@@ -347,7 +347,36 @@ export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano =
   );
   let maxId = (postojeciRn || []).reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
 
+  const touchedDeos = new Set(
+    [...groups.values()].map((rows) => metaIzGrupe(rows).id_deo).filter(Boolean),
+  );
+
   const out = [];
+
+  // Postojeći RN — ažuriraj kupac / naziv iz Osnovnog (zaglavlje po delu).
+  for (const r of postojeciRn || []) {
+    const id = norm(r.id_deo || r["id dela*"]);
+    if (!id || !touchedDeos.has(id)) continue;
+    const deoRn = kupacPoDeo?.get?.(id) || kupacPoDeo?.[id] || null;
+    if (!deoRn?.kupac && !deoRn?.naziv_dela && deoRn?.ukupno_kom == null) continue;
+    const broj = String(r.broj_naloga || "").trim().toUpperCase();
+    if (!broj) continue;
+    out.push({
+      id: r.id,
+      broj_naloga: broj,
+      id_deo: id,
+      naziv_dela: deoRn?.naziv_dela || r.naziv_dela || "",
+      kolicina: deoRn?.ukupno_kom ?? r.kolicina ?? podrazumevano.kolicina ?? 50,
+      kupac: deoRn?.kupac || r.kupac || podrazumevano.kupac || "",
+      datum_unosa: r.datum_unosa ?? podrazumevano.datum_unosa ?? new Date().toISOString().slice(0, 10),
+      rok_isporuke: r.rok_isporuke ?? podrazumevano.rok_isporuke ?? null,
+      status: r.status || "aktivan",
+      operater: r.operater ?? podrazumevano.operater ?? "PERA OPERATER",
+      napomena: r.napomena ?? "",
+      pogon_kod: r.pogon_kod,
+    });
+  }
+
   for (const rows of groups.values()) {
     const m = metaIzGrupe(rows);
     if (!m.eksplicitanPogon) continue;
@@ -362,7 +391,7 @@ export function generisiRadniNaloge(karRows, { postojeciRn = [], podrazumevano =
     maxId += 1;
     out.push({
       id: maxId,
-      broj_naloga: deoRn?.radni_nalog ? String(deoRn.radni_nalog).trim().toUpperCase() : rn,
+      broj_naloga: rn,
       id_deo: m.id_deo,
       naziv_dela: deoRn?.naziv_dela || m.naziv_dela || "",
       kolicina: deoRn?.ukupno_kom ?? m.ukupno_kom ?? podrazumevano.kolicina ?? 50,

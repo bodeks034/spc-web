@@ -106,7 +106,7 @@ export default function MerljiveExcelPanel({ C, addToast }) {
   };
 
   const BTN = (bg) => ({
-    background: bg, border: "none", borderRadius: 8, color: "#fff",
+    background: bg, border: "none", borderRadius: 8, color: C.onAkcent,
     fontSize: 12, fontWeight: 700, padding: "10px 18px", cursor: busy ? "wait" : "pointer",
     opacity: busy ? 0.6 : 1,
   });

@@ -183,6 +183,22 @@ export function FormGrid({
       );
     }
 
+    if (meta.type === "datalist") {
+      const lista = meta.opcijeKey ? (opcije[meta.opcijeKey] || []) : (meta.opcije || []);
+      return (
+        <DatalistPolje
+          key={k}
+          C={C}
+          id={`${k}-${l}`}
+          label={l}
+          value={forma[k]}
+          onChange={(v) => setForma((p) => ({ ...p, [k]: v }))}
+          opcije={lista}
+          placeholder={meta.placeholder || "Upiši ili izaberi…"}
+        />
+      );
+    }
+
     if (meta.type === "operacija") {
       return (
         <OperacijaPolje
@@ -258,20 +274,37 @@ export function TableHead({ C, cols, widths }) {
   );
 }
 
-export function TableRow({ C, i, cols, widths }) {
+export function TableRow({ C, i, cols, widths, onClick, highlight }) {
   const grid = widths || cols.map(() => "1fr").join(" ");
   return (
-    <div style={{ display: "grid", gridTemplateColumns: grid, padding: "8px 10px", borderTop: i ? `1px solid ${C.border}` : "none", fontSize: 11, gap: 8, alignItems: "center" }}>
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(e); } : undefined}
+      style={{
+        display: "grid",
+        gridTemplateColumns: grid,
+        padding: "8px 10px",
+        borderTop: i ? `1px solid ${C.border}` : "none",
+        fontSize: 11,
+        gap: 8,
+        alignItems: "center",
+        cursor: onClick ? "pointer" : undefined,
+        background: highlight ? `${C.zelena}12` : undefined,
+      }}
+    >
       {cols.map((c, j) => <span key={j}>{c}</span>)}
     </div>
   );
 }
 
 export function RowActions({ C, onEdit, onDelete }) {
+  const stop = (e) => e.stopPropagation();
   return (
-    <div style={{ display: "flex", gap: 4 }}>
-      {onEdit && <button type="button" onClick={onEdit} style={btnGhost(C)}>✎</button>}
-      {onDelete && <button type="button" onClick={onDelete} style={{ ...btnGhost(C), color: C.crvena, borderColor: `${C.crvena}44` }}>×</button>}
+    <div style={{ display: "flex", gap: 4 }} onClick={stop} onKeyDown={stop}>
+      {onEdit && <button type="button" onClick={(e) => { stop(e); onEdit(e); }} style={btnGhost(C)}>✎</button>}
+      {onDelete && <button type="button" onClick={(e) => { stop(e); onDelete(e); }} style={{ ...btnGhost(C), color: C.crvena, borderColor: `${C.crvena}44` }}>×</button>}
     </div>
   );
 }

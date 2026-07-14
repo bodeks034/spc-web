@@ -2,3 +2,50 @@
 [2026-06-27T11:17:22.350Z] Gotovo (dry-run).
 [2026-06-27T11:18:04.707Z] Gotovo (dry-run).
 [2026-06-27T11:40:02.361Z] Gotovo (dry-run).
+[2026-07-10T07:22:15.524Z] [INFO] START erp-uvoz
+[2026-07-10T07:22:18.895Z] [ERROR] there is no unique or exclusion constraint matching the ON CONFLICT specification
+[2026-07-10T07:22:18.898Z] [ERROR] FAIL erp-uvoz: there is no unique or exclusion constraint matching the ON CONFLICT specification
+[2026-07-10T07:22:18.985Z] [ERROR] FATAL: there is no unique or exclusion constraint matching the ON CONFLICT specification
+[2026-07-10T16:09:51.648Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-10T16:09:52.221Z] [INFO] Gotovo (dry-run).
+[2026-07-10T16:09:52.226Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-10T16:17:28.645Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-10T16:17:30.054Z] [INFO] Gotovo (dry-run).
+[2026-07-10T16:17:30.064Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-11T12:50:01.038Z] [INFO] START erp-uvoz
+[2026-07-11T12:50:07.223Z] [ERROR] Could not find the 'pogon_kod' column of 'delovi' in the schema cache
+[2026-07-11T12:50:07.230Z] [ERROR] FAIL erp-uvoz: Could not find the 'pogon_kod' column of 'delovi' in the schema cache
+[2026-07-11T12:50:07.342Z] [ERROR] FATAL: Could not find the 'pogon_kod' column of 'delovi' in the schema cache
+[2026-07-11T18:14:41.514Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-11T18:14:42.166Z] [INFO] Gotovo (dry-run).
+[2026-07-11T18:14:42.169Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-11T18:15:29.280Z] [INFO] START erp-uvoz
+[2026-07-11T18:15:30.733Z] [ERROR] Could not find the 'updated_at' column of 'greske_katalog' in the schema cache
+[2026-07-11T18:15:30.735Z] [ERROR] FAIL erp-uvoz: Could not find the 'updated_at' column of 'greske_katalog' in the schema cache
+[2026-07-11T18:15:30.833Z] [ERROR] FATAL: Could not find the 'updated_at' column of 'greske_katalog' in the schema cache
+[2026-07-11T18:17:00.632Z] [INFO] START erp-uvoz
+[2026-07-11T18:17:01.719Z] [ERROR] duplicate key value violates unique constraint "greske_katalog_pkey"
+[2026-07-11T18:17:01.721Z] [ERROR] FAIL erp-uvoz: duplicate key value violates unique constraint "greske_katalog_pkey"
+[2026-07-11T18:17:01.844Z] [ERROR] FATAL: duplicate key value violates unique constraint "greske_katalog_pkey"
+[2026-07-11T18:18:10.216Z] [INFO] START erp-uvoz
+[2026-07-11T18:18:10.965Z] [ERROR] duplicate key value violates unique constraint "greske_katalog_pkey"
+[2026-07-11T18:18:10.969Z] [ERROR] FAIL erp-uvoz: duplicate key value violates unique constraint "greske_katalog_pkey"
+[2026-07-11T18:18:11.084Z] [ERROR] FATAL: duplicate key value violates unique constraint "greske_katalog_pkey"
+[2026-07-11T18:19:02.542Z] [INFO] START erp-uvoz
+[2026-07-11T18:19:04.159Z] [INFO] Upsert ukupno 1 redova
+[2026-07-11T18:19:04.162Z] [INFO] OK erp-uvoz
+[2026-07-11T18:19:17.860Z] [INFO] START erp-uvoz
+[2026-07-11T18:19:18.483Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-11T18:19:18.490Z] [INFO] OK erp-uvoz
+[2026-07-11T18:20:40.783Z] [INFO] START erp-uvoz
+[2026-07-11T18:20:41.308Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-11T18:20:41.310Z] [INFO] OK erp-uvoz
+[2026-07-12T09:21:21.478Z] [INFO] START erp-uvoz
+[2026-07-12T09:21:23.078Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-12T09:21:23.084Z] [INFO] OK erp-uvoz
+[2026-07-13T15:34:48.999Z] [INFO] START erp-uvoz
+[2026-07-13T15:34:50.418Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-13T15:34:50.435Z] [INFO] OK erp-uvoz
+[2026-07-14T16:14:03.523Z] [INFO] START erp-uvoz
+[2026-07-14T16:14:05.341Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-14T16:14:05.342Z] [INFO] OK erp-uvoz

@@ -42,6 +42,7 @@ import { opisSpcKarte } from "./lib/analitikaOpisi.js";
 import { useSpcFilterSync, SpcFilterTrakaBaner } from "./hooks/useSpcFilterSync.jsx";
 
 import { supabase } from "./lib/supabaseClient.js";
+import { fetchMerenjaVarijabilna, nadjiKarakteristikuPoPoziciji } from "./lib/merenjaVarijabilnaQuery.js";
 import { fetchKpiUnos, agregirajKpiUnos } from "./lib/kpiUnos.js";
 import {
   ucitajAktivniBaseline,
@@ -187,6 +188,8 @@ import AnalitikaSpcSnapshot from "./components/analitika/AnalitikaSpcSnapshot.js
 import SpcDashboardMerljive from "./components/spc/SpcDashboardMerljive.jsx";
 import SpcAsistent8dDugme from "./components/spc/SpcAsistent8dDugme.jsx";
 import { normalizujPrefill8d } from "./lib/eskalacijeHelper.js";
+import OCKrivaIso3951 from "./components/merljive/analitika/OCKrivaIso3951.jsx";
+import { StabilnostMerljive } from "./components/MerljiveOplTabovi.jsx";
 
 export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter, pocetniTip, onPocetniTipPotrosen, onNavigacijaKarte, onOtvori8D }) {
   const ekran = useEkran();
@@ -239,7 +242,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
 
   const kar = useMemo(() => {
     if (!pozicija) return null;
-    return karakteristike.find(k => k.id_deo === idDeo && k.pozicija === pozicija) || null;
+    return nadjiKarakteristikuPoPoziciji(karakteristike, idDeo, pozicija);
   }, [karakteristike, idDeo, pozicija]);
 
   const gr = useMemo(() => graniceKarakteristike(kar), [kar]);
@@ -249,18 +252,15 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
     if (!idDeo) return;
     setLoading(true);
     try {
-      let q = supabase.from("merenja_varijabilna")
-        .select("*")
-        .eq("id_deo", idDeo)
-        .order("datum", { ascending: true })
-        .order("created_at", { ascending: true });
-      if (pozicija) q = q.eq("pozicija", pozicija);
-      if (datumOd) q = q.gte("datum", datumOd);
-      if (datumDo) q = q.lte("datum", datumDo);
-      if (smena) q = q.eq("smena", Number(smena));
-      const { data, error } = await q;
-      if (error) throw error;
-      setRawData(data || []);
+      const data = await fetchMerenjaVarijabilna(supabase, {
+        idDeo,
+        select: "*",
+        datumOd: datumOd || undefined,
+        datumDo: datumDo || undefined,
+        smena: smena || undefined,
+        pozicija: pozicija || undefined,
+      });
+      setRawData(data);
     } catch (e) {
       addToast(e.message, "greska");
       setRawData([]);
@@ -460,6 +460,8 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
     ["korelacija", "Korelacija", "#22d3ee"],
     ["poredi", "Poređenje", "#a78bfa"],
     ["foto_spc", "Foto arhiva", "#fb923c"],
+    ["oc_spc", "OC kriva", "#a3e635"],
+    ["stabilnost_spc", "Stabilnost", "#f472b6"],
     ["8d", "8D", C.plava],
     ["hist", "Histogram", C.ljubicasta],
     ["oee", "OEE", C.narandzasta],
@@ -614,7 +616,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
         <button type="button" onClick={ucitaj} disabled={!idDeo || loading}
           style={{
             background: !idDeo || loading ? C.hover : C.plava, border: "none", borderRadius: 6,
-            color: !idDeo || loading ? C.sivi : "#fff", fontSize: 11, fontWeight: 700,
+            color: !idDeo || loading ? C.sivi : C.onAkcent, fontSize: 11, fontWeight: 700,
             padding: "8px 14px", cursor: !idDeo ? "not-allowed" : "pointer", alignSelf: "flex-end",
           }}>
           {loading ? "..." : "↻"}
@@ -623,7 +625,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
           title="PDF svih ★ preporučenih karata iz vodiča"
           style={{
             background: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? C.hover : "#7c3aed", border: "none", borderRadius: 6,
-            color: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? C.sivi : "#fff", fontSize: 11, fontWeight: 700,
+            color: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? C.sivi : C.onAkcent, fontSize: 11, fontWeight: 700,
             padding: "8px 12px", cursor: !rawData.length || pdfBusy || !predlog?.preporuceniIds?.length ? "not-allowed" : "pointer", alignSelf: "flex-end",
           }}>
           {pdfBusy ? "⏳ PDF…" : "📄 PDF izveštaj"}
@@ -640,7 +642,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
         <button type="button" onClick={exportExcel} disabled={!rawData.length}
           style={{
             background: !rawData.length ? C.hover : C.zelena, border: "none", borderRadius: 6,
-            color: !rawData.length ? C.sivi : "#fff", fontSize: 11, fontWeight: 700,
+            color: !rawData.length ? C.sivi : C.onAkcent, fontSize: 11, fontWeight: 700,
             padding: "8px 12px", cursor: !rawData.length ? "not-allowed" : "pointer", alignSelf: "flex-end",
           }}>
           📊 Excel
@@ -714,7 +716,24 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
       {idDeo && <SpcKartaOpis tip={tip} modul="merljive" C={C} />}
 
       <div ref={sadrzajRef}>
-      {!idDeo ? (
+      {tip === "oc_spc" ? (
+        <OCKrivaIso3951
+          C={C}
+          addToast={addToast}
+          kontekst={{
+            idDeo,
+            pozicija,
+            kar,
+            rawMerenja: rawData,
+            datumOd,
+            datumDo,
+            smena,
+            karakteristike,
+          }}
+        />
+      ) : tip === "stabilnost_spc" ? (
+        <StabilnostMerljive C={C} addToast={addToast} sviDelovi={delovi} defaultIdDeo={idDeo} />
+      ) : !idDeo ? (
         <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.border, fontSize: 12 }}>
           Izaberi ID dela
         </div>

@@ -66,7 +66,7 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
         <span style={{ color: C.sivi, fontSize: 10 }}>{lista.length} tipova vozila</span>
         <button type="button" onClick={() => setForma({ ...PRAZAN })}
           style={{
-            background: C.zelena, border: "none", borderRadius: 6, color: "#fff",
+            background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent,
             fontSize: 10, fontWeight: 700, padding: "7px 12px", cursor: "pointer",
           }}>
           + Novi tip

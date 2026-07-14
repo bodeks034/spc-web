@@ -273,7 +273,7 @@ export default function GageRRPanel({ C, addToast, korisnik }) {
     background: dis ? C.hover : bg,
     border: "none",
     borderRadius: 8,
-    color: dis ? C.sivi : "#fff",
+    color: dis ? C.sivi : C.onAkcent,
     fontWeight: 700,
     fontSize: 12,
     padding: "10px 14px",

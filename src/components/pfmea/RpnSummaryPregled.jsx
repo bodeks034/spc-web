@@ -1,4 +1,5 @@
 import { RPN_SUMMARY_POLJA, formatPoboljsanjePct, agregirajRpnSummary } from "../../lib/pfmeaCpPolja.js";
+import PfmeaSkaleOblacici from "./PfmeaSkaleOblacic.jsx";
 
 function prikazVrednosti(key, r) {
   const v = r[key];
@@ -73,9 +74,10 @@ export default function RpnSummaryPregled({ redovi, C, filterTekst, praznoPoruka
       }}>
         RPN SUMMARY — Pregled poboljšanja rizika
       </div>
-      <div style={{ color: C.sivi, fontSize: 10, marginBottom: 14 }}>
+      <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10 }}>
         Automatski iz PFMEA stavki · RPN before = S×O×D · RPN after = S×O×D (nova ocena)
       </div>
+      <PfmeaSkaleOblacici C={C} kompakt />
 
       {!prikaz.length ? (
         <div style={{ color: C.sivi, fontStyle: "italic", padding: 16 }}>

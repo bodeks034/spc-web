@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import {
   potvrdiSpcAlarm,
@@ -6,8 +6,10 @@ import {
   karantinSpcAlarm,
   opisSpcAlarma,
 } from "../lib/spcAlarmWorkflow.js";
+import { kreirajNcrIzAlarma, fetchNcrPoAlarmu } from "../lib/ncrCapa.js";
 import { jeAdmin, jeKvalitetIliVise } from "../lib/uloge.js";
 import { predloziAkcijeZaAlarm } from "../lib/reakcioniPlanSpc.js";
+import { objasniLinijskiNokAlarm } from "../lib/spcAlarmPragovi.js";
 
 /** Blokirajući modal na liniji kad je SPC van kontrole — obavezan komentar. */
 export default function SpcAlarmBlokada({
@@ -21,11 +23,19 @@ export default function SpcAlarmBlokada({
   onKarantin,
   onZahtevPrekid,
   onOsvezi,
+  onNcrKreiran,
   podnaslov = "",
 }) {
   const [komentar, setKomentar] = useState("");
   const [loading, setLoading] = useState(false);
   const [greska, setGreska] = useState("");
+  const [ncrInfo, setNcrInfo] = useState(null);
+  const [ncrBusy, setNcrBusy] = useState(false);
+
+  useEffect(() => {
+    if (!alarm?.id) return;
+    fetchNcrPoAlarmu(supabase, alarm.id).then(setNcrInfo).catch(() => {});
+  }, [alarm?.id]);
 
   const jeKarantin = alarm?.status === "karantin";
   const mozeZatvoriti = jeAdmin(korisnik?.uloga) || jeKvalitetIliVise(korisnik?.uloga);
@@ -114,6 +124,23 @@ export default function SpcAlarmBlokada({
 
   const fmt = (v) => (v == null || v === "" ? "—" : Number(v).toFixed(4));
   const predlogAkcija = predloziAkcijeZaAlarm(alarm);
+  const objasnjenjePraga = objasniLinijskiNokAlarm(alarm);
+
+  const kreirajNcr = async () => {
+    setNcrBusy(true);
+    try {
+      const { row, vecPostojao } = await kreirajNcrIzAlarma(supabase, alarm, {
+        kreiraoId: korisnik?.radnikId,
+      });
+      setNcrInfo(row);
+      onNcrKreiran?.(row);
+      setGreska(vecPostojao ? `NCR već postoji: ${row.broj_ncr}` : "");
+    } catch (e) {
+      setGreska(e.message || "NCR nije kreiran.");
+    } finally {
+      setNcrBusy(false);
+    }
+  };
 
   return (
     <div
@@ -201,6 +228,23 @@ export default function SpcAlarmBlokada({
             </>
           )}
         </div>
+        {objasnjenjePraga && !jeKarantin && (
+          <div style={{
+            marginBottom: 14,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.zuta}44`,
+            background: `${C.zuta}12`,
+            fontSize: 11,
+            color: C.tekst,
+            lineHeight: 1.55,
+          }}>
+            <div style={{ color: C.zuta, fontSize: 9, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>
+              ZAŠTO JE UNOS BLOKIRAN?
+            </div>
+            {objasnjenjePraga}
+          </div>
+        )}
         {predlogAkcija.length > 0 && (
           <div style={{
             marginBottom: 14, padding: "10px 12px", borderRadius: 8,
@@ -273,6 +317,14 @@ export default function SpcAlarmBlokada({
         {greska && (
           <div style={{ color: C.crvena, fontSize: 11, marginTop: 6 }}>{greska}</div>
         )}
+        {ncrInfo && (
+          <div style={{
+            marginTop: 8, fontSize: 10, color: C.zelena, fontWeight: 700,
+            padding: "6px 10px", border: `1px solid ${C.zelena}44`, borderRadius: 6,
+          }}>
+            NCR: {ncrInfo.broj_ncr}
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
           {!jeKarantin && (
             <>
@@ -284,7 +336,7 @@ export default function SpcAlarmBlokada({
                   background: komentar.trim() && !loading ? C.zelena : C.hover,
                   border: "none",
                   borderRadius: 8,
-                  color: komentar.trim() ? "#fff" : "#666",
+                  color: komentar.trim() ? C.onAkcent : C.sivi,
                   fontSize: 13,
                   fontWeight: 700,
                   padding: "12px",
@@ -301,7 +353,7 @@ export default function SpcAlarmBlokada({
                   background: komentar.trim() && !loading ? (C.ljubicasta || "#7c3aed") : C.hover,
                   border: "none",
                   borderRadius: 8,
-                  color: komentar.trim() ? "#fff" : "#666",
+                  color: komentar.trim() ? C.onAkcent : C.sivi,
                   fontSize: 12,
                   fontWeight: 700,
                   padding: "11px",
@@ -348,6 +400,26 @@ export default function SpcAlarmBlokada({
               }}
             >
               {jeKarantin ? "Pusti iz karantina (kvalitet/admin)" : "Zatvori alarm (kvalitet/admin)"}
+            </button>
+          )}
+          {mozeZatvoriti && !ncrInfo && (
+            <button
+              type="button"
+              data-testid="alarm-blokada-ncr"
+              onClick={kreirajNcr}
+              disabled={ncrBusy || loading}
+              style={{
+                background: C.hover,
+                border: `1px solid ${C.narandzasta || C.zuta}`,
+                borderRadius: 8,
+                color: C.narandzasta || C.zuta,
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "10px",
+                cursor: ncrBusy ? "wait" : "pointer",
+              }}
+            >
+              {ncrBusy ? "Kreiram NCR…" : "+ Kreiraj NCR iz alarma"}
             </button>
           )}
         </div>

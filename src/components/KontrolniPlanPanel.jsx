@@ -78,7 +78,7 @@ export default function KontrolniPlanPanel({ C, addToast, korisnik, idDeoFilter 
             <>
               <button type="button" onClick={uvozi} style={{ fontSize: 10, padding: "6px 10px", cursor: "pointer", borderRadius: 6, border: `1px solid ${C.plava}`, background: C.hover, color: C.plava }}>Uvoz iz kar.</button>
               <button type="button" onClick={() => setForma({ id_deo: filterDeo, pozicija: "", revizija: "A", vazi_od: new Date().toISOString().split("T")[0] })}
-                style={{ fontSize: 10, padding: "6px 10px", cursor: "pointer", borderRadius: 6, border: "none", background: C.plava, color: "#fff", fontWeight: 700 }}>+ Stavka</button>
+                style={{ fontSize: 10, padding: "6px 10px", cursor: "pointer", borderRadius: 6, border: "none", background: C.plava, color: C.onAkcent, fontWeight: 700 }}>+ Stavka</button>
             </>
           )}
         </div>
@@ -91,7 +91,7 @@ export default function KontrolniPlanPanel({ C, addToast, korisnik, idDeoFilter 
               placeholder={k.replace("_", " ")} style={INP} />
           ))}
           <input type="date" value={forma.vazi_od || ""} onChange={(e) => setForma((p) => ({ ...p, vazi_od: e.target.value }))} style={INP} />
-          <button type="button" onClick={snimi} style={{ background: C.zelena, border: "none", borderRadius: 6, color: "#fff", padding: "8px 16px", cursor: "pointer", fontWeight: 700, marginRight: 8 }}>Sačuvaj</button>
+          <button type="button" onClick={snimi} style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, padding: "8px 16px", cursor: "pointer", fontWeight: 700, marginRight: 8 }}>Sačuvaj</button>
           <button type="button" onClick={() => setForma(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.sivi, padding: "8px 12px", cursor: "pointer" }}>Otkaži</button>
         </div>
       )}

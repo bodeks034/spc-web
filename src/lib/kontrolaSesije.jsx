@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { obavestiAdminZahtev } from "./adminZahtevNotifikacije.js";
 import { supabase } from "./supabaseClient.js";
-import { kontrolnaListaObavezna, normalizujIdDeo } from "./kontrolaLista.js";
+import { kontrolnaListaObavezna, normalizujIdDeo, logZaSmenu } from "./kontrolaLista.js";
 /** Kontrolna lista pre smene (atributivne i merljive). */
 export function KontrolnaLista({
   korisnik,
@@ -37,9 +37,7 @@ export function KontrolnaLista({
             .eq("smena", smena)
             .eq("datum", danas)
             .eq("zavrsena", true);
-          const log = idNorm
-            ? (logs || []).find((l) => normalizujIdDeo(l.stavke_json?.id_deo) === idNorm)
-            : logs?.[0];
+          const log = logZaSmenu(logs);
           if (log) { setVecUradjena(true); return; }
         }
         const { data, error } = await supabase.from("kontrolna_lista_stavke")
@@ -53,7 +51,7 @@ export function KontrolnaLista({
         setLoading(false);
       }
     })();
-  }, [korisnik?.radnikId, smena, idNorm]);
+  }, [korisnik?.radnikId, smena]);
 
   const toggle = (id) => {
     const key = String(id);
@@ -115,10 +113,10 @@ export function KontrolnaLista({
           Ček lista je popunjena — nastavi dalje
         </div>
         <div style={{ color: C.sivi, fontSize: ugradjen ? 10 : 13, textAlign: "center" }}>
-          Smena {smena}{idNorm ? ` · ID ${idNorm}` : ""} · {new Date().toLocaleDateString("sr-RS")}
+          Smena {smena} · {new Date().toLocaleDateString("sr-RS")}
         </div>
         <button type="button" onClick={onZavrsena} style={{ background: boja, border: "none", borderRadius: ugradjen ? 8 : 10,
-          color: "#fff", fontSize: ugradjen ? 12 : 14, fontWeight: 700, padding: ugradjen ? "10px 20px" : "12px 28px", cursor: "pointer" }}>
+          color: C.onAkcent, fontSize: ugradjen ? 12 : 14, fontWeight: 700, padding: ugradjen ? "10px 20px" : "12px 28px", cursor: "pointer" }}>
           Nastavi dalje →
         </button>
       </div>
@@ -160,7 +158,7 @@ export function KontrolnaLista({
           {naslovModul ? <span style={{ color: C.sivi, fontWeight: 400, fontSize: ugradjen ? 11 : 14 }}> · {naslovModul}</span> : null}
         </div>
         <div style={{ color: C.sivi, fontSize: ugradjen ? 9 : 12 }}>
-          Smena {smena}{idNorm ? ` · ID ${idNorm}` : ""} · {new Date().toLocaleDateString("sr-RS")}
+          Smena {smena} · {new Date().toLocaleDateString("sr-RS")}
         </div>
       </div>
 
@@ -196,7 +194,7 @@ export function KontrolnaLista({
                   border: `2px solid ${ok ? C.zelena : C.border}`,
                   background: ok ? C.zelena : "transparent",
                   display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {ok && <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span>}
+                  {ok && <span style={{ color: C.onAkcent, fontSize: 14, fontWeight: 700 }}>✓</span>}
                 </div>
                 <span style={{ color: ok ? C.sivi : C.tekst, fontSize: 13,
                   textDecoration: ok ? "line-through" : "none" }}>
@@ -227,7 +225,7 @@ export function KontrolnaLista({
 
       <button type="button" onClick={snimi} disabled={potvrdjeno < ukupno || saving}
         style={{ background: potvrdjeno === ukupno ? boja : C.hover, border: "none", borderRadius: 12,
-          color: potvrdjeno === ukupno ? "#fff" : C.sivi, fontSize: 16, fontWeight: 700,
+          color: potvrdjeno === ukupno ? C.onAkcent : C.sivi, fontSize: 16, fontWeight: 700,
           padding: "18px", cursor: potvrdjeno < ukupno || saving ? "not-allowed" : "pointer",
           boxShadow: potvrdjeno === ukupno ? `0 0 20px ${boja}40` : "none" }}>
         {saving ? "Snimanje..."
@@ -296,7 +294,7 @@ export function ZahtevPrekid({ korisnik, idDeo, nazivDela, preostalo, cilj, onUs
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button type="button" onClick={posalji} disabled={!razlog.trim() || loading}
             style={{ flex: 1, background: razlog.trim() && !loading ? C.zuta : C.hover, border: "none",
-              borderRadius: 8, color: razlog.trim() ? "#000" : "#666", fontSize: 13, fontWeight: 700,
+              borderRadius: 8, color: razlog.trim() ? C.onZuta : C.sivi, fontSize: 13, fontWeight: 700,
               padding: "12px", cursor: razlog.trim() ? "pointer" : "not-allowed" }}>
             {loading ? "Šalje se..." : "📤 Pošalji zahtev adminu"}
           </button>

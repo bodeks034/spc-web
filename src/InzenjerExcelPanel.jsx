@@ -159,7 +159,7 @@ export default function InzenjerExcelPanel({
     background: bg,
     border: "none",
     borderRadius: 8,
-    color: "#fff",
+    color: C.onAkcent,
     fontSize: 12,
     fontWeight: 700,
     padding: "10px 18px",

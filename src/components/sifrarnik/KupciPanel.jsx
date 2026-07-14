@@ -57,7 +57,7 @@ export default function KupciPanel({ C, addToast }) {
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Naziv kupca…" style={INP} />
         </label>
         <button type="button" onClick={() => setForma({ naziv: "", aktivan: true })}
-          style={{ background: C.zelena, border: "none", borderRadius: 6, color: "#fff", fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}>
+          style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}>
           + Kupac
         </button>
       </div>
@@ -74,7 +74,7 @@ export default function KupciPanel({ C, addToast }) {
           </label>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" disabled={snima} onClick={snimi}
-              style={{ background: C.zelena, border: "none", borderRadius: 6, color: "#fff", fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer" }}>
+              style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer" }}>
               {snima ? "…" : "Sačuvaj"}
             </button>
             <button type="button" onClick={() => setForma(null)}

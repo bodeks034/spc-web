@@ -140,7 +140,7 @@ export default function DeloviVoziloPanel({ C, addToast, voziloKod, onVoziloChan
                 </button>
                 <button type="button" onClick={() => onStampaj?.(d)}
                   style={{
-                    background: C.zelena, border: "none", borderRadius: 5, color: "#fff",
+                    background: C.zelena, border: "none", borderRadius: 5, color: C.onAkcent,
                     fontSize: 9, fontWeight: 700, padding: "5px 8px", cursor: "pointer",
                   }}>
                   Barkod

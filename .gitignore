@@ -8,4 +8,7 @@ backup/
 deploy-paket/
 deploy-paket_*.zip
 dist
-
+logs/*
+!logs/.gitkeep
+audit-export/
+.cache/

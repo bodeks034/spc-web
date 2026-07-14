@@ -7,6 +7,7 @@ import {
 } from "./atributivneAgregacija.js";
 
 import { predloziDodeljenogInzenjera } from "./eskalacijeHelper.js";
+import { obavestiAdminZahtev } from "./adminZahtevNotifikacije.js";
 import { calcFPY } from "./rtyFpy.js";
 
 /** @deprecated Koristi calcFPY za jednu fazu; calcRTYIzFaza za više faza. */
@@ -386,8 +387,15 @@ export async function upisiSpcAlarm(supabase, alarm) {
     .limit(1);
   if (dup?.length) return dup[0];
 
-  const { data, error } = await supabase.from("spc_alarmi").insert(alarm).select("id").single();
+  const { data, error } = await supabase.from("spc_alarmi").insert(alarm).select("*").single();
   if (error) throw error;
+  if (data?.id && data.status === "otvoren") {
+    obavestiAdminZahtev(supabase, {
+      tip: "spc_alarm",
+      zahtev: data,
+      kanali: "remote",
+    }).catch(() => {});
+  }
   return data;
 }
 

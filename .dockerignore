@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+moment-drop/incoming/*
+moment-drop/processed/*
+erp-drop
+sap-drop
+*.log
+.cursor
+coverage

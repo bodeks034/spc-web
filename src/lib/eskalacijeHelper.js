@@ -1,6 +1,7 @@
 /** Pomoćne funkcije za eskalacije, dodelu inženjera i prefill 8D. */
 
 import { nacrtU8dEditorPrefill } from "./osmdWordPrimeri.js";
+import { prefill8dIzNcr } from "./ncrCapa.js";
 
 const ULOGE_INZENJER = new Set(["kvalitet", "sef", "admin"]);
 const OTVORENE_STATUS = new Set(["otvoren", "u_toku", "aktivan", "open"]);
@@ -20,9 +21,15 @@ export function prefill8dIzEskalacije(e) {
   };
 }
 
-/** Eskalacija (kratak prefill) ili pun nacrt iz SPC asistenta. */
+/** Eskalacija (kratak prefill) ili pun nacrt iz SPC asistenta / NCR. */
 export function normalizujPrefill8d(e) {
   if (!e) return {};
+  if (e.ncr_id || e.broj_reklamacije?.startsWith?.("NCR-")) {
+    return {
+      ...prefill8dIzNcr(e),
+      ncr_id: e.ncr_id || e.id || null,
+    };
+  }
   if (e._asistent || e.d4_uzrok || e.d6_implementacija || e.d7_prevencija || e.lesson_learned) {
     return nacrtU8dEditorPrefill(e);
   }
@@ -38,20 +45,51 @@ export function normalizujPrefill8d(e) {
   return prefill8dIzEskalacije(e);
 }
 
-export function sacuvajNavigaciju8d(prefill) {
-  sessionStorage.setItem("spc_8d_prefill", JSON.stringify(prefill8dIzEskalacije(prefill)));
-  sessionStorage.setItem("spc_tab_atr", "8d");
+export function sacuvajNavigacijuNcr(prefill = {}, modul = "atributivne") {
+  sessionStorage.removeItem("spc_tab_atr");
+  sessionStorage.removeItem("spc_tab_mer");
+  sessionStorage.removeItem("spc_8d_prefill");
+  sessionStorage.removeItem("spc_workflow_modul");
+  sessionStorage.setItem("spc_ncr_prefill", JSON.stringify(prefill));
+  const key = modul === "varijabilne" ? "spc_tab_mer" : "spc_tab_atr";
+  sessionStorage.setItem(key, "ncr");
+  sessionStorage.setItem("spc_workflow_modul", modul === "varijabilne" ? "varijabilne" : "atributivne");
 }
 
-export function procitajNavigaciju8d() {
-  const tab = sessionStorage.getItem("spc_tab_atr");
+export function procitajNavigacijuNcr(modul = "atributivne") {
+  const key = modul === "varijabilne" ? "spc_tab_mer" : "spc_tab_atr";
+  const tab = sessionStorage.getItem(key);
+  if (tab !== "ncr") return { tab: null, prefill: null };
+  sessionStorage.removeItem(key);
+  const raw = sessionStorage.getItem("spc_ncr_prefill");
+  if (raw) sessionStorage.removeItem("spc_ncr_prefill");
+  let prefill = null;
+  if (raw) {
+    try { prefill = JSON.parse(raw); } catch { prefill = null; }
+  }
+  sessionStorage.removeItem("spc_workflow_modul");
+  return { tab, prefill };
+}
+
+export function sacuvajNavigaciju8d(prefill, modul = "atributivne") {
+  sessionStorage.setItem("spc_8d_prefill", JSON.stringify(prefill8dIzEskalacije(prefill)));
+  const key = modul === "varijabilne" ? "spc_tab_mer" : "spc_tab_atr";
+  sessionStorage.setItem(key, "8d");
+  sessionStorage.setItem("spc_workflow_modul", modul === "varijabilne" ? "varijabilne" : "atributivne");
+}
+
+export function procitajNavigaciju8d(modul = "atributivne") {
+  const key = modul === "varijabilne" ? "spc_tab_mer" : "spc_tab_atr";
+  const tab = sessionStorage.getItem(key);
+  if (tab !== "8d") return { tab: null, prefill: null };
+  sessionStorage.removeItem(key);
   const raw = sessionStorage.getItem("spc_8d_prefill");
-  if (tab) sessionStorage.removeItem("spc_tab_atr");
   if (raw) sessionStorage.removeItem("spc_8d_prefill");
   let prefill = null;
   if (raw) {
     try { prefill = JSON.parse(raw); } catch { prefill = null; }
   }
+  sessionStorage.removeItem("spc_workflow_modul");
   return { tab, prefill };
 }
 
@@ -108,4 +146,77 @@ export async function predloziDodeljenogInzenjera(supabase) {
   const id = izaberiDodeljenogInzenjera(radnici, otvorene);
   const radnik = radnici.find(r => r.id === id);
   return { dodeljen_id: id, dodeljen_ime: radnik?.ime || null };
+}
+
+/** Zatvori eskalacije povezane sa NCR-om (eskalacija_id, SPC alarm). */
+export async function zatvoriEskalacijeZaNcr(supabase, ncr) {
+  if (!ncr?.id || ncr.status !== "zatvoren") return { zatvoreno: [] };
+
+  const ids = new Set();
+  if (ncr.eskalacija_id) ids.add(ncr.eskalacija_id);
+
+  if (ncr.spc_alarm_id) {
+    const { data: al } = await supabase.from("spc_alarmi")
+      .select("eskalacija_id")
+      .eq("id", ncr.spc_alarm_id)
+      .maybeSingle();
+    if (al?.eskalacija_id) ids.add(al.eskalacija_id);
+  }
+
+  const zatvoreno = [];
+  for (const eid of ids) {
+    const { data, error } = await supabase.from("eskalacije")
+      .update({
+        status: "zatvoren",
+        zatvoreno_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", eid)
+      .in("status", ["otvoren", "u_toku"])
+      .select("id,opis")
+      .maybeSingle();
+    if (!error && data) zatvoreno.push(data.id);
+  }
+
+  return { zatvoreno };
+}
+
+/** Zatvori SPC alarme povezane sa zatvorenim NCR-om. */
+export async function zatvoriSpcAlarmeZaNcr(supabase, ncr, { zatvoreneEskalacije = [] } = {}) {
+  if (!ncr?.id || ncr.status !== "zatvoren") return { zatvoreno: [] };
+
+  const { zatvoriSpcAlarmSistemski } = await import("./spcAlarmWorkflow.js");
+  const razlog = `Auto: NCR ${ncr.broj_ncr || ncr.id} zatvoren`;
+  const alarmIds = new Set();
+  if (ncr.spc_alarm_id) alarmIds.add(ncr.spc_alarm_id);
+
+  for (const eid of zatvoreneEskalacije) {
+    const { data: rows } = await supabase.from("spc_alarmi")
+      .select("id")
+      .eq("eskalacija_id", eid)
+      .in("status", ["otvoren", "potvrden", "karantin"]);
+    for (const r of rows || []) alarmIds.add(r.id);
+  }
+
+  const zatvoreno = [];
+  for (const aid of alarmIds) {
+    try {
+      const data = await zatvoriSpcAlarmSistemski(supabase, aid, { razlog });
+      if (data?.id) zatvoreno.push(data.id);
+    } catch { /* već zatvoren ili promenjen */ }
+  }
+  return { zatvoreno };
+}
+
+/** Posle zatvaranja NCR — eskalacije + SPC alarmi + obaveštenje. */
+export async function posleZatvaranjaNcr(supabase, ncr) {
+  const { zatvoreno } = await zatvoriEskalacijeZaNcr(supabase, ncr);
+  const { zatvoreno: spcAlarmi } = await zatvoriSpcAlarmeZaNcr(supabase, ncr, {
+    zatvoreneEskalacije: zatvoreno,
+  });
+  try {
+    const { obavestiNcrZatvoren } = await import("./autoAkcije.js");
+    await obavestiNcrZatvoren(supabase, ncr, { eskalacije: zatvoreno, spcAlarmi });
+  } catch { /* */ }
+  return { eskalacije: zatvoreno, spcAlarmi };
 }

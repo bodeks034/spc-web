@@ -1,0 +1,218 @@
+{
+  "meta": {
+    "verzija": "1.0",
+    "id_deo": "MRAP1-001",
+    "tip_vozila": "MRAP1",
+    "operacija": "MON-FINAL",
+    "napomena": "Kompletan šifrarnik momentnog ključa — 7 sklopova iz digitalni kluc SVG"
+  },
+  "merila_demo": [
+    { "naziv": "Atlas Tensor STB 72", "serijski_broj": "ATL-001", "vendor_profil": "atlas", "linija_stanica": "L3-A", "lokacija": "Linija 3 — točkovi" },
+    { "naziv": "Atlas Tensor STB 72", "serijski_broj": "ATL-002", "vendor_profil": "atlas", "linija_stanica": "L3-B", "lokacija": "Linija 3 — motor" },
+    { "naziv": "Bosch Rexroth Nexo", "serijski_broj": "BOS-101", "vendor_profil": "bosch", "linija_stanica": "L2", "lokacija": "Linija 2" },
+    { "naziv": "Stahlwille MANOSKOP 760", "serijski_broj": "STW-44", "vendor_profil": "stahlwille", "linija_stanica": "L1", "lokacija": "Linija 1" },
+    { "naziv": "Saltus SALTUS Smart", "serijski_broj": "SAL-09", "vendor_profil": "saltus", "linija_stanica": "L4", "lokacija": "Rezerva" },
+    { "naziv": "Norbar ProTorque", "serijski_broj": "NOR-77", "vendor_profil": "norbar", "linija_stanica": "L4", "lokacija": "Rezerva" }
+  ],
+  "jobs": [
+    {
+      "kod_job": "Motor",
+      "naziv": "Sklop motor — pozicije vijaka",
+      "dijagram": "Sklop_01_Motor.svg",
+      "vendor_profil": "atlas",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Glava motora — vijak 1", "klasifikacija": "VSK" },
+        { "poz_br": "2", "opis": "Glava motora — vijak 2", "klasifikacija": "VSK" },
+        { "poz_br": "3", "opis": "Glava motora — vijak 3", "klasifikacija": "VSK" },
+        { "poz_br": "4", "opis": "Kolenasto vratilo — remenica", "klasifikacija": "VSK" },
+        { "poz_br": "5", "opis": "Zamajac", "klasifikacija": "VSK" },
+        { "poz_br": "6", "opis": "Torque converter to flywheel (AT)", "klasifikacija": "KSK" },
+        { "poz_br": "7", "opis": "Uljna korpa — vijci", "klasifikacija": "STD" },
+        { "poz_br": "8", "opis": "Poklopac ventila", "klasifikacija": "STD" },
+        { "poz_br": "9", "opis": "Usisna grana", "klasifikacija": "KSK" },
+        { "poz_br": "10", "opis": "Izduvna grana", "klasifikacija": "KSK" },
+        { "poz_br": "11", "opis": "Alternator — nosač", "klasifikacija": "STD" },
+        { "poz_br": "12", "opis": "Turbo — nosač / flanša", "klasifikacija": "KSK" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "1", "prolaz": 1, "tip": "STAGED", "cilj_nm": 40, "tol_min": 36, "tol_max": 44, "klasifikacija": "VSK", "napomena": "Glava — 1. prolaz 50%" },
+        { "redosled": 2, "poz_br": "2", "prolaz": 1, "tip": "STAGED", "cilj_nm": 40, "tol_min": 36, "tol_max": 44, "klasifikacija": "VSK", "napomena": "Glava — dijagonalno" },
+        { "redosled": 3, "poz_br": "3", "prolaz": 1, "tip": "STAGED", "cilj_nm": 40, "tol_min": 36, "tol_max": 44, "klasifikacija": "VSK", "napomena": "Glava — dijagonalno" },
+        { "redosled": 4, "poz_br": "1", "prolaz": 2, "tip": "STAGED", "cilj_nm": 64, "tol_min": 58, "tol_max": 70, "klasifikacija": "VSK", "napomena": "Glava — 2. prolaz 80%" },
+        { "redosled": 5, "poz_br": "2", "prolaz": 2, "tip": "STAGED", "cilj_nm": 64, "tol_min": 58, "tol_max": 70, "klasifikacija": "VSK" },
+        { "redosled": 6, "poz_br": "3", "prolaz": 2, "tip": "STAGED", "cilj_nm": 64, "tol_min": 58, "tol_max": 70, "klasifikacija": "VSK" },
+        { "redosled": 7, "poz_br": "1", "prolaz": 3, "tip": "NM_UGAO", "cilj_nm": 80, "tol_min": 76, "tol_max": 84, "ugao_cilj": 90, "ugao_tol": 5, "klasifikacija": "VSK", "napomena": "Glava — finalni + ugao" },
+        { "redosled": 8, "poz_br": "4", "prolaz": 1, "tip": "NM", "cilj_nm": 180, "tol_min": 160, "tol_max": 200, "klasifikacija": "VSK" },
+        { "redosled": 9, "poz_br": "5", "prolaz": 1, "tip": "NM", "cilj_nm": 120, "tol_min": 108, "tol_max": 132, "klasifikacija": "VSK", "napomena": "Zamajac — dijagonalna sekvenca" },
+        { "redosled": 10, "poz_br": "6", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 42, "tol_max": 50, "klasifikacija": "KSK" },
+        { "redosled": 11, "poz_br": "9", "prolaz": 1, "tip": "NM", "cilj_nm": 35, "tol_min": 30, "tol_max": 40, "klasifikacija": "KSK", "napomena": "Usisna — krstasto" },
+        { "redosled": 12, "poz_br": "10", "prolaz": 1, "tip": "NM", "cilj_nm": 35, "tol_min": 30, "tol_max": 40, "klasifikacija": "KSK" },
+        { "redosled": 13, "poz_br": "7", "prolaz": 1, "tip": "NM", "cilj_nm": 18, "tol_min": 15, "tol_max": 22, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 14, "poz_br": "8", "prolaz": 1, "tip": "NM", "cilj_nm": 12, "tol_min": 10, "tol_max": 14, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    },
+    {
+      "kod_job": "Menjac",
+      "naziv": "Menjač i transfer case",
+      "dijagram": "Sklop_02_Menjac_Transfer_Case.svg",
+      "vendor_profil": "atlas",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Torque converter to flywheel", "klasifikacija": "KSK" },
+        { "poz_br": "2", "opis": "Mounting bracket to housing", "klasifikacija": "VSK" },
+        { "poz_br": "3", "opis": "Output flange locknut — initial", "klasifikacija": "VSK" },
+        { "poz_br": "4", "opis": "Output flange locknut — final", "klasifikacija": "VSK" },
+        { "poz_br": "5", "opis": "Output flange locknut — tip B", "klasifikacija": "VSK" },
+        { "poz_br": "6", "opis": "U-joint to pinion yoke", "klasifikacija": "VSK" },
+        { "poz_br": "7", "opis": "Drain/fill plug", "klasifikacija": "STD" },
+        { "poz_br": "8", "opis": "Poklopac (cover bolt)", "klasifikacija": "STD" },
+        { "poz_br": "9", "opis": "Transfer case — nosač na šasiju", "klasifikacija": "VSK" },
+        { "poz_br": "10", "opis": "PTO poklopac", "klasifikacija": "STD" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 42, "tol_max": 50, "klasifikacija": "KSK" },
+        { "redosled": 2, "poz_br": "2", "prolaz": 1, "tip": "NM", "cilj_nm": 185, "tol_min": 169, "tol_max": 203, "klasifikacija": "VSK" },
+        { "redosled": 3, "poz_br": "3", "prolaz": 1, "tip": "STAGED", "cilj_nm": 115, "tol_min": 105, "tol_max": 125, "klasifikacija": "VSK", "napomena": "Output flange — initial" },
+        { "redosled": 4, "poz_br": "4", "prolaz": 2, "tip": "STAGED", "cilj_nm": 170, "tol_min": 155, "tol_max": 185, "klasifikacija": "VSK", "napomena": "Output flange — final" },
+        { "redosled": 5, "poz_br": "5", "prolaz": 3, "tip": "STAGED", "cilj_nm": 265, "tol_min": 240, "tol_max": 290, "klasifikacija": "VSK", "varijanta": "tip B", "napomena": "Samo tip B — proveriti deo" },
+        { "redosled": 6, "poz_br": "6", "prolaz": 1, "tip": "NM", "cilj_nm": 37, "tol_min": 27, "tol_max": 37, "klasifikacija": "VSK" },
+        { "redosled": 7, "poz_br": "9", "prolaz": 1, "tip": "NM", "cilj_nm": 185, "tol_min": 169, "tol_max": 203, "klasifikacija": "VSK" },
+        { "redosled": 8, "poz_br": "7", "prolaz": 1, "tip": "NM", "cilj_nm": 24, "tol_min": 18, "tol_max": 24, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 9, "poz_br": "8", "prolaz": 1, "tip": "NM", "cilj_nm": 22, "tol_min": 16, "tol_max": 22, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 10, "poz_br": "10", "prolaz": 1, "tip": "NM", "cilj_nm": 23, "tol_min": 18, "tol_max": 28, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    },
+    {
+      "kod_job": "Osovine",
+      "naziv": "Osovine i vešanje",
+      "dijagram": "Sklop_03_Osovine_Vesanje.svg",
+      "vendor_profil": "bosch",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Halfshaft to flange", "klasifikacija": "VSK" },
+        { "poz_br": "2", "opis": "Wheel half lock-nut — initial", "klasifikacija": "VSK" },
+        { "poz_br": "3", "opis": "Wheel half lock-nut — final", "klasifikacija": "VSK" },
+        { "poz_br": "4", "opis": "Halfshaft to drive gear bolt", "klasifikacija": "VSK" },
+        { "poz_br": "5", "opis": "Access plug half-shaft", "klasifikacija": "STD" },
+        { "poz_br": "6", "opis": "Drain/fill plug osovina", "klasifikacija": "STD" },
+        { "poz_br": "7", "opis": "Amortizer — donji nosač", "klasifikacija": "VSK" },
+        { "poz_br": "8", "opis": "Amortizer — gornji nosač", "klasifikacija": "VSK" },
+        { "poz_br": "9", "opis": "U-obujmica opruge", "klasifikacija": "VSK" },
+        { "poz_br": "10", "opis": "Stabilizator — spona", "klasifikacija": "KSK" },
+        { "poz_br": "11", "opis": "Kontrolno rame na šasiju", "klasifikacija": "VSK" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 77, "tol_min": 57, "tol_max": 77, "klasifikacija": "VSK", "napomena": "Leva + desna strana" },
+        { "redosled": 2, "poz_br": "2", "prolaz": 1, "tip": "STAGED", "cilj_nm": 115, "tol_min": 105, "tol_max": 125, "klasifikacija": "VSK" },
+        { "redosled": 3, "poz_br": "3", "prolaz": 2, "tip": "STAGED", "cilj_nm": 170, "tol_min": 155, "tol_max": 185, "klasifikacija": "VSK" },
+        { "redosled": 4, "poz_br": "4", "prolaz": 1, "tip": "NM", "cilj_nm": 50, "tol_min": 45, "tol_max": 55, "klasifikacija": "VSK" },
+        { "redosled": 5, "poz_br": "7", "prolaz": 1, "tip": "NM", "cilj_nm": 150, "tol_min": 135, "tol_max": 165, "klasifikacija": "VSK" },
+        { "redosled": 6, "poz_br": "8", "prolaz": 1, "tip": "NM", "cilj_nm": 115, "tol_min": 100, "tol_max": 130, "klasifikacija": "VSK" },
+        { "redosled": 7, "poz_br": "9", "prolaz": 1, "tip": "NM", "cilj_nm": 195, "tol_min": 175, "tol_max": 215, "klasifikacija": "VSK" },
+        { "redosled": 8, "poz_br": "11", "prolaz": 1, "tip": "NM", "cilj_nm": 280, "tol_min": 252, "tol_max": 308, "klasifikacija": "VSK" },
+        { "redosled": 9, "poz_br": "10", "prolaz": 1, "tip": "NM", "cilj_nm": 79, "tol_min": 70, "tol_max": 88, "klasifikacija": "KSK" },
+        { "redosled": 10, "poz_br": "5", "prolaz": 1, "tip": "NM", "cilj_nm": 18, "tol_min": 11, "tol_max": 18, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 11, "poz_br": "6", "prolaz": 1, "tip": "NM", "cilj_nm": 18, "tol_min": 11, "tol_max": 18, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    },
+    {
+      "kod_job": "Kocnice",
+      "naziv": "Kočioni sistem",
+      "dijagram": "Sklop_04_Kocnice.svg",
+      "vendor_profil": "atlas",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Caliper yoke to adapter", "klasifikacija": "VSK" },
+        { "poz_br": "2", "opis": "Caliper guide pins", "klasifikacija": "VSK" },
+        { "poz_br": "3", "opis": "Bleed screw", "klasifikacija": "STD" },
+        { "poz_br": "4", "opis": "Cable bracket screws", "klasifikacija": "STD" },
+        { "poz_br": "5", "opis": "Parking brake lever retaining", "klasifikacija": "KSK" },
+        { "poz_br": "6", "opis": "Kočioni cilindar nosač", "klasifikacija": "VSK" },
+        { "poz_br": "7", "opis": "Kočiona pločica — fiksacija", "klasifikacija": "VSK" },
+        { "poz_br": "8", "opis": "Master cilindar nosač", "klasifikacija": "VSK" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 54, "tol_min": 48, "tol_max": 60, "klasifikacija": "VSK" },
+        { "redosled": 2, "poz_br": "2", "prolaz": 1, "tip": "NM", "cilj_nm": 54, "tol_min": 48, "tol_max": 60, "klasifikacija": "VSK", "napomena": "Lubrikovano" },
+        { "redosled": 3, "poz_br": "6", "prolaz": 1, "tip": "NM", "cilj_nm": 115, "tol_min": 100, "tol_max": 130, "klasifikacija": "VSK" },
+        { "redosled": 4, "poz_br": "7", "prolaz": 1, "tip": "NM", "cilj_nm": 23, "tol_min": 18, "tol_max": 28, "klasifikacija": "VSK" },
+        { "redosled": 5, "poz_br": "8", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 40, "tol_max": 52, "klasifikacija": "VSK" },
+        { "redosled": 6, "poz_br": "5", "prolaz": 1, "tip": "NM", "cilj_nm": 34, "tol_min": 28, "tol_max": 40, "klasifikacija": "KSK" },
+        { "redosled": 7, "poz_br": "3", "prolaz": 1, "tip": "NM", "cilj_nm": 20, "tol_min": 8, "tol_max": 20, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 8, "poz_br": "4", "prolaz": 1, "tip": "NM", "cilj_nm": 34, "tol_min": 27, "tol_max": 34, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    },
+    {
+      "kod_job": "Tockovi",
+      "naziv": "Točkovi, naplaci i geared hub",
+      "dijagram": "Sklop_05_Tockovi.svg",
+      "vendor_profil": "atlas",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Lug nut tapered (8 poz.)", "klasifikacija": "VSK" },
+        { "poz_br": "3", "opis": "Geared hub access cover", "klasifikacija": "STD" },
+        { "poz_br": "4", "opis": "Drain/fill plug hub", "klasifikacija": "STD" },
+        { "poz_br": "5", "opis": "Beadlock pinch bolt", "klasifikacija": "VSK" },
+        { "poz_br": "6", "opis": "Input seal plate", "klasifikacija": "KSK" },
+        { "poz_br": "7", "opis": "Steering cover", "klasifikacija": "VSK" },
+        { "poz_br": "8", "opis": "Runflat cam bolt — pre", "klasifikacija": "VSK" },
+        { "poz_br": "9", "opis": "Runflat cam bolt — posle", "klasifikacija": "VSK" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 149, "tol_min": 142, "tol_max": 156, "klasifikacija": "VSK", "varijanta": "tapered 1-piece", "napomena": "Dijagonalno — 8 matičnjaka" },
+        { "redosled": 2, "poz_br": "1", "prolaz": 2, "tip": "NM", "cilj_nm": 149, "tol_min": 142, "tol_max": 156, "klasifikacija": "VSK", "varijanta": "tapered — finalni prolaz" },
+        { "redosled": 3, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 190, "tol_min": 180, "tol_max": 200, "klasifikacija": "VSK", "varijanta": "flanged 2-piece — TTY ne ponovo!", "napomena": "Alternativa — ne mešati sa tapered" },
+        { "redosled": 4, "poz_br": "5", "prolaz": 1, "tip": "NM", "cilj_nm": 95, "tol_min": 85, "tol_max": 105, "klasifikacija": "VSK" },
+        { "redosled": 5, "poz_br": "8", "prolaz": 1, "tip": "STAGED", "cilj_nm": 9.5, "tol_min": 8, "tol_max": 11, "klasifikacija": "VSK", "napomena": "Runflat — pre podešavanja" },
+        { "redosled": 6, "poz_br": "9", "prolaz": 2, "tip": "STAGED", "cilj_nm": 68, "tol_min": 60, "tol_max": 76, "klasifikacija": "VSK", "napomena": "Runflat — posle podešavanja" },
+        { "redosled": 7, "poz_br": "7", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 40, "tol_max": 52, "klasifikacija": "VSK" },
+        { "redosled": 8, "poz_br": "3", "prolaz": 1, "tip": "NM", "cilj_nm": 20, "tol_min": 18, "tol_max": 22, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 9, "poz_br": "4", "prolaz": 1, "tip": "NM", "cilj_nm": 15, "tol_min": 12, "tol_max": 18, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    },
+    {
+      "kod_job": "Upravljanje",
+      "naziv": "Upravljački sistem",
+      "dijagram": "Sklop_06_Upravljanje.svg",
+      "vendor_profil": "stahlwille",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Rezervoar servo — nosač", "klasifikacija": "STD" },
+        { "poz_br": "2", "opis": "Tie rod end — matica", "klasifikacija": "VSK" },
+        { "poz_br": "3", "opis": "Volanski stub na šasiju", "klasifikacija": "VSK" },
+        { "poz_br": "4", "opis": "Servo pumpa — nosač", "klasifikacija": "KSK" },
+        { "poz_br": "5", "opis": "Pitman rame — matica", "klasifikacija": "VSK" },
+        { "poz_br": "6", "opis": "Kućište upravljačkog mehanizma", "klasifikacija": "VSK" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "6", "prolaz": 1, "tip": "NM", "cilj_nm": 185, "tol_min": 169, "tol_max": 203, "klasifikacija": "VSK" },
+        { "redosled": 2, "poz_br": "3", "prolaz": 1, "tip": "NM", "cilj_nm": 67, "tol_min": 60, "tol_max": 74, "klasifikacija": "VSK" },
+        { "redosled": 3, "poz_br": "2", "prolaz": 1, "tip": "NM", "cilj_nm": 195, "tol_min": 175, "tol_max": 215, "klasifikacija": "VSK" },
+        { "redosled": 4, "poz_br": "5", "prolaz": 1, "tip": "NM_UGAO", "cilj_nm": 400, "tol_min": 360, "tol_max": 440, "ugao_cilj": 45, "ugao_tol": 5, "klasifikacija": "VSK" },
+        { "redosled": 5, "poz_br": "4", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 40, "tol_max": 52, "klasifikacija": "KSK" },
+        { "redosled": 6, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 40, "tol_max": 52, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    },
+    {
+      "kod_job": "Karoserija",
+      "naziv": "Karoserija i šasija",
+      "dijagram": "Sklop_07_Karoserija_Sasija.svg",
+      "vendor_profil": "atlas",
+      "pozicije": [
+        { "poz_br": "1", "opis": "Body mount na šasiju", "klasifikacija": "VSK" },
+        { "poz_br": "2", "opis": "Branik — nosač", "klasifikacija": "STD" },
+        { "poz_br": "3", "opis": "Vitlo — nosač", "klasifikacija": "VSK" },
+        { "poz_br": "4", "opis": "Rezervoar goriva — obujmica", "klasifikacija": "KSK" },
+        { "poz_br": "5", "opis": "Sedište — šina/nosač", "klasifikacija": "VSK" },
+        { "poz_br": "6", "opis": "Sigurnosni pojas — sidrište", "klasifikacija": "VSK" },
+        { "poz_br": "7", "opis": "Vrata / šarke", "klasifikacija": "STD" },
+        { "poz_br": "8", "opis": "Panel / obloga", "klasifikacija": "STD" }
+      ],
+      "koraci": [
+        { "redosled": 1, "poz_br": "1", "prolaz": 1, "tip": "NM", "cilj_nm": 185, "tol_min": 169, "tol_max": 203, "klasifikacija": "VSK", "napomena": "4+ tačke body mount" },
+        { "redosled": 2, "poz_br": "3", "prolaz": 1, "tip": "NM", "cilj_nm": 280, "tol_min": 252, "tol_max": 308, "klasifikacija": "VSK" },
+        { "redosled": 3, "poz_br": "6", "prolaz": 1, "tip": "NM", "cilj_nm": 115, "tol_min": 100, "tol_max": 130, "klasifikacija": "VSK", "napomena": "Zakonski propisan spoj" },
+        { "redosled": 4, "poz_br": "5", "prolaz": 1, "tip": "NM", "cilj_nm": 67, "tol_min": 60, "tol_max": 74, "klasifikacija": "VSK" },
+        { "redosled": 5, "poz_br": "4", "prolaz": 1, "tip": "NM", "cilj_nm": 46, "tol_min": 40, "tol_max": 52, "klasifikacija": "KSK" },
+        { "redosled": 6, "poz_br": "2", "prolaz": 1, "tip": "NM", "cilj_nm": 79, "tol_min": 70, "tol_max": 88, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 7, "poz_br": "7", "prolaz": 1, "tip": "NM", "cilj_nm": 23, "tol_min": 18, "tol_max": 28, "klasifikacija": "STD", "blokiraj_na_nok": false },
+        { "redosled": 8, "poz_br": "8", "prolaz": 1, "tip": "NM", "cilj_nm": 5, "tol_min": 4, "tol_max": 6, "klasifikacija": "STD", "blokiraj_na_nok": false }
+      ]
+    }
+  ]
+}

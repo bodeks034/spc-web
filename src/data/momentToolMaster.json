@@ -1,0 +1,18 @@
+{
+  "alati": [
+    { "tool_kod": "TK001", "naziv": "Digitalni momentni ključ 1–10 Nm", "nm_min": 1, "nm_max": 10, "program_kod": "P001" },
+    { "tool_kod": "TK002", "naziv": "Digitalni momentni ključ 5–25 Nm", "nm_min": 5, "nm_max": 25, "program_kod": "P002" },
+    { "tool_kod": "TK003", "naziv": "Digitalni momentni ključ 20–100 Nm", "nm_min": 20, "nm_max": 100, "program_kod": "P003" },
+    { "tool_kod": "TK004", "naziv": "Digitalni momentni ključ 60–300 Nm", "nm_min": 60, "nm_max": 300, "program_kod": "P004" },
+    { "tool_kod": "TK005", "naziv": "Digitalni momentni ključ 200–1000 Nm", "nm_min": 200, "nm_max": 1000, "program_kod": "P005" }
+  ],
+  "programi": [
+    { "program_kod": "P001", "opis": "M6 10 Nm" },
+    { "program_kod": "P002", "opis": "M8 25 Nm" },
+    { "program_kod": "P003", "opis": "M10 70 Nm" },
+    { "program_kod": "P004", "opis": "M12 120 Nm" },
+    { "program_kod": "P005", "opis": "M14 190 Nm" },
+    { "program_kod": "P006", "opis": "M16 210 Nm" },
+    { "program_kod": "P007", "opis": "Torque + Angle" }
+  ]
+}

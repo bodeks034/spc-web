@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" font-family="Arial, sans-serif">
+  <rect width="1000" height="800" fill="#ffffff"/>
+
+  <text x="500" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1F4E78">KAKO OPERATER VIDI SEKVENCU NA EKRANU DIGITALNOG KLJUČA</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#595959">Generalni princip — raspored elemenata se razlikuje po proizvođaču, ali sadržaj je isti</text>
+
+  <!-- SCREEN 1: Before tightening -->
+  <g>
+    <text x="230" y="90" text-anchor="middle" font-size="14" font-weight="bold" fill="#1F4E78">1. PRE zatezanja (čeka na akciju)</text>
+    <rect x="60" y="105" width="340" height="230" rx="14" fill="#1a1a1a"/>
+    <rect x="75" y="120" width="310" height="200" rx="6" fill="#0d1b2a"/>
+
+    <!-- job/step header -->
+    <text x="90" y="145" font-size="13" fill="#8bc9ff" font-weight="bold">JOB: Točkovi</text>
+    <text x="90" y="163" font-size="12" fill="#8bc9ff">KORAK 3 / 8</text>
+
+    <!-- big target number -->
+    <text x="230" y="215" text-anchor="middle" font-size="46" font-weight="bold" fill="#ffffff">149</text>
+    <text x="230" y="238" text-anchor="middle" font-size="14" fill="#8bc9ff">Nm  (cilj)</text>
+
+    <!-- tolerance bar -->
+    <rect x="100" y="255" width="260" height="10" rx="5" fill="#33475b"/>
+    <rect x="100" y="255" width="0" height="10" rx="5" fill="#2e8b57"/>
+    <text x="230" y="280" text-anchor="middle" font-size="11" fill="#c9d6e3">Tolerancija: ±5% (142–156 Nm)</text>
+
+    <!-- status -->
+    <rect x="90" y="292" width="280" height="20" rx="4" fill="#33475b"/>
+    <text x="230" y="306" text-anchor="middle" font-size="11" fill="#ffe08a">SPREMAN — postavi ključ na spoj</text>
+  </g>
+
+  <!-- SCREEN 2: During / OK -->
+  <g>
+    <text x="590" y="90" text-anchor="middle" font-size="14" font-weight="bold" fill="#1F4E78">2. NAKON zatezanja — OK</text>
+    <rect x="420" y="105" width="340" height="230" rx="14" fill="#1a1a1a"/>
+    <rect x="435" y="120" width="310" height="200" rx="6" fill="#0d1b2a"/>
+
+    <text x="450" y="145" font-size="13" fill="#8bc9ff" font-weight="bold">JOB: Točkovi</text>
+    <text x="450" y="163" font-size="12" fill="#8bc9ff">KORAK 3 / 8</text>
+
+    <text x="590" y="215" text-anchor="middle" font-size="46" font-weight="bold" fill="#7CFC9A">151</text>
+    <text x="590" y="238" text-anchor="middle" font-size="14" fill="#8bc9ff">Nm  (ostvareno)</text>
+
+    <rect x="460" y="255" width="260" height="10" rx="5" fill="#33475b"/>
+    <rect x="460" y="255" width="230" height="10" rx="5" fill="#2e8b57"/>
+    <text x="590" y="280" text-anchor="middle" font-size="11" fill="#c9d6e3">Unutar tolerancije</text>
+
+    <rect x="450" y="292" width="280" height="20" rx="4" fill="#155724"/>
+    <text x="590" y="306" text-anchor="middle" font-size="12" fill="#7CFC9A" font-weight="bold">✓ OK — pređi na korak 4/8</text>
+  </g>
+
+  <!-- SCREEN 3: NOK -->
+  <g>
+    <text x="230" y="380" text-anchor="middle" font-size="14" font-weight="bold" fill="#1F4E78">3. NAKON zatezanja — NOK (van tolerancije)</text>
+    <rect x="60" y="395" width="340" height="230" rx="14" fill="#1a1a1a"/>
+    <rect x="75" y="410" width="310" height="200" rx="6" fill="#2a0d0d"/>
+
+    <text x="90" y="435" font-size="13" fill="#ff9b9b" font-weight="bold">JOB: Točkovi</text>
+    <text x="90" y="453" font-size="12" fill="#ff9b9b">KORAK 3 / 8</text>
+
+    <text x="230" y="505" text-anchor="middle" font-size="46" font-weight="bold" fill="#ff6b6b">128</text>
+    <text x="230" y="528" text-anchor="middle" font-size="14" fill="#ff9b9b">Nm  (ostvareno)</text>
+
+    <rect x="100" y="545" width="260" height="10" rx="5" fill="#33475b"/>
+    <rect x="100" y="545" width="150" height="10" rx="5" fill="#c0392b"/>
+    <text x="230" y="570" text-anchor="middle" font-size="11" fill="#ffb3b3">Ispod tolerancije (142–156 Nm)</text>
+
+    <rect x="90" y="582" width="280" height="20" rx="4" fill="#7a1f1f"/>
+    <text x="230" y="596" text-anchor="middle" font-size="12" fill="#ff6b6b" font-weight="bold">✗ NOK — re-torque potreban</text>
+  </g>
+
+  <!-- SCREEN 4: Torque+Angle -->
+  <g>
+    <text x="590" y="380" text-anchor="middle" font-size="14" font-weight="bold" fill="#1F4E78">4. Torque + Angle korak (npr. glava motora)</text>
+    <rect x="420" y="395" width="340" height="230" rx="14" fill="#1a1a1a"/>
+    <rect x="435" y="410" width="310" height="200" rx="6" fill="#0d1b2a"/>
+
+    <text x="450" y="435" font-size="13" fill="#8bc9ff" font-weight="bold">JOB: Motor</text>
+    <text x="450" y="453" font-size="12" fill="#8bc9ff">KORAK 3 / 3 — FINALNI + UGAO</text>
+
+    <text x="590" y="490" text-anchor="middle" font-size="30" font-weight="bold" fill="#ffffff">80 Nm</text>
+    <text x="590" y="518" text-anchor="middle" font-size="30" font-weight="bold" fill="#7CFC9A">+ 90.4°</text>
+    <text x="590" y="537" text-anchor="middle" font-size="11" fill="#c9d6e3">cilj: 80 Nm + 90° (±5°)</text>
+
+    <rect x="450" y="582" width="280" height="20" rx="4" fill="#155724"/>
+    <text x="590" y="596" text-anchor="middle" font-size="12" fill="#7CFC9A" font-weight="bold">✓ OK — sekvenca završena</text>
+  </g>
+
+  <!-- Explanation box -->
+  <g font-size="12">
+    <rect x="40" y="650" width="920" height="130" fill="#F7F9FC" stroke="#BFBFBF"/>
+    <text x="55" y="672" font-weight="bold" fill="#1F4E78" font-size="13">ŠTA OPERATER VIDI — ključni elementi na svakom ekranu</text>
+    <text x="55" y="695" fill="#404040">• Naziv job-a i broj koraka (npr. "Korak 3/8") — sprečava preskakanje ili pogrešan redosled</text>
+    <text x="55" y="713" fill="#404040">• Cilj (target) pre zatezanja, ostvarena vrednost (i ugao) nakon zatezanja</text>
+    <text x="55" y="731" fill="#404040">• Vizuelni OK (zeleno) / NOK (crveno) signal — kod boljih ključeva i zvučni/vibracioni signal</text>
+    <text x="55" y="749" fill="#404040">• Kod NOK: ključ obično NE dozvoljava prelazak na sledeći korak dok se ne ponovi zatezanje ili operater ne potvrdi uz razlog</text>
+    <text x="55" y="767" fill="#8B0000" font-style="italic">Tačan raspored/izgled zavisi od modela — ovo je generalizovani prikaz principa rada, ne stvarni UI konkretnog uređaja.</text>
+  </g>
+</svg>

@@ -13,10 +13,11 @@ export function jeTabBlokiranAnalitika(tab) {
 /** Zajednički tabovi grupe Kvalitet (Modul 2). */
 export const KVALITET_TABOVI = [
   ["odobrenja", "ODOBRENJA"],
+  ["ncr", "NCR / CAPA"],
   ["8d", "8D"],
   ["pfmea-cp", "PFMEA / CP"],
   ["eskalacije", "ESKALACIJE"],
-  ["aql", "AQL"],
+  ["aql", "ISO 2859"],
   ["kupac", "KUPAC"],
   ["trasabilitet", "TRASABILITET"],
 ];
@@ -36,6 +37,8 @@ export const ANALITIKA_GRUPE_ATRIB = [
       ["stanje", "STANJE"],
       ["oc", "OC KRIVA"],
       ["stabilnost", "STABILNOST"],
+      ["msa", "MSA / MERILA"],
+      ["kplan", "KONTROLNI PLAN"],
     ],
   },
   {
@@ -49,7 +52,6 @@ export const ANALITIKA_GRUPE_ATRIB = [
     tabovi: [
       ["smena", "SMENA"],
       ["oee", "OEE"],
-      ["kalibracija", "MERILA"],
       ["ciljevi", "CILJEVI"],
       ["nalozi", "NALOZI"],
     ],
@@ -76,6 +78,7 @@ export const ANALITIKA_GRUPE_MER = [
       ["dashboard", "DASHBOARD"],
       ["karte", "KONTROLNE KARTE"],
       ["stanje", "STANJE"],
+      ["oc", "OC KRIVA"],
       ["heatmap", "HEAT MAP"],
       ["stabilnost", "STABILNOST"],
       ["msa", "MSA / MERILA"],
@@ -86,7 +89,8 @@ export const ANALITIKA_GRUPE_MER = [
     id: "kvalitet",
     naziv: "Kvalitet",
     tabovi: [
-      ...KVALITET_TABOVI,
+      ...KVALITET_TABOVI.filter(([id]) => id !== "aql"),
+      ["iso3951", "ISO 3951"],
       ["fai", "FAI"],
     ],
   },
@@ -147,14 +151,15 @@ export function bojaAnalitikaTaba(id, C) {
   const t = String(id || "").toLowerCase();
   if (t === "pregled" || t === "dashboard") return C.zelena;
   if (t === "karte") return C.narandzasta;
-  if (t === "stanje" || t === "msa" || t === "crtez") return C.ljubicasta;
+  if (t === "stanje" || t === "msa" || t === "crtez" || t === "oc") return C.ljubicasta;
   if (t === "admin" || t === "fai" || t === "smena" || t === "odobrenja") return C.zuta;
   if (t === "kplan" || t === "trasabilitet") return C.plava;
   if (t === "heatmap" || t === "stabilnost") return "#f472b6";
   if (t === "oee") return C.narandzasta;
   if (t === "kupac") return "#22d3ee";
   if (t === "excel") return C.plava;
-  if (t === "eskalacije" || t === "8d") return C.crvena;
+  if (t === "eskalacije" || t === "8d" || t === "ncr") return C.crvena;
   if (t === "pfmea-cp") return C.ljubicasta;
+  if (t === "iso3951") return "#38bdf8";
   return C.plava;
 }

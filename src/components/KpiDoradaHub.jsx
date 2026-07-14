@@ -1,15 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import SkartDoradaOeePanel from "./SkartDoradaOeePanel.jsx";
+import SkartDoradaOeePanel, { OeeFormulaRaspodela } from "./SkartDoradaOeePanel.jsx";
 import {
   fetchKpiUnos,
-  kpiVrednostiIzDb,
+  fetchKpiFilterOpcijeZaDeo,
+  filtrirajKpiStavke,
+  datumIsoUSr,
   snimiIliAzurirajKpiUnos,
   porukaKpiGreske,
   grupisiKpiRedove,
   oznakaKpiKljuca,
+  agregirajKpiUnos,
 } from "../lib/kpiUnos.js";
+import { posleSnimanjaKpiDorade } from "../lib/autoAkcije.js";
 import { datumSrUIso } from "../lib/planUzorkovanja.js";
+
+const PRAZNE_OPCIJE = { stavke: [], radniNalozi: [], datumi: [], smene: [] };
 
 function danasSr() {
   const d = new Date();
@@ -50,6 +56,16 @@ export default function KpiDoradaHub({
   const [kpiDbIdPoKljucu, setKpiDbIdPoKljucu] = useState({});
   const [metaPoKljucu, setMetaPoKljucu] = useState({});
   const [snima, setSnima] = useState(false);
+  const [filterOpcije, setFilterOpcije] = useState(PRAZNE_OPCIJE);
+  const [opcijeLoading, setOpcijeLoading] = useState(false);
+  const ucitaneOpcijeZa = useRef("");
+
+  const primeniStavku = useCallback((stavka) => {
+    if (!stavka) return;
+    setRadniNalog(stavka.radni_nalog ? String(stavka.radni_nalog).toUpperCase() : "");
+    if (stavka.datum) setDatum(datumIsoUSr(stavka.datum));
+    if (stavka.smena != null && stavka.smena !== "") setSmena(String(stavka.smena));
+  }, []);
 
   useEffect(() => {
     if (!otvoren && !inline) return;
@@ -58,6 +74,89 @@ export default function KpiDoradaHub({
     setSmena(String(pocetnaSmena || "1"));
     setDatum(pocetniDatum || danasSr());
   }, [otvoren, inline, pocetniIdDeo, pocetnaSmena, pocetniDatum, pocetniRadniNalog]);
+
+  useEffect(() => {
+    if (!otvoren && !inline) return;
+    const id = String(idDeo || "").trim().toUpperCase();
+    if (id.length < 3) {
+      setFilterOpcije(PRAZNE_OPCIJE);
+      ucitaneOpcijeZa.current = "";
+      return;
+    }
+    const kljucOpcija = `${modul}|${id}`;
+    if (kljucOpcija === ucitaneOpcijeZa.current) return;
+
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setOpcijeLoading(true);
+      try {
+        const opcije = await fetchKpiFilterOpcijeZaDeo(supabase, { modul, idDeo: id });
+        if (cancelled) return;
+        ucitaneOpcijeZa.current = kljucOpcija;
+        setFilterOpcije(opcije);
+        if (opcije.stavke.length) {
+          const pocIso = parsirajDatum(pocetniDatum || datum);
+          const pocRn = String(pocetniRadniNalog || "").trim().toUpperCase();
+          const pocSm = String(pocetnaSmena || smena || "1");
+          const hit = opcije.stavke.find((s) =>
+            s.datum === pocIso
+            && String(s.smena) === pocSm
+            && (!pocRn || (s.radni_nalog || "") === pocRn),
+          ) || opcije.stavke.find((s) => !pocRn || (s.radni_nalog || "") === pocRn)
+            || opcije.stavke[0];
+          primeniStavku(hit);
+        }
+      } catch {
+        if (!cancelled) setFilterOpcije(PRAZNE_OPCIJE);
+      } finally {
+        if (!cancelled) setOpcijeLoading(false);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [idDeo, modul, otvoren, inline, primeniStavku]);
+
+  const imaOpcije = filterOpcije.stavke.length > 0;
+
+  const stavkePoRn = useMemo(() => {
+    if (!imaOpcije) return [];
+    if (!radniNalog) return filterOpcije.stavke;
+    return filtrirajKpiStavke(filterOpcije.stavke, { radniNalog });
+  }, [filterOpcije.stavke, imaOpcije, radniNalog]);
+
+  const datumiOpcije = useMemo(() => (
+    [...new Set(stavkePoRn.map((s) => s.datum))].sort((a, b) => b.localeCompare(a))
+  ), [stavkePoRn]);
+
+  const smeneOpcije = useMemo(() => {
+    const datumIso = parsirajDatum(datum);
+    const list = filtrirajKpiStavke(stavkePoRn, { datumIso });
+    const izBaze = [...new Set(list.map((s) => String(s.smena)).filter(Boolean))]
+      .sort((a, b) => Number(a) - Number(b));
+    return izBaze.length ? izBaze : ["1", "2", "3"];
+  }, [stavkePoRn, datum]);
+
+  const promeniRadniNalog = (v) => {
+    const rn = String(v || "").trim().toUpperCase();
+    setRadniNalog(rn);
+    if (!imaOpcije) return;
+    const stavke = filtrirajKpiStavke(filterOpcije.stavke, { radniNalog: rn || undefined });
+    if (stavke[0]) primeniStavku(stavke[0]);
+  };
+
+  const promeniDatum = (iso) => {
+    setDatum(datumIsoUSr(iso));
+    if (!imaOpcije) return;
+    const stavke = filtrirajKpiStavke(filterOpcije.stavke, {
+      radniNalog: radniNalog || undefined,
+      datumIso: iso,
+    });
+    if (stavke[0]?.smena != null && stavke[0].smena !== "") {
+      setSmena(String(stavke[0].smena));
+    }
+  };
 
   const ucitaj = useCallback(async () => {
     const id = String(idDeo || "").trim().toUpperCase();
@@ -102,7 +201,20 @@ export default function KpiDoradaHub({
   }, [otvoren, inline, ucitaj]);
 
   const kpiSerija = kpiPoKljucu[izabraniKljuc] || null;
-  const ukupnoZaDeo = useMemo(() => kpiSerija, [kpiSerija]);
+
+  const agregatFilter = useMemo(() => {
+    if (!redovi.length) return null;
+    return agregirajKpiUnos(redovi, { modul });
+  }, [redovi, modul]);
+
+  const agregatIzvor = useMemo(() => {
+    if (!agregatFilter) return null;
+    const { kpi, brojUnosa, brojRedovaBaze, ...brojevi } = agregatFilter;
+    void kpi;
+    void brojUnosa;
+    void brojRedovaBaze;
+    return brojevi;
+  }, [agregatFilter]);
 
   const promeniKpi = (next) => {
     if (!izabraniKljuc) return;
@@ -136,6 +248,18 @@ export default function KpiDoradaHub({
         return;
       }
       if (data?.id) setKpiDbIdPoKljucu(prev => ({ ...prev, [izabraniKljuc]: data.id }));
+      const dor = Number(kpiSerija?.dorada) || 0;
+      const neus = Number(kpiSerija?.neusaglaseno) || 0;
+      if (dor > 0 && neus > 0) {
+        await posleSnimanjaKpiDorade(supabase, {
+          idDeo,
+          datum: parsirajDatum(datum),
+          smena,
+          dorada: dor,
+          neusaglaseno: neus,
+          kpiId: data?.id || kpiDbIdPoKljucu[izabraniKljuc],
+        });
+      }
       addToast?.("✓ KPI ažuriran (dorada / škart)", "uspeh");
       ucitaj();
     } finally {
@@ -144,7 +268,8 @@ export default function KpiDoradaHub({
   };
 
   const kljucevi = useMemo(() => Object.keys(kpiPoKljucu).sort(), [kpiPoKljucu]);
-  const imaNeus = ukupnoZaDeo?.neusaglaseno > 0;
+  const imaNeus = Number(kpiSerija?.neusaglaseno) > 0;
+  const viseSerija = kljucevi.length > 1;
 
   if (!otvoren && !inline) return null;
 
@@ -212,29 +337,109 @@ export default function KpiDoradaHub({
             />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{ color: C.sivi, fontSize: 9 }}>Radni nalog (opciono)</span>
-            <input
-              style={{ ...inp, textAlign: "center" }}
-              value={radniNalog}
-              onChange={e => setRadniNalog(e.target.value.toUpperCase())}
-              placeholder="RN broj"
-            />
+            <span style={{ color: C.sivi, fontSize: 9 }}>
+              Radni nalog {imaOpcije ? `(${filterOpcije.radniNalozi.length || "bez RN"})` : "(opciono)"}
+            </span>
+            {imaOpcije ? (
+              <select
+                style={{ ...inp, textAlign: "center" }}
+                value={radniNalog}
+                onChange={(e) => promeniRadniNalog(e.target.value)}
+                disabled={opcijeLoading}
+              >
+                {filterOpcije.radniNalozi.length === 0 ? (
+                  <option value="">— bez RN —</option>
+                ) : (
+                  <>
+                    <option value="">— izaberi RN —</option>
+                    {filterOpcije.radniNalozi.map((rn) => (
+                      <option key={rn} value={rn}>{rn}</option>
+                    ))}
+                  </>
+                )}
+              </select>
+            ) : (
+              <input
+                style={{ ...inp, textAlign: "center" }}
+                value={radniNalog}
+                onChange={(e) => setRadniNalog(e.target.value.toUpperCase())}
+                placeholder="RN broj"
+              />
+            )}
           </label>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "52px 1fr", gap: 8 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ color: C.sivi, fontSize: 9 }}>Smena</span>
-            <select style={inp} value={smena} onChange={e => setSmena(e.target.value)}>
-              {["1", "2", "3"].map(s => <option key={s} value={s}>{s}</option>)}
+            <select
+              style={inp}
+              value={smena}
+              onChange={(e) => setSmena(e.target.value)}
+              disabled={imaOpcije && opcijeLoading}
+            >
+              {smeneOpcije.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ color: C.sivi, fontSize: 9 }}>Datum</span>
-            <input style={inp} value={datum} onChange={e => setDatum(e.target.value)} placeholder="dd.mm.gggg" />
+            {imaOpcije && datumiOpcije.length > 0 ? (
+              <select
+                style={inp}
+                value={parsirajDatum(datum)}
+                onChange={(e) => promeniDatum(e.target.value)}
+                disabled={opcijeLoading}
+              >
+                {datumiOpcije.map((iso) => (
+                  <option key={iso} value={iso}>{datumIsoUSr(iso)}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                style={inp}
+                value={datum}
+                onChange={(e) => setDatum(e.target.value)}
+                placeholder="dd.mm.gggg"
+              />
+            )}
           </label>
         </div>
+        {imaOpcije && filterOpcije.stavke.length > 1 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {filterOpcije.stavke.slice(0, 10).map((s) => {
+              const akt = (s.radni_nalog || "") === (radniNalog || "")
+                && s.datum === parsirajDatum(datum)
+                && String(s.smena) === String(smena);
+              const oznaka = [
+                s.radni_nalog || "—",
+                datumIsoUSr(s.datum),
+                `sm.${s.smena || "?"}`,
+              ].join(" · ");
+              return (
+                <button
+                  key={`${s.radni_nalog || ""}|${s.datum}|${s.smena}`}
+                  type="button"
+                  onClick={() => primeniStavku(s)}
+                  style={{
+                    background: akt ? `${C.plava}22` : C.bg,
+                    border: `1px solid ${akt ? C.plava : C.border}`,
+                    borderRadius: 5,
+                    color: akt ? C.plava : C.sivi,
+                    fontSize: 9,
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {oznaka}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {opcijeLoading && (
+          <div style={{ color: C.sivi, fontSize: 9 }}>Učitavam RN / datume / smene za deo…</div>
+        )}
         <button type="button" onClick={ucitaj} disabled={loading} style={{
-          background: C.plava, border: "none", borderRadius: 6, color: "#fff",
+          background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent,
           fontSize: 11, fontWeight: 700, padding: "8px 12px", cursor: loading ? "wait" : "pointer",
         }}>
           {loading ? "Učitavam…" : "↻ Učitaj KPI"}
@@ -258,12 +463,26 @@ export default function KpiDoradaHub({
           </div>
         ) : (
           <>
+            {agregatFilter?.kpi && agregatIzvor && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, marginBottom: 6 }}>
+                  AGREGAT ZA FILTER
+                  {agregatFilter.brojUnosa > 1 ? ` · ${agregatFilter.brojUnosa} unosa` : ""}
+                </div>
+                <OeeFormulaRaspodela
+                  C={C}
+                  izvor={agregatIzvor}
+                  kpi={agregatFilter.kpi}
+                  naslov="OEE = A × P × Q"
+                />
+              </div>
+            )}
             {imaNeus && (
               <div style={{
                 background: `${C.zuta}18`, border: `1px solid ${C.zuta}50`,
                 borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 10, color: C.zuta,
               }}>
-                Ima <strong>{ukupnoZaDeo.neusaglaseno}</strong> neusaglašenih — unesite doradu i OK posle dorade.
+                Ima <strong>{kpiSerija.neusaglaseno}</strong> neusaglašenih — unesite doradu i OK posle dorade.
               </div>
             )}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
@@ -293,9 +512,10 @@ export default function KpiDoradaHub({
             {kpiSerija && (
               <SkartDoradaOeePanel
                 C={C}
+                modul={modul}
                 kompakt
                 vrednosti={kpiSerija}
-                ukupno={ukupnoZaDeo}
+                ukupno={viseSerija ? agregatIzvor : undefined}
                 onChange={promeniKpi}
                 podnaslov={`Dorada · škart · OK posle dorade — ${oznakaKpiKljuca(modul, izabraniKljuc)}`}
               />
@@ -324,7 +544,7 @@ export default function KpiDoradaHub({
             background: C.zelena,
             border: "none",
             borderRadius: 8,
-            color: "#fff",
+            color: C.onAkcent,
             fontSize: 11,
             fontWeight: 700,
             padding: "10px",

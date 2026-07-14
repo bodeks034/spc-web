@@ -8,7 +8,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createSign, createPrivateKey } from "node:crypto";
+import { sign, createPrivateKey } from "node:crypto";
 
 const args = process.argv.slice(2);
 function arg(name, def = null) {
@@ -44,19 +44,22 @@ const payload = {
     atributivne: !args.includes("--bez-atributivne"),
     varijabilne: !args.includes("--bez-merljive"),
     admin: !args.includes("--bez-admin"),
+    sifrarnik: !args.includes("--bez-sifrarnik"),
   },
   max_korisnika: arg("--max-korisnika", null) ? Number(arg("--max-korisnika")) : null,
+  max_uredjaja: arg("--max-uredjaja", null) ? Number(arg("--max-uredjaja")) : null,
 };
 
 const privPem = await fs.readFile(path.resolve("license-keys/private.pem"), "utf8");
 const key = createPrivateKey(privPem);
-const signer = createSign("ed25519");
-signer.update(JSON.stringify(payload));
-signer.end();
-const potpis = signer.sign(key).toString("base64");
+const data = Buffer.from(JSON.stringify(payload));
+const potpis = sign(null, data, key).toString("base64");
 
 const license = { ...payload, potpis };
-const out = path.resolve("public/license.json");
+const outArg = arg("--out", null);
+const out = outArg
+  ? path.resolve(outArg)
+  : path.resolve("public/license.json");
 await fs.mkdir(path.dirname(out), { recursive: true });
 await fs.writeFile(out, JSON.stringify(license, null, 2), "utf8");
 

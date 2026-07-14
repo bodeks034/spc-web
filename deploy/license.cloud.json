@@ -1,0 +1,16 @@
+{
+  "verzija": 1,
+  "aktivna": true,
+  "vazi_do": "2027-12-31T22:59:59.000Z",
+  "izdato": "2026-07-09T11:42:21.460Z",
+  "tenant_id": "spc-pilot",
+  "deployment": "cloud",
+  "moduli": {
+    "atributivne": true,
+    "varijabilne": true,
+    "admin": true,
+    "sifrarnik": true
+  },
+  "max_korisnika": null,
+  "potpis": "MMzOAVoUu7DvULM3XvytEactxlm7UW4sdz91ULmfeRkDX5XSEQ0iU8m/23nyfJ2STqIx5SwU/WuXUl+V5NJyDw=="
+}

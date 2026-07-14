@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import CrtezZoomViewer from "./CrtezZoomViewer.jsx";
 
 function clamp(n, min, max) {
@@ -15,6 +16,9 @@ export default function CrtezSplitModal({
   onClose,
   sidePanel = null,
   title = "Crtež dela",
+  fullscreen = false,
+  hotspotTacke = null,
+  viewBox = null,
 }) {
   const [modalW, setModalW] = useState(() => clamp(Math.round(window.innerWidth * 0.9), 520, 1500));
   const [modalH, setModalH] = useState(() => clamp(Math.round(window.innerHeight * 0.86), 360, 960));
@@ -65,9 +69,56 @@ export default function CrtezSplitModal({
     document.body.style.userSelect = "none";
   };
 
-  const imaPanel = !!sidePanel;
+  const imaPanel = !!sidePanel && !fullscreen;
 
-  return (
+  if (fullscreen) {
+    const modal = (
+      <div
+        role="presentation"
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.92)",
+          display: "flex", flexDirection: "column", padding: 8,
+        }}
+      >
+        <div
+          role="dialog"
+          aria-label={title}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            flex: 1,
+            minHeight: 0,
+            background: C.panel,
+            borderRadius: 10,
+            border: `1px solid ${C.border}`,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 12px", borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+          }}>
+            <span style={{ color: C.tekst, fontSize: 11, fontWeight: 700 }}>{title}</span>
+            <span style={{ color: C.sivi, fontSize: 9 }}>Točkić / + − · prevuci</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, padding: 8 }}>
+            <CrtezZoomViewer
+              url={url}
+              C={C}
+              onClose={onClose}
+              hotspotTacke={hotspotTacke}
+              viewBox={viewBox}
+            />
+          </div>
+        </div>
+      </div>
+    );
+    return createPortal(modal, document.body);
+  }
+
+  const modal = (
     <div
       role="presentation"
       onClick={onClose}
@@ -171,4 +222,6 @@ export default function CrtezSplitModal({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

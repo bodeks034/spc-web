@@ -235,7 +235,7 @@ export default function KpiSerijaPanel({
                     background: mozeAzurirati ? C.plava : C.hover,
                     border: "none",
                     borderRadius: 6,
-                    color: "#fff",
+                    color: C.onAkcent,
                     fontSize: 11,
                     fontWeight: 700,
                     padding: "9px 12px",

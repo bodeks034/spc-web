@@ -49,7 +49,7 @@ export default function FotoNokUnos({
           <button type="button" onClick={() => onFoto(null)}
             style={{
               position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.65)",
-              border: "none", borderRadius: 4, color: "#fff", fontSize: 11, padding: "2px 8px", cursor: "pointer",
+              border: "none", borderRadius: 4, color: C.onAkcent, fontSize: 11, padding: "2px 8px", cursor: "pointer",
             }}>✕</button>
         </div>
       ) : (

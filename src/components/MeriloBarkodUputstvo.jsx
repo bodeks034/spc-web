@@ -47,7 +47,7 @@ export default function MeriloBarkodUputstvo({ C, defaultOpen = false, kompakt }
         <div style={s.body}>
           {!kompakt && (
             <p style={s.note}>
-              Detaljno uputstvo u repou: <span style={s.link}>docs/UPUTSTVO_BARKOD_I_MERILA.md</span>
+              Detaljno uputstvo u repou: <span style={s.link}>docs/obuka-paket/UPUTSTVO_BARKOD_I_MERILA.md</span>
             </p>
           )}
 

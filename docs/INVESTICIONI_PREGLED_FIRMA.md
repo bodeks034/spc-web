@@ -164,9 +164,9 @@ Go-live pilot
 | Dokument | Svrha |
 |----------|--------|
 | `docs/ROADMAP_FAZA2.md` | Šta dodati posle pilota — fajlovi, checklist, sati |
-| `docs/UPUTSTVO_FIRMINSKI_SERVER.md` | Tehnički deploy |
+| `docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md` | Tehnički deploy |
 | `deploy/IT_A4_POKRETANJE.md` | IT dnevni rad |
-| `docs/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md` | Licenca i zaštita |
+| `docs/obuka-paket/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md` | Licenca i zaštita |
 | `deploy/IT_CHECKLIST.md` | Zahtevi pre starta |
 
 ---

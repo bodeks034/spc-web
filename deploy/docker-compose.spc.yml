@@ -1,0 +1,21 @@
+# SPC Web frontend — Docker (Supabase ostaje posebno na hostu)
+#
+# 1) Kopiraj deploy/.env.docker.example → deploy/.env.docker i popuni ključeve
+# 2) cd deploy && docker compose -f docker-compose.spc.yml --env-file .env.docker up -d --build
+# 3) Otvori http://localhost:8080 (ili mapirani port)
+#
+# Na Linux serveru: extra_hosts omogućava host.docker.internal → host gateway
+
+services:
+  spc-web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.spc
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://localhost:8080}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?postavi VITE_SUPABASE_ANON_KEY u .env.docker}
+    ports:
+      - "${SPC_HTTP_PORT:-8080}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

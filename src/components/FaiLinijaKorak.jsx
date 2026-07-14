@@ -207,11 +207,11 @@ export default function FaiLinijaKorak({
         style={{ ...INP, resize: "none" }} />
 
       <button type="button" disabled={snima} onClick={() => posalji(false)}
-        style={{ background: C.plava, border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, padding: 14, cursor: "pointer" }}>
+        style={{ background: C.plava, border: "none", borderRadius: 10, color: C.onAkcent, fontWeight: 700, padding: 14, cursor: "pointer" }}>
         {snima ? "Snima…" : "Sačuvaj FAI"}
       </button>
       <button type="button" disabled={snima} onClick={() => posalji(true)}
-        style={{ background: C.zelena, border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, padding: 14, cursor: "pointer" }}>
+        style={{ background: C.zelena, border: "none", borderRadius: 10, color: C.onAkcent, fontWeight: 700, padding: 14, cursor: "pointer" }}>
         {mozeOdobri ? "Odobri FAI i pušti seriju" : "Pošalji na odobrenje"}
       </button>
     </div>

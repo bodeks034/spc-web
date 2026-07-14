@@ -175,7 +175,7 @@ export async function upsertKupac(kupac) {
     return data;
   }
   const { data, error } = await supabase.from("kupci")
-    .insert(payload)
+    .upsert(payload, { onConflict: "naziv" })
     .select("*")
     .single();
   if (error) throw error;
@@ -446,6 +446,21 @@ function primeniIdFilter(q, idDeo) {
 }
 
 const SIFRARNIK_FETCH_LIMIT = 20000;
+
+const SOP_INDEKS_KOLONE = "id_deo,pogon_kod,radni_nalog,naziv_dela,slika,masina,linija,broj_merenja,kontrolor_ime";
+
+/** Lagani indeks SOP redova — bez karakteristika (učitavaju se po id_deo). */
+export async function fetchMerljiviSopIndeks() {
+  const { data, error } = await supabase.from("sop_deo_varijabilni")
+    .select(SOP_INDEKS_KOLONE)
+    .order("id_deo")
+    .limit(SIFRARNIK_FETCH_LIMIT);
+  if (error) {
+    if (greskaNedostajeTabela(error)) return [];
+    throw error;
+  }
+  return data || [];
+}
 
 export async function fetchSopMerljive({ idDeo = null } = {}) {
   if (idDeo && jePunIdDeo(idDeo)) {

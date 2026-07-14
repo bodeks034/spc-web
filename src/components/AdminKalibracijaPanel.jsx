@@ -64,7 +64,7 @@ export default function AdminKalibracijaPanel({ korisnik, C, addToast }) {
           ZAHTEVI · KALIBRACIJA ISTEKLA
           {zahtevi.length > 0 && (
             <span style={{
-              background: C.crvena, color: "#fff", fontSize: 10,
+              background: C.crvena, color: C.onAkcent, fontSize: 10,
               borderRadius: 10, padding: "1px 7px", marginLeft: 8,
             }}>
               {zahtevi.length}
@@ -132,7 +132,7 @@ export default function AdminKalibracijaPanel({ korisnik, C, addToast }) {
               onClick={() => odluci(z.id, "odobreno")}
               style={{
                 flex: 1, background: C.zelena, border: "none", borderRadius: 8,
-                color: "#fff", fontSize: 12, fontWeight: 700, padding: "9px", cursor: "pointer",
+                color: C.onAkcent, fontSize: 12, fontWeight: 700, padding: "9px", cursor: "pointer",
               }}
             >
               ✓ Dozvoli merenje
@@ -142,7 +142,7 @@ export default function AdminKalibracijaPanel({ korisnik, C, addToast }) {
               onClick={() => odluci(z.id, "odbijeno", "Kalibriši merilo pre unosa")}
               style={{
                 flex: 1, background: C.crvena, border: "none", borderRadius: 8,
-                color: "#fff", fontSize: 12, fontWeight: 700, padding: "9px", cursor: "pointer",
+                color: C.onAkcent, fontSize: 12, fontWeight: 700, padding: "9px", cursor: "pointer",
               }}
             >
               ✗ Odbij

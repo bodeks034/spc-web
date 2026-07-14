@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { ucitajPrikazSliku } from "../lib/slikePaths.js";
+import { dijagramSrcZaDeo, dijagramUrlZaPrikaz } from "../lib/voziloDijagramConfig.js";
 import CrtezZoomViewer from "./CrtezZoomViewer.jsx";
 
 /** Pregled crteža dela na koraku ID (atributivne). */
@@ -24,7 +25,12 @@ export default function AtrCrtezPregled({
     let ok = true;
     setStatus("loading");
     setUrl(null);
-    ucitajPrikazSliku(supabase, "atributivne", slikaNaziv).then((u) => {
+    (async () => {
+      let u = await ucitajPrikazSliku(supabase, "atributivne", slikaNaziv, idDeo);
+      if (!u && idDeo) {
+        const altSrc = dijagramSrcZaDeo({ id_deo: idDeo });
+        if (altSrc) u = await dijagramUrlZaPrikaz(altSrc, supabase);
+      }
       if (!ok) return;
       if (u) {
         setUrl(u);
@@ -33,7 +39,7 @@ export default function AtrCrtezPregled({
         setUrl(null);
         setStatus("error");
       }
-    });
+    })();
     return () => { ok = false; };
   }, [slikaNaziv, idDeo]);
 
@@ -103,7 +109,7 @@ export default function AtrCrtezPregled({
             <span>
               <strong style={{ color: C.tekst }}>{slikaNaziv}</strong>
               <br />
-              Fajl nije u Storage-u — tab CRTEŽ
+              Crtež nije učitan — proveri fajl u Storage-u ili Šifrarnik → slika dela
             </span>
           </div>
         )}

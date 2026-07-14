@@ -182,7 +182,7 @@ export default function UnosPokaYokeKorak({
                 type="button"
                 onClick={onZahtevKalibracija}
                 style={{
-                  background: C.zuta, border: "none", borderRadius: 6, color: "#000",
+                  background: C.zuta, border: "none", borderRadius: 6, color: C.onZuta,
                   fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
                 }}
               >
@@ -198,7 +198,7 @@ export default function UnosPokaYokeKorak({
                 onClick={onToggleKalibracijaOdobrenje}
                 style={{
                   background: kalibracijaOdobrena ? C.zuta : C.crvena,
-                  border: "none", borderRadius: 6, color: "#000",
+                  border: "none", borderRadius: 6, color: C.onZuta,
                   fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
                 }}
               >
@@ -311,7 +311,7 @@ export default function UnosPokaYokeKorak({
             background: mozeDalje ? boja : C.hover,
             border: "none",
             borderRadius: 8,
-            color: mozeDalje ? "#000" : C.sivi,
+            color: mozeDalje ? C.onZuta : C.sivi,
             fontSize: kompakt ? 13 : 14,
             fontWeight: 800,
             padding: kompakt ? "12px 22px" : "14px 28px",

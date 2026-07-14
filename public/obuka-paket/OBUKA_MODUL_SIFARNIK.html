@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPC — Modul 0 Šifrarnik</title>
+  <style>
+    :root { --text:#1a1a1a; --muted:#555; --border:#ccc; --accent:#0c5c8a; --green:#1a6b3c; --orange:#b45309; --bg:#f4f6f8; }
+    * { box-sizing:border-box; }
+    body { font-family:"Segoe UI",Arial,sans-serif; font-size:10.5pt; line-height:1.45; color:var(--text); margin:0; background:#c8c8c8; }
+    .page { width:210mm; min-height:297mm; margin:12px auto; padding:16mm 14mm 18mm; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.2); }
+    @media print {
+      body { background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .page {
+        width:auto; min-height:auto; margin:0; padding:0 !important;
+        box-shadow:none; page-break-after:always;
+      }
+      .page:last-child { page-break-after:auto; }
+      .no-print { display:none!important; }
+      a { color:inherit; text-decoration:none; }
+      table { page-break-inside:avoid; }
+      h2, h3 { page-break-after:avoid; }
+      th { background:#e8f2ec !important; }
+    }
+    @page { size:A4; margin:16mm 14mm 18mm 14mm; }
+    h1 { font-size:21pt; margin:0 0 6px; color:var(--accent); }
+    h2 { font-size:13pt; margin:18px 0 6px; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:3px; page-break-after:avoid; }
+    h3 { font-size:11pt; margin:12px 0 4px; page-break-after:avoid; }
+    p { margin:5px 0; }
+    .sub { color:var(--muted); margin-bottom:14px; }
+    table { width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:8.5pt; page-break-inside:avoid; background:#fff; }
+    th,td { border:1px solid #333; padding:6px 8px; text-align:left; vertical-align:top; background:#fff; }
+    th { background:#e8f2ec; font-weight:700; }
+    pre,.flow { background:#eef1f4; border:1px solid var(--border); border-radius:4px; padding:8px 10px; font-family:Consolas,monospace; font-size:8.5pt; white-space:pre-wrap; margin:8px 0; page-break-inside:avoid; }
+    .gold { border:2px solid var(--orange); background:#fff8ed; padding:10px 12px; border-radius:6px; margin:12px 0; }
+    .note { border-left:4px solid var(--accent); background:#eef6fb; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .warn { border-left:4px solid #c0392b; background:#fdf0ef; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .ok { border-left:4px solid var(--green); background:#eef8f1; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .tag { display:inline-block; background:var(--green); color:#fff; font-size:7.5pt; font-weight:700; padding:2px 7px; border-radius:10px; margin-right:5px; }
+    .tab { font-family:Consolas,monospace; background:#e8e8e8; padding:1px 5px; border-radius:3px; font-size:8.5pt; }
+    .print-bar { position:sticky; top:0; z-index:99; background:#222; color:#fff; padding:10px; text-align:center; }
+    .print-bar button { background:#1a6b3c; color:#fff; border:none; padding:8px 18px; font-weight:700; border-radius:6px; cursor:pointer; margin-left:10px; }
+    footer { margin-top:14px; border-top:1px solid var(--border); font-size:7.5pt; color:var(--muted); text-align:center; padding-top:6px; }
+    .section-start { page-break-before:always; }
+    .grp { font-weight:700; color:var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="print-bar no-print">
+  SPC — Modul 0 Šifrarnik (A4)
+  <button type="button" onclick="window.print()">🖨 Štampaj / Save as PDF</button>
+</div>
+
+<!-- NASLOVNA -->
+<div class="page">
+  <p class="tag">JUL 2026</p>
+  <h1>Modul 0 — Šifrarnik</h1>
+  <p class="sub">Kompletno uputstvo · 6 grupa · 25 tabova · SPC Web</p>
+
+  <div class="gold">
+    <strong>Zlatno pravilo</strong>
+    <table style="margin-top:8px">
+      <tr><th>Gde</th><th>Šta unosiš</th><th>Format</th></tr>
+      <tr><td><strong>Tabovi u Modulu 0</strong></td><td>Delovi, dimenzije, greške, RN, merila… — <em>pre</em> rada</td><td>Forma u aplikaciji</td></tr>
+      <tr><td><strong>Alati → ERP uvoz</strong></td><td>Masovni uvoz iz SAP / Pantheon</td><td><strong>Samo CSV</strong></td></tr>
+      <tr><td><strong>Glavni unos</strong></td><td>Dimenzije + zaglavlje dela (inženjer)</td><td>Poseban .xlsx</td></tr>
+      <tr><td><strong>Modul 1 (linija)</strong></td><td>Svakodnevna merenja OK/NOK i vrednosti</td><td>Aplikacija — ne šifrarnik</td></tr>
+    </table>
+  </div>
+
+  <h2>Pristup</h2>
+  <table>
+    <tr><th>Uloga</th><th>Modul 0</th></tr>
+    <tr><td>Kvalitet, šef, admin</td><td>Da</td></tr>
+    <tr><td>Kontrolor, operater</td><td>Ne</td></tr>
+  </table>
+  <p>Ulaz: <strong>Početni ekran → Modul 0 — Šifrarnik</strong> (📋)</p>
+
+  <h2>Sadržaj</h2>
+  <ol style="font-size:9.5pt">
+    <li>Excel i CSV — šta važi (važno)</li>
+    <li>Pregled 6 grupa tabova</li>
+    <li>Osnovno — tab po tab</li>
+    <li>Atributivne i Merljive</li>
+    <li>Celo vozilo, Moment ključ, Alati</li>
+    <li>ERP CSV fajlovi</li>
+    <li>Redosled puštanja novog dela</li>
+    <li>Česta pitanja</li>
+  </ol>
+  <footer>SPC Web · Modul 0 Šifrarnik · str. 1</footer>
+</div>
+
+<!-- EXCEL CSV -->
+<div class="page section-start">
+  <h2>1. Excel i CSV — šta važi u Modulu 0</h2>
+
+  <div class="warn">
+    <strong>Masovni uvoz iz ERP-a = samo CSV.</strong> Tab <span class="tab">Alati → ERP uvoz</span> ne prihvata .xlsx.
+    Excel master šifrarnik (<code>SPC_master_atributivne.xlsx</code>) <strong>nema</strong> uvoz kroz UI tabove.
+  </div>
+
+  <table>
+    <tr><th>Način</th><th>Format</th><th>Gde</th><th>Šta radi</th></tr>
+    <tr><td>ERP masovni uvoz</td><td><strong>.csv</strong></td><td>Alati → ERP uvoz</td><td>SAP/Pantheon → Supabase</td></tr>
+    <tr><td>RN brzi uvoz</td><td><strong>.csv</strong></td><td>Osnovno → Radni nalozi</td><td>Samo RN (deo mora postojati)</td></tr>
+    <tr><td>Glavni unos</td><td>.xlsx / .xls</td><td>Osnovno → Glavni unos</td><td>Staging → propagacija dimenzija</td></tr>
+    <tr><td>Backup</td><td>izvoz .xlsx</td><td>Alati → Backup</td><td>Arhiva — nema uvoza</td></tr>
+  </table>
+
+  <h3>Šta se NE radi</h3>
+  <ul style="font-size:9pt">
+    <li>Log kontrole (OK/NOK, merenja) — ide u Modul 1, ne u šifrarnik</li>
+    <li>.xlsx u ERP uvoz tabu</li>
+    <li>Ceo master Excel kroz UI</li>
+  </ul>
+
+  <h3>Tok sa ERP-om</h3>
+  <pre class="flow">ERP izvozi CSV
+    ↓
+Alati → ERP uvoz (Preview → Uvezi)
+    ↓
+Ručna dopuna (crteži, barkod, kontrolna lista…)
+    ↓
+Modul 1 — operateri rade unos</pre>
+
+  <footer>SPC Web · Modul 0 Šifrarnik · str. 2</footer>
+</div>
+
+<!-- PREGLED GRUPA -->
+<div class="page section-start">
+  <h2>2. Pregled grupa i tabova (25)</h2>
+  <table>
+    <tr><th>Grupa</th><th>Tabovi</th></tr>
+    <tr><td class="grp">Osnovno</td><td>Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Linije · Mašine · Smene · Ciljevi · Kontrolna lista</td></tr>
+    <tr><td class="grp">Atributivne</td><td>Katalog grešaka · Crtež dela · Pogoni po delu</td></tr>
+    <tr><td class="grp">Merljive</td><td>Dimenzije · SPC alarm % · SOP po delu · Merila/kalibracija</td></tr>
+    <tr><td class="grp">Celo vozilo</td><td>Tipovi vozila · Defekti vozila · Delovi vozila</td></tr>
+    <tr><td class="grp">Moment ključ</td><td>Šifrarnik JOB · Ključevi/kalibracija</td></tr>
+    <tr><td class="grp">Alati</td><td>Barkod · ERP uvoz · Backup</td></tr>
+  </table>
+
+  <h2>3. Osnovno — tab po tab</h2>
+  <table>
+    <tr><th>Tab</th><th>Tabela</th><th>Šta unosiš / kako radi</th></tr>
+    <tr>
+      <td><strong>Glavni unos</strong></td>
+      <td><span class="tab">glavni_unos_redovi</span></td>
+      <td>ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument. <strong>Sačuvaj i propagiraj</strong> → puni merljive + delovi + RN. Uvezi .xlsx (inženjerski format).</td>
+    </tr>
+    <tr>
+      <td><strong>Pogon mapa</strong></td>
+      <td><span class="tab">pogon_linija_mapa</span></td>
+      <td>Faza linije A–I ↔ linija_id. Operater na tabletu bira pogon.</td>
+    </tr>
+    <tr>
+      <td><strong>Linija ↔ deo</strong></td>
+      <td>—</td>
+      <td>Samo pregled mapiranja (read-only).</td>
+    </tr>
+    <tr>
+      <td><strong>Liste</strong></td>
+      <td><span class="tab">sifrarnik_liste_vrednosti</span></td>
+      <td>Dropdown: karakteristika, instrument, jedinica…</td>
+    </tr>
+    <tr>
+      <td><strong>Delovi</strong></td>
+      <td><span class="tab">delovi</span></td>
+      <td>id_deo, naziv, tip (deo/vozilo), kom za kontrolu, aktivan. Sken na liniji.</td>
+    </tr>
+    <tr>
+      <td><strong>Radni nalozi</strong></td>
+      <td><span class="tab">radni_nalozi</span></td>
+      <td>broj_naloga, id_deo, količina, kupac, pogon, status. CSV uvoz (ERP) ili ručno. FK: deo mora postojati.</td>
+    </tr>
+    <tr>
+      <td><strong>Kupci</strong></td>
+      <td><span class="tab">kupci</span></td>
+      <td>naziv, aktivan. Ručno ili kupci.csv.</td>
+    </tr>
+    <tr>
+      <td><strong>Linije</strong></td>
+      <td><span class="tab">linije</span></td>
+      <td>linija, proces, operacija. ERP: linije.csv.</td>
+    </tr>
+    <tr>
+      <td><strong>Mašine</strong></td>
+      <td><span class="tab">masine</span></td>
+      <td>naziv, linija. ERP: masine.csv.</td>
+    </tr>
+    <tr>
+      <td><strong>Smene</strong></td>
+      <td><span class="tab">smene</span></td>
+      <td>naziv, početak, kraj. Ručno (app auto-smena po satu).</td>
+    </tr>
+    <tr>
+      <td><strong>Ciljevi</strong></td>
+      <td><span class="tab">ciljevi</span></td>
+      <td>RTY/FPY %, DPMO, p-cilj po delu — za dashboard.</td>
+    </tr>
+    <tr>
+      <td><strong>Kontrolna lista</strong></td>
+      <td><span class="tab">kontrolna_lista_stavke</span></td>
+      <td>Stavke pre smene — poka-yoke na Modulu 1.</td>
+    </tr>
+  </table>
+  <footer>SPC Web · Modul 0 Šifrarnik · str. 3</footer>
+</div>
+
+<!-- ATR MERLJIVE -->
+<div class="page section-start">
+  <h2>4. Atributivne</h2>
+  <table>
+    <tr><th>Tab</th><th>Tabela</th><th>Šta unosiš</th><th>Na liniji</th></tr>
+    <tr>
+      <td><strong>Katalog grešaka</strong></td>
+      <td><span class="tab">greske_katalog</span></td>
+      <td>kategorija → podkategorija → defekt; opciono po deu/pogonu</td>
+      <td>OK/NOK izbor greške</td>
+    </tr>
+    <tr>
+      <td><strong>Crtež dela</strong></td>
+      <td><span class="tab">delovi</span> + storage</td>
+      <td>Upload slike/crteža</td>
+      <td>Tab CRTEŽ</td>
+    </tr>
+    <tr>
+      <td><strong>Pogoni po delu</strong></td>
+      <td><span class="tab">delovi_atributivni_pogon</span></td>
+      <td>pogon A–I, RN, kom za kontrolu po delu</td>
+      <td>Filter po pogonu</td>
+    </tr>
+  </table>
+  <p style="font-size:8.5pt">ERP CSV: <span class="tab">greske_katalog.csv</span></p>
+
+  <h2>5. Merljive</h2>
+  <table>
+    <tr><th>Tab</th><th>Tabela</th><th>Šta unosiš</th><th>Na liniji</th></tr>
+    <tr>
+      <td><strong>Dimenzije</strong></td>
+      <td><span class="tab">karakteristike_merljive</span></td>
+      <td>pozicija, nominala, LSL, USL, broj merenja, FAI, klasa. Propagiraj iz Osnovnog.</td>
+      <td>Kolone za kucanje merenja</td>
+    </tr>
+    <tr>
+      <td><strong>SPC alarm %</strong></td>
+      <td><span class="tab">app_podesavanja</span></td>
+      <td>Pragovi alarma po klasi (Critical/Major/Minor)</td>
+      <td>Alarm pri unosu</td>
+    </tr>
+    <tr>
+      <td><strong>SOP po delu</strong></td>
+      <td><span class="tab">sop_deo_varijabilni</span></td>
+      <td>slika SOP, mašina, linija, broj merenja</td>
+      <td>Prikaz na unosu</td>
+    </tr>
+    <tr>
+      <td><strong>Merila / kalibracija</strong></td>
+      <td><span class="tab">merila</span>, <span class="tab">kalibracije</span></td>
+      <td>Instrumenti, datumi kalibracije, sertifikati</td>
+      <td>Digitalni unos; blokada ako istekla kal.</td>
+    </tr>
+  </table>
+  <p style="font-size:8.5pt">ERP CSV: <span class="tab">karakteristike_merljive.csv</span>, <span class="tab">merila.csv</span>, <span class="tab">kalibracije.csv</span></p>
+
+  <div class="note">
+    <strong>Propagacija iz Glavnog unosa</strong> automatski puni <span class="tab">karakteristike_merljive</span> i <span class="tab">sop_deo_varijabilni</span>.
+    Posle ERP CSV uvoza proveri dimenzije na tabu Dimenzije.
+  </div>
+  <footer>SPC Web · Modul 0 Šifrarnik · str. 4</footer>
+</div>
+
+<!-- VOZILO MOMENT ALATI -->
+<div class="page section-start">
+  <h2>6. Celo vozilo</h2>
+  <table>
+    <tr><th>Tab</th><th>Tabela</th><th>Šta unosiš</th></tr>
+    <tr><td><strong>Tipovi vozila</strong></td><td><span class="tab">tipovi_vozila</span></td><td>kod, naziv, prefiks ID, dijagram. ERP: tipovi_vozila.csv</td></tr>
+    <tr><td><strong>Defekti vozila</strong></td><td><span class="tab">katalog_gresaka_vozilo</span></td><td>Greške po tipu vozila — zona na dijagramu</td></tr>
+    <tr><td><strong>Delovi vozila</strong></td><td><span class="tab">delovi</span> (tip=vozilo)</td><td>Delovi za kontrolu celog vozila</td></tr>
+  </table>
+
+  <h2>7. Moment ključ</h2>
+  <table>
+    <tr><th>Tab</th><th>Šta unosiš</th></tr>
+    <tr><td><strong>Šifrarnik JOB</strong></td><td>JOB-ovi, koraci sekvence (Nm, tolerancije), pozicije, digitalni ključevi. Uvezi protokol iz ključa (CSV/TXT/JSON).</td></tr>
+    <tr><td><strong>Ključevi / kalibracija</strong></td><td>Isti registar merila — opšti pregled kalibracije ključeva.</td></tr>
+  </table>
+  <p style="font-size:9pt">Na liniji: Modul 1 → tab <strong>MOMENT</strong> — operater prati sekvencu.</p>
+
+  <h2>8. Alati</h2>
+  <table>
+    <tr><th>Tab</th><th>Šta radi</th></tr>
+    <tr><td><strong>Barkod</strong></td><td>Profil etikete po delu (QR/Code128) → štampa → sken na liniji otvara deo/RN.</td></tr>
+    <tr><td><strong>ERP uvoz ⭐</strong></td><td>Masovni CSV uvoz (SAP/Pantheon). Preview → Uvezi. Log u erp_uvoz_log.</td></tr>
+    <tr><td><strong>Backup</strong></td><td>Samo preuzimanje SPC_sifrarnik_backup_{datum}.xlsx — bez uvoza.</td></tr>
+  </table>
+  <footer>SPC Web · Modul 0 Šifrarnik · str. 5</footer>
+</div>
+
+<!-- ERP CSV -->
+<div class="page section-start">
+  <h2>9. ERP CSV fajlovi (preset SAP)</h2>
+  <table>
+    <tr><th>CSV fajl</th><th>Supabase tabela</th><th>Napomena</th></tr>
+    <tr><td>linije.csv</td><td>linije</td><td>ARBPL / work center</td></tr>
+    <tr><td>masine.csv</td><td>masine</td><td>Equipment</td></tr>
+    <tr><td>tipovi_vozila.csv</td><td>tipovi_vozila</td><td>Product group</td></tr>
+    <tr><td>delovi.csv / sap_delovi.csv</td><td>delovi</td><td>MATNR → id_deo</td></tr>
+    <tr><td>crtezi_dela.csv</td><td>crtez_assets</td><td>Crteži</td></tr>
+    <tr><td>greske_katalog.csv</td><td>greske_katalog</td><td>Greške</td></tr>
+    <tr><td>kupci.csv</td><td>kupci</td><td>Kupci</td></tr>
+    <tr><td>merila.csv</td><td>merila</td><td>Merila</td></tr>
+    <tr><td>kalibracije.csv</td><td>kalibracije</td><td>Kalibracije</td></tr>
+    <tr><td>karakteristike_merljive.csv</td><td>karakteristike_merljive</td><td>Dimenzije LSL/USL</td></tr>
+    <tr><td>radni_nalozi.csv</td><td>radni_nalozi</td><td>AUFNR — posle delovi!</td></tr>
+  </table>
+
+  <div class="warn">
+    <strong>Redosled:</strong> prvo <span class="tab">delovi.csv</span>, zatim <span class="tab">radni_nalozi.csv</span>.
+    Nespojeni fajlovi = pogrešno ime. Kolone se mapiraju automatski (SAP/Pantheon aliasi).
+  </div>
+
+  <h2>10. Redosled — novi deo</h2>
+  <h3>Sa ERP-om</h3>
+  <ol style="font-size:9pt">
+    <li>ERP uvoz CSV (delovi, dimenzije, greške, RN)</li>
+    <li>Pogon mapa + Linija↔deo (provera)</li>
+    <li>Crtež dela, Barkod</li>
+    <li>Kontrolna lista</li>
+    <li>Test Modul 1</li>
+  </ol>
+  <h3>Bez ERP-a</h3>
+  <ol style="font-size:9pt">
+    <li>Linije, Mašine, Kupci</li>
+    <li>Glavni unos → Propagiraj</li>
+    <li>Katalog grešaka, Pogon mapa</li>
+    <li>RN, Barkod, Kontrolna lista</li>
+    <li>Test Modul 1</li>
+  </ol>
+
+  <h2>11. Uticaj na Modul 1 i 2</h2>
+  <table>
+    <tr><th>Šifrarnik</th><th>Modul 1</th><th>Modul 2</th></tr>
+    <tr><td>Delovi</td><td>Sken ID</td><td>Filter</td></tr>
+    <tr><td>Dimenzije</td><td>Kolone merenja</td><td>X̄/R, Cp/Cpk</td></tr>
+    <tr><td>Greške</td><td>OK/NOK</td><td>Pareto, DPMO</td></tr>
+    <tr><td>RN</td><td>Izbor posle dela</td><td>Trasabilitet</td></tr>
+    <tr><td>Kontrolna lista</td><td>Blokada unosa</td><td>—</td></tr>
+    <tr><td>Merila</td><td>Digitalni unos</td><td>MSA</td></tr>
+  </table>
+  <footer>SPC Web · Modul 0 Šifrarnik · str. 6</footer>
+</div>
+
+<!-- FAQ -->
+<div class="page section-start">
+  <h2>12. Česta pitanja</h2>
+  <table>
+    <tr><th>Problem</th><th>Rešenje</th></tr>
+    <tr><td>Operater ne vidi deo</td><td>delovi.aktivan = true; pogon mapa; licenca</td></tr>
+    <tr><td>Nema dimenzija posle skena</td><td>Nema redova u karakteristike_merljive za id_deo + pogon_kod</td></tr>
+    <tr><td>CSV uvoz RN pada</td><td>id_deo ne postoji — prvo delovi.csv</td></tr>
+    <tr><td>Excel u ERP tabu?</td><td><strong>Ne</strong> — samo CSV</td></tr>
+    <tr><td>Log u šifrarniku?</td><td><strong>Ne</strong> — log nastaje u Modulu 1 (Zapiši)</td></tr>
+  </table>
+
+  <div class="ok">
+    <strong>Markdown verzija</strong> (puna, sa linkovima): <code>UPUTSTVO_MODUL_SIFARNIK.md</code><br>
+    U aplikaciji: Početni ekran → <strong>Uputstvo</strong> → Modul 0 — Šifrarnik
+  </div>
+
+  <p style="font-size:8.5pt;color:var(--muted);margin-top:20px">
+    Povezano: UPUTSTVO_ERP_KONFIGURACIJA.md · UPUTSTVO_GLAVNI_UNOS.md · UPUTSTVO_PRAVLJENJE_BARKODOVA.md
+  </p>
+  <footer>SPC Web · Modul 0 Šifrarnik · kraj dokumenta · jul 2026</footer>
+</div>
+
+</body>
+</html>

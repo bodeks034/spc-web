@@ -1,12 +1,24 @@
 {
   "verzija": 1,
   "preset": "sap",
-  "opis": "Aktivna ERP konfiguracija — izmeni preset ili pojedinačne entitete ispod.",
+  "opis": "ERP dnevni uvoz iz erp-drop/incoming — šifrarnik + RN (SAP/Pantheon CSV). Šifrarnik u aplikaciji se može dopuniti ručno; ERP sinhronizuje master podatke.",
   "drop_dir": "erp-drop/incoming",
   "min_age_min": 2,
   "entiteti": {
+    "linije": { "ukljuceno": true },
+    "masine": { "ukljuceno": true },
+    "tipovi_vozila": { "ukljuceno": true },
+    "pogon_linija_mapa": { "ukljuceno": false },
+    "delovi": { "ukljuceno": true },
+    "crtezi_dela": { "ukljuceno": true },
+    "greske_katalog": { "ukljuceno": true },
+    "kupci": { "ukljuceno": true },
+    "merila": { "ukljuceno": true },
+    "kalibracije": { "ukljuceno": true },
+    "karakteristike_merljive": { "ukljuceno": true },
+    "barkod_profili": { "ukljuceno": false },
+    "radni_nalozi": { "ukljuceno": true },
     "smene": { "ukljuceno": false },
-    "tipovi_vozila": { "ukljuceno": false },
     "radnici": { "ukljuceno": false }
   }
 }

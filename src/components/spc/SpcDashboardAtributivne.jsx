@@ -469,7 +469,18 @@ export default function SpcDashboardAtributivne({
   const BOJE = [C.crvena, C.narandzasta, C.zuta, C.plava, C.ljubicasta];
 
   return (
-    <div style={{ padding: showToolbar ? 18 : 0 }} ref={ref}>
+    <div
+      ref={ref}
+      style={{
+        padding: showToolbar ? 18 : 0,
+        flex: showToolbar ? 1 : undefined,
+        minHeight: showToolbar ? 0 : undefined,
+        overflowY: showToolbar ? "auto" : undefined,
+        overflowX: "hidden",
+        boxSizing: "border-box",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
       {showSnapshot && (
         <AnalitikaSpcSnapshot C={C} modul="atributivne" onNavigacija={onNavigacija} uklopljen={!showToolbar} />
       )}
@@ -521,7 +532,7 @@ export default function SpcDashboardAtributivne({
                 background: pdfBusy || !rawData.length ? C.hover : "#7c3aed",
                 border: "none",
                 borderRadius: 6,
-                color: pdfBusy || !rawData.length ? C.sivi : "#fff",
+                color: pdfBusy || !rawData.length ? C.sivi : C.onAkcent,
                 fontSize: 11,
                 fontWeight: 700,
                 padding: "7px 14px",

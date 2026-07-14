@@ -86,13 +86,13 @@ export default function KalibracijaMerilaPanel({ korisnik, C, addToast }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>
           KALIBRACIJA MERILA
-          {isteklo>0 && <span style={{background:C.crvena,color:"#fff",fontSize:10,
+          {isteklo>0 && <span style={{background:C.crvena,color: C.onAkcent,fontSize:10,
             borderRadius:10,padding:"1px 7px",marginLeft:8}}>{isteklo} isteklo</span>}
-          {uskoro>0  && <span style={{background:C.zuta,color:"#000",fontSize:10,
+          {uskoro>0  && <span style={{background:C.zuta,color: C.onZuta,fontSize:10,
             borderRadius:10,padding:"1px 7px",marginLeft:6}}>{uskoro} uskoro</span>}
         </div>
         <button onClick={()=>setForma("novo_merilo")}
-          style={{background:C.plava,border:"none",borderRadius:8,color:"#fff",
+          style={{background:C.plava,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
           + Novo merilo
         </button>
@@ -103,7 +103,7 @@ export default function KalibracijaMerilaPanel({ korisnik, C, addToast }) {
         {[["sva","Sva"],["uskoro",`Uskoro (${uskoro})`],["istekla",`Istekla (${isteklo})`]].map(([v,l])=>(
           <button key={v} onClick={()=>setFilter(v)} style={{
             background:filter===v?C.plava:"none", border:`1px solid ${filter===v?C.plava:C.border}`,
-            borderRadius:8, color:filter===v?"#fff":C.sivi, fontSize:11,
+            borderRadius:8, color:filter===v? C.onAkcent:C.sivi, fontSize:11,
             padding:"6px 14px", cursor:"pointer"}}>
             {l}
           </button>
@@ -189,7 +189,7 @@ function NovoMeriloForma({ onSnimi, onOtkazati, C, INP }) {
       <div style={{display:"flex",gap:10,marginTop:4}}>
         <button onClick={()=>onSnimi(f)} disabled={!f.naziv}
           style={{flex:1,background:f.naziv?C.zelena:C.hover,border:"none",borderRadius:8,
-            color:f.naziv?"#fff":C.sivi,fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
+            color:f.naziv? C.onAkcent:C.sivi,fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
           Snimi merilo
         </button>
         <button onClick={onOtkazati} style={{background:"none",border:`1px solid ${C.border}`,
@@ -240,7 +240,7 @@ function NovaKalibracijaForma({ onSnimi, onOtkazati, C, INP }) {
       </div>
       <div style={{display:"flex",gap:10}}>
         <button onClick={()=>onSnimi(f)}
-          style={{flex:1,background:C.zelena,border:"none",borderRadius:8,color:"#fff",
+          style={{flex:1,background:C.zelena,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
           Evidentiraj
         </button>

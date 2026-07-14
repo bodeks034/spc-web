@@ -108,6 +108,21 @@ export function primeniParsiraniBarkod(parsed, {
   return { id, radni_nalog: parsed.radni_nalog || "", smena: parsed.smena };
 }
 
+/** VIN / serija sa etikete ili USB čitača (plain, JSON vin, prvi segment pipe). */
+export function normalizujVinBarkod(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("{")) {
+    try {
+      const j = JSON.parse(s);
+      const v = j.vin || j.VIN || j.serija || j.serial || j.sn || "";
+      if (v) return String(v).trim().toUpperCase();
+    } catch { /* */ }
+  }
+  const prvi = s.includes("|") ? s.split("|")[0].trim() : s;
+  return prvi.toUpperCase();
+}
+
 /** Aktivno samo kad je enabled i fokus nije u polju za slobodan tekst (opciono). */
 export function useBarcodeScanner(onScan, { enabled = true, ignoreInputs = true } = {}) {
   const buf = useRef("");

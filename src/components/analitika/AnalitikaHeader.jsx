@@ -84,7 +84,7 @@ export default function AnalitikaHeader({
               {g.naziv}
               {gBadge > 0 && (
                 <span style={{
-                  background: C.crvena, color: "#fff", fontSize: 8,
+                  background: C.crvena, color: C.onAkcent, fontSize: 8,
                   borderRadius: 10, padding: "1px 5px", marginLeft: 5,
                 }}>
                   {gBadge}
@@ -121,6 +121,7 @@ export default function AnalitikaHeader({
               <button
                 key={id}
                 type="button"
+                data-testid={`tab-${id}`}
                 title={opis || naziv}
                 onClick={() => setTab(id)}
                 style={{
@@ -139,7 +140,7 @@ export default function AnalitikaHeader({
                 {naziv}
                 {badge > 0 && (
                   <span style={{
-                    background: C.plava, color: "#fff", fontSize: 8,
+                    background: C.plava, color: C.onAkcent, fontSize: 8,
                     borderRadius: 10, padding: "1px 5px", marginLeft: 5,
                   }}>
                     {badge}

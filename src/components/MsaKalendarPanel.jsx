@@ -53,13 +53,13 @@ export default function MsaKalendarPanel({ C, addToast }) {
         <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>
           KALENDAR MSA (Gage R&R)
           {podsetnici.length > 0 && (
-            <span style={{ background: C.zuta, color: "#000", fontSize: 9, borderRadius: 8, padding: "1px 6px", marginLeft: 8 }}>
+            <span style={{ background: C.zuta, color: C.onZuta, fontSize: 9, borderRadius: 8, padding: "1px 6px", marginLeft: 8 }}>
               {podsetnici.length} podsetnik
             </span>
           )}
         </div>
         <button type="button" onClick={() => setForma({ merilo_id: "", interval_meseci: 12, sledeca_studija: "", karakteristika: "" })}
-          style={{ background: C.plava, border: "none", borderRadius: 6, color: "#fff", fontSize: 10, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
+          style={{ background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
           + Planiraj
         </button>
       </div>
@@ -89,7 +89,7 @@ export default function MsaKalendarPanel({ C, addToast }) {
           <input value={forma.karakteristika || ""} onChange={(e) => setForma((p) => ({ ...p, karakteristika: e.target.value }))}
             placeholder="Karakteristika (opciono)" style={{ ...INP, marginBottom: 8 }} />
           <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={snimi} style={{ flex: 1, background: C.zelena, border: "none", borderRadius: 6, color: "#fff", padding: 8, cursor: "pointer", fontWeight: 700 }}>Sačuvaj</button>
+            <button type="button" onClick={snimi} style={{ flex: 1, background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, padding: 8, cursor: "pointer", fontWeight: 700 }}>Sačuvaj</button>
             <button type="button" onClick={() => setForma(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.sivi, padding: 8, cursor: "pointer" }}>Otkaži</button>
           </div>
         </div>

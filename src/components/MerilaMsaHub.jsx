@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
+import { procitajMerilaMsaPodtab } from "../lib/workflowAkcije.js";
 import KalibracijaMerilaPanel from "./KalibracijaMerilaPanel.jsx";
 import GageRRPanel from "./GageRRPanel.jsx";
 import MsaKalendarPanel from "./MsaKalendarPanel.jsx";
@@ -8,6 +9,11 @@ import MsaKalendarPanel from "./MsaKalendarPanel.jsx";
 export default function MerilaMsaHub({ C, addToast, korisnik }) {
   const [pod, setPod] = useState({ merila: 0, isteklo: 0, uskoro: 0, studije: 0, msa: 0 });
   const [podtab, setPodtab] = useState("pregled");
+
+  useEffect(() => {
+    const pending = procitajMerilaMsaPodtab();
+    if (pending) setPodtab(pending);
+  }, []);
 
   useEffect(() => {
     (async () => {

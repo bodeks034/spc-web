@@ -10,6 +10,12 @@ import {
   parseCsvText,
 } from "./radniNaloziUvoz.js";
 import { pogonIzRn } from "./pogonSop.js";
+import {
+  mapKarakteristikaMerljiveRow,
+  normalizujKarakteristikuRed,
+  stripKarakteristikeForDbUpsert,
+  KARAKTERISTIKE_UPSERT_CONFLICT,
+} from "./karakteristikaMerljive.js";
 
 const ULOGA_MAP = {
   operator: "operator",
@@ -63,6 +69,12 @@ function toInt(v) {
   return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
+function toNum(v) {
+  if (v === "" || v == null) return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
 function toBool(v) {
   if (v === "" || v == null) return undefined;
   const s = String(v).trim().toLowerCase();
@@ -96,6 +108,8 @@ export function transformVrednost(v, transform, ctx = {}) {
       return toUpper(v) || null;
     case "int":
       return toInt(v);
+    case "num":
+      return toNum(v);
     case "bool":
       return toBool(v);
     case "datum":
@@ -106,12 +120,29 @@ export function transformVrednost(v, transform, ctx = {}) {
       return toUloga(v);
     case "tip_kontrole":
       return toTipKontrole(v, ctx.id_deo);
+    case "lower":
+      return v ? String(v).trim().toLowerCase() : null;
     default:
       return v === "" ? null : v;
   }
 }
 
 export function mapCsvRed(row, entityCfg) {
+  if (entityCfg.mapiranje === "karakteristike_merljive") {
+    const kar = normalizujKarakteristikuRed(mapKarakteristikaMerljiveRow(row));
+    const dbRow = stripKarakteristikeForDbUpsert(kar);
+    if (!dbRow.sifra_merenja && dbRow.pozicija) dbRow.sifra_merenja = dbRow.pozicija;
+    for (const polje of entityCfg.obavezna_polja || ["id_deo", "pozicija"]) {
+      if (dbRow[polje] == null || dbRow[polje] === "") {
+        return {
+          ok: false,
+          greska: `Linija ${row._linija || "?"}: nedostaje obavezno polje "${polje}"`,
+        };
+      }
+    }
+    return { ok: true, row: dbRow };
+  }
+
   const kolone = entityCfg.kolone || {};
   const defaults = entityCfg.podrazumevano || {};
   const out = { ...defaults };
@@ -146,6 +177,56 @@ export function mapCsvRed(row, entityCfg) {
     out.tip_kontrole = toTipKontrole(null, out.id_deo);
   }
 
+  if (entityCfg.tabela === "delovi") {
+    if (out.pogon_kod) {
+      out._sync_pogon_kod = toUpper(out.pogon_kod);
+      delete out.pogon_kod;
+    }
+    if (out.radni_nalog) {
+      out._sync_radni_nalog = toUpper(out.radni_nalog);
+      delete out.radni_nalog;
+    }
+  }
+
+  if (entityCfg.tabela === "crtez_assets") {
+    if (!out.ref_tip) out.ref_tip = entityCfg.ref_tip_fiksno || "deo";
+    if (out.ref_tip) out.ref_tip = String(out.ref_tip).trim().toLowerCase();
+    if (out.ref_id) out.ref_id = toUpper(out.ref_id);
+    if (!out.prikaz_format) out.prikaz_format = "svg";
+    if (!out.revizija) out.revizija = "A";
+  }
+
+  if (entityCfg.tabela === "greske_katalog") {
+    if (!out.defekt && out.podkategorija) out.defekt = out.podkategorija;
+    if (out.id_deo) out.id_deo = toUpper(out.id_deo);
+    if (out.pogon_kod) out.pogon_kod = toUpper(out.pogon_kod);
+  }
+
+  if (entityCfg.tabela === "kalibracije") {
+    out._merilo_serijski = pickFromRow(row, entityCfg.merilo_serijski_iz || [
+      "serijski_broj", "merilo_serijski", "serijski br", "equnr", "merilo",
+    ]);
+    out._merilo_naziv = pickFromRow(row, entityCfg.merilo_naziv_iz || [
+      "naziv_merila", "merilo_naziv", "naziv merila", "merilo",
+    ]);
+    if (out.datum_kal) out.datum_kal = normalizujDatum(out.datum_kal);
+    if (out.sledeca_kal) out.sledeca_kal = normalizujDatum(out.sledeca_kal);
+    if (!out._merilo_serijski && !out._merilo_naziv) {
+      return {
+        ok: false,
+        greska: `Linija ${row._linija || "?"}: nedostaje merilo (serijski_broj ili naziv_merila)`,
+      };
+    }
+  }
+
+  if (entityCfg.tabela === "barkod_profili" && out.id_deo) {
+    out.id_deo = toUpper(out.id_deo);
+  }
+
+  if (entityCfg.tabela === "pogon_linija_mapa" && out.pogon_kod) {
+    out.pogon_kod = toUpper(out.pogon_kod);
+  }
+
   return { ok: true, row: out };
 }
 
@@ -154,6 +235,11 @@ export function parsirajEntitetCsv(txt, entityCfg) {
   const redovi = [];
   const greske = [];
   const upsertKey = entityCfg.upsert_kljuc;
+  const lookupPolja = entityCfg.upsert_strategija === "ref_lookup"
+    ? (entityCfg.lookup_polja || [])
+    : entityCfg.upsert_strategija === "karakteristike_merljive"
+      ? (entityCfg.upsert_kljuc || KARAKTERISTIKE_UPSERT_CONFLICT).split(",").map((s) => s.trim())
+      : null;
   const seen = new Set();
 
   sirovi.forEach((r) => {
@@ -162,14 +248,24 @@ export function parsirajEntitetCsv(txt, entityCfg) {
       greske.push(mapped.greska);
       return;
     }
-    const keyVal = upsertKey ? mapped.row[upsertKey] : JSON.stringify(mapped.row);
-    if (upsertKey && seen.has(keyVal)) {
-      greske.push(`Duplikat ${upsertKey}=${keyVal} (linija ${r._linija}) — poslednji red važi`);
-      const idx = redovi.findIndex((x) => x[upsertKey] === keyVal);
+    let keyVal;
+    if (lookupPolja?.length) {
+      keyVal = lookupPolja.map((p) => mapped.row[p] ?? "").join("|");
+    } else if (upsertKey) {
+      keyVal = mapped.row[upsertKey];
+    } else {
+      keyVal = JSON.stringify(mapped.row);
+    }
+    if ((upsertKey || lookupPolja?.length) && seen.has(keyVal)) {
+      const label = lookupPolja?.length ? lookupPolja.join("+") : upsertKey;
+      greske.push(`Duplikat ${label}=${keyVal} (linija ${r._linija}) — poslednji red važi`);
+      const idx = lookupPolja?.length
+        ? redovi.findIndex((x) => lookupPolja.map((p) => x[p] ?? "").join("|") === keyVal)
+        : redovi.findIndex((x) => x[upsertKey] === keyVal);
       if (idx >= 0) redovi[idx] = mapped.row;
       return;
     }
-    if (upsertKey) seen.add(keyVal);
+    if (upsertKey || lookupPolja?.length) seen.add(keyVal);
     redovi.push(mapped.row);
   });
 
@@ -229,18 +325,125 @@ async function mergeNullsRows(supabase, tabela, conflictKey, rows, preserveField
   });
 }
 
-async function upsertConflictBatch(supabase, tabela, conflictKey, rows) {
+async function insertUzPkeyFallback(supabase, tabela, payload) {
+  const clean = { ...payload };
+  delete clean.id;
+  let { error } = await supabase.from(tabela).insert(clean);
+  if (error && /duplicate key.*pkey/i.test(error.message || "")) {
+    const { data: maxRow } = await supabase
+      .from(tabela)
+      .select("id")
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextId = (maxRow?.id ?? 0) + 1;
+    ({ error } = await supabase.from(tabela).insert({ ...clean, id: nextId }));
+  }
+  return { error };
+}
+
+async function upsertCompositeLookup(supabase, entityCfg, rows) {
+  const tabela = entityCfg.tabela;
+  const lookupPolja = entityCfg.lookup_polja
+    || String(entityCfg.upsert_kljuc || entityCfg.lookup_polje || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  if (!lookupPolja.length) {
+    return { ok: false, error: new Error(`Entitet ${tabela}: nema lookup polja za composite upsert`) };
+  }
+
+  let upsertovano = 0;
+  for (const row of rows) {
+    const kljucevi = lookupPolja.map((p) => row[p]).filter((v) => v != null && v !== "");
+    if (kljucevi.length < lookupPolja.length) continue;
+
+    let q = supabase.from(tabela).select("id");
+    for (const polje of lookupPolja) {
+      q = q.eq(polje, row[polje]);
+    }
+    const { data: postojeci } = await q.maybeSingle();
+    const payload = { ...row };
+    for (const p of entityCfg.izbaci_polja || []) delete payload[p];
+    delete payload.id;
+    if (entityCfg.postavi_updated_at) {
+      payload.updated_at = new Date().toISOString();
+    }
+
+    if (postojeci?.id) {
+      const { error } = await supabase.from(tabela).update(payload).eq("id", postojeci.id);
+      if (error) return { ok: false, error, upsertovano };
+    } else {
+      const { error } = await insertUzPkeyFallback(supabase, tabela, payload);
+      if (error) return { ok: false, error, upsertovano };
+    }
+    upsertovano += 1;
+  }
+  return { ok: true, upsertovano };
+}
+
+async function upsertRefLookup(supabase, entityCfg, rows) {
+  const tabela = entityCfg.tabela;
+  const lookupPolja = entityCfg.lookup_polja || ["ref_tip", "ref_id"];
+  let upsertovano = 0;
+
+  for (const row of rows) {
+    const kljucevi = lookupPolja.map((p) => row[p]).filter((v) => v != null && v !== "");
+    if (kljucevi.length < lookupPolja.length) continue;
+
+    let q = supabase.from(tabela).select("id");
+    for (const polje of lookupPolja) {
+      q = q.eq(polje, row[polje]);
+    }
+    const { data: postojeci } = await q.maybeSingle();
+    const payload = { ...row };
+    for (const p of entityCfg.izbaci_polja || []) delete payload[p];
+    delete payload.id;
+    if (entityCfg.postavi_updated_at) {
+      payload.updated_at = new Date().toISOString();
+    }
+
+    if (postojeci?.id) {
+      const { error } = await supabase.from(tabela).update(payload).eq("id", postojeci.id);
+      if (error) return { ok: false, error, upsertovano };
+    } else {
+      const { error } = await insertUzPkeyFallback(supabase, tabela, payload);
+      if (error) return { ok: false, error, upsertovano };
+    }
+    upsertovano += 1;
+  }
+  return { ok: true, upsertovano };
+}
+
+async function upsertConflictBatch(supabase, tabela, conflictKey, rows, izbaciPolja = []) {
   const batchSize = 100;
   let upsertovano = 0;
   for (let i = 0; i < rows.length; i += batchSize) {
     const batch = rows.slice(i, i + batchSize);
     const payload = batch.map(({ id, ...rest }) => {
       const row = { ...rest };
-      if (id != null && id !== "") row.id = id;
+      if (id != null && id !== "" && !izbaciPolja.includes("id")) row.id = id;
+      for (const p of izbaciPolja) delete row[p];
       return row;
     });
     const { error } = await supabase.from(tabela).upsert(payload, { onConflict: conflictKey });
-    if (error) return { ok: false, error, upsertovano };
+    if (error) {
+      if (
+        /no unique or exclusion constraint/i.test(error.message || "")
+        || /duplicate key.*pkey/i.test(error.message || "")
+      ) {
+        return upsertCompositeLookup(
+          supabase,
+          {
+            tabela,
+            upsert_kljuc: conflictKey,
+            izbaci_polja: izbaciPolja,
+          },
+          rows,
+        );
+      }
+      return { ok: false, error, upsertovano };
+    }
     upsertovano += batch.length;
   }
   return { ok: true, upsertovano };
@@ -266,6 +469,83 @@ async function upsertNameLookup(supabase, entityCfg, rows) {
       if (error) return { ok: false, error, upsertovano };
     } else {
       const { error } = await supabase.from(tabela).insert(row);
+      if (error) return { ok: false, error, upsertovano };
+    }
+    upsertovano += 1;
+  }
+  return { ok: true, upsertovano };
+}
+
+async function upsertMeriloLookup(supabase, entityCfg, rows) {
+  const tabela = entityCfg.tabela;
+  const serijskiPolje = entityCfg.merilo_serijski_polje || "serijski_broj";
+  const nazivPolje = entityCfg.lookup_polje || "naziv";
+  let upsertovano = 0;
+
+  for (const row of rows) {
+    let postojeci = null;
+    const serijski = row[serijskiPolje];
+    if (serijski) {
+      const res = await supabase.from(tabela).select("*").eq(serijskiPolje, serijski).maybeSingle();
+      postojeci = res.data;
+    }
+    if (!postojeci && row[nazivPolje]) {
+      const res = await supabase.from(tabela).select("*").eq(nazivPolje, row[nazivPolje]).maybeSingle();
+      postojeci = res.data;
+    }
+
+    const payload = { ...row };
+    for (const p of entityCfg.izbaci_polja || []) delete payload[p];
+
+    if (postojeci?.id) {
+      const { error } = await supabase.from(tabela).update(payload).eq("id", postojeci.id);
+      if (error) return { ok: false, error, upsertovano };
+    } else {
+      const { error } = await supabase.from(tabela).insert(payload);
+      if (error) return { ok: false, error, upsertovano };
+    }
+    upsertovano += 1;
+  }
+  return { ok: true, upsertovano };
+}
+
+async function upsertKalibracijeMerilo(supabase, entityCfg, rows) {
+  const tabela = entityCfg.tabela;
+  const lookupPolja = entityCfg.lookup_polja || ["merilo_id", "datum_kal"];
+  let upsertovano = 0;
+
+  for (const row of rows) {
+    const serijski = row._merilo_serijski;
+    const naziv = row._merilo_naziv;
+    let merilo = null;
+
+    if (serijski) {
+      const res = await supabase.from("merila").select("id").eq("serijski_broj", serijski).maybeSingle();
+      merilo = res.data;
+    }
+    if (!merilo && naziv) {
+      const res = await supabase.from("merila").select("id").eq("naziv", naziv).maybeSingle();
+      merilo = res.data;
+    }
+    if (!merilo?.id) continue;
+
+    const payload = { ...row };
+    delete payload._merilo_serijski;
+    delete payload._merilo_naziv;
+    for (const p of entityCfg.izbaci_polja || []) delete payload[p];
+    payload.merilo_id = merilo.id;
+
+    let q = supabase.from(tabela).select("id");
+    for (const polje of lookupPolja) {
+      q = q.eq(polje, payload[polje]);
+    }
+    const { data: postojeci } = await q.maybeSingle();
+
+    if (postojeci?.id) {
+      const { error } = await supabase.from(tabela).update(payload).eq("id", postojeci.id);
+      if (error) return { ok: false, error, upsertovano };
+    } else {
+      const { error } = await supabase.from(tabela).insert(payload);
       if (error) return { ok: false, error, upsertovano };
     }
     upsertovano += 1;
@@ -318,6 +598,41 @@ async function upsertLegacyRadniNalozi(supabase, entityCfg, rows) {
   });
 }
 
+async function syncDeloviAtributivniPogon(supabase, rows) {
+  let upsertovano = 0;
+  for (const row of rows) {
+    const pogon = row._sync_pogon_kod;
+    if (!pogon || !row.id_deo) continue;
+    const payload = {
+      id_deo: toUpper(row.id_deo),
+      pogon_kod: pogon,
+      radni_nalog: row._sync_radni_nalog || null,
+      naziv_dela: row.naziv_dela || null,
+      karakteristika: row.karakteristika || null,
+      linija_id: row.linija_id ?? null,
+      masina_id: row.masina_id ?? null,
+      kom_za_kontrolu: row.kom_za_kontrolu ?? null,
+      napomena: row.napomena || null,
+      aktivan: row.aktivan !== false,
+    };
+    const { error } = await supabase
+      .from("delovi_atributivni_pogon")
+      .upsert(payload, { onConflict: "id_deo,pogon_kod" });
+    if (error) return { ok: false, error, upsertovano };
+    upsertovano += 1;
+  }
+  return { ok: true, upsertovano };
+}
+
+function stripDeloviSyncMeta(row) {
+  const {
+    _sync_pogon_kod,
+    _sync_radni_nalog,
+    ...rest
+  } = row;
+  return rest;
+}
+
 export async function upsertEntitet(supabase, entityCfg, rows) {
   if (!rows?.length) {
     return { ok: true, upsertovano: 0, preskoceno: true };
@@ -346,11 +661,55 @@ export async function upsertEntitet(supabase, entityCfg, rows) {
   if (strategija === "email_lookup") {
     return upsertEmailLookup(supabase, entityCfg, finalRows);
   }
+  if (strategija === "ref_lookup") {
+    return upsertRefLookup(supabase, entityCfg, finalRows);
+  }
+  if (strategija === "merilo_lookup") {
+    return upsertMeriloLookup(supabase, entityCfg, finalRows);
+  }
+  if (strategija === "kalibracije_merilo") {
+    return upsertKalibracijeMerilo(supabase, entityCfg, finalRows);
+  }
+  if (strategija === "karakteristike_merljive") {
+    const stripped = finalRows.map((r) => stripKarakteristikeForDbUpsert(r));
+    return upsertConflictBatch(
+      supabase,
+      entityCfg.tabela,
+      entityCfg.upsert_kljuc || KARAKTERISTIKE_UPSERT_CONFLICT,
+      stripped,
+      entityCfg.izbaci_polja || [],
+    );
+  }
   if (!conflictKey) {
     return { ok: false, error: new Error(`Entitet ${entityCfg.tabela || "?"}: nema upsert_kljuc ni strategiju`) };
   }
 
-  return upsertConflictBatch(supabase, entityCfg.tabela, conflictKey, finalRows);
+  if (entityCfg.tabela === "delovi") {
+    const forDelovi = finalRows.map(stripDeloviSyncMeta);
+    const res = await upsertConflictBatch(
+      supabase,
+      entityCfg.tabela,
+      conflictKey,
+      forDelovi,
+      entityCfg.izbaci_polja || [],
+    );
+    if (!res.ok) return res;
+    const pogonRes = await syncDeloviAtributivniPogon(supabase, finalRows);
+    if (!pogonRes.ok) return pogonRes;
+    return {
+      ok: true,
+      upsertovano: res.upsertovano,
+      pogon_sync: pogonRes.upsertovano,
+    };
+  }
+
+  return upsertConflictBatch(
+    supabase,
+    entityCfg.tabela,
+    conflictKey,
+    finalRows,
+    entityCfg.izbaci_polja || [],
+  );
 }
 
 /**

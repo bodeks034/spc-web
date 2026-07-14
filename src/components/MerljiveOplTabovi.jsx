@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabaseClient.js";
 import { fetchSmenaStatMerljive, generisiIzvestajSmeneMerljive } from "../lib/merljiveSmenaStat.js";
 import { HeatmapMerljivePanel } from "./MerljiveAnalitika.jsx";
 import { LAB_FPY_PCT, LAB_FPY_CILJ } from "../lib/rtyFpy.js";
+import IzvestajKupacPanel from "./IzvestajKupacPanel.jsx";
+import SmenaPogonaPanel from "./SmenaPogonaPanel.jsx";
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -52,8 +54,16 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
 
   return (
     <div style={{ padding: 18, flex: 1, overflow: "auto" }}>
-      <div style={{ color: C.sivi, fontSize: 10, letterSpacing: 1.2, marginBottom: 14 }}>
-        IZVEŠTAJ PO SMENI — merljiva merenja · {dISO()} · smena {smena}
+      <SmenaPogonaPanel
+        C={C}
+        korisnik={korisnik}
+        addToast={addToast}
+        smena={Number(smena) || 1}
+        modulKontekst="merljive"
+        prikaziModulPdf
+      />
+      <div style={{ color: C.sivi, fontSize: 10, letterSpacing: 1.2, margin: "18px 0 14px" }}>
+        MERLJIVA MERENJA — detalj · {dISO()} · smena {smena}
         {idDeo && <span style={{ display: "block", marginTop: 4 }}>Filter deo: {idDeo}</span>}
       </div>
       {loading ? (
@@ -80,7 +90,7 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
           <button type="button"
             onClick={() => generisiIzvestajSmeneMerljive(supabase, korisnik, Number(smena) || 1, C, addToast)}
             style={{
-              background: "#7c3aed", border: "none", borderRadius: 8, color: "#fff",
+              background: "#7c3aed", border: "none", borderRadius: 8, color: C.onAkcent,
               fontSize: 11, fontWeight: 700, padding: "10px 16px", cursor: "pointer", marginTop: 4,
             }}>
             📄 Predaja smene PDF
@@ -88,7 +98,7 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
         </div>
       )}
       <div style={{ color: C.sivi, fontSize: 9, marginTop: 16, lineHeight: 1.5 }}>
-        PDF uključuje škart/KPI, SPC alarme i otvorene 8D. Podaci iz <strong>merenja_varijabilna</strong>.
+        PDF uključuje KPI, alarme, NCR, 8D, eskalacije, prioritet i FAI. Tekst se prelama u margine A4.
       </div>
     </div>
   );
@@ -164,7 +174,7 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
         <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>CILJEVI KVALITETA (merljive)</div>
         <button type="button" onClick={() => setForma(true)}
           style={{
-            background: C.zelena, border: "none", borderRadius: 8, color: "#fff",
+            background: C.zelena, border: "none", borderRadius: 8, color: C.onAkcent,
             fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
           }}>+ Postavi cilj</button>
       </div>
@@ -206,7 +216,7 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
           <button type="button" onClick={snimi} disabled={!aktuelni.id_deo}
             style={{
               background: aktuelni.id_deo ? C.zelena : C.hover, border: "none", borderRadius: 8,
-              color: "#fff", fontSize: 13, fontWeight: 700, padding: "11px", cursor: "pointer", width: "100%",
+              color: C.onAkcent, fontSize: 13, fontWeight: 700, padding: "11px", cursor: "pointer", width: "100%",
             }}>Postavi cilj</button>
         </div>
       )}
@@ -241,103 +251,22 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
 }
 
 export function KupacMerljive({ C, addToast }) {
-  const [kupci, setKupci] = useState([]);
-  const [kupac, setKupac] = useState("");
-  const [period, setPeriod] = useState("30");
-  const [podaci, setPodaci] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    supabase.from("kupci").select("id,naziv").eq("aktivan", true)
-      .then(({ data }) => setKupci(data || []));
-  }, []);
-
-  const ucitaj = async () => {
-    if (!kupac) return;
-    setLoading(true);
-    try {
-      const od = new Date();
-      od.setDate(od.getDate() - Number(period));
-      const { data: nalozi } = await supabase.from("radni_nalozi")
-        .select("id_deo,naziv_dela,broj_naloga,kolicina")
-        .eq("kupac", kupac);
-      const idDeoList = [...new Set((nalozi || []).map(n => n.id_deo))];
-      if (!idDeoList.length) {
-        setPodaci({ nalozi: [], stat: { n: 0, nok: 0, ok: 0, rty: "—", dpmo: "—" } });
-        setLoading(false);
-        return;
-      }
-      const { data: log } = await supabase.from("merenja_varijabilna")
-        .select("datum,id_deo,status")
-        .in("id_deo", idDeoList)
-        .gte("datum", od.toISOString().split("T")[0]);
-      const n = (log || []).length;
-      const nok = (log || []).filter(r => (r.status || "").toUpperCase() === "NOK").length;
-      const ok = n - nok;
-      setPodaci({
-        nalozi: nalozi || [],
-        stat: {
-          n, nok, ok,
-          rty: n > 0 ? ((ok / n) * 100).toFixed(2) : "—",
-          dpmo: n > 0 ? Math.round((nok / n) * 1e6) : "—",
-        },
-      });
-    } catch (e) {
-      addToast(e.message, "greska");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const INP_S = {
-    background: C.input, border: `1px solid ${C.border}`, borderRadius: 8,
-    color: C.tekst, fontSize: 13, padding: "10px 12px", outline: "none", fontFamily: "inherit",
-  };
-
   return (
-    <div style={{ padding: 18, flex: 1, overflow: "auto" }}>
-      <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, marginBottom: 16 }}>IZVEŠTAJ ZA KUPCA (merljive)</div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ color: C.sivi, fontSize: 9, marginBottom: 5 }}>KUPAC</div>
-          <select value={kupac} onChange={e => setKupac(e.target.value)} style={{ ...INP_S, width: "100%", cursor: "pointer" }}>
-            <option value="">— Izaberi —</option>
-            {kupci.map(k => <option key={k.id} value={k.naziv}>{k.naziv}</option>)}
-          </select>
-        </div>
-        <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...INP_S, cursor: "pointer" }}>
-          <option value="7">7 dana</option>
-          <option value="30">30 dana</option>
-          <option value="90">90 dana</option>
-        </select>
-        <button type="button" onClick={ucitaj} disabled={!kupac || loading}
-          style={{
-            background: !kupac ? C.hover : C.plava, border: "none", borderRadius: 8,
-            color: "#fff", fontSize: 12, fontWeight: 700, padding: "11px 18px", cursor: "pointer",
-          }}>{loading ? "…" : "Generiši"}</button>
-      </div>
-      {podaci && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 10 }}>
-          {[
-            ["MERENJA", podaci.stat.n, C.plava],
-            ["OK", podaci.stat.ok, C.zelena],
-            ["NOK", podaci.stat.nok, C.crvena],
-            [LAB_FPY_PCT, podaci.stat.rty, C.zuta],
-            ["DPMO", podaci.stat.dpmo, C.ljubicasta],
-          ].map(([n, v, b]) => (
-            <div key={n} style={{ background: C.panel, border: `1px solid ${b}25`, borderRadius: 10, padding: 12, textAlign: "center" }}>
-              <div style={{ color: C.sivi, fontSize: 9 }}>{n}</div>
-              <div style={{ color: b, fontSize: 20, fontWeight: 700 }}>{v}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <IzvestajKupacPanel
+      C={C}
+      addToast={addToast}
+      modul="merljive"
+      naslov="IZVEŠTAJ ZA KUPCA (merljive)"
+    />
   );
 }
 
-export function StabilnostMerljive({ sviDelovi, C, addToast }) {
-  const [idDeo, setIdDeo] = useState("");
+export function StabilnostMerljive({ sviDelovi, C, addToast, defaultIdDeo = "" }) {
+  const [idDeo, setIdDeo] = useState(defaultIdDeo);
+
+  useEffect(() => {
+    if (defaultIdDeo) setIdDeo(defaultIdDeo);
+  }, [defaultIdDeo]);
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(false);
 

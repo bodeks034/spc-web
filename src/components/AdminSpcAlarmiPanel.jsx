@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { ucitajAktivneSpcAlarme, zatvoriSpcAlarm, zatvoriAnalitickeSpcAlarme, opisSpcAlarma, jeLinijskiSpcAlarm, jeAnalitickiSpcAlarm } from "../lib/spcAlarmWorkflow.js";
+import { kreirajNcrIzAlarma, fetchNcrPoAlarmu } from "../lib/ncrCapa.js";
+import { sacuvajNavigacijuNcr } from "../lib/eskalacijeHelper.js";
 import { exportSpcAlarmReakcijaPdf } from "../lib/spcAlarmPdf.js";
 
 const BOJA_STATUS = (C, status) => {
@@ -15,6 +17,8 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
   const [zatvaranjeId, setZatvaranjeId] = useState(null);
   const [komentar, setKomentar] = useState("");
   const [cistiAnalitiku, setCistiAnalitiku] = useState(false);
+  const [ncrPoAlarmu, setNcrPoAlarmu] = useState({});
+  const [ncrBusy, setNcrBusy] = useState(null);
 
   const ucitaj = async () => {
     setLoading(true);
@@ -29,6 +33,20 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
   };
 
   useEffect(() => { ucitaj(); }, []);
+
+  useEffect(() => {
+    if (!alarmi.length) return;
+    (async () => {
+      const mapa = {};
+      for (const a of alarmi) {
+        try {
+          const ncr = await fetchNcrPoAlarmu(supabase, a.id);
+          if (ncr) mapa[a.id] = ncr;
+        } catch { /* */ }
+      }
+      setNcrPoAlarmu(mapa);
+    })();
+  }, [alarmi]);
 
   useEffect(() => {
     const ch = supabase.channel("admin_spc_alarmi")
@@ -74,6 +92,25 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
       ucitaj();
     } catch (e) {
       addToast?.(e.message || "Greška", "greska");
+    }
+  };
+
+  const kreirajNcr = async (a) => {
+    setNcrBusy(a.id);
+    try {
+      const { row, vecPostojao } = await kreirajNcrIzAlarma(supabase, a, { kreiraoId: korisnik?.radnikId });
+      setNcrPoAlarmu((p) => ({ ...p, [a.id]: row }));
+      addToast?.(
+        vecPostojao ? `NCR već postoji: ${row.broj_ncr}` : `✓ NCR ${row.broj_ncr} kreiran iz alarma`,
+        vecPostojao ? "info" : "uspeh",
+      );
+      if (!vecPostojao) {
+        sacuvajNavigacijuNcr({});
+      }
+    } catch (e) {
+      addToast?.(e.message || "Greška", "greska");
+    } finally {
+      setNcrBusy(null);
     }
   };
 
@@ -143,6 +180,24 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
           }}>
           📄 PDF reakcije
         </button>
+        {ncrPoAlarmu[a.id] ? (
+          <span style={{
+            fontSize: 10, fontWeight: 700, color: C.zelena,
+            padding: "7px 10px", border: `1px solid ${C.zelena}44`, borderRadius: 6,
+          }}>
+            NCR: {ncrPoAlarmu[a.id].broj_ncr}
+          </span>
+        ) : (
+          <button type="button" data-testid={`alarm-ncr-${a.id}`} disabled={ncrBusy === a.id}
+            onClick={() => kreirajNcr(a)}
+            style={{
+              background: C.hover, border: `1px solid ${C.narandzasta || C.zuta}`, borderRadius: 6,
+              color: C.narandzasta || C.zuta, fontSize: 11, fontWeight: 700, padding: "7px 12px",
+              cursor: ncrBusy === a.id ? "wait" : "pointer", opacity: ncrBusy === a.id ? 0.6 : 1,
+            }}>
+            {ncrBusy === a.id ? "…" : "+ Kreiraj NCR"}
+          </button>
+        )}
         {zatvaranjeId === a.id ? null : (
           <button type="button" onClick={() => { setZatvaranjeId(a.id); setKomentar(""); }}
             style={{
@@ -177,7 +232,7 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
             <button type="button" onClick={() => zatvori(a)}
               style={{
                 flex: 1, background: C.plava, border: "none", borderRadius: 6,
-                color: "#fff", fontSize: 11, fontWeight: 700, padding: "8px", cursor: "pointer",
+                color: C.onAkcent, fontSize: 11, fontWeight: 700, padding: "8px", cursor: "pointer",
               }}>
               {a.status === "karantin" ? "Pusti" : "Zatvori"}
             </button>
@@ -195,13 +250,13 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
   );
 
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+    <div data-testid="admin-spc-alarmi" style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>
           SPC ALARMI
           {(linijskiOtvoreni.length + linijskiKarantin.length) > 0 && (
             <span style={{
-              background: C.crvena, color: "#fff", fontSize: 10,
+              background: C.crvena, color: C.onAkcent, fontSize: 10,
               borderRadius: 10, padding: "1px 7px", marginLeft: 8,
             }}>
               {linijskiOtvoreni.length + linijskiKarantin.length}

@@ -1,0 +1,3 @@
+id_deo,pogon_kod,pozicija,sifra_merenja,nominala,usl,lsl,jedinica,merni_instrument,naziv_mere
+5502-A,A,D1,D1,10.0,10.2,9.8,mm,Šubler,Prečnik 1
+5502-A,A,D2,D2,25.0,25.1,24.9,mm,Šubler,Dužina

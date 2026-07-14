@@ -3,7 +3,7 @@
  * sop_deo_varijabilni, delovi + delovi_atributivni_pogon, radni_nalozi.
  */
 import { podeliDeloviUvoz } from "./deloviAtributivni.js";
-import { normalizujDatum } from "./radniNaloziUvoz.js";
+import { normalizujDatum, sinhronizujKupce } from "./radniNaloziUvoz.js";
 import { dedupeRowsForUpsert } from "./upsertUtil.js";
 import {
   generisiIzKarakteristika,
@@ -313,6 +313,11 @@ export async function syncDerivedSifrarnikForDelove(supabase, idDeos, opts = {})
 
   const sviRn = [...noviRn, ...rnIzSop];
   if (sviRn.length) {
+    const kupacSync = await sinhronizujKupce(supabase, sviRn);
+    if (kupacSync?.error) {
+      throw new Error(`kupci: ${kupacSync.error.message || kupacSync.error}`);
+    }
+
     const rnRows = sviRn.map((r) => ({
       broj_naloga: r.broj_naloga,
       id_deo: r.id_deo,

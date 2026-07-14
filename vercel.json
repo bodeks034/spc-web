@@ -1,0 +1,13 @@
+{
+  "buildCommand": "node scripts/vercel-build.mjs",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "crons": [
+    { "path": "/api/cron?job=health", "schedule": "30 4 * * *" },
+    { "path": "/api/cron?job=podsetnici", "schedule": "0 6 * * *" },
+    { "path": "/api/cron?job=digest", "schedule": "5 12 * * *" },
+    { "path": "/api/cron?job=weekly", "schedule": "0 13 * * 5" }
+  ],
+  "github": {
+    "silent": true
+  }
+}

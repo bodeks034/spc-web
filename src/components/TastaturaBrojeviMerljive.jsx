@@ -96,7 +96,7 @@ export default function TastaturaBrojeviMerljive({
             border: "none",
             borderRadius: radius,
             background: C.plava,
-            color: "#fff",
+            color: C.onAkcent,
             fontSize: kompakt ? 11 : 12,
             fontWeight: 700,
             cursor: "pointer",

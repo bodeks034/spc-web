@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { normalizujPrefill8d } from "../../lib/eskalacijeHelper.js";
+import { poveziOsmd } from "../../lib/ncrCapa.js";
 import { exportOsmdIzvestajPdf, osmdPayloadIzForme, statusNaziv8d, stampajOsmdIzvestaj, exportOsmdIzvestajWord } from "../../lib/osmdIzvestajPdf.js";
 import OsmdEditor, { OsmdScrollOkvir } from "../OsmdEditor.jsx";
 import { resetujKešPredloga } from "../../lib/predloziIzBaze.js";
@@ -40,6 +41,11 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
       resetujKešPredloga();
       setIzvestaji(p=>isNew?[data,...p]:p.map(i=>i.id===data.id?data:i));
       setAktivni(data);
+      if (form.ncr_id) {
+        try {
+          await poveziOsmd(supabase, form.ncr_id, data.id);
+        } catch { /* ne blokira čuvanje 8D */ }
+      }
       addToast(`✓ 8D izveštaj ${isNew?"kreiran":"sačuvan"}`, "uspeh");
       return data;
     }
@@ -126,7 +132,7 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>8D IZVEŠTAJI</div>
         <button onClick={()=>setAktivni({})}
-          style={{background:C.plava,border:"none",borderRadius:8,color:"#fff",
+          style={{background:C.plava,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
           + Novi 8D
         </button>

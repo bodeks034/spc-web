@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useId } from "react";
-import { Html5Qrcode } from "html5-qrcode";
 import { useEkran } from "../lib/useEkran.js";
 import { izaberiKameru, konfigSkeniranja, jeLaptopKamera } from "../lib/barkodKamera.js";
 
@@ -35,10 +34,10 @@ function BarkodKameraModal({ open, onClose, onSken, C, akcent = C?.plava }) {
     setPokrecem(true);
 
     let ok = true;
-    const skener = new Html5Qrcode(regionId, skenerOpcije());
-    skenerRef.current = skener;
+    let skener = null;
 
     const zaustavi = async () => {
+      if (!skener) return;
       try {
         if (skener.isScanning) await skener.stop();
       } catch { /* */ }
@@ -49,6 +48,11 @@ function BarkodKameraModal({ open, onClose, onSken, C, akcent = C?.plava }) {
 
     (async () => {
       try {
+        const { Html5Qrcode } = await import("html5-qrcode");
+        if (!ok) return;
+        skener = new Html5Qrcode(regionId, skenerOpcije());
+        skenerRef.current = skener;
+
         const kamere = await Html5Qrcode.getCameras();
         if (!ok) return;
 
@@ -90,6 +94,7 @@ function BarkodKameraModal({ open, onClose, onSken, C, akcent = C?.plava }) {
     setGreska("");
     setSkeniramFajl(true);
     try {
+      const { Html5Qrcode } = await import("html5-qrcode");
       const skener = skenerRef.current || new Html5Qrcode(regionId, skenerOpcije());
       if (skener.isScanning) {
         try { await skener.stop(); } catch { /* */ }
@@ -144,7 +149,7 @@ function BarkodKameraModal({ open, onClose, onSken, C, akcent = C?.plava }) {
           marginBottom: 10,
           flexShrink: 0,
         }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: ekran.mob ? 14 : 16 }}>
+          <div style={{ color: C.onAkcent, fontWeight: 700, fontSize: ekran.mob ? 14 : 16 }}>
             Skeniraj barkod / QR
           </div>
           <button
@@ -154,7 +159,7 @@ function BarkodKameraModal({ open, onClose, onSken, C, akcent = C?.plava }) {
               background: "rgba(255,255,255,0.12)",
               border: "none",
               borderRadius: 8,
-              color: "#fff",
+              color: C.onAkcent,
               fontSize: 18,
               width: 36,
               height: 36,
@@ -175,7 +180,7 @@ function BarkodKameraModal({ open, onClose, onSken, C, akcent = C?.plava }) {
         }}>
           {laptop ? (
             <>
-              <strong style={{ color: "#fff" }}>Laptop:</strong> drži etiketu 15–25 cm od kamere, ravno, dovoljno svetla.
+              <strong style={{ color: C.onAkcent }}>Laptop:</strong> drži etiketu 15–25 cm od kamere, ravno, dovoljno svetla.
               {" "}Na štampanoj etiketi koristi <strong style={{ color: akcent }}>QR kod</strong> (pouzdanije od Code 128).
               {" "}Alternativa: USB čitač — fokus u polje ID pa skeniraj.
             </>

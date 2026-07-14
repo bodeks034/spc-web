@@ -8,7 +8,16 @@ const PROVERA_INTERVAL_MS = 15 * 60 * 1000;
 
 const LICENCA_CACHE_KEY = "spc_licenca_cache";
 
-const GRACE_DANA = Number(import.meta.env.VITE_LICENCA_GRACE_DANA || 7);
+function viteEnv(key, fallback = "") {
+  const vite = typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : null;
+  let v = vite?.[key];
+  if (v == null || v === "") {
+    v = typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+  }
+  return v != null && v !== "" ? v : fallback;
+}
+
+const GRACE_DANA = Number(viteEnv("VITE_LICENCA_GRACE_DANA", "7"));
 
 const GRACE_MS = GRACE_DANA * 24 * 60 * 60 * 1000;
 
@@ -186,6 +195,8 @@ function sacuvajKes(r) {
 
       max_korisnika: r.max_korisnika ?? null,
 
+      max_uredjaja: r.max_uredjaja ?? null,
+
       slojevi: r.slojevi,
 
       sacuvano: Date.now(),
@@ -258,6 +269,8 @@ function mapServerOdgovor(data) {
 
     max_korisnika: data.max_korisnika ?? null,
 
+    max_uredjaja: data.max_uredjaja ?? null,
+
   };
 
 }
@@ -270,7 +283,8 @@ export async function proveriLicencuFajl() {
 
   try {
 
-    const res = await fetch(`${import.meta.env.BASE_URL}license.json`, { cache: "no-store" });
+    const base = viteEnv("BASE_URL", "/");
+    const res = await fetch(`${base}license.json`, { cache: "no-store" });
 
     if (!res.ok) {
 
@@ -360,6 +374,8 @@ export async function proveriLicencuFajl() {
 
       max_korisnika: payload.max_korisnika ?? null,
 
+      max_uredjaja: payload.max_uredjaja ?? null,
+
     };
 
   } catch (e) {
@@ -379,6 +395,21 @@ export async function proveriLicencuFajl() {
 }
 
 
+
+/** Vraća vazi_do iz license.json ili RPC (za proaktivne podsetnike). */
+export async function ucitajVaziDoLicence(supabase) {
+  try {
+    const fajl = await proveriLicencuFajl();
+    if (fajl.ok && fajl.vazi_do) return fajl.vazi_do;
+  } catch { /* */ }
+  if (supabase) {
+    try {
+      const { data } = await supabase.rpc("proveri_licencu");
+      if (data?.vazi_do) return data.vazi_do;
+    } catch { /* */ }
+  }
+  return null;
+}
 
 /** Sloj B — RPC proveri_licencu() na serveru */
 
@@ -431,6 +462,8 @@ function spojiSlojeve(server, fajl) {
     moduli,
 
     max_korisnika: server.max_korisnika ?? fajl.max_korisnika ?? null,
+
+    max_uredjaja: server.max_uredjaja ?? fajl.max_uredjaja ?? null,
 
     slojevi: { server: true, fajl: fajl.preskoceno ? "preskoceno" : true },
 
@@ -497,6 +530,8 @@ export async function proveriLicencuKomplet() {
         moduli: normalizujModuli(kes.moduli),
 
         max_korisnika: kes.max_korisnika,
+
+        max_uredjaja: kes.max_uredjaja,
 
         slojevi: kes.slojevi,
 

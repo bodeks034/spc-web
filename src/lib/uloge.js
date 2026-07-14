@@ -46,6 +46,21 @@ export function mozeAnalitika(uloga) {
   return jeKvalitetIliVise(uloga) || jeAdmin(uloga);
 }
 
+/** Početni ekran — pregled proizvodnje i KPI dorada (kvalitet / šef / admin). */
+export function mozePocetniPregledProizvodnje(uloga) {
+  return mozeAnalitika(uloga);
+}
+
+/** Upozorenje o nedostajućim migracijama — kvalitet / šef / admin. */
+export function mozePregledSemeAlarm(uloga) {
+  return jeKvalitetIliVise(uloga);
+}
+
+/** Kontrolor — samo operativni alarmi na početku (bez KPI dashboarda). */
+export function mozeLinijaAlarmiPocetna(uloga) {
+  return normalizujUlogu(uloga) === "kontrolor";
+}
+
 /** Podrazumevani režim po ulozi — Modul 1 (linija); Modul 2 biraju na početnom ekranu. */
 export function podrazumevaniRezim(uloga) {
   return "linija";
@@ -69,6 +84,11 @@ export function mozeInteligencijaProcesa(uloga) {
 /** Šifrarnik modul — samostalan (inženjer / kvalitet / šef / admin). */
 export function mozeSifrarnik(uloga) {
   return jeKvalitetIliVise(uloga) || jeAdmin(uloga);
+}
+
+/** Modul 2 — NCR/CAPA — kvalitet / šef / admin. */
+export function mozeNcrCapa(uloga) {
+  return jeKvalitetIliVise(uloga);
 }
 
 /** Modul 2 — tab Odobrenja QA (SPC alarmi, prekidi, kalibracija) — kvalitet / šef / admin. */
@@ -111,8 +131,8 @@ export function efektivniRezimRada(uloga, izabraniRezim = "linija") {
 
 const TAB_LINIJA_ATRIB_OPERATOR = new Set(["unos"]);
 const TAB_LINIJA_ATRIB_KONTROLOR = new Set(["unos", "log"]);
-const TAB_LINIJA_MERLJIVE_OPERATOR = new Set(["unos"]);
-const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "log", "fai"]);
+const TAB_LINIJA_MERLJIVE_OPERATOR = new Set(["unos", "moment"]);
+const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "moment", "log", "fai"]);
 
 /** Operator: samo unos + log. Kontrolor: + karte, smena. Kvalitet/admin: sve. */
 const TAB_MERLJIVE_OPERATOR = new Set(["unos", "log"]);
@@ -121,7 +141,7 @@ const TAB_MERLJIVE_KONTROLOR = new Set([
 ]);
 const TAB_ATRIB_OPERATOR = new Set(["unos"]);
 const TAB_ATRIB_KONTROLOR = new Set([
-  "unos", "log", "dashboard", "karte", "crtez", "foto", "oee",
+  "unos", "log", "dashboard", "karte", "crtez", "foto", "oee", "msa", "kplan",
 ]);
 
 export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {
@@ -130,6 +150,7 @@ export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {
   if (rezimRada === "analitika" && t === "admin") return false;
   if (t === "pregled" && rezimRada === "analitika") return mozeAnalitika(uloga);
   if (t === "odobrenja") return mozeOdobrenjaQA(uloga) && rezimRada === "analitika";
+  if (t === "ncr") return mozeNcrCapa(uloga) && rezimRada === "analitika";
   if (t === "fai" && !mozePregledFaiOdobrenja(uloga)) return false;
   if (t === "excel") return mozeInzenjerExcel(uloga, rezimRada);
   if (t === "stanje" && !mozeInteligencijaProcesa(uloga)) return false;
@@ -150,6 +171,8 @@ export function mozeTabAtributivne(tab, uloga, rezimRada = "analitika") {
   if (rezimRada === "analitika" && t === "admin") return false;
   if (t === "pregled" && rezimRada === "analitika") return mozeAnalitika(uloga);
   if (t === "odobrenja") return mozeOdobrenjaQA(uloga) && rezimRada === "analitika";
+  if (t === "ncr") return mozeNcrCapa(uloga) && rezimRada === "analitika";
+  if (t === "fai" && !mozePregledFaiOdobrenja(uloga)) return false;
   if (t === "excel") return mozeInzenjerExcel(uloga, rezimRada);
   if (t === "stanje" && !mozeInteligencijaProcesa(uloga)) return false;
   if (rezimRada !== "linija" && jeAdmin(uloga)) return true;

@@ -95,7 +95,7 @@ export function HeatmapMerljivePanel({ merenja, C, naslov }) {
                     style={{
                       background: getColor(v), borderRadius: 3, height: 22,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: v > 0 ? 8 : 0, color: "#fff", fontWeight: 700,
+                      fontSize: v > 0 ? 8 : 0, color: C.onAkcent, fontWeight: 700,
                     }}>
                     {v > 0 ? v : ""}
                   </div>
@@ -446,7 +446,7 @@ export function ArhivaNokMerljive({ merenja, idDeo, C }) {
         <button type="button" onClick={() => { setFilter(""); setSamoFoto(false); }}
           style={{
             background: !filter && !samoFoto ? C.plava : "none", border: `1px solid ${!filter && !samoFoto ? C.plava : C.border}`,
-            borderRadius: 20, color: !filter && !samoFoto ? "#fff" : C.sivi, fontSize: 11, padding: "5px 14px", cursor: "pointer",
+            borderRadius: 20, color: !filter && !samoFoto ? C.onAkcent : C.sivi, fontSize: 11, padding: "5px 14px", cursor: "pointer",
           }}>
           Sve ({nok.length})
         </button>
@@ -454,7 +454,7 @@ export function ArhivaNokMerljive({ merenja, idDeo, C }) {
           style={{
             background: samoFoto ? "#fb923c" : "none",
             border: `1px solid ${samoFoto ? "#fb923c" : C.border}`,
-            borderRadius: 20, color: samoFoto ? "#fff" : C.sivi, fontSize: 11, padding: "5px 14px", cursor: "pointer",
+            borderRadius: 20, color: samoFoto ? C.onAkcent : C.sivi, fontSize: 11, padding: "5px 14px", cursor: "pointer",
           }}>
           📷 Sa fotom ({nok.filter(p => p.foto).length})
         </button>
@@ -463,7 +463,7 @@ export function ArhivaNokMerljive({ merenja, idDeo, C }) {
             style={{
               background: filter === p ? C.crvena : "none",
               border: `1px solid ${filter === p ? C.crvena : C.border}`,
-              borderRadius: 20, color: filter === p ? "#fff" : C.sivi, fontSize: 11, padding: "5px 14px", cursor: "pointer",
+              borderRadius: 20, color: filter === p ? C.onAkcent : C.sivi, fontSize: 11, padding: "5px 14px", cursor: "pointer",
             }}>
             {p}
           </button>
@@ -634,7 +634,7 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
         <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>8D izveštaji</div>
         <button type="button" onClick={() => setAktivni({})}
           style={{
-            background: C.plava, border: "none", borderRadius: 8, color: "#fff",
+            background: C.plava, border: "none", borderRadius: 8, color: C.onAkcent,
             fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
           }}>+ Novi 8D</button>
       </div>

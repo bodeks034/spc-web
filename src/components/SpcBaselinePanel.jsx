@@ -312,7 +312,7 @@ export default function SpcBaselinePanel({ C, korisnik, addToast, modul = "atrib
                 background: snima || (modul === "merljive" && !form.pozicija) ? C.hover : C.zuta,
                 border: "none",
                 borderRadius: 8,
-                color: snima ? C.sivi : "#000",
+                color: snima ? C.sivi : C.onZuta,
                 fontSize: 12,
                 fontWeight: 700,
                 padding: "10px 18px",

@@ -89,4 +89,4 @@ id_deo, radni_nalog, kontrolor_ime, broj_merenja
 
 ---
 
-Detaljnije: docs/UPUTSTVO_SIFARNIK_I_EXCEL.md
+Detaljnije: docs/obuka-paket/UPUTSTVO_SIFARNIK_I_EXCEL.md

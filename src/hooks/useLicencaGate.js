@@ -36,6 +36,8 @@ export default function useLicencaGate() {
 
       max_korisnika: r.max_korisnika,
 
+      max_uredjaja: r.max_uredjaja,
+
       offlineGrace: r.offlineGrace,
 
       devBypass: r.devBypass,

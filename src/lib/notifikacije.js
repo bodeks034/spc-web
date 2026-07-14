@@ -6,11 +6,30 @@ const LS_KEY = "spc_notif_settings";
 const DEDUPE_PREFIX = "spc_notif_sent_";
 const DEDUPE_MS = 60 * 60 * 1000;
 
+function jeBrowser() {
+  return typeof globalThis !== "undefined" && globalThis.window != null;
+}
+
+function storageGet(storage, key) {
+  try {
+    return storage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(storage, key, value) {
+  try {
+    storage?.setItem(key, value);
+  } catch { /* */ }
+}
+
 const DEFAULTS = {
   notif_browser: "1",
   notif_teams: "0",
   teams_webhook: "",
   notif_email: "0",
+  notif_email_spc: "1",
   email_webhook: "",
   smtp_host: "",
   smtp_port: "587",
@@ -18,12 +37,18 @@ const DEFAULTS = {
   smtp_pass: "",
   smtp_from: "",
   smtp_to: "",
+  smtp_to_spc: "",
   smtp_tls: "1",
+  email_provider: "auto",
+  email_resend_from: "",
+  notif_teams_auto: "1",
+  teams_webhook_auto: "",
 };
 
 export async function ucitajPodesavanjaNotifikacija(supabase) {
   const local = (() => {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+    if (!jeBrowser()) return {};
+    try { return JSON.parse(storageGet(globalThis.localStorage, LS_KEY) || "{}"); } catch { return {}; }
   })();
 
   try {
@@ -37,7 +62,9 @@ export async function ucitajPodesavanjaNotifikacija(supabase) {
 }
 
 export async function sacuvajPodesavanjaNotifikacija(supabase, settings) {
-  localStorage.setItem(LS_KEY, JSON.stringify(settings));
+  if (jeBrowser()) {
+    storageSet(globalThis.localStorage, LS_KEY, JSON.stringify(settings));
+  }
   const rows = Object.entries(settings).map(([kljuc, vrednost]) => ({
     kljuc,
     vrednost: String(vrednost ?? ""),
@@ -61,7 +88,7 @@ async function logNotifikacija(supabase, row) {
 function vecPoslato(alarmId) {
   if (!alarmId) return false;
   try {
-    const raw = sessionStorage.getItem(DEDUPE_PREFIX + alarmId);
+    const raw = storageGet(globalThis.sessionStorage, DEDUPE_PREFIX + alarmId);
     if (!raw) return false;
     return Date.now() - Number(raw) < DEDUPE_MS;
   } catch {
@@ -71,14 +98,30 @@ function vecPoslato(alarmId) {
 
 function oznaciPoslato(alarmId) {
   if (!alarmId) return;
-  try { sessionStorage.setItem(DEDUPE_PREFIX + alarmId, String(Date.now())); } catch { /* */ }
+  storageSet(globalThis.sessionStorage, DEDUPE_PREFIX + alarmId, String(Date.now()));
 }
 
 export async function zatraziBrowserDozvolu() {
-  if (!("Notification" in window)) return "unsupported";
+  if (!jeBrowser() || typeof Notification === "undefined") return "unsupported";
   if (Notification.permission === "granted") return "granted";
   if (Notification.permission === "denied") return "denied";
   return Notification.requestPermission();
+}
+
+/** Browser notifikacija za kritične auto-događaje (dashboard / push pravilo). */
+export function posaljiBrowserObavestenje(settings, { naslov, opis, tag } = {}) {
+  if (settings?.notif_browser === "0") return;
+  import("./autoPodesavanja.js").then(({ jeAutoPraviloUkljuceno }) => {
+    if (!jeAutoPraviloUkljuceno(settings, "push_kriticno")) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    try {
+      new Notification(naslov || "SPC", {
+        body: opis || "",
+        tag: tag || naslov,
+        icon: "/icon-192.png",
+      });
+    } catch { /* */ }
+  }).catch(() => {});
 }
 
 function edgeProxyUrl() {
@@ -152,41 +195,90 @@ function edgeEmailUrl() {
   return `${String(SUPABASE_URL).replace(/\/$/, "")}/functions/v1/send-email`;
 }
 
-export async function posaljiSmtpEmail(settings, { to, naslov, opis }) {
+/** Telo za send-email — Resend (edge secrets) ili SMTP iz admina. */
+export function buildSmtpPayload(settings, { to, naslov, opis, html } = {}) {
+  const primalac = (to || settings.smtp_to || "").trim();
+  if (!primalac) throw new Error("Primalac (to) nije podešen");
+
   const host = settings.smtp_host?.trim();
   const user = settings.smtp_user?.trim();
   const pass = settings.smtp_pass?.trim();
-  const primalac = (to || settings.smtp_to || "").trim();
-  if (!host || !user || !pass || !primalac) {
-    throw new Error("SMTP nije potpuno podešen (host, user, pass, to)");
+  const punSmtp = Boolean(host && user && pass);
+  const provider = String(settings.email_provider || "auto").toLowerCase();
+
+  const body = {
+    to: primalac,
+    subject: naslov,
+    text: opis,
+  };
+  if (html) body.html = html;
+
+  const koristiResend = provider === "resend" || (provider === "auto" && !punSmtp);
+  if (koristiResend) {
+    body.provider = "resend";
+    const from = settings.email_resend_from?.trim() || settings.smtp_from?.trim();
+    if (from) body.from = from;
+    return body;
   }
+
+  const port = Number(settings.smtp_port) || 587;
+  const tlsExplicit = settings.smtp_tls;
+  body.smtp_tls = tlsExplicit === "0" || tlsExplicit === false
+    ? false
+    : tlsExplicit === "1" || tlsExplicit === true
+      ? port === 465
+      : port === 465;
+  body.provider = "smtp";
+
+  if (punSmtp) {
+    body.smtp_host = host;
+    body.smtp_port = port;
+    body.smtp_user = user;
+    body.smtp_pass = pass;
+    body.smtp_from = settings.smtp_from?.trim() || user;
+    return body;
+  }
+
+  if (host || user || pass) {
+    throw new Error(
+      "SMTP nije potpun (host, user, pass) — popuni sva tri u Admin → Obaveštenja, "
+      + "ili izaberi provider Resend (npm run deploy:resend)",
+    );
+  }
+
+  return body;
+}
+
+export async function posaljiSmtpEmail(settings, { to, naslov, opis, html }) {
+  const body = buildSmtpPayload(settings, { to, naslov, opis, html });
   const res = await fetch(edgeEmailUrl(), {
     method: "POST",
     headers: edgeHeaders(),
-    body: JSON.stringify({
-      to: primalac,
-      subject: naslov,
-      text: opis,
-      smtp_host: host,
-      smtp_port: Number(settings.smtp_port) || 587,
-      smtp_user: user,
-      smtp_pass: pass,
-      smtp_from: settings.smtp_from?.trim() || user,
-      smtp_tls: settings.smtp_tls !== "0",
-    }),
+    body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.ok === false) throw new Error(json.error || `SMTP ${res.status}`);
+  if (!res.ok || json.ok === false) throw new Error(json.error || `Email ${res.status}`);
   return json;
 }
 
-export async function posaljiObavestenje(supabase, settings, alarm) {
+export async function posaljiObavestenje(supabase, settings, alarm, { dedupe } = {}) {
   const { id: alarmId, naslov, opis, nivo } = alarm;
-  if (vecPoslato(alarmId)) return { preskoceno: true };
+  const vecPoslatoFn = dedupe?.vecPoslato
+    ? (id) => Promise.resolve(dedupe.vecPoslato(id))
+    : async (id) => vecPoslato(id);
+  const oznaciFn = dedupe?.oznaci
+    ? (id) => { dedupe.oznaci(id); }
+    : (id) => oznaciPoslato(id);
+  if (await vecPoslatoFn(alarmId)) return { preskoceno: true };
 
   const rezultati = [];
 
-  if (settings.notif_browser === "1" && "Notification" in window && Notification.permission === "granted") {
+  if (
+    settings.notif_browser === "1"
+    && jeBrowser()
+    && typeof Notification !== "undefined"
+    && Notification.permission === "granted"
+  ) {
     try {
       new Notification(naslov, { body: opis, tag: alarmId });
       rezultati.push({ kanal: "browser", uspeh: true });
@@ -205,11 +297,16 @@ export async function posaljiObavestenje(supabase, settings, alarm) {
   }
 
   if (settings.notif_email === "1") {
-    const emailOk = settings.smtp_host?.trim() && settings.smtp_user?.trim();
+    const imaPunSmtp = settings.smtp_host?.trim() && settings.smtp_user?.trim() && settings.smtp_pass?.trim();
+    const provider = String(settings.email_provider || "auto").toLowerCase();
+    const koristiResend = provider === "resend" || (provider === "auto" && !imaPunSmtp);
+    const imaPrimalac = (settings.smtp_to || "").trim();
+    const emailOk = (koristiResend && imaPrimalac) || imaPunSmtp || imaPrimalac;
+    const kanal = koristiResend && !imaPunSmtp ? "resend" : "smtp";
     try {
       if (emailOk) {
         await posaljiSmtpEmail(settings, { naslov, opis });
-        rezultati.push({ kanal: "smtp", uspeh: true });
+        rezultati.push({ kanal, uspeh: true });
       } else if (settings.email_webhook?.trim()) {
         await posaljiGenericWebhook(settings.email_webhook.trim(), {
           subject: naslov,
@@ -221,7 +318,7 @@ export async function posaljiObavestenje(supabase, settings, alarm) {
         rezultati.push({ kanal: "email_webhook", uspeh: true });
       }
     } catch (e) {
-      rezultati.push({ kanal: emailOk ? "smtp" : "email_webhook", uspeh: false, greska: e.message });
+      rezultati.push({ kanal: emailOk ? kanal : "email_webhook", uspeh: false, greska: e.message });
     }
   }
 
@@ -237,7 +334,7 @@ export async function posaljiObavestenje(supabase, settings, alarm) {
     });
   }
 
-  if (rezultati.some(r => r.uspeh)) oznaciPoslato(alarmId);
+  if (rezultati.some(r => r.uspeh)) oznaciFn(alarmId);
   return { rezultati };
 }
 

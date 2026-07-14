@@ -231,7 +231,7 @@ export function SlikaPolje({
             title="Otvori crtež — zoom, pomeranje, pored polja za dimenzije"
             style={{
               padding: 0, border: `1px solid ${C.border}`, borderRadius: 4,
-              background: "#fff", cursor: "pointer", overflow: "hidden", flexShrink: 0,
+              background: C.onAkcent, cursor: "pointer", overflow: "hidden", flexShrink: 0,
             }}
           >
             <img

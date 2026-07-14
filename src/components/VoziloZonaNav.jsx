@@ -248,6 +248,7 @@ export default function VoziloZonaNav({
   izabranaZona = null,
   onZonaChange,
   diagramSrc,
+  diagramLoading = false,
   kompakt = false,
   veliki = false,
   velicina,
@@ -369,7 +370,23 @@ export default function VoziloZonaNav({
             </marker>
           </defs>
 
-          {!isPhoto && !bgSrc && <CarBodyDetailed />}
+          {!isPhoto && !bgSrc && !diagramLoading && <CarBodyDetailed />}
+
+          {diagramLoading && (
+            <g aria-hidden="true">
+              <rect x="0" y="0" width={VB_W} height={VB_H} fill="#f4f3ee" />
+              <text
+                x={VB_W / 2}
+                y={VB_H / 2}
+                textAnchor="middle"
+                fill="#888"
+                fontSize="14"
+                fontFamily="system-ui, sans-serif"
+              >
+                Učitavam dijagram…
+              </text>
+            </g>
+          )}
 
           {VOZILO_ZONE.map(z => {
             const aktivna = izabranaZona === z.id;

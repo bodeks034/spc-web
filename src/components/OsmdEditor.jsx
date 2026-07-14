@@ -871,7 +871,7 @@ function PoljeUnos({ polje, idx, form, setForm, C, INP }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <span style={{
           background: pop ? C.plava : C.hover,
-          color: pop ? "#fff" : C.sivi,
+          color: pop ? C.onAkcent : C.sivi,
           fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6,
           minWidth: 28, textAlign: "center",
         }}>{key.startsWith("lesson") ? "LL" : `D${idx + 1}`}</span>
@@ -1001,7 +1001,7 @@ export default function OsmdEditor({
 
   return (
     <OsmdScrollOkvir>
-    <div style={{ padding, maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+    <div data-testid="osmd-editor" style={{ padding, maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 16, gap: 8, flexWrap: "wrap",
@@ -1030,7 +1030,7 @@ export default function OsmdEditor({
           <button type="button" onClick={pokreniPdf} disabled={pdfBusy}
             style={{
               background: pdfBusy ? C.hover : "#7c3aed", border: "none", borderRadius: 7,
-              color: pdfBusy ? C.sivi : "#fff",
+              color: pdfBusy ? C.sivi : C.onAkcent,
               fontSize: 11, fontWeight: 700, padding: "7px 14px",
               cursor: pdfBusy ? "wait" : "pointer", opacity: pdfBusy ? 0.85 : 1,
             }}>
@@ -1041,7 +1041,7 @@ export default function OsmdEditor({
               title="ZIP: Word 8D + RPN Excel + PFMEA/CP Excel"
               style={{
                 background: paketBusy ? C.hover : "#0d9488", border: "none", borderRadius: 7,
-                color: paketBusy ? C.sivi : "#fff",
+                color: paketBusy ? C.sivi : C.onAkcent,
                 fontSize: 11, fontWeight: 700, padding: "7px 14px",
                 cursor: paketBusy ? "wait" : "pointer", opacity: paketBusy ? 0.85 : 1,
               }}>
@@ -1154,7 +1154,7 @@ export default function OsmdEditor({
       </div>
 
       <button type="button" onClick={sacuvajForm} style={{
-        width: "100%", background: C.plava, border: "none", borderRadius: 10, color: "#fff",
+        width: "100%", background: C.plava, border: "none", borderRadius: 10, color: C.onAkcent,
         fontSize: 14, fontWeight: 700, padding: "14px", cursor: "pointer", marginTop: 16,
         boxShadow: `0 0 16px ${C.plava}40`,
       }}>
@@ -1166,7 +1166,7 @@ export default function OsmdEditor({
           title={!form.id_deo ? "Izaberite deo" : "Sačuvaj i prenesi u PFMEA / Control Plan"}
           style={{
             width: "100%", background: pfmeaBusy ? C.hover : "#0d9488", border: "none",
-            borderRadius: 10, color: pfmeaBusy ? C.sivi : "#fff",
+            borderRadius: 10, color: pfmeaBusy ? C.sivi : C.onAkcent,
             fontSize: 13, fontWeight: 700, padding: "12px", cursor: pfmeaBusy || !form.id_deo ? "not-allowed" : "pointer",
             marginTop: 10, opacity: !form.id_deo ? 0.55 : 1,
           }}>

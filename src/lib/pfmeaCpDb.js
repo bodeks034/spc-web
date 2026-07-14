@@ -32,6 +32,36 @@ function stavkaIzDb(row, keys) {
   return normalizujPfmeaCpRed(out);
 }
 
+/** Sažetak PfMEA/CP dokumenata za ISO audit export. */
+export async function fetchPfmeaCpAuditSnapshot(supabase, { idDeo } = {}) {
+  const dokumenti = await listaPfmeaCpDokumenata(supabase, { idDeo });
+  if (!dokumenti.length) return [];
+
+  const ids = dokumenti.map((d) => d.id);
+  const { data: stavke, error } = await supabase
+    .from("pfmea_stavke")
+    .select("dokument_id,tip")
+    .in("dokument_id", ids);
+  if (error) throw error;
+
+  const poDoc = new Map();
+  for (const s of stavke || []) {
+    const cur = poDoc.get(s.dokument_id) || { pfmea: 0, cp: 0 };
+    if (s.tip === "cp") cur.cp += 1;
+    else cur.pfmea += 1;
+    poDoc.set(s.dokument_id, cur);
+  }
+
+  return dokumenti.map((d) => {
+    const c = poDoc.get(d.id) || { pfmea: 0, cp: 0 };
+    return {
+      ...d,
+      pfmea_stavki: c.pfmea,
+      cp_stavki: c.cp,
+    };
+  });
+}
+
 export async function listaPfmeaCpDokumenata(supabase, { idDeo } = {}) {
   let q = supabase.from("pfmea_cp_dokumenti")
     .select("id,naziv,id_deo,revizija,updated_at,created_at,osmd_izvestaj_id,broj_8d,napomena")

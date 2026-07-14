@@ -86,7 +86,7 @@ function FaiKartica({
             onClick={() => onOdobri(rec.id)}
             style={{
               background: C.zelena, border: "none", borderRadius: 8,
-              color: "#fff", fontSize: 11, fontWeight: 700,
+              color: C.onAkcent, fontSize: 11, fontWeight: 700,
               padding: "9px 16px", cursor: snimaId === rec.id ? "wait" : "pointer",
               opacity: snimaId === rec.id ? 0.7 : 1,
             }}

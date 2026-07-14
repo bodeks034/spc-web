@@ -339,6 +339,107 @@ export function porukaKpiGreske(error) {
   return msg;
 }
 
+/** ISO yyyy-mm-dd → dd.mm.yyyy za UI. */
+export function datumIsoUSr(iso) {
+  const s = String(iso || "").trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}.${m[2]}.${m[1]}`;
+  return s;
+}
+
+/** Jedinstvene stavke RN + datum + smena iz sirovih redova. */
+export function izgradiKpiFilterOpcije(rawRows = []) {
+  const stavke = [];
+  const seen = new Set();
+  for (const r of rawRows) {
+    const rn = String(r.radni_nalog || r.broj_naloga || "").trim().toUpperCase() || null;
+    const datum = String(r.datum || "").trim();
+    const sm = r.smena != null && r.smena !== "" ? String(r.smena) : null;
+    if (!datum) continue;
+    const key = `${rn || ""}|${datum}|${sm || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    stavke.push({ radni_nalog: rn, datum, smena: sm });
+  }
+  stavke.sort((a, b) => {
+    const dc = b.datum.localeCompare(a.datum);
+    if (dc !== 0) return dc;
+    return Number(b.smena || 0) - Number(a.smena || 0);
+  });
+  return {
+    stavke,
+    radniNalozi: [...new Set(stavke.map((s) => s.radni_nalog).filter(Boolean))].sort(),
+    datumi: [...new Set(stavke.map((s) => s.datum))].sort((a, b) => b.localeCompare(a)),
+    smene: [...new Set(stavke.map((s) => s.smena).filter(Boolean))].sort((a, b) => Number(a) - Number(b)),
+  };
+}
+
+/** Filtriraj stavke po izabranom RN / datumu / smeni. */
+export function filtrirajKpiStavke(stavke, { radniNalog, datumIso, smena } = {}) {
+  let list = stavke || [];
+  const rn = String(radniNalog || "").trim().toUpperCase();
+  if (rn) list = list.filter((s) => (s.radni_nalog || "") === rn);
+  if (datumIso) list = list.filter((s) => s.datum === datumIso);
+  if (smena != null && smena !== "") list = list.filter((s) => String(s.smena) === String(smena));
+  return list;
+}
+
+/**
+ * Opcije filtera za KPI hub — KPI unosi + log/merenja + aktivni RN iz šifrarnika.
+ */
+export async function fetchKpiFilterOpcijeZaDeo(supabase, { modul, idDeo }) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (id.length < 3) {
+    return { stavke: [], radniNalozi: [], datumi: [], smene: [] };
+  }
+
+  const mod = String(modul || "merljive").toLowerCase();
+  const upiti = [
+    supabase
+      .from("kpi_unos")
+      .select("datum,smena,radni_nalog")
+      .eq("modul", mod)
+      .eq("id_deo", id)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("radni_nalozi")
+      .select("broj_naloga,datum")
+      .eq("id_deo", id)
+      .eq("status", "aktivan")
+      .order("created_at", { ascending: false })
+      .limit(40),
+  ];
+
+  if (mod === "atributivne") {
+    upiti.push(
+      supabase
+        .from("kontrolni_log")
+        .select("datum,smena,radni_nalog")
+        .eq("id_deo", id)
+        .order("created_at", { ascending: false })
+        .limit(200),
+    );
+  } else {
+    upiti.push(
+      supabase
+        .from("merenja_varijabilna")
+        .select("datum,smena,radni_nalog")
+        .eq("id_deo", id)
+        .order("created_at", { ascending: false })
+        .limit(200),
+    );
+  }
+
+  const rezultati = await Promise.all(upiti);
+  const sirovo = [];
+  for (const r of rezultati) {
+    if (r.error) continue;
+    for (const row of r.data || []) sirovo.push(row);
+  }
+  return izgradiKpiFilterOpcije(sirovo);
+}
+
 /** Učitaj KPI unose za period / smenu (PDF i analitika). */
 export async function fetchKpiUnos(supabase, {
   modul,

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPC — Inženjer / šef Modul 2</title>
+  <style>
+    :root { --text:#111; --muted:#444; }
+    * { box-sizing:border-box; }
+    body { font-family:"Segoe UI",Arial,sans-serif; font-size:11pt; line-height:1.4; color:var(--text); margin:0; background:#c8c8c8; }
+    .page { width:210mm; min-height:297mm; margin:12px auto; padding:18mm 16mm 20mm; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.15); }
+    @media print {
+      body { background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .page {
+        width:auto; min-height:auto; margin:0; padding:0 !important;
+        box-shadow:none; page-break-after:always;
+      }
+      .page:last-child { page-break-after:auto; }
+      .no-print { display:none!important; }
+      a { color:inherit; text-decoration:none; }
+      table { page-break-inside:avoid; }
+      h2, h3 { page-break-after:avoid; }
+      th { background:#e8f2ec !important; }
+    }
+    @page { size:A4; margin:16mm 14mm 18mm 14mm; }
+    h1 { font-size:20pt; margin:0 0 4px; color:#000; }
+    h2 { font-size:13pt; margin:18px 0 8px; color:#000; border-bottom:1.5px solid #222; padding-bottom:3px; page-break-after:avoid; }
+    h3 { font-size:11pt; margin:14px 0 6px; color:#000; page-break-after:avoid; }
+    p { margin:6px 0; }
+    .sub { color:var(--muted); margin-bottom:14px; font-size:10.5pt; }
+    table { width:100%; border-collapse:collapse; margin:8px 0 14px; font-size:9pt; page-break-inside:avoid; background:#fff; }
+    th, td { border:1px solid #333; padding:6px 8px; text-align:left; vertical-align:top; background:#fff; }
+    th { background:#e8f2ec; font-weight:700; }
+    .print-bar { position:sticky; top:0; z-index:99; background:#111; color:#fff; padding:10px; text-align:center; }
+    .print-bar button { background:#1a6b3c; color:#fff; border:none; padding:8px 18px; font-weight:700; border-radius:6px; cursor:pointer; margin-left:10px; }
+    footer { margin-top:16px; border-top:1px solid #999; font-size:8pt; color:var(--muted); text-align:center; padding-top:6px; }
+    .section-start { page-break-before:always; }
+    .box { border:1.5px solid #333; padding:10px 12px; margin:10px 0; background:#fff; }
+  </style>
+</head>
+<body>
+
+<div class="print-bar no-print">
+  Inženjer / šef — Modul 2 (A4)
+  <button type="button" onclick="window.print()">🖨 Štampaj / Save as PDF</button>
+</div>
+
+<div class="page">
+  <h1>Inženjer / šef — Modul 2</h1>
+  <p class="sub">Za štampu · analitika + šifrarnik ukratko · SPC Kontrola kvaliteta</p>
+  <div class="box">
+    <strong>Za koga:</strong> kvalitet, šef, admin (analitika).<br>
+    <strong>Cilj:</strong> znati ulaz u Modul 2, grupe tabova, i šta raditi kad linija prijavi problem.
+  </div>
+
+  <h2>1. Početni ekran</h2>
+  <table>
+    <tr><th>Blok</th><th>Šta radiš</th></tr>
+    <tr><td>Predaja smene · danas</td><td>KPI, alarmi, pogoni, PDF predaje</td></tr>
+    <tr><td>Pregled proizvodnje</td><td>Prioritet smene, dashboard</td></tr>
+    <tr><td>KPI dorada / škart</td><td>Agregati (nije LOG)</td></tr>
+    <tr><td>Modul 1 / Modul 2</td><td>Linija ↔ Analiza — <strong>samo ovde</strong></td></tr>
+    <tr><td>Kartice</td><td>Atributivne, Merljive, Modul 0, Admin</td></tr>
+  </table>
+
+  <h2>2. Modul 2 — grupe (atributivne)</h2>
+  <table>
+    <tr><th>Grupa</th><th>Tabovi</th><th>Svrha</th></tr>
+    <tr><td>Pregled</td><td>PREGLED</td><td>Brzi snimak</td></tr>
+    <tr><td>Analitika</td><td>DASHBOARD · KARTE · STANJE · OC · STABILNOST · MSA · KPLAN</td><td>SPC</td></tr>
+    <tr><td>Kvalitet</td><td>ODOBRENJA · NCR · 8D · PFMEA · ESKALACIJE · ISO 2859 · KUPAC · TRASABILITET</td><td>Akcije</td></tr>
+    <tr><td>Operativa</td><td>SMENA · OEE · CILJEVI · NALOZI</td><td>Smena / RN</td></tr>
+    <tr><td>Alati</td><td>EXCEL</td><td>Izvoz</td></tr>
+  </table>
+  <table>
+    <tr><th>Merljive — dodatno</th><th>Nema u M2</th></tr>
+    <tr><td>HEAT MAP · ISO 3951 · FAI</td><td>UNOS · LOG · CRTEŽ · FOTO</td></tr>
+  </table>
+  <footer>SPC Web · Inženjer Modul 2 · str. 1</footer>
+</div>
+
+<div class="page section-start">
+  <h2>3. Dnevni tok</h2>
+  <table>
+    <tr><th>#</th><th>Korak</th></tr>
+    <tr><td>1</td><td>Predaja smene / PREGLED — šta je kritično</td></tr>
+    <tr><td>2</td><td>ODOBRENJA — alarmi, prekidi, kalibracija</td></tr>
+    <tr><td>3</td><td>KONTROLNE KARTE / STANJE</td></tr>
+    <tr><td>4</td><td>NCR / 8D po potrebi</td></tr>
+    <tr><td>5</td><td>SMENA — PDF predaje pred kraj</td></tr>
+  </table>
+
+  <h2>4. Tab → jedna rečenica</h2>
+  <table>
+    <tr><th>Tab</th><th>Jedna rečenica</th></tr>
+    <tr><td>PREGLED / DASHBOARD</td><td>Šta danas gori?</td></tr>
+    <tr><td>KONTROLNE KARTE</td><td>Da li je proces u kontroli</td></tr>
+    <tr><td>STANJE</td><td>Šta uraditi sada</td></tr>
+    <tr><td>ODOBRENJA</td><td>Odobri alarm / prekid / kalibraciju</td></tr>
+    <tr><td>NCR / CAPA</td><td>Nesaglasnost + CAPA</td></tr>
+    <tr><td>8D</td><td>Formalni 8D</td></tr>
+    <tr><td>SMENA</td><td>Predaja, pogoni, PDF</td></tr>
+    <tr><td>TRASABILITET</td><td>Trag po delu / RN</td></tr>
+    <tr><td>EXCEL</td><td>Izvoz (uvoz ograničen)</td></tr>
+  </table>
+
+  <h2>5. Problem → alat</h2>
+  <table>
+    <tr><th>Signal</th><th>Korak</th></tr>
+    <tr><td>Alarm / karantin</td><td>ODOBRENJA → NCR</td></tr>
+    <tr><td>OOC / trend</td><td>KARTE → STANJE → NCR / 8D</td></tr>
+    <tr><td>Istekla kalibracija</td><td>ODOBRENJA ili Modul 0 Merila</td></tr>
+    <tr><td>Nema dela / dimenzija</td><td>Modul 0</td></tr>
+    <tr><td>Predaja smene</td><td>SMENA / početni panel</td></tr>
+    <tr><td>Kupac traži dokaz</td><td>KUPAC / TRASABILITET</td></tr>
+  </table>
+  <footer>SPC Web · Inženjer Modul 2 · str. 2</footer>
+</div>
+
+<div class="page section-start">
+  <h2>6. Modul 0 — šta moraš</h2>
+  <table>
+    <tr><th>#</th><th>Održavaš</th></tr>
+    <tr><td>1</td><td>Delove, dimenzije, greške, RN</td></tr>
+    <tr><td>2</td><td>Pogon mapa A–I</td></tr>
+    <tr><td>3</td><td>Merila / kalibracija</td></tr>
+    <tr><td>4</td><td>Barkod profili</td></tr>
+    <tr><td>5</td><td>Kontrolna lista smene</td></tr>
+    <tr><td>6</td><td>Moment JOB (ako ima)</td></tr>
+  </table>
+  <table>
+    <tr><th>Pravilo</th><th>Detalj</th></tr>
+    <tr><td>ERP uvoz</td><td><strong>Samo CSV</strong> (Alati → ERP uvoz)</td></tr>
+    <tr><td>Glavni unos</td><td>Propagiraj → dimenzije / delovi; .xlsx nije ERP master</td></tr>
+  </table>
+
+  <h2>7. Excel — ko sme</h2>
+  <table>
+    <tr><th>Uloga</th><th>Šta sme</th></tr>
+    <tr><td>Kvalitet</td><td>Izvoz; uvoz karakteristika ograničen</td></tr>
+    <tr><td>Šef</td><td>Izvoz</td></tr>
+    <tr><td>Admin</td><td>Pun Excel u Admin panelu</td></tr>
+  </table>
+  <p><strong>Nikad</strong> ne menjaj LOG preko Excela — LOG nastaje na liniji.</p>
+
+  <h2>8. Checklist — dnevno</h2>
+  <table>
+    <tr><th>☐</th><th>Stavka</th></tr>
+    <tr><td>☐</td><td>Predaja / PREGLED — alarmi</td></tr>
+    <tr><td>☐</td><td>ODOBRENJA obrađena</td></tr>
+    <tr><td>☐</td><td>Karte kritičnih delova</td></tr>
+    <tr><td>☐</td><td>Otvoreni NCR / 8D</td></tr>
+    <tr><td>☐</td><td>Predaja smene PDF</td></tr>
+  </table>
+
+  <h2>9. Gde dalje</h2>
+  <table>
+    <tr><th>Dokument</th><th>Tema</th></tr>
+    <tr><td>OBUKA_SPC_KOMPLET.html</td><td>Komplet za sve</td></tr>
+    <tr><td>OBUKA_OPERATER_MODUL1.html</td><td>Linija</td></tr>
+    <tr><td>OBUKA_MODUL_SIFARNIK.html</td><td>Modul 0</td></tr>
+  </table>
+  <footer>SPC Web · Inženjer Modul 2 · kraj · jul 2026</footer>
+</div>
+
+</body>
+</html>

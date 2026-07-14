@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { predloziDodeljenogInzenjera } from "../../lib/eskalacijeHelper.js";
+import { procitajNavigacijuEskalacije } from "../../lib/workflowAkcije.js";
+import { normalizujIdDeo } from "../../lib/idDeoUtil.js";
 
 export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOtvori8D }) {
   const [eskalacije, setEskalacije] = useState([]);
@@ -8,6 +10,13 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
   const [forma,      setForma]      = useState(null); // null | 'nova' | {id}
   const [radnici,    setRadnici]    = useState([]);
   const [filter,     setFilter]     = useState("sve");
+  const [idDeoFilter, setIdDeoFilter] = useState("");
+
+  useEffect(() => {
+    const nav = procitajNavigacijuEskalacije();
+    if (nav?.idDeo) setIdDeoFilter(normalizujIdDeo(nav.idDeo));
+    if (nav?.statusFilter) setFilter(nav.statusFilter);
+  }, []);
 
   useEffect(()=>{
     Promise.all([
@@ -51,7 +60,11 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
     }
   };
 
-  const filtrirane = eskalacije.filter(e=>filter==="sve"||e.status===filter);
+  const filtrirane = eskalacije.filter((e) => {
+    if (filter !== "sve" && e.status !== filter) return false;
+    if (idDeoFilter && normalizujIdDeo(e.id_deo) !== idDeoFilter) return false;
+    return true;
+  });
 
   const PRIORITET_BOJA = {kriticno:C.crvena,visok:C.narandzasta,srednji:C.zuta,nizak:C.zelena};
   const STATUS_BOJA    = {otvoren:C.crvena,u_toku:C.zuta,zatvoren:C.zelena};
@@ -63,13 +76,29 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
 
   return (
     <div style={{padding:18}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>ESKALACIJE</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+        <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>
+          ESKALACIJE
+          {idDeoFilter && (
+            <span style={{ color: C.plava, fontSize: 10, marginLeft: 8, fontWeight: 600 }}>
+              · {idDeoFilter}
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {idDeoFilter && (
+            <button type="button" onClick={() => setIdDeoFilter("")}
+              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.sivi, fontSize: 10, padding: "6px 10px", cursor: "pointer" }}>
+              ✕ filter dela
+            </button>
+          )}
         <button onClick={()=>setForma("nova")}
-          style={{background:C.crvena,border:"none",borderRadius:8,color:"#fff",
+          style={{background:C.crvena,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
           + Nova eskalacija
         </button>
+        </div>
       </div>
 
       {/* Filter */}
@@ -77,7 +106,7 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
         {[["sve","Sve"],["otvoren","Otvorene"],["u_toku","U toku"],["zatvoren","Zatvorene"]].map(([v,l])=>(
           <button key={v} onClick={()=>setFilter(v)} style={{
             background:filter===v?C.plava:"none",border:`1px solid ${filter===v?C.plava:C.border}`,
-            borderRadius:8,color:filter===v?"#fff":C.sivi,fontSize:11,
+            borderRadius:8,color:filter===v? C.onAkcent:C.sivi,fontSize:11,
             padding:"6px 14px",cursor:"pointer"}}>
             {l}
             {v!=="sve"&&<span style={{marginLeft:4,color:filter===v?"rgba(255,255,255,0.7)":C.border}}>
@@ -234,7 +263,7 @@ function NovaEskalacija({ korisnik, sviDelovi, radnici, onSnimi, onOtkazati, C }
         <div style={{display:"flex",gap:10,marginTop:4}}>
           <button onClick={()=>onSnimi(form)} disabled={!form.id_deo||!form.opis}
             style={{flex:1,background:!form.id_deo||!form.opis?C.hover:C.crvena,border:"none",
-              borderRadius:8,color:!form.id_deo||!form.opis?C.sivi:"#fff",
+              borderRadius:8,color:!form.id_deo||!form.opis?C.sivi: C.onAkcent,
               fontSize:13,fontWeight:700,padding:"12px",cursor:"pointer"}}>
             Kreiraj eskalaciju
           </button>

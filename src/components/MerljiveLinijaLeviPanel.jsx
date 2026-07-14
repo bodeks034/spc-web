@@ -65,7 +65,7 @@ export default function MerljiveLinijaLeviPanel({
     background: dis ? C.hover : bg,
     border: "none",
     borderRadius: 6,
-    color: dis ? C.sivi : "#fff",
+    color: dis ? C.sivi : C.onAkcent,
     fontSize: 12,
     fontWeight: 700,
     padding: "10px 0",

@@ -3,6 +3,10 @@ import { supabase } from "../../lib/supabaseClient.js";
 import { useAnalitikaFilter } from "../../lib/AnalitikaFilterContext.jsx";
 import { datumOdIzPerioda } from "../../lib/analitikaFilterUtils.js";
 import { brojMerenjaIzSop, uniqueDeloviIzSop } from "../../lib/pogonSop.js";
+import {
+  fetchMerenjaVarijabilna,
+  nadjiKarakteristikuPoPoziciji,
+} from "../../lib/merenjaVarijabilnaQuery.js";
 import { fetchKpiUnos, agregirajKpiUnos } from "../../lib/kpiUnos.js";
 import {
   podgrupeMerenja,
@@ -39,14 +43,21 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!idDeo) {
+      setKarakteristike([]);
+      return undefined;
+    }
+    let alive = true;
     (async () => {
       const { data } = await supabase
         .from("karakteristike_merljive")
         .select("id_deo,pozicija,lsl,usl,nominala,jedinica")
+        .eq("id_deo", idDeo)
         .order("pozicija");
-      setKarakteristike(data || []);
+      if (alive) setKarakteristike(data || []);
     })();
-  }, []);
+    return () => { alive = false; };
+  }, [idDeo]);
 
   const ucitaj = useCallback(async () => {
     if (!idDeo) {
@@ -57,21 +68,17 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
     setLoading(true);
     try {
       const od = datumOdIzPerioda(period);
-      let q = supabase.from("merenja_varijabilna")
-        .select("*")
-        .eq("id_deo", idDeo)
-        .gte("datum", od)
-        .order("datum", { ascending: true })
-        .order("created_at", { ascending: true });
-      if (pozicija) q = q.eq("pozicija", pozicija);
-      if (smena) q = q.eq("smena", Number(smena));
-
-      const [merRes, sopRes] = await Promise.all([
-        q,
+      const [merenja, sopRes] = await Promise.all([
+        fetchMerenjaVarijabilna(supabase, {
+          idDeo,
+          select: "*",
+          datumOd: od,
+          smena: smena || undefined,
+          pozicija: pozicija || undefined,
+        }),
         supabase.from("sop_deo_varijabilni").select("id_deo,naziv_dela,broj_merenja").eq("id_deo", idDeo),
       ]);
-      if (merRes.error) throw merRes.error;
-      setRawData(merRes.data || []);
+      setRawData(merenja);
       const delovi = uniqueDeloviIzSop(sopRes.data || []);
       setNazivDela(delovi.find((d) => d.id_deo === idDeo)?.naziv_dela || sopRes.data?.[0]?.naziv_dela || "");
       setNPodgrupa(brojMerenjaIzSop(sopRes.data || [], idDeo));
@@ -112,7 +119,7 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
 
   const kar = useMemo(() => {
     if (!pozicija || !idDeo) return null;
-    return karakteristike.find((k) => k.id_deo === idDeo && k.pozicija === pozicija) || null;
+    return nadjiKarakteristikuPoPoziciji(karakteristike, idDeo, pozicija);
   }, [karakteristike, idDeo, pozicija]);
 
   const gr = useMemo(() => graniceKarakteristike(kar), [kar]);

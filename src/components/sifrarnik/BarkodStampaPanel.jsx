@@ -253,7 +253,7 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" disabled={stampanje || !idDeo} onClick={stampaj}
               style={{
-                background: C.zelena, border: "none", borderRadius: 6, color: "#fff",
+                background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent,
                 fontSize: 11, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
                 opacity: stampanje || !idDeo ? 0.6 : 1,
               }}>
@@ -288,7 +288,7 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
             border: `1px solid ${C.border}`,
             borderRadius: 8,
             padding: Math.max(6, Math.round((preview.dim?.paddingMm || 8) * 0.85)),
-            background: "#fff",
+            background: C.onAkcent,
             width: `${Math.min(preview.dim?.sirinaMm || dim.sirinaMm, 100)}mm`,
             margin: "0 auto",
             textAlign: "left",
@@ -317,7 +317,7 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
                 </div>
               )}
             </div>
-            <div style={{ fontSize: 9, color: "#666", marginTop: 8, wordBreak: "break-all" }}>
+            <div style={{ fontSize: 9, color: C.sivi, marginTop: 8, wordBreak: "break-all" }}>
               {preview.sadrzaj}
             </div>
           </div>

@@ -1,10 +1,13 @@
 /** Pragovi i evaluacija operativnih alarma. */
 
+import { daniDoStudije } from "./msaKalendar.js";
+
 export const ALARM_PRAGOVI = {
   nokProcenatDanas: 10,
   oeeMinProcenat: 65,
   eskalacijaStariSati: 24,
   kalibracijaUpozorenjeDana: 30,
+  msaUpozorenjeDana: 30,
 };
 
 const OTVORENE_ESK = new Set(["otvoren", "u_toku", "aktivan", "open"]);
@@ -15,6 +18,7 @@ export function evaluirajAlarme({
   oee = {},
   eskalacije = [],
   merila = [],
+  msaStudije = [],
   offlinePaketi = 0,
   visokNokDelovi = [],
 }) {
@@ -81,6 +85,32 @@ export function evaluirajAlarme({
       nivo: "info",
       naslov: `${uskoro.length} merila — kalibracija uskoro`,
       opis: `U narednih ${ALARM_PRAGOVI.kalibracijaUpozorenjeDana} dana`,
+    });
+  }
+
+  const msaKasni = (msaStudije || []).filter((r) => {
+    const d = daniDoStudije(r.sledeca_studija);
+    return d !== null && d < 0;
+  });
+  if (msaKasni.length > 0) {
+    alarmi.push({
+      id: "msa_kasni",
+      nivo: "visok",
+      naslov: `${msaKasni.length} MSA studija kasni`,
+      opis: msaKasni.map((r) => r.merilo?.naziv || `Merilo #${r.merilo_id}`).slice(0, 5).join(", "),
+    });
+  }
+
+  const msaUskoro = (msaStudije || []).filter((r) => {
+    const d = daniDoStudije(r.sledeca_studija);
+    return d !== null && d >= 0 && d <= ALARM_PRAGOVI.msaUpozorenjeDana;
+  });
+  if (msaUskoro.length > 0) {
+    alarmi.push({
+      id: "msa_uskoro",
+      nivo: "info",
+      naslov: `${msaUskoro.length} MSA studija u narednih ${ALARM_PRAGOVI.msaUpozorenjeDana} dana`,
+      opis: msaUskoro.map((r) => r.merilo?.naziv || `Merilo #${r.merilo_id}`).slice(0, 5).join(", "),
     });
   }
 

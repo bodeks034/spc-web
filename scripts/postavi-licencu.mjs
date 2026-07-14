@@ -102,6 +102,10 @@ const maxKorisnika = arg("--max-korisnika", null);
 
 const maxKorisnikaNum = maxKorisnika ? Number(maxKorisnika) : null;
 
+const maxUredjaja = arg("--max-uredjaja", null);
+
+const maxUredjajaNum = maxUredjaja ? Number(maxUredjaja) : null;
+
 
 
 const osnovniRed = {
@@ -131,6 +135,8 @@ const prosireniRed = {
   moduli_json: moduli,
 
   max_korisnika: Number.isFinite(maxKorisnikaNum) ? maxKorisnikaNum : null,
+
+  max_uredjaja: Number.isFinite(maxUredjajaNum) ? maxUredjajaNum : null,
 
 };
 

@@ -114,7 +114,7 @@ export default function OfflineSyncPanel({
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <button type="button" disabled={syncing || !counts.total} onClick={sync}
           style={{
-            background: C.zelena, border: "none", borderRadius: 6, color: "#fff",
+            background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent,
             fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
             opacity: counts.total ? 1 : 0.5,
           }}>

@@ -2,7 +2,7 @@
 
 Dokument za IT odeljenje fabrike. Aplikacija: **SPC Kontrola Kvaliteta** (React + self-hosted Supabase).
 
-> **Za dobavljača:** popunjivi checklist pre instalacije (jedna firma) → `docs/CHECKLIST_PRE_INSTALACIJA_FIRMA.md`
+> **Za dobavljača:** popunjivi checklist pre instalacije (jedna firma) → `docs/obuka-paket/CHECKLIST_PRE_INSTALACIJA_FIRMA.md`
 
 ---
 
@@ -80,11 +80,23 @@ Alternativa: Windows Server 2019+ sa Docker Desktop (manje preporučeno).
 
 | Zadatak | Učestalost |
 |---------|------------|
-| SQL backup | dnevno |
+| SQL backup | dnevno (02:00 — `SPC-Postgres-Backup` / Linux cron) |
+| SPC cron zadaci | vidi `docs/obuka-paket/UPUTSTVO_AUTOMATIZACIJA.md` |
 | Provera Docker kontejnera | dnevno (monitoring) |
 | OS security patch | mesečno |
 | Test restore backup-a | kvartalno |
 | Deploy nove verzije frontenda | po dogovoru sa razvojem |
+
+### Automatizacija (cron)
+
+| Windows | `npm run auto:install:admin` |
+| Linux | `./scripts/install-automatizacija-linux.sh` |
+| Env | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_TO`, `SPC_BACKUP_DIR` |
+| Telemetrija SQL | `npm run db:migrate:auto` (fajl `61_auto_telemetrija.sql`) |
+| Cloud (Vercel) | `CRON_SECRET` + `api/cron.js` — **ne duplirati** sa on-prem cron-om |
+
+Smoke test: `npm run auto:smoke` · logovi: `npm run logs:auto`
+Go-live gate: `npm run deploy:go-live` · ISO audit: `npm run iso:audit` · runbook: `docs/obuka-paket/GO_LIVE_RUNBOOK.md`
 
 ---
 
@@ -94,12 +106,14 @@ Alternativa: Windows Server 2019+ sa Docker Desktop (manje preporučeno).
 - Produženje rada programa vrši **dobavljač softvera**, ne IT (potpisana licenca + baza).
 - `service_role` ključ za licenciranje **nije** deo operativnog IT pristupa.
 
-Vidi: `docs/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md`
+**Windows on-prem korak-po-korak:** `deploy/WINDOWS_ONPREM.md`
+
+Vidi: `docs/obuka-paket/UPUTSTVO_ZASTITA_KODA_I_LICENCA.md`
 
 ## Kontakt za deploy
 
 Razvojni paket: folder `deploy-paket/` sa SQL migracijama, `backup/`, nginx primerom.  
-Glavno uputstvo: `docs/UPUTSTVO_FIRMINSKI_SERVER.md`.
+Glavno uputstvo: `docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md`.
 
 ---
 
@@ -110,7 +124,9 @@ Glavno uputstvo: `docs/UPUTSTVO_FIRMINSKI_SERVER.md`.
 - [ ] HTTPS sertifikat
 - [ ] Firewall pravila
 - [ ] Docker instaliran
-- [ ] Backup destinacija (NAS)
+- [ ] Backup destinacija (NAS) — `SPC_BACKUP_DIR` u env
+- [ ] SPC cron instaliran (`auto:install` ili Linux skripta)
+- [ ] `61_auto_telemetrija.sql` primenjen (Admin → Status automatizacije)
 - [ ] Test pristup sa jednog tableta u LAN-u
 
 Datum: _______________  

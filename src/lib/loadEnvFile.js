@@ -29,11 +29,12 @@ export async function loadEnvFile(filePath) {
   return true;
 }
 
-/** Probaj .env.erp pa .env.local u korenu projekta. */
+/** Probaj .env, .env.local i .env.erp u korenu projekta (Vite koristi .env.local). */
 export async function loadEnvZaSkripte(root) {
   const files = [
-    path.join(root, ".env.erp"),
+    path.join(root, ".env"),
     path.join(root, ".env.local"),
+    path.join(root, ".env.erp"),
   ];
   for (const f of files) {
     await loadEnvFile(f);

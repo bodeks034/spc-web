@@ -108,7 +108,7 @@ export default function OsmdPaketPregled({
               onClick={onExportPaket}
               style={{
                 background: paketBusy ? C.hover : "#7c3aed", border: "none", borderRadius: 7,
-                color: paketBusy ? C.sivi : "#fff",
+                color: paketBusy ? C.sivi : C.onAkcent,
                 fontSize: 10, fontWeight: 700, padding: "7px 12px",
                 cursor: paketBusy ? "wait" : "pointer",
               }}

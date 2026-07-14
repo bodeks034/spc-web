@@ -37,10 +37,13 @@ export function DugmeTraka({
   onClick,
   disabled = false,
   boja,
-  bojaTekst = "#fff",
+  bojaTekst,
+  C,
   children,
   flex = 1,
 }) {
+  const tekst = bojaTekst ?? C?.onAkcent ?? "#f8fafc";
+  const svetliTekst = tekst === "#f8fafc" || tekst === "#f2f6fb" || tekst === C?.onAkcent;
   return (
     <button
       type="button"
@@ -50,9 +53,9 @@ export function DugmeTraka({
         flex,
         minHeight: 48,
         background: disabled ? undefined : boja,
-        border: disabled ? `1px solid rgba(255,255,255,0.12)` : (bojaTekst === "#fff" ? "none" : `1px solid rgba(255,255,255,0.15)`),
+        border: disabled ? `1px solid rgba(255,255,255,0.12)` : (svetliTekst ? "none" : `1px solid rgba(255,255,255,0.15)`),
         borderRadius: 10,
-        color: disabled ? undefined : bojaTekst,
+        color: disabled ? undefined : tekst,
         fontSize: 14,
         fontWeight: 700,
         cursor: disabled ? "not-allowed" : "pointer",

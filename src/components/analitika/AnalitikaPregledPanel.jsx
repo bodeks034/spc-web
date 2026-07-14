@@ -11,6 +11,7 @@ export default function AnalitikaPregledPanel({
   addToast,
   korisnik,
   onOtvori8D,
+  onOtvoriNcr,
   modul,
   onOtvoriOee,
   onNavigacija,
@@ -52,6 +53,7 @@ export default function AnalitikaPregledPanel({
             addToast={addToast}
             korisnik={korisnik}
             onOtvori8D={onOtvori8D}
+            onOtvoriNcr={onOtvoriNcr}
             filterIdDeo={filter?.idDeo}
             filterPeriod={filter?.period}
             filterLinija={filter?.linija}

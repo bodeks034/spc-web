@@ -24,8 +24,19 @@ import {
   pogonLinijaMapIzGlavnogUnosa,
   setPogonLinijaMap,
 } from "./pogonLinijaLookup.js";
+import {
+  fetchPogonLinijaMapa,
+  upsertPogonLinijaMapa,
+  obrisiPogonLinijaMapa,
+} from "./pogonLinijaApi.js";
+export {
+  fetchPogonLinijaMapa,
+  upsertPogonLinijaMapa,
+  obrisiPogonLinijaMapa,
+};
 import * as XLSX from "xlsx";
 import { uploadSlikaSifrarnik } from "./sifrarnikSlikeApi.js";
+import { sinhronizujKupce } from "./radniNaloziUvoz.js";
 
 function greskaNedostaje(error) {
   const m = (error?.message || "").toLowerCase();
@@ -43,37 +54,6 @@ export function ocistiRedZaInsertGlavniUnos(row, { sheetNaziv, redosled } = {}) 
     ...(redosled != null ? { redosled } : {}),
     updated_at: new Date().toISOString(),
   };
-}
-
-export async function fetchPogonLinijaMapa() {
-  const { data, error } = await supabase.from("pogon_linija_mapa").select("*").order("linija_faza");
-  if (error) {
-    if (greskaNedostaje(error)) return [];
-    throw error;
-  }
-  return data || [];
-}
-
-export async function upsertPogonLinijaMapa(rows) {
-  const payload = (rows || []).map((r) => ({
-    linija_faza: String(r.linija_faza || "").trim(),
-    linija_id: r.linija_id != null && r.linija_id !== "" ? Number(r.linija_id) : null,
-    pogon_kod: String(r.pogon_kod || "").trim().toUpperCase(),
-    updated_at: new Date().toISOString(),
-  })).filter((r) => r.linija_faza);
-  if (!payload.length) return [];
-  const { data, error } = await supabase.from("pogon_linija_mapa")
-    .upsert(payload, { onConflict: "linija_faza" })
-    .select("*");
-  if (error) throw error;
-  return data || [];
-}
-
-export async function obrisiPogonLinijaMapa(linijaFaza) {
-  const { error } = await supabase.from("pogon_linija_mapa")
-    .delete()
-    .eq("linija_faza", linijaFaza);
-  if (error) throw error;
 }
 
 export async function fetchGlavniUnosSheetovi() {
@@ -257,6 +237,17 @@ export async function propagirajGlavniUnos({ sheetNaziv = null, idDeo = null } =
   const merged = mergeKarakteristike(postojeci || [], izGlavnog);
   const deoMeta = metaDeoIzGlavnogUnosa(dbRedovi);
   const kupacPoDeo = kupacPoDeoIzGlavnogUnosa(dbRedovi);
+
+  const kupciZaSync = [...kupacPoDeo.values()]
+    .map((v) => v?.kupac)
+    .filter(Boolean)
+    .map((kupac) => ({ kupac }));
+  if (kupciZaSync.length) {
+    const kupacSync = await sinhronizujKupce(supabase, kupciZaSync);
+    if (kupacSync?.error) {
+      throw new Error(`kupci: ${kupacSync.error.message || kupacSync.error}`);
+    }
+  }
 
   // FK: delovi mora postojati pre karakteristike_merljive
   await ensureDeloviMaster(supabase, merged, deoMeta);

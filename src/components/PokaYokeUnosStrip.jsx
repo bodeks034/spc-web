@@ -99,7 +99,7 @@ export default function PokaYokeUnosStrip({
             type="button"
             onClick={onZahtevKalibracija}
             style={{
-              marginTop: 8, background: C.zuta, border: "none", borderRadius: 6, color: "#000",
+              marginTop: 8, background: C.zuta, border: "none", borderRadius: 6, color: C.onZuta,
               fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
             }}
           >
@@ -114,7 +114,7 @@ export default function PokaYokeUnosStrip({
               onClick={onToggleKalibracijaOdobrenje}
               style={{
                 background: kalibracijaOdobrena ? C.zuta : C.crvena,
-                border: "none", borderRadius: 6, color: "#000",
+                border: "none", borderRadius: 6, color: C.onZuta,
                 fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
               }}
             >

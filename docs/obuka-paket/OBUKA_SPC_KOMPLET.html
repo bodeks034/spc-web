@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPC Kontrola kvaliteta — Komplet obuka</title>
+  <style>
+    :root { --text:#1a1a1a; --muted:#555; --border:#ccc; --accent:#0c5c8a; --green:#1a6b3c; --orange:#b45309; --bg:#f4f6f8; }
+    * { box-sizing:border-box; }
+    body { font-family:"Segoe UI",Arial,sans-serif; font-size:10.5pt; line-height:1.45; color:var(--text); margin:0; background:#c8c8c8; }
+    .page { width:210mm; min-height:297mm; margin:12px auto; padding:16mm 14mm 18mm; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.2); }
+    @media print {
+      body { background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .page {
+        width:auto; min-height:auto; margin:0; padding:0 !important;
+        box-shadow:none; page-break-after:always;
+      }
+      .page:last-child { page-break-after:auto; }
+      .no-print { display:none!important; }
+      a { color:inherit; text-decoration:none; }
+      table { page-break-inside:avoid; }
+      h2, h3 { page-break-after:avoid; }
+      th { background:#e8f2ec !important; }
+    }
+    @page { size:A4; margin:16mm 14mm 18mm 14mm; }
+    h1 { font-size:20pt; margin:0 0 6px; color:var(--accent); }
+    h2 { font-size:13pt; margin:16px 0 6px; color:var(--accent); border-bottom:2px solid var(--accent); padding-bottom:3px; page-break-after:avoid; }
+    h3 { font-size:11pt; margin:12px 0 4px; page-break-after:avoid; }
+    p { margin:5px 0; }
+    .sub { color:var(--muted); margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:8.5pt; page-break-inside:avoid; background:#fff; }
+    th,td { border:1px solid #333; padding:6px 8px; text-align:left; vertical-align:top; background:#fff; }
+    th { background:#e8f2ec; font-weight:700; }
+    pre,.flow { background:#eef1f4; border:1px solid var(--border); border-radius:4px; padding:8px 10px; font-family:Consolas,monospace; font-size:8.5pt; white-space:pre-wrap; margin:8px 0; page-break-inside:avoid; }
+    .gold { border:2px solid var(--orange); background:#fff8ed; padding:10px 12px; border-radius:6px; margin:10px 0; }
+    .note { border-left:4px solid var(--accent); background:#eef6fb; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .warn { border-left:4px solid #c0392b; background:#fdf0ef; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .ok { border-left:4px solid var(--green); background:#eef8f1; padding:7px 10px; margin:8px 0; font-size:9pt; }
+    .tag { display:inline-block; background:var(--green); color:#fff; font-size:7.5pt; font-weight:700; padding:2px 7px; border-radius:10px; margin-right:5px; }
+    .pill { font-family:Consolas,monospace; background:#e8e8e8; padding:1px 5px; border-radius:3px; font-size:8.5pt; }
+    .print-bar { position:sticky; top:0; z-index:99; background:#222; color:#fff; padding:10px; text-align:center; }
+    .print-bar button { background:#1a6b3c; color:#fff; border:none; padding:8px 18px; font-weight:700; border-radius:6px; cursor:pointer; margin-left:10px; }
+    footer { margin-top:12px; border-top:1px solid var(--border); font-size:7.5pt; color:var(--muted); text-align:center; padding-top:6px; }
+    .section-start { page-break-before:always; }
+    ul,ol { margin:4px 0 8px 18px; padding:0; }
+    li { margin:2px 0; }
+    .toc li { margin:4px 0; }
+  </style>
+</head>
+<body>
+
+<div class="print-bar no-print">
+  SPC Kontrola kvaliteta — komplet obuka (A4)
+  <button type="button" onclick="window.print()">🖨 Štampaj / Save as PDF</button>
+</div>
+
+<!-- STR 1 NASLOV -->
+<div class="page">
+  <p class="tag">JUL 2026</p>
+  <h1>SPC Kontrola kvaliteta</h1>
+  <p class="sub">Kompletna obuka aplikacije · za sve uloge · SPC Web</p>
+
+  <div class="gold">
+    <strong>Jedna rečenica:</strong> Program služi za kontrolu kvaliteta na liniji (unos merenja) i analizu u kancelariji (karte, alarmi, 8D).
+    <strong>Nije MES</strong> — ne planira proizvodnju. <strong>Jeste SPC + QMS</strong> — karte, OK/NOK, trasabilitet, NCR, 8D.
+  </div>
+
+  <h2>Mapa aplikacije</h2>
+  <pre class="flow">PRIJAVA (email + lozinka)
+    ↓
+POČETNI EKRAN
+    ├── Modul 0 — Šifrarnik     (kvalitet / šef / admin)
+    ├── Modul 1 — Unos          (linija — svi; operater uvek ovde)
+    ├── Modul 2 — Analiza       (kvalitet / šef / admin)
+    ├── Atributivne / Merljive  (kartice unosa)
+    └── Admin panel             (samo admin)
+    ↓
+📘 Uputstvo (uvek dostupno na početnom ekranu)</pre>
+
+  <h2>Šta uraditi u prvom danu</h2>
+  <table>
+    <tr><th>Uloga</th><th>Čitaj prvo</th><th>Prvi zadatak</th></tr>
+    <tr><td>Operater</td><td>Ovaj dokument str. 2–4 · Operater Modul 1 HTML</td><td>Prijava → kartica → kontrolna lista → POKA-YOKE → UNOS → Snimi</td></tr>
+    <tr><td>Kontrolor</td><td>Str. 2–5 · Operater Modul 1 HTML</td><td>Isto + LOG (+ FAI / MOMENT kod merljivih)</td></tr>
+    <tr><td>Kvalitet / šef</td><td>Ceo dokument</td><td>Modul 2 Pregled · Odobrenja · NCR; Modul 0 po potrebi</td></tr>
+    <tr><td>Admin</td><td>Ceo dokument + IT uputstva</td><td>Radnici, licenca, ERP, Excel backup</td></tr>
+  </table>
+
+  <h2>Sadržaj</h2>
+  <ol class="toc" style="font-size:9.5pt">
+    <li>Prijava, licenca, uloge</li>
+    <li>Modul 1 — rad na liniji (atributivne i merljive)</li>
+    <li>Modul 2 — analiza (sve grupe i tabovi)</li>
+    <li>Modul 0 — šifrarnik (zašto i šta)</li>
+    <li>Admin, offline, barkod, SPC ukratko</li>
+    <li>Problem → gde ići · česta pitanja</li>
+  </ol>
+  <footer>SPC Web · Komplet obuka · str. 1</footer>
+</div>
+
+<!-- STR 2 ULOGE -->
+<div class="page section-start">
+  <h2>1. Prijava, licenca, uloge</h2>
+
+  <h3>Prijava</h3>
+  <ol>
+    <li>Otvori aplikaciju u pregledaču</li>
+    <li>Unesi <strong>email</strong> i <strong>lozinku</strong> (kao u sistemu)</li>
+    <li>Ako piše grešku o licenci / uređaju / broju korisnika — zovi admina</li>
+  </ol>
+  <div class="warn">Ako licenca nije aktivna, aplikacija se blokira. Na početnom ekranu linija vidi samo „Licenca: Aktivna“; detalje vidi kvalitet/admin.</div>
+
+  <h3>Ko šta sme</h3>
+  <table>
+    <tr><th>Uloga</th><th>Modul 1 Linija</th><th>Modul 2 Analiza</th><th>Modul 0 Šifrarnik</th><th>Admin</th></tr>
+    <tr><td><strong>Operater</strong></td><td>Da (uvek)</td><td>Ne</td><td>Ne</td><td>Ne</td></tr>
+    <tr><td><strong>Kontrolor</strong></td><td>Da (uvek)</td><td>Ne</td><td>Ne</td><td>Ne</td></tr>
+    <tr><td><strong>Kvalitet</strong></td><td>Da (biraju M1/M2)</td><td>Da</td><td>Da</td><td>Ne</td></tr>
+    <tr><td><strong>Šef</strong></td><td>Da</td><td>Da</td><td>Da</td><td>Ne</td></tr>
+    <tr><td><strong>Admin</strong></td><td>Da</td><td>Da</td><td>Da</td><td>Da</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>Važno:</strong> Prebacivanje Modul 1 ↔ Modul 2 radi se <em>samo na početnom ekranu</em>, ne unutar forme.
+    Operater i kontrolor nemaju taj prekidač — uvek su na liniji.
+  </div>
+
+  <h3>Dve vrste kontrole</h3>
+  <table>
+    <tr><th></th><th>Atributivne</th><th>Merljive (varijabilne)</th></tr>
+    <tr><td>Rezultat</td><td>OK ili NOK (+ greška)</td><td>Broj (mm, °, Nm…)</td></tr>
+    <tr><td>Na početku</td><td>Kartica „Atributivne kontrole“</td><td>„Ručni unos“ ili „Digitalni unos“</td></tr>
+    <tr><td>SPC karte</td><td>p, np, C, u, Pareto</td><td>X̄/R, I/MR, Cp/Cpk</td></tr>
+  </table>
+
+  <h3>Šta vidiš na početnom ekranu</h3>
+  <table>
+    <tr><th>Blok</th><th>Ko</th><th>Čemu služi</th></tr>
+    <tr><td>Predaja smene · danas + KPI</td><td>Kvalitet / šef / admin</td><td>Sažetak smene, alarmi, PDF predaje</td></tr>
+    <tr><td>Pregled proizvodnje</td><td>Kvalitet / šef / admin</td><td>Dashboard, prioritet smene</td></tr>
+    <tr><td>Alarmi linije</td><td>Kontrolor</td><td>Brza upozorenja bez punog KPI</td></tr>
+    <tr><td>KPI dorada / škart</td><td>Kvalitet+</td><td>Unos / korekcija KPI</td></tr>
+    <tr><td>Kartice modula</td><td>Svi (prema licenci)</td><td>Ulaz u rad</td></tr>
+    <tr><td>📘 Uputstvo</td><td>Svi</td><td>Ovaj i ostali dokumenti</td></tr>
+  </table>
+  <footer>SPC Web · Komplet obuka · str. 2</footer>
+</div>
+
+<!-- STR 3 MODUL 1 ATR -->
+<div class="page section-start">
+  <h2>2. Modul 1 — rad na liniji</h2>
+
+  <h3>Pre ulaska — Kontrolna lista</h3>
+  <p>Prvi put u smeni (Modul 1) potvrđuješ stavke kontrolne liste (osim admina). Bez toga unos je blokiran. Stavke se uređuju u Modul 0 → Osnovno → Kontrolna lista.</p>
+
+  <h3>Zlatna pravila (operater / kontrolor)</h3>
+  <table>
+    <tr><th>Pravilo</th><th>Zašto</th></tr>
+    <tr><td>Prvo <strong>POKA-YOKE</strong>, pa unos</td><td>Manje grešaka „pogrešan deo / merilo“</td></tr>
+    <tr><td>Uvek <strong>Snimi / Zapiši</strong></td><td>Draft nije u bazi — LOG ga ne vidi</td></tr>
+    <tr><td>Ne menjaš granice LSL / USL</td><td>To radi kvalitet u šifrarniku</td></tr>
+    <tr><td>Ne menjaš greške u šifrarniku</td><td>Samo biraš iz liste</td></tr>
+    <tr><td>Crvena blokada = <strong>stani</strong></td><td>SPC alarm / karantin / kalibracija — zovi kvalitet</td></tr>
+  </table>
+
+  <h3>Zajednički redosled (atributivne i merljive)</h3>
+  <table>
+    <tr><th>#</th><th>Korak</th></tr>
+    <tr><td>1</td><td>Otvori karticu (Atributivne / Ručni / Digitalni)</td></tr>
+    <tr><td>2</td><td>Kontrolna lista (ako se traži)</td></tr>
+    <tr><td>3</td><td>Unesi / skeniraj ID dela (+ RN ako treba)</td></tr>
+    <tr><td>4</td><td>POKA-YOKE — potvrdi provere (crtež, merilo, linija…)</td></tr>
+    <tr><td>5</td><td>Unesi merenje / OK–NOK</td></tr>
+    <tr><td>6</td><td>Snimi (Zapiši)</td></tr>
+    <tr><td>7</td><td>Po potrebi: LOG · MOMENT · FAI</td></tr>
+  </table>
+
+  <h3>Atributivne — OK / NOK</h3>
+  <table>
+    <tr><th>#</th><th>Korak</th></tr>
+    <tr><td>1</td><td>Skeniraj ili ukucaj <strong>ID dela</strong></td></tr>
+    <tr><td>2</td><td>Izaberi <strong>pogon</strong> (A–I) ako se nudi</td></tr>
+    <tr><td>3</td><td>Potvrdi <strong>POKA-YOKE</strong></td></tr>
+    <tr><td>4</td><td>Za NOK: kategorija → podkategorija → defekt (iz šifrarnika)</td></tr>
+    <tr><td>5</td><td>Količina → <strong>Zapiši</strong></td></tr>
+  </table>
+  <p>Podaci idu u bazu (<span class="pill">kontrolni_log</span>). Tab <span class="pill">LOG</span> ih samo čita.</p>
+
+  <h3>Merljive — brojčane vrednosti</h3>
+  <table>
+    <tr><th>#</th><th>Korak</th></tr>
+    <tr><td>1</td><td>ID dela → serija / grupa → POKA-YOKE</td></tr>
+    <tr><td>2</td><td>Unesi vrednosti po dimenzijama (LSL/USL su u šifrarniku)</td></tr>
+    <tr><td>3</td><td><strong>Ručni</strong>: kucanje · <strong>Digitalni</strong>: merilo USB / paste</td></tr>
+    <tr><td>4</td><td>Snimi seriju</td></tr>
+  </table>
+  <p>Podaci: tabela <span class="pill">merenja_varijabilna</span>. LOG = pregled (filter datum/smena; offline 📶 na vrhu).</p>
+
+  <h3>Koji tabovi postoje na liniji</h3>
+  <table>
+    <tr><th>Uloga</th><th>Atributivne</th><th>Merljive</th></tr>
+    <tr><td>Operater</td><td><span class="pill">UNOS</span></td><td><span class="pill">UNOS</span> (+ <span class="pill">MOMENT</span> ako je digitalni unos)</td></tr>
+    <tr><td>Kontrolor</td><td><span class="pill">UNOS</span> · <span class="pill">LOG</span></td><td><span class="pill">UNOS</span> · <span class="pill">LOG</span> · <span class="pill">FAI</span> (+ <span class="pill">MOMENT</span> digitalno)</td></tr>
+  </table>
+  <div class="warn">U Modul 2 (analiza) nema tabova UNOS, LOG, CRTEŽ, FOTO — to je samo linija.</div>
+
+  <h3>Blokade — stani i zovi kvalitet</h3>
+  <table>
+    <tr><th>Blokada</th><th>Značenje</th></tr>
+    <tr><td>SPC alarm</td><td>Proces van kontrole / pravilo alarma</td></tr>
+    <tr><td>Karantin / HOLD</td><td>Unos zabranjen do odobrenja</td></tr>
+    <tr><td>Kalibracija istekla</td><td>Merilo nije važeće</td></tr>
+    <tr><td>ID dela ne postoji</td><td>Nije u šifrarniku (inženjer)</td></tr>
+  </table>
+  <footer>SPC Web · Komplet obuka · str. 3</footer>
+</div>
+
+<!-- STR 4 MOMENT FAI LOG -->
+<div class="page section-start">
+  <h2>2b. Linija — LOG, MOMENT, FAI, offline</h2>
+
+  <h3>LOG</h3>
+  <p>Pregled unosa iz baze. Filter: <strong>datum</strong>, <strong>smena</strong>, dugme Danas. Stavke sa 📶 još nisu poslati (offline red) — nestaju posle sinhronizacije.</p>
+
+  <h3>MOMENT (digitalni moment ključ)</h3>
+  <p>Samo u merljivom <strong>digitalnom</strong> režimu. Operater prati sekvencu JOB-ova (Nm, redosled). JOBove podešava kvalitet u Modul 0 → Moment ključ → Šifrarnik JOB.</p>
+
+  <h3>FAI (First Article Inspection)</h3>
+  <table>
+    <tr><th>Šta</th><th>Pravilo</th></tr>
+    <tr><td>Tab FAI</td><td>Kontrolor (i kvalitet+) u merljivim</td></tr>
+    <tr><td>Odobrenje OK</td><td>Kontrolor sme (bez NOK)</td></tr>
+    <tr><td>Odobrenje sa NOK</td><td>Samo kvalitet / šef / admin</td></tr>
+  </table>
+
+  <h3>Offline</h3>
+  <p>Ako nema mreže, unos ide u lokalni red (IndexedDB). Kad se mreža vrati — automatski se šalje u bazu. Toasts: „Offline: … u redu“. Admin vidi status offline synca u Admin panelu.</p>
+
+  <h3>Barkod</h3>
+  <table>
+    <tr><th>Kako</th><th>Rezultat</th></tr>
+    <tr><td>Sken kamerom ili HID skenerom na UNOS-u</td><td>Brži ID / RN</td></tr>
+    <tr><td>Etikete: Modul 0 → Alati → Barkod</td><td>Kvalitet štampa etikete</td></tr>
+  </table>
+
+  <h3>Checklist operatera / kontrolora (svaka smena)</h3>
+  <table>
+    <tr><th>☐</th><th>Stavka</th></tr>
+    <tr><td>☐</td><td>Prijava uspešna, smena tačna</td></tr>
+    <tr><td>☐</td><td>Kontrolna lista potvrđena</td></tr>
+    <tr><td>☐</td><td>Pravi deo / RN / pogon</td></tr>
+    <tr><td>☐</td><td>POKA-YOKE završen</td></tr>
+    <tr><td>☐</td><td>Merila OK (kalibracija)</td></tr>
+    <tr><td>☐</td><td>Unosi snimljeni (nije ostao draft)</td></tr>
+    <tr><td>☐</td><td>(Kontrolor) LOG / FAI provereni po potrebi</td></tr>
+  </table>
+  <footer>SPC Web · Komplet obuka · str. 4</footer>
+</div>
+
+<!-- STR 5 MODUL 2 -->
+<div class="page section-start">
+  <h2>3. Modul 2 — analiza (kvalitet / šef / admin)</h2>
+  <p>Na početnom ekranu izaberi <strong>Modul 2 — Analiza</strong>, zatim Atributivne ili Merljive. Navigacija je u <strong>grupama</strong>:</p>
+
+  <h3>Atributivne — grupe tabova</h3>
+  <table>
+    <tr><th>Grupa</th><th>Tabovi</th><th>Jednom rečenicom</th></tr>
+    <tr><td>Pregled</td><td>PREGLED</td><td>Ulazni dashboard / KPI snimak</td></tr>
+    <tr><td>Analitika</td><td>DASHBOARD · KONTROLNE KARTE · STANJE · OC KRIVA · STABILNOST · MSA · KONTROLNI PLAN</td><td>SPC i process capability</td></tr>
+    <tr><td>Kvalitet</td><td>ODOBRENJA · NCR/CAPA · 8D · PFMEA/CP · ESKALACIJE · ISO 2859 · KUPAC · TRASABILITET</td><td>Akcije i dokumentacija</td></tr>
+    <tr><td>Operativa</td><td>SMENA · OEE · CILJEVI · NALOZI</td><td>Smena, OEE, RN pregled</td></tr>
+    <tr><td>Alati</td><td>EXCEL</td><td>Izvoz / ograničen uvoz (inženjer)</td></tr>
+  </table>
+
+  <h3>Merljive — razlika</h3>
+  <p>Isto + <span class="pill">HEAT MAP</span>, <span class="pill">ISO 3951</span>, <span class="pill">FAI</span> u grupi Kvalitet. Nema ISO 2859 (to je atributivno).</p>
+
+  <h3>Najvažniji tabovi — kad ih otvoriti</h3>
+  <table>
+    <tr><th>Tab</th><th>Kad</th></tr>
+    <tr><td><strong>PREGLED / DASHBOARD</strong></td><td>Početak dana — šta gori</td></tr>
+    <tr><td><strong>KONTROLNE KARTE</strong></td><td>Signal, trend, OOC</td></tr>
+    <tr><td><strong>STANJE</strong></td><td>Šta uraditi sada (inteligencija procesa)</td></tr>
+    <tr><td><strong>ODOBRENJA</strong></td><td>SPC alarmi, prekidi, kalibracija — odobri / odbij</td></tr>
+    <tr><td><strong>NCR / CAPA</strong></td><td>Nesusaglasenost i korektivne mere</td></tr>
+    <tr><td><strong>8D</strong></td><td>Sistematski problem (iz alarma / NCR)</td></tr>
+    <tr><td><strong>ESKALACIJE</strong></td><td>Lanac eskalacije, status</td></tr>
+    <tr><td><strong>SMENA</strong></td><td>Predaja smene, PDF, pogoni A–I</td></tr>
+    <tr><td><strong>TRASABILITET</strong></td><td>Ko / šta / kada za deo ili RN</td></tr>
+    <tr><td><strong>ISO 2859 / 3951</strong></td><td>AQL / uzorkovanje lota</td></tr>
+    <tr><td><strong>PFMEA / CP</strong></td><td>Rizici i kontrolni plan</td></tr>
+    <tr><td><strong>KUPAC</strong></td><td>Izveštaj za kupca</td></tr>
+    <tr><td><strong>EXCEL</strong></td><td>Izvoz podataka (uvoz granica — kvalitet, ograničeno)</td></tr>
+  </table>
+  <footer>SPC Web · Komplet obuka · str. 5</footer>
+</div>
+
+<!-- STR 6 MODUL 0 ADMIN -->
+<div class="page section-start">
+  <h2>4. Modul 0 — Šifrarnik (ukratko)</h2>
+  <p>Bez šifrarnika linija ne radi: nema ID dela, dimenzija, grešaka, RN.</p>
+  <table>
+    <tr><th>Grupa</th><th>Ključni tabovi</th></tr>
+    <tr><td>Osnovno</td><td>Glavni unos · Delovi · RN · Linije · Pogon mapa · Kontrolna lista</td></tr>
+    <tr><td>Atributivne</td><td>Katalog grešaka · Crtež · Pogoni po delu</td></tr>
+    <tr><td>Merljive</td><td>Dimenzije · SOP · Merila/kalibracija · SPC alarm %</td></tr>
+    <tr><td>Celo vozilo</td><td>Tipovi · Defekti · Delovi vozila</td></tr>
+    <tr><td>Moment</td><td>Šifrarnik JOB · Ključevi</td></tr>
+    <tr><td>Alati</td><td><strong>ERP uvoz (CSV)</strong> · Barkod · Backup (samo izvoz)</td></tr>
+  </table>
+  <div class="gold">
+    <strong>ERP uvoz = samo CSV</strong> (SAP/Pantheon). Nije master Excel u UI.
+    Glavni unos može uvesti poseban .xlsx za dimenzije. Detalj: <em>OBUKA_MODUL_SIFARNIK.html</em>.
+  </div>
+
+  <h2>5. Admin panel (samo admin)</h2>
+  <ul style="font-size:9pt">
+    <li>Radnici (uloga, lozinka, aktivacija)</li>
+    <li>Licenca, offline sync, ERP monitoring</li>
+    <li>Schema / baseline / trasabilitet alati</li>
+    <li>Auto-pravila i notifikacije</li>
+    <li>Excel ↔ baza (master alati)</li>
+    <li>SPC alarmi, prekidi, kalibracija (i ODOBRENJA u M2)</li>
+  </ul>
+
+  <h2>6. SPC ukratko (zašto karte postoje)</h2>
+  <table>
+    <tr><th>Pojam</th><th>Objašnjenje laički</th></tr>
+    <tr><td>Kontrolna karta</td><td>Vidi da li proces „pleše“ u granicama ili beži</td></tr>
+    <tr><td>LSL / USL</td><td>Donja / gornja granica specifikacije</td></tr>
+    <tr><td>Cp / Cpk</td><td>Koliko je proces sposoban da pogodi specifikaciju</td></tr>
+    <tr><td>OOC / alarm</td><td>Van kontrole — treba reakcija (ODOBRENJA / NCR)</td></tr>
+  </table>
+  <p style="font-size:9pt">Detaljnije: UPUTSTVO_SPC_KARTE_I_ANALITIKA.md</p>
+  <footer>SPC Web · Komplet obuka · str. 6</footer>
+</div>
+
+<!-- STR 7 FAQ -->
+<div class="page section-start">
+  <h2>7. Problem → gde ići</h2>
+  <table>
+    <tr><th>Šta se dešava</th><th>Gde</th></tr>
+    <tr><td>Ne mogu da se ulogujem / limito korisnika</td><td>Admin — radnici / licenca</td></tr>
+    <tr><td>ID dela ne postoji</td><td>Modul 0 → Delovi / ERP uvoz</td></tr>
+    <tr><td>Nema dimenzija posle skena</td><td>Modul 0 → Dimenzije / Glavni unos · pogon_kod</td></tr>
+    <tr><td>Nema grešaka za NOK</td><td>Modul 0 → Katalog grešaka</td></tr>
+    <tr><td>Crvena blokada na liniji</td><td>Modul 2 → ODOBRENJA (ili Admin)</td></tr>
+    <tr><td>Trend / OOC na karti</td><td>KONTROLNE KARTE → STANJE → NCR / 8D</td></tr>
+    <tr><td>Predaja smene</td><td>Početni (kvalitet) ili M2 → SMENA → PDF</td></tr>
+    <tr><td>Istekla kalibracija</td><td>Modul 0 Merila / ODOBRENJA</td></tr>
+    <tr><td>Offline redovi čekaju</td><td>Vrati mrežu; Admin offline sync</td></tr>
+    <tr><td>Moment sekvenca pogrešna</td><td>Modul 0 → Moment JOB</td></tr>
+  </table>
+
+  <h2>8. Česta pitanja</h2>
+  <table>
+    <tr><th>Pitanje</th><th>Odgovor</th></tr>
+    <tr><td>Da li menjam log u Excelu?</td><td><strong>Ne.</strong> Log se puni na liniji (Zapiši).</td></tr>
+    <tr><td>Da li uvozim Excel u ERP tab?</td><td><strong>Ne</strong> — samo CSV iz ERP-a.</td></tr>
+    <tr><td>Gde je LOG u analizi?</td><td>Nigde — LOG je samo Modul 1.</td></tr>
+    <tr><td>Ko menja granice LSL/USL?</td><td>Kvalitet u Modul 0 / Glavni unos / Excel (ograničeno).</td></tr>
+    <tr><td>Šta je razlika KPI i LOG?</td><td>LOG = pojedinačni unosi; KPI = agregati dorada/škart/FPY.</td></tr>
+  </table>
+
+  <h2>9. Gde čitati dalje (u aplikaciji → Uputstvo)</h2>
+  <table>
+    <tr><th>Dokument</th><th>Za koga</th></tr>
+    <tr><td><strong>OBUKA_OPERATER_MODUL1.html</strong></td><td>Operater / kontrolor — Modul 1</td></tr>
+    <tr><td>UPUTSTVO_OBUKA_INZENJER_MODUL2.md</td><td>Kvalitet — M2 tabovi</td></tr>
+    <tr><td>OBUKA_MODUL_SIFARNIK.html</td><td>Šifrarnik svi tabovi (štampa)</td></tr>
+    <tr><td>UPUTSTVO_BARKOD_I_MERILA.md</td><td>Sken i digitalna merila</td></tr>
+    <tr><td>UPUTSTVO_SPC_KARTE_I_ANALITIKA.md</td><td>SPC duboko</td></tr>
+    <tr><td>ERP_* dokumenti</td><td>Admin / IT</td></tr>
+  </table>
+
+  <div class="ok">
+    <strong>Zapamti:</strong> Linija unosi → baza → analiza reaguje.
+    Šifrarnik se puni pre smene. Problemi idu: alarm → Odobrenja → NCR → 8D.
+  </div>
+  <footer>SPC Web · Komplet obuka · kraj · jul 2026</footer>
+</div>
+
+</body>
+</html>

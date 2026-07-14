@@ -1,27 +1,32 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /** mob <640 · tablet <1024 · desk ≥1024 · wide ≥1400 */
 export function useEkran() {
   const [sz, setSz] = useState(() => readViewport());
   const [orientRev, setOrientRev] = useState(0);
+  const resizeTimerRef = useRef(null);
+  const orientTimerRef = useRef(null);
 
   const refresh = useCallback(() => {
     setSz(readViewport());
   }, []);
 
+  const debouncedRefresh = useCallback(() => {
+    if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+    resizeTimerRef.current = setTimeout(() => {
+      refresh();
+      resizeTimerRef.current = null;
+    }, 80);
+  }, [refresh]);
+
   const scheduleOrientationRefresh = useCallback(() => {
     refresh();
-    requestAnimationFrame(() => {
-      refresh();
-      requestAnimationFrame(refresh);
-    });
-    [50, 150, 350, 600, 900].forEach((ms) => {
-      setTimeout(refresh, ms);
-    });
+    if (orientTimerRef.current) clearTimeout(orientTimerRef.current);
+    orientTimerRef.current = setTimeout(refresh, 150);
   }, [refresh]);
 
   useEffect(() => {
-    const onResize = () => refresh();
+    const onResize = () => debouncedRefresh();
     const onOrient = () => {
       setOrientRev((r) => r + 1);
       scheduleOrientationRefresh();
@@ -43,6 +48,8 @@ export function useEkran() {
     mq?.addEventListener?.("change", onMq);
 
     return () => {
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      if (orientTimerRef.current) clearTimeout(orientTimerRef.current);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onOrient);
       vv?.removeEventListener("resize", onResize);
@@ -50,7 +57,7 @@ export function useEkran() {
       window.screen?.orientation?.removeEventListener("change", onOrient);
       mq?.removeEventListener?.("change", onMq);
     };
-  }, [refresh, scheduleOrientationRefresh]);
+  }, [debouncedRefresh, scheduleOrientationRefresh]);
 
   const { w, h, visinaPuna } = sz;
   const kratka = Math.min(w, h);

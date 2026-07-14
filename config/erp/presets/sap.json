@@ -7,8 +7,15 @@
     "masine",
     "smene",
     "tipovi_vozila",
+    "pogon_linija_mapa",
     "delovi",
+    "crtezi_dela",
+    "greske_katalog",
     "kupci",
+    "merila",
+    "kalibracije",
+    "karakteristike_merljive",
+    "barkod_profili",
     "radnici",
     "radni_nalozi"
   ],
@@ -54,7 +61,7 @@
       }
     },
     "tipovi_vozila": {
-      "ukljuceno": false,
+      "ukljuceno": true,
       "opis": "Grupa proizvoda / product hierarchy (MVGR1, PRDHA)",
       "fajl": "tipovi_vozila.csv",
       "fajl_alternativni": ["sap_vozila.csv", "product_groups.csv"],
@@ -102,6 +109,36 @@
         "vozilo_katalog_id": { "iz": ["vozilo_katalog_id", "product_group"] }
       }
     },
+    "crtezi_dela": {
+      "ukljuceno": true,
+      "opis": "Crteži dela — DWG izvor + SVG/PNG prikaz (PLM / dokumentacija)",
+      "fajl": "crtezi_dela.csv",
+      "fajl_alternativni": ["sap_crtezi.csv", "crtezi.csv", "drawings.csv", "zeichnungen.csv"],
+      "tabela": "crtez_assets",
+      "upsert_strategija": "ref_lookup",
+      "postavi_updated_at": true,
+      "ref_tip_fiksno": "deo",
+      "lookup_polja": ["ref_tip", "ref_id", "revizija"],
+      "obavezna_polja": ["ref_id", "prikaz_putanja"],
+      "podrazumevano": {
+        "ref_tip": "deo",
+        "prikaz_format": "svg",
+        "revizija": "A",
+        "aktivna": true
+      },
+      "kolone": {
+        "ref_id": { "iz": ["id_deo", "MATNR", "matnr", "ref_id", "sifra_dela", "Ident"], "transform": "upper" },
+        "ref_tip": { "iz": ["ref_tip", "tip", "ref_type"] },
+        "naziv": { "iz": ["naziv", "drawing_name", "ZEICHNUNG", "crtez", "naziv_crteza"] },
+        "izvor_format": { "iz": ["izvor_format", "source_format", "dwg_format"] },
+        "izvor_putanja": { "iz": ["izvor_putanja", "dwg_path", "source_path", "izvor"] },
+        "prikaz_format": { "iz": ["prikaz_format", "display_format"] },
+        "prikaz_putanja": { "iz": ["prikaz_putanja", "svg_path", "display_path", "slika", "prikaz", "putanja_svg"] },
+        "revizija": { "iz": ["revizija", "revision", "REV", "rev"] },
+        "aktivna": { "iz": ["aktivan", "aktivna", "active"], "transform": "bool" },
+        "napomena": { "iz": ["napomena", "note"] }
+      }
+    },
     "kupci": {
       "ukljuceno": true,
       "opis": "Kupci (KNA1 — KUNNR, NAME1)",
@@ -109,6 +146,7 @@
       "fajl_alternativni": ["sap_kupci.csv", "customers.csv", "kna1.csv"],
       "tabela": "kupci",
       "upsert_kljuc": "naziv",
+      "izbaci_polja": ["id"],
       "merge_nulls": true,
       "obavezna_polja": ["naziv"],
       "podrazumevano": { "aktivan": true },
@@ -153,13 +191,121 @@
         "id_deo": { "iz": ["MATNR", "matnr", "id_deo", "material"] },
         "pogon_kod": { "iz": ["WERKS", "werks", "pogon_kod", "plant"] },
         "naziv_dela": { "iz": ["MAKTX", "maktx", "naziv_dela"] },
-        "kolicina": { "iz": ["GAMNG", "gamng", "kolicina", "menge", "qty"] },
+        "kolicina": { "iz": ["GAMNG", "gamng", "kolicina", "menge", "qty"], "transform": "int" },
         "kupac": { "iz": ["KUNNR", "kunnr", "kupac", "customer", "KDAUF"] },
-        "datum_unosa": { "iz": ["GSTRP", "gstrp", "datum_unosa", "created"] },
-        "rok_isporuke": { "iz": ["GLTRP", "gltrp", "rok_isporuke", "due_date"] },
-        "status": { "iz": ["status", "ASTNR", "system_status"] },
+        "datum_unosa": { "iz": ["GSTRP", "gstrp", "datum_unosa", "created"], "transform": "datum" },
+        "rok_isporuke": { "iz": ["GLTRP", "gltrp", "rok_isporuke", "due_date"], "transform": "datum" },
+        "status": { "iz": ["status", "ASTNR", "system_status"], "transform": "status" },
         "operater": { "iz": ["operater", "operator"] },
         "napomena": { "iz": ["napomena", "note"] }
+      }
+    },
+    "greske_katalog": {
+      "ukljuceno": true,
+      "opis": "Katalog defekata / QM code groups (QPCT, catalog codes)",
+      "fajl": "greske_katalog.csv",
+      "fajl_alternativni": ["sap_greske.csv", "defekti.csv", "qm_codes.csv", "code_groups.csv"],
+      "tabela": "greske_katalog",
+      "upsert_kljuc": "kategorija,podkategorija,defekt",
+      "izbaci_polja": ["id"],
+      "obavezna_polja": ["kategorija", "podkategorija"],
+      "kolone": {
+        "kategorija": { "iz": ["kategorija", "KATALOGART", "code_group", "grupa"] },
+        "podkategorija": { "iz": ["podkategorija", "CODE", "kod_greske", "sifra"] },
+        "defekt": { "iz": ["defekt", "KURZTEXT", "opis_kratko", "naziv"] },
+        "opis": { "iz": ["opis", "LANGTEXT", "description", "napomena"] },
+        "id_deo": { "iz": ["id_deo", "MATNR", "matnr", "sifra_dela"], "transform": "upper" },
+        "katalog_id": { "iz": ["katalog_id", "catalog_id", "grupa_id"] },
+        "pogon_kod": { "iz": ["WERKS", "werks", "pogon_kod", "plant"], "transform": "upper" }
+      }
+    },
+    "merila": {
+      "ukljuceno": true,
+      "opis": "Merna oprema / alati (EQUI, PM — kalibracija)",
+      "fajl": "merila.csv",
+      "fajl_alternativni": ["sap_merila.csv", "gauges.csv", "instrumenti.csv", "pm_equipment.csv"],
+      "tabela": "merila",
+      "upsert_strategija": "merilo_lookup",
+      "lookup_polje": "naziv",
+      "merilo_serijski_polje": "serijski_broj",
+      "obavezna_polja": ["naziv"],
+      "podrazumevano": { "aktivno": true },
+      "kolone": {
+        "naziv": { "iz": ["naziv", "EQKTU", "naziv_merila", "instrument", "opis"] },
+        "serijski_broj": { "iz": ["serijski_broj", "serijski br", "EQUNR", "serial", "inventarski"] },
+        "tip": { "iz": ["tip", "EQTYP", "vrsta", "kategorija"] },
+        "lokacija": { "iz": ["lokacija", "STORT", "mesto", "stanica"] },
+        "opseg": { "iz": ["opseg", "merni_opseg", "range"] },
+        "aktivno": { "iz": ["aktivno", "aktivan", "active"], "transform": "bool" },
+        "kategorija": { "iz": ["kategorija_merila", "merna_kategorija"] },
+        "vendor_profil": { "iz": ["vendor_profil", "proizvodjac_alat"] },
+        "linija_stanica": { "iz": ["linija_stanica", "stanica", "work_center"] }
+      }
+    },
+    "kalibracije": {
+      "ukljuceno": true,
+      "opis": "Kalibracije merila (datum isteka, sertifikat)",
+      "fajl": "kalibracije.csv",
+      "fajl_alternativni": ["sap_kalibracije.csv", "calibration.csv", "pm_kalibracije.csv"],
+      "tabela": "kalibracije",
+      "upsert_strategija": "kalibracije_merilo",
+      "lookup_polja": ["merilo_id", "datum_kal"],
+      "merilo_serijski_iz": ["serijski_broj", "merilo_serijski", "EQUNR", "equnr", "merilo"],
+      "merilo_naziv_iz": ["naziv_merila", "merilo_naziv", "naziv merila", "instrument"],
+      "obavezna_polja": ["datum_kal"],
+      "izbaci_polja": ["id"],
+      "kolone": {
+        "datum_kal": { "iz": ["datum_kal", "datum kal", "cal_date", "datum_kalibracije"], "transform": "datum" },
+        "sledeca_kal": { "iz": ["sledeca_kal", "sledeca kal", "next_cal", "datum_isteka"], "transform": "datum" },
+        "izvrsio": { "iz": ["izvrsio", "izvršio", "calibrated_by", "servis"] },
+        "sertifikat_br": { "iz": ["sertifikat_br", "cert br", "certificate", "sertifikat"] },
+        "rezultat": { "iz": ["rezultat", "result", "status_kal"] },
+        "napomena": { "iz": ["napomena", "note"] }
+      }
+    },
+    "karakteristike_merljive": {
+      "ukljuceno": true,
+      "opis": "Kontrolne dimenzije / MIC (QM — inspection characteristics)",
+      "fajl": "karakteristike_merljive.csv",
+      "fajl_alternativni": ["sap_mic.csv", "mic.csv", "inspection_chars.csv", "dimenzije.csv"],
+      "tabela": "karakteristike_merljive",
+      "mapiranje": "karakteristike_merljive",
+      "upsert_strategija": "karakteristike_merljive",
+      "upsert_kljuc": "id_deo,pogon_kod,sifra_merenja,pozicija",
+      "obavezna_polja": ["id_deo", "pozicija"],
+      "kolone": {}
+    },
+    "barkod_profili": {
+      "ukljuceno": false,
+      "opis": "Sadržaj barkoda po delu (pakovanje / etikete iz ERP)",
+      "fajl": "barkod_profili.csv",
+      "fajl_alternativni": ["sap_barkod.csv", "etikete.csv", "label_profiles.csv"],
+      "tabela": "barkod_profili",
+      "upsert_kljuc": "id_deo,format",
+      "obavezna_polja": ["id_deo", "sadrzaj_barkoda"],
+      "podrazumevano": { "format": "id_rn", "tip_koda": "oba", "aktivna": true },
+      "kolone": {
+        "id_deo": { "iz": ["id_deo", "MATNR", "matnr", "Ident", "sifra_dela"], "transform": "upper" },
+        "format": { "iz": ["format", "tip_etikete", "label_type"] },
+        "sadrzaj_barkoda": { "iz": ["sadrzaj_barkoda", "barkod_sadrzaj", "barcode_content", "sadrzaj"] },
+        "radni_nalog": { "iz": ["radni_nalog", "AUFNR", "rn"], "transform": "upper" },
+        "tip_koda": { "iz": ["tip_koda", "barcode_type"] },
+        "aktivna": { "iz": ["aktivna", "aktivan", "active"], "transform": "bool" },
+        "napomena": { "iz": ["napomena", "note"] }
+      }
+    },
+    "pogon_linija_mapa": {
+      "ukljuceno": false,
+      "opis": "Mapa linija faza → pogon (WERKS / plant)",
+      "fajl": "pogon_linija_mapa.csv",
+      "fajl_alternativni": ["sap_pogon_mapa.csv", "plant_lines.csv"],
+      "tabela": "pogon_linija_mapa",
+      "upsert_kljuc": "linija_faza",
+      "obavezna_polja": ["linija_faza", "pogon_kod"],
+      "kolone": {
+        "linija_faza": { "iz": ["linija_faza", "linija faza", "faza", "ARBPL"] },
+        "linija_id": { "iz": ["linija_id", "linija id"], "transform": "int" },
+        "pogon_kod": { "iz": ["pogon_kod", "WERKS", "werks", "plant"], "transform": "upper" }
       }
     }
   }

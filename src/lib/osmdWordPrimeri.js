@@ -6,7 +6,7 @@
 
 
 
-import wordData from "../data/osmd-word-primeri.json";
+import wordData from "../data/osmd-word-primeri.json" with { type: "json" };
 import { normalizujIdDeo } from "./idDeoUtil.js";
 import { pfmeaCpZaDefekt } from "./pfmeaControlPlan.js";
 
