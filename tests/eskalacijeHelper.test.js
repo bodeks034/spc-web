@@ -1,10 +1,20 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   normalizujPrefill8d,
   sacuvajNavigacijuNcr,
   procitajNavigacijuNcr,
   prefill8dIzEskalacije,
 } from "../src/lib/eskalacijeHelper.js";
+
+function stubSessionStorage() {
+  const store = {};
+  vi.stubGlobal("sessionStorage", {
+    getItem: (k) => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; },
+    clear: () => { Object.keys(store).forEach((key) => delete store[key]); },
+  });
+}
 
 describe("normalizujPrefill8d NCR", () => {
   it("koristi prefill8dIzNcr kad postoji ncr_id", () => {
@@ -34,7 +44,7 @@ describe("normalizujPrefill8d NCR", () => {
 
 describe("NCR navigacija session", () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    stubSessionStorage();
   });
 
   it("sacuvaj i procitaj NCR tab + prefill", () => {

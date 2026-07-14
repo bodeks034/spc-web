@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   WORKFLOW_TIP,
   akcijaZaOperativniAlarm,
@@ -6,6 +6,16 @@ import {
   procitajSpoljnuNavigacijuTab,
   tabZaMerilaKalibraciju,
 } from "../src/lib/workflowAkcije.js";
+
+function stubSessionStorage() {
+  const store = {};
+  vi.stubGlobal("sessionStorage", {
+    getItem: (k) => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; },
+    clear: () => { Object.keys(store).forEach((key) => delete store[key]); },
+  });
+}
 
 describe("akcijaZaOperativniAlarm", () => {
   it("eskalacije_otvorene vodi na eskalacije tab", () => {
@@ -59,7 +69,7 @@ describe("tabZaMerilaKalibraciju", () => {
 
 describe("spoljna navigacija tab", () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    stubSessionStorage();
   });
 
   it("čuva i čita tab sa NCR prefill-om", () => {
