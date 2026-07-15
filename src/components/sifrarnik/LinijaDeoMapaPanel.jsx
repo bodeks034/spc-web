@@ -71,7 +71,7 @@ export default function LinijaDeoMapaPanel({ C, addToast }) {
       ) : !redovi.length ? (
         <div style={{ color: C.sivi, fontSize: 10 }}>Nema mapiranih pogona. Dodaj u Pogon mapa ili ERP uvoz.</div>
       ) : (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
             display: "grid",
             gridTemplateColumns: "56px 1fr 72px 1fr 48px",

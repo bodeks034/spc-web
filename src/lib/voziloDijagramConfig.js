@@ -34,6 +34,11 @@ export const VOZILO_DIJAGRAMI = {
   KOMBI: "/vozilo/dijagrami/kombi.svg",
   "AUTO-KOMBI": "/vozilo/dijagrami/kombi.svg",
 
+  HAM: "/vozilo/dijagrami/ham.png",
+  HAMER: "/vozilo/dijagrami/ham.png",
+  "AUTO-HAM": "/vozilo/dijagrami/ham.png",
+  "HAM-001": "/vozilo/dijagrami/ham.png",
+
   LIMUZINA: "/vozilo/dijagrami/auto-limuzina.svg",
 };
 
@@ -41,6 +46,8 @@ const PREFIKS_DIJAGRAM = [
   ["MRAP1", "MRAP1-001"],
   ["MRAP", "MRAP-001"],
   ["NTV", "NTV-001"],
+  ["HAMER", "HAM"],
+  ["HAM", "HAM"],
 ];
 
 function kljucDijagrama(k) {

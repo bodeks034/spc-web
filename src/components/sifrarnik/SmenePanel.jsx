@@ -35,7 +35,7 @@ export default function SmenePanel({ C, addToast }) {
         <FormGrid C={C} forma={forma} setForma={setForma} onCancel={() => setForma(null)} onSave={snimi} snima={snima}
           fields={[["Naziv *", "naziv"], ["Početak", "pocetak"], ["Kraj", "kraj"]]} cols={3} />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["ID", "SMENA", "OD", "DO", ""]} widths="40px 1fr 80px 80px 56px" />
         {lista.map((r, i) => (
           <TableRow key={r.id} C={C} i={i} widths="40px 1fr 80px 80px 56px" cols={[

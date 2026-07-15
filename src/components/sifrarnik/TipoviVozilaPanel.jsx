@@ -98,7 +98,7 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
       {loading ? (
         <div style={{ color: C.sivi, fontSize: 11 }}>Učitavanje…</div>
       ) : (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
             display: "grid", gridTemplateColumns: "72px 1fr 1fr 1fr 64px",
             background: C.hover, padding: "8px 10px", fontSize: 9, color: C.sivi, gap: 8,

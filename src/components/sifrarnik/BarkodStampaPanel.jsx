@@ -6,8 +6,10 @@ import {
   BARKOD_FORMATI, TIPOVI_KODA, ETIKETA_DIMENZIJE, dimenzijaPoId,
   buildSadrzajBarkoda, generisiEtiketaSlike, etiketaHtmlBlok, stampajEtikete,
 } from "../../lib/barkodEtiketa.js";
+import { useEkran } from "../../layout/useEkran.js";
 
 export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
+  const { linijaUredjaj } = useEkran();
   const [delovi, setDelovi] = useState([]);
   const [idDeo, setIdDeo] = useState(pocetniDeo?.id_deo || "");
   const [deo, setDeo] = useState(pocetniDeo || null);
@@ -148,7 +150,12 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: linijaUredjaj ? "1fr" : "1fr 1fr",
+      gap: 16,
+      alignItems: "start",
+    }}>
       <div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>

@@ -17,18 +17,22 @@ export default function AtrCrtezPregled({
   const [zoomFull, setZoomFull] = useState(false);
 
   useEffect(() => {
-    if (!slikaNaziv) {
+    const imaSliku = String(slikaNaziv || "").trim();
+    if (!imaSliku && !idDeo) {
       setUrl(null);
-      setStatus(idDeo ? "missing" : "idle");
+      setStatus("idle");
       return;
     }
     let ok = true;
     setStatus("loading");
     setUrl(null);
     (async () => {
-      let u = await ucitajPrikazSliku(supabase, "atributivne", slikaNaziv, idDeo);
+      let u = null;
+      if (imaSliku) {
+        u = await ucitajPrikazSliku(supabase, "atributivne", slikaNaziv, idDeo);
+      }
       if (!u && idDeo) {
-        const altSrc = dijagramSrcZaDeo({ id_deo: idDeo });
+        const altSrc = dijagramSrcZaDeo({ id_deo: idDeo, vozilo_katalog_id: idDeo.split("-")[0] });
         if (altSrc) u = await dijagramUrlZaPrikaz(altSrc, supabase);
       }
       if (!ok) return;
@@ -37,7 +41,7 @@ export default function AtrCrtezPregled({
         setStatus("ok");
       } else {
         setUrl(null);
-        setStatus("error");
+        setStatus(imaSliku ? "error" : "missing");
       }
     })();
     return () => { ok = false; };

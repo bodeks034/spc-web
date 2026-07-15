@@ -122,7 +122,7 @@ export default function DeloviPanel({ C, addToast, onStampaj }) {
       {loading ? (
         <div style={{ color: C.sivi, fontSize: 11 }}>Učitavanje…</div>
       ) : (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
             display: "grid", gridTemplateColumns: "100px 1fr 80px 80px 56px 70px",
             background: C.hover, padding: "8px 10px", fontSize: 9, color: C.sivi, gap: 8,

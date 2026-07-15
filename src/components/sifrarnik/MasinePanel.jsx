@@ -35,7 +35,7 @@ export default function MasinePanel({ C, addToast }) {
         <FormGrid C={C} forma={forma} setForma={setForma} onCancel={() => setForma(null)} onSave={snimi} snima={snima}
           fields={[["Naziv *", "naziv"], ["Linija", "linija"]]} />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["ID", "NAZIV", "LINIJA", ""]} widths="40px 1fr 1fr 56px" />
         {lista.map((r, i) => (
           <TableRow key={r.id} C={C} i={i} widths="40px 1fr 1fr 56px" cols={[

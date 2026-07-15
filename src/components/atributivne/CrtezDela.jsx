@@ -336,7 +336,7 @@ export default function CrtezDela({ deoInfo, C, onNazad, onSlikaSnimljena, addTo
         <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 12px", background: C.panel, display: "flex", gap: 16, flexWrap: "wrap" }}>
           {[
             ["ID", deoInfo.id_deo],
-            ["Kontrola", deoInfo.karakteristika || "-"],
+            ["Kontrola", deoInfo.tip_kontrole === "vozilo" ? "Završna kontrola" : (deoInfo.karakteristika || "-")],
             ["Napomena", deoInfo.napomena || "-"],
           ].map(([l, v]) => (
             <div key={l} style={{ fontSize: 10 }}>

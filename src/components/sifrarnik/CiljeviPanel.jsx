@@ -45,7 +45,7 @@ export default function CiljeviPanel({ C, addToast }) {
             ["p cilj %", "p_cilj"], ["Važi od", "vazi_od"], ["Napomena", "napomena"],
           ]} cols={3} />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["DELO", "RTY%", "DPMO", "p%", "OD", ""]} widths="100px 70px 80px 60px 90px 56px" />
         {prikaz.map((r, i) => (
           <TableRow key={r.id} C={C} i={i} widths="100px 70px 80px 60px 90px 56px" cols={[

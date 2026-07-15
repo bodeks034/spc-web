@@ -5,7 +5,7 @@ export const POGONI = [
   { kod: "C", naziv: "Karoserija" },
   { kod: "D", naziv: "Lakirnica" },
   { kod: "E", naziv: "Montaža" },
-  { kod: "F", naziv: "Finalna kontrola" },
+  { kod: "F", naziv: "Završna kontrola" },
   { kod: "G", naziv: "Mašinska obrada" },
   { kod: "H", naziv: "Alatnica" },
 ];
@@ -19,7 +19,7 @@ const KRATKO = {
   C: "Karoserija",
   D: "Lakirnica",
   E: "Montaža",
-  F: "Finalna",
+  F: "Završna",
   G: "Mašinska",
   H: "Alatnica",
 };
@@ -31,7 +31,7 @@ const MIKRO = {
   C: "Karoser.",
   D: "Lakir.",
   E: "Montaža",
-  F: "Finalna",
+  F: "Završna",
   G: "Mašins.",
   H: "Alatnica",
 };

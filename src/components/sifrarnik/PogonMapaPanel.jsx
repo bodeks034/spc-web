@@ -72,7 +72,7 @@ export default function PogonMapaPanel({ C, addToast }) {
             setForma={setForma}
           />
         )}
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <TableHead C={C} cols={["LINIJA / FAZA", "LINIJA ID", "POGON (SLOVO — LINIJA)", ""]} widths="1fr 80px 200px 56px" />
           {lista.map((r, i) => (
             <TableRow key={r.linija_faza} C={C} i={i} cols={[

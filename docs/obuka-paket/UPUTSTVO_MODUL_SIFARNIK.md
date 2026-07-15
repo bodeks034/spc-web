@@ -191,6 +191,9 @@ Fiksno u kodu: **Klasa** (Critical/Major/Minor), **Tip** (Merljiva/Atributivna).
 
 **Svrha:** Pregled i ručna izmena delova koji su već u sistemu (iz ERP-a ili propagacije).
 
+**Kompletna procedura za novi deo (komponenta):** `UPUTSTVO_NOVI_DEO_SIFARNIK.md`.  
+**Novo celo vozilo:** `UPUTSTVO_NOVO_VOZILO_SIFARNIK.md`.
+
 **Tabela:** `delovi`
 
 | Polje | Značenje |
@@ -467,6 +470,8 @@ Na liniji: digitalna merila se vezuju preko vendor profila; istekla kalibracija 
 
 Za kontrolu **celog vozila** (ne pojedinačnog dela).
 
+**Kompletna procedura za novo vozilo:** `UPUTSTVO_NOVO_VOZILO_SIFARNIK.md` (dijagram → tip → deo → defekti → pogon F → test).
+
 ### 9.1 Tipovi vozila
 
 **Tabela:** `tipovi_vozila`
@@ -607,6 +612,8 @@ Primeri CSV: folder `erp-drop/examples/`.
 
 ## 12. Preporučeni redosled — novi deo u proizvodnji
 
+Korak-po-korak sa checklistom i čestim greškama: **`UPUTSTVO_NOVI_DEO_SIFARNIK.md`**.
+
 ### Sa ERP-om (CSV)
 
 1. ERP izveze CSV → **Alati → ERP uvoz** (delovi, dimenzije, greške, RN…)
@@ -672,6 +679,8 @@ Primeri CSV: folder `erp-drop/examples/`.
 | [UPUTSTVO_SAP_ERP_DROP.md](./UPUTSTVO_SAP_ERP_DROP.md) | Folder erp-drop/incoming |
 | [UPUTSTVO_ERP_RADNI_NALOZI.md](./UPUTSTVO_ERP_RADNI_NALOZI.md) | Mapiranje RN kolona |
 | [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md) | Glavni unos.xlsx propagacija |
+| [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md) | Novi deo (komponenta) u šifrarniku |
+| [UPUTSTVO_NOVO_VOZILO_SIFARNIK.md](./UPUTSTVO_NOVO_VOZILO_SIFARNIK.md) | Novo celo vozilo u šifrarniku |
 | [UPUTSTVO_SIFARNIK_I_EXCEL.md](./UPUTSTVO_SIFARNIK_I_EXCEL.md) | Legacy master Excel (CLI) |
 | [UPUTSTVO_PRAVLJENJE_BARKODOVA.md](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md) | Barkod etikete |
 | [UPUTSTVO_BARKOD_I_MERILA.md](./UPUTSTVO_BARKOD_I_MERILA.md) | Merila na liniji |

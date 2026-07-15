@@ -26,6 +26,7 @@
 | `kamion.svg` | Kamion | KAMION, AUTO-KAMION |
 | `dzip.svg` | Džip | DZIP, AUTO-DZIP |
 | `kombi.svg` | Kombi | KOMBI, AUTO-KOMBI |
+| `ham.png` | Civilni hamer (Hummer-stil) | HAM, HAMER, AUTO-HAM, HAM-001 |
 
 Mapiranje u kodu: `src/lib/voziloDijagramConfig.js`
 

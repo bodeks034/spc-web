@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchLinije, upsertLinija, deleteLinija } from "../../lib/sifrarnikApi.js";
 import { inpStyle, btnStyle, btnGhost } from "./sifrarnikPanelStyle.js";
+import { useEkran } from "../../layout/useEkran.js";
 import { DatalistPolje, ReadonlyPolje, SelectMasinaPolje, SlikaPolje, SelectPolje, OperacijaPolje, PogonPolje, UgaoGranicaPolje } from "./SifrarnikPolje.jsx";
 import { isUgao } from "../../lib/varijabilneUtils.js";
 
@@ -47,7 +48,7 @@ export default function LinijePanel({ C, addToast }) {
             ["Linija *", "linija"], ["Proces", "proces"], ["Operacija", "operacija"], ["Greške (ref)", "greske"],
           ]} forma={forma} setForma={setForma} />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["ID", "LINIJA", "PROCES", "OPERACIJA", ""]} widths="40px 1fr 1fr 1fr 56px" />
         {lista.map((r, i) => (
           <TableRow key={r.id} C={C} i={i} cols={[
@@ -78,6 +79,8 @@ export function FormGrid({
   fieldMeta = {}, opcije = {}, addToast, secondaryAction = null,
   hideActions = false,
 }) {
+  const { mob, linijaUredjaj } = useEkran();
+  const gridCols = mob ? 1 : (linijaUredjaj ? Math.min(cols, 2) : cols);
   const INP = inpStyle(C);
 
   const renderPolje = ([l, k]) => {
@@ -242,7 +245,7 @@ export function FormGrid({
 
   return (
     <div style={{ background: C.panel, border: `1px solid ${C.plava}44`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8, marginBottom: hideActions ? 0 : 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: 8, marginBottom: hideActions ? 0 : 8 }}>
         {fields.map(renderPolje)}
       </div>
       {!hideActions && (

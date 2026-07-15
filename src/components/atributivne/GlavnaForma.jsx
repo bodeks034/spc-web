@@ -350,6 +350,21 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const { url: voziloDijagramSrc, loading: voziloDijagramUcitava } = useVoziloDijagramSrc(deoInfo);
   const voziloFormaEkran = voziloMode && deoInfo && unosKorakAtr === "forma";
   const prikaziLokaciju = !voziloMode;
+  /** Celo vozilo = pogon F (Završna), ne A (Ulazna). */
+  const tekstKontrole = voziloMode
+    ? "Završna kontrola"
+    : (deoInfo?.karakteristika || "-");
+  const tekstNapomene = voziloMode
+    ? "F — Završna kontrola"
+    : (deoInfo?.napomena || "-");
+
+  useEffect(() => {
+    if (voziloMode && pogonKod !== "F") {
+      setPogonKod("F");
+      sacuvajTabletPogon("F");
+    }
+  }, [voziloMode, pogonKod]);
+
   const pendingStat = useMemo(() => pendingFromLista(listaP), [listaP]);
   const smenaKpi = useMemo(() => {
     if (kpiDb && kpiSerija?.ukupno_kom) return saberiKpiVrednosti(kpiDb, kpiSerija);
@@ -765,8 +780,10 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         setUnosKorakAtr(pocetniKorakUnosAtr(korisnik?.uloga, rezimRada, { voziloMode: voziloDeo }));
         setVoziloZona(null);
         prethodniIdAtr.current = idDeo;
-        setPogonKod("");
+        // Celo vozilo → uvek završna (F), nikad ulazna (A)
+        setPogonKod(voziloDeo ? "F" : "");
         setRadniNalog("");
+        if (voziloDeo) pogon = "F";
       }
 
       if (omoguceni.length > 1 && !pogon) {
@@ -1507,7 +1524,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                   )}
                 </div>
               )}
-              {dostupniPogoni.length > 1 && (
+              {dostupniPogoni.length > 1 && !voziloMode && (
                 <PogonIzborPanel
                   C={C}
                   akcent={C.plava}
@@ -1549,7 +1566,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
               <div style={{background:C.ok,border:`1px solid ${C.zelena}26`,borderRadius:6,padding:Math.round(6*H)}}>
                 <div style={{color:C.zelena,fontWeight:700,fontSize:Math.round(9*H),marginBottom:Math.round(4*H),lineHeight:1.3}}>
                   {deoInfo.naziv_dela}
-                  {pogonKod && (
+                  {pogonKod && prikaziLokaciju && (
                     <span style={{ color: C.plava, marginLeft: 6, fontSize: Math.round(8 * H) }}>
                       {labelPogona(pogonKod)}
                     </span>
@@ -1558,8 +1575,8 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:Math.round(4*H),marginBottom:Math.round(4*H)}}>
                   {[
                     ...(prikaziLokaciju ? [["Linija", linijaNaziv], ["Mašina", masinaNaziv]] : []),
-                    ["Kontrola", deoInfo.karakteristika || "-"],
-                    ["Napomena", deoInfo.napomena || "-"],
+                    ["Kontrola", tekstKontrole],
+                    ["Napomena", tekstNapomene],
                   ].map(([l, v]) => (
                     <div key={l} style={{background:C.panel,borderRadius:4,padding:`${Math.round(4*H)}px ${Math.round(5*H)}px`}}>
                       <div style={{color:C.sivi,fontSize:Math.round(7*H),marginBottom:2}}>{l}</div>

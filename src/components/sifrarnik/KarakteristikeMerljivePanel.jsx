@@ -169,7 +169,7 @@ export default function KarakteristikeMerljivePanel({ C, addToast }) {
           snima={snima}
         />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C}
           cols={["DELO", "POGON", "POZ", "NOM", "LSL", "USL", "INST", ""]}
           widths="80px 150px 1fr 70px 60px 60px 80px 56px" />

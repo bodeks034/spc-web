@@ -45,7 +45,7 @@ export default function KontrolnaListaPanel({ C, addToast }) {
           </label>
         </>
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["#", "KAT.", "STAVKA", "AKT", ""]} widths="40px 1fr 2fr 50px 56px" />
         {lista.map((r, i) => (
           <TableRow key={r.id} C={C} i={i} widths="40px 1fr 2fr 50px 56px" cols={[

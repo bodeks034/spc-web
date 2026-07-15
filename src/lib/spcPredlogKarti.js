@@ -2,16 +2,24 @@
 
 import { LAB_FPY_TAB } from "./rtyFpy.js";
 
+/** Kod tipa vozila (id_deo / vozilo_katalog_id) za unos sa zonama. */
+function odgovaraVoziloKod(raw) {
+  const u = String(raw || "").trim().toUpperCase();
+  if (!u) return false;
+  if (u.startsWith("AUTO") || u.startsWith("NTV") || u.startsWith("MRAP")) return true;
+  if (u === "HAM" || u.startsWith("HAM-") || u.startsWith("HAMER")) return true;
+  return ["SUV", "DZIP", "KOMBI", "KAMION", "LIMUZINA", "FINAL"]
+    .some((p) => u === p || u.startsWith(`${p}-`));
+}
+
 export function jeKontrolaCelogVozila(deo) {
   if (!deo) return false;
   if (deo.tip_kontrole === "vozilo") return true;
-  const id = (deo.id_deo || "").toUpperCase();
+  if (odgovaraVoziloKod(deo.vozilo_katalog_id) || odgovaraVoziloKod(deo.id_deo)) return true;
+
   const naziv = (deo.naziv_dela || "").toLowerCase();
   const kar = (deo.karakteristika || "").toLowerCase();
-  return id.startsWith("AUTO")
-    || id.startsWith("NTV")
-    || id.startsWith("MRAP")
-    || naziv.includes("komplet")
+  return naziv.includes("komplet")
     || naziv.includes("celo vozilo")
     || kar.includes("celog vozila")
     || kar.includes("ceog vozila");

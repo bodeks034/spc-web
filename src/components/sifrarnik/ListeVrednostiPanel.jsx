@@ -117,7 +117,7 @@ export default function ListeVrednostiPanel({ C, addToast }) {
             {snima ? "…" : "Dodaj"}
           </button>
         </div>
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <TableHead C={C} cols={["#", "VREDNOST", ""]} widths="40px 1fr 56px" />
           {redovi.map((r, i) => (
             <TableRow key={r.id} C={C} i={i} widths="40px 1fr 56px" cols={[

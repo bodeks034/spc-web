@@ -237,7 +237,7 @@ export default function SopMerljivePanel({ C, addToast }) {
 
       )}
 
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
 
         <TableHead C={C} cols={["DELO", "POGON", "RN", "NAZIV", "BR.M", ""]} widths="90px 150px 100px 1fr 50px 56px" />
 

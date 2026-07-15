@@ -316,7 +316,7 @@ export default function MomentKljucHub({ C, addToast }) {
               onSave={snimiJob} onCancel={() => setFormaJob(null)} />
           )}
           <div style={{ display: "grid", gridTemplateColumns: crtezUrl ? "1fr 220px" : "1fr", gap: 12 }}>
-            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
               <TableHead C={C} cols={["", "ID DEO", "JOB", "NAZIV", "OP.", "VENDOR", "KOR", ""]}
                 widths="28px 100px 72px 1fr 72px 72px 40px 52px" />
               {filtriraniJobovi.map((j, i) => (
@@ -397,7 +397,7 @@ export default function MomentKljucHub({ C, addToast }) {
             <KljucForma C={C} forma={formaKljuc} setForma={setFormaKljuc}
               onSave={snimiKljuc} onCancel={() => setFormaKljuc(null)} />
           )}
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
             <TableHead C={C} cols={["NAZIV", "SN", "VENDOR", "STANICA", "LOKACIJA", ""]}
               widths="1fr 90px 80px 70px 1fr 52px" />
             {kljucevi.map((m, i) => (
@@ -485,7 +485,7 @@ function KorakPanel({ C, detalj, izabraniJobId, formaKorak, setFormaKorak, onAdd
           onCancel={() => setFormaKorak(null)}
         />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["#", "POZ", "PROL", "TIP", "CILJ Nm", "TOL", "KLASA", ""]}
           widths="36px 48px 40px 72px 72px 100px 48px 44px" />
         {koraci.map((k, i) => (
@@ -581,7 +581,7 @@ function PozicijaPanel({ C, detalj, izabraniJobId, formaPoz, setFormaPoz, onAdd,
           </div>
         </div>
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["POZ", "OPIS", "KLASA", ""]} widths="56px 1fr 56px 44px" />
         {poz.map((p, i) => (
           <TableRow key={p.id} C={C} i={i} cols={[

@@ -48,6 +48,7 @@ import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
 
 import { fetchDeloviListaZaRn } from "../../lib/sifrarnikApi.js";
+import { useEkran } from "../../layout/useEkran.js";
 
 
 
@@ -195,6 +196,8 @@ const SVI_TABOVI = GRUPE.flatMap((g) => g.tabovi);
 
 export default function SifrarnikHub({ C, addToast, korisnik }) {
 
+  const { mob, linijaUredjaj } = useEkran();
+
   const [podtab, setPodtab] = useState("glavni_unos");
 
   const [voziloKod, setVoziloKod] = useState("MRAP");
@@ -245,9 +248,31 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       flex: 1, display: "flex", flexDirection: "column", minHeight: 0,
 
-      padding: "12px 16px", overflow: "hidden",
+      padding: mob ? "8px 10px" : "12px 16px", overflow: "hidden",
 
     }}>
+
+      {linijaUredjaj && (
+
+        <div style={{
+
+          marginBottom: 10, padding: "8px 10px", borderRadius: 8, flexShrink: 0,
+
+          border: `1px solid ${C.zuta || "#b45309"}55`,
+
+          background: `${C.zuta || "#b45309"}12`,
+
+          color: C.tekst, fontSize: 10, lineHeight: 1.4,
+
+        }}>
+
+          Šifrarnik je namenjen desktop/laptop unosu. Na tabletu/telefonu liste se mogu pomerati horizontalno;
+
+          za masovan unos koristi širi ekran.
+
+        </div>
+
+      )}
 
       <div style={{ marginBottom: 12, flexShrink: 0 }}>
 
@@ -351,7 +376,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
 
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
 
         {podtab === "glavni_unos" && <GlavniUnosPanel C={C} addToast={addToast} korisnik={korisnik} />}
 

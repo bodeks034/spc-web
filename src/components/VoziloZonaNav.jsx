@@ -3,6 +3,46 @@ import { VOZILO_ZONE, VOZILO_DIAGRAM_SRC } from "../lib/voziloZoneConfig.js";
 const VB_W = 682;
 const VB_H = 520;
 
+/** Civilni hamer (HUMMER-stil) — ugrađena silueta; ne zavisi od učitavanja fajla. */
+function HamBodyDetailed() {
+  return (
+    <g aria-hidden="true" shapeRendering="geometricPrecision">
+      <rect x="95" y="248" width="470" height="88" rx="6" fill="#cfcbc2" stroke="#5a5854" strokeWidth="1.5" />
+      <path d="M175 248 L195 155 L420 155 L465 248 Z" fill="#e4e1d8" stroke="#5a5854" strokeWidth="1.5" />
+      <path d="M205 245 L220 168 L285 168 L295 245 Z" fill="#b9d4e4" stroke="#6a8fa8" strokeWidth="1" opacity="0.85" />
+      <path d="M305 245 L315 168 L400 168 L420 245 Z" fill="#b9d4e4" stroke="#6a8fa8" strokeWidth="1" opacity="0.75" />
+      <path d="M95 248 L110 210 L175 205 L175 248 Z" fill="#d8d4cb" stroke="#5a5854" strokeWidth="1.3" />
+      <rect x="88" y="255" width="22" height="52" rx="3" fill="#b8b4ab" stroke="#5a5854" strokeWidth="1.1" />
+      <line x1="93" y1="268" x2="105" y2="268" stroke="#5a5854" strokeWidth="1.2" />
+      <line x1="93" y1="280" x2="105" y2="280" stroke="#5a5854" strokeWidth="1.2" />
+      <line x1="93" y1="292" x2="105" y2="292" stroke="#5a5854" strokeWidth="1.2" />
+      <path d="M465 248 L490 215 L550 220 L565 248 Z" fill="#d8d4cb" stroke="#5a5854" strokeWidth="1.3" />
+      <rect x="552" y="255" width="20" height="50" rx="3" fill="#b8b4ab" stroke="#5a5854" strokeWidth="1.1" />
+      <circle cx="540" cy="232" r="16" fill="#e8e6df" stroke="#5a5854" strokeWidth="1.2" />
+      <circle cx="540" cy="232" r="8" fill="#cfcbc2" stroke="#5a5854" strokeWidth="0.8" />
+      <rect x="210" y="142" width="200" height="10" rx="2" fill="#b8b4ab" stroke="#5a5854" strokeWidth="1" />
+      <line x1="230" y1="142" x2="230" y2="155" stroke="#5a5854" strokeWidth="1.2" />
+      <line x1="390" y1="142" x2="390" y2="155" stroke="#5a5854" strokeWidth="1.2" />
+      <circle cx="195" cy="355" r="52" fill="#f0eee6" stroke="#5a5854" strokeWidth="1.7" />
+      <circle cx="195" cy="355" r="34" fill="#d8d4cb" stroke="#6a6864" strokeWidth="1.1" />
+      <circle cx="195" cy="355" r="12" fill="#8a8780" />
+      <circle cx="470" cy="355" r="52" fill="#f0eee6" stroke="#5a5854" strokeWidth="1.7" />
+      <circle cx="470" cy="355" r="34" fill="#d8d4cb" stroke="#6a6864" strokeWidth="1.1" />
+      <circle cx="470" cy="355" r="12" fill="#8a8780" />
+      <line x1="60" y1="408" x2="620" y2="408" stroke="rgba(31,30,29,0.15)" strokeWidth="0.8" />
+      <text x="341" y="490" textAnchor="middle" fill="#8a8780" fontSize="11" fontFamily="system-ui, sans-serif">
+        HAM — civilni hamer
+      </text>
+    </g>
+  );
+}
+
+/** Kutijasta silueta samo za staro ham.svg; PNG ide kao prava foto. */
+function jeHamVektorskiFallback(src) {
+  const s = String(src || "").toLowerCase().replace(/\\/g, "/");
+  return s.includes("ham.svg");
+}
+
 /** Oštar vektorski crtež limuzine — ne koristi raster, skalira se bez mutnoće. */
 function CarBodyDetailed() {
   return (
@@ -257,7 +297,9 @@ export default function VoziloZonaNav({
   const size = velicina || (veliki ? "veliki" : kompakt ? "kompakt" : "default");
   const isVeliki = size === "veliki";
   const isKompakt = size === "kompakt";
-  const { src: bgSrc, isPhoto } = resolveDiagramSrc(diagramSrc);
+  /** PNG hamera kao foto; kutijasti vektor samo ako je još vezan stari ham.svg. */
+  const ugradjeniHam = jeHamVektorskiFallback(diagramSrc);
+  const { src: bgSrc, isPhoto } = resolveDiagramSrc(ugradjeniHam ? null : diagramSrc);
   const jasanOverlay = isPhoto;
 
   const border = C?.border || "rgba(255,255,255,0.12)";
@@ -370,7 +412,8 @@ export default function VoziloZonaNav({
             </marker>
           </defs>
 
-          {!isPhoto && !bgSrc && !diagramLoading && <CarBodyDetailed />}
+          {ugradjeniHam && !diagramLoading && <HamBodyDetailed />}
+          {!ugradjeniHam && !isPhoto && !bgSrc && !diagramLoading && <CarBodyDetailed />}
 
           {diagramLoading && (
             <g aria-hidden="true">

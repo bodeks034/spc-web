@@ -10,8 +10,13 @@ import {
   pdfIzUputstvaDokumenata,
   spojiZaStampu,
 } from "../lib/uputstvoRender.js";
+import { useEkran } from "../layout/useEkran.js";
 
 export default function UputstvoHub({ C, korisnik, onZatvori }) {
+  const ekran = useEkran();
+  const uzan = ekran.linijaUredjaj;
+  const mob = ekran.mob || ekran.telefon;
+
   const dostupni = useMemo(
     () => dokumentiZaUlogu(korisnik?.uloga),
     [korisnik?.uloga],
@@ -23,6 +28,9 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
   const [greska, setGreska] = useState("");
   const [ucitava, setUcitava] = useState(false);
   const [pdfRadi, setPdfRadi] = useState(false);
+  /** Na uskom ekranu: lista dokumenata vs. čitač. */
+  const [prikaziPregled, setPrikaziPregled] = useState(!uzan);
+  const [viseAkcija, setViseAkcija] = useState(false);
 
   const uKategoriji = useMemo(
     () => dostupni.filter((d) => d.kategorija === kategorija),
@@ -49,6 +57,11 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
     }
   }, [uKategoriji, izabraniId]);
 
+  useEffect(() => {
+    if (!uzan) setPrikaziPregled(true);
+    else setPrikaziPregled(false);
+  }, [uzan]);
+
   const aktivni = dostupni.find((d) => d.id === izabraniId) || null;
 
   const ucitajPregled = useCallback(async (doc) => {
@@ -69,6 +82,11 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
   useEffect(() => {
     if (aktivni) ucitajPregled(aktivni);
   }, [aktivni, ucitajPregled]);
+
+  const izaberiDokument = (id) => {
+    setIzabraniId(id);
+    if (uzan) setPrikaziPregled(true);
+  };
 
   const toggleOznaka = (id) => {
     setOznaceni((prev) => {
@@ -121,7 +139,6 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
     }
   };
 
-  /** PDF uvek za trenutno otvoreni dokument (ne za čekiran paket). */
   const preuzmiPdf = async () => {
     if (!aktivni) return;
     setPdfRadi(true);
@@ -153,6 +170,33 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
     window.open(aktivni.fajl, "_blank", "noopener,noreferrer");
   };
 
+  const pokazujListu = !uzan || !prikaziPregled;
+  const pokazujCitac = !uzan || prikaziPregled;
+
+  const akcijkeSekundarne = (
+    <>
+      <Btn C={C} onClick={oznaciObukaPaket} sekundarno>Obuka paket</Btn>
+      <Btn
+        C={C}
+        onClick={stampajIzabrano}
+        disabled={!izabraniDocs.length || pdfRadi}
+        sekundarno
+        title="Štampa / PDF svih čekiranih"
+      >
+        Štampaj izabrano ({izabraniDocs.length})
+      </Btn>
+      <Btn
+        C={C}
+        onClick={pdfIzabrano}
+        disabled={!izabraniDocs.length || pdfRadi}
+        sekundarno
+        title="PDF svih čekiranih dokumenata"
+      >
+        PDF izabrano
+      </Btn>
+    </>
+  );
+
   return (
     <div
       role="dialog"
@@ -163,168 +207,226 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
         position: "fixed", inset: 0, zIndex: 9000,
         background: "rgba(0,0,0,0.55)",
         display: "flex", alignItems: "stretch", justifyContent: "center",
-        padding: 12, boxSizing: "border-box",
+        padding: mob ? 0 : 12, boxSizing: "border-box",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onZatvori?.(); }}
     >
       <div style={{
         background: C.bg, color: C.tekst,
-        border: `1px solid ${C.border}`, borderRadius: 12,
+        border: mob ? "none" : `1px solid ${C.border}`,
+        borderRadius: mob ? 0 : 12,
         width: "100%", maxWidth: 1200, maxHeight: "100%",
+        height: mob ? "100%" : undefined,
         display: "flex", flexDirection: "column", overflow: "hidden",
         fontFamily: "'IBM Plex Mono', monospace",
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 16px", borderBottom: `1px solid ${C.border}`, gap: 8, flexWrap: "wrap",
+          padding: mob ? "10px 12px" : "12px 16px",
+          borderBottom: `1px solid ${C.border}`, gap: 8, flexWrap: "wrap",
+          flexShrink: 0,
         }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>📘 Uputstvo i obuka</div>
-            <div style={{ color: C.sivi, fontSize: 10, marginTop: 2 }}>
-              Pregled materijala · štampa · PDF
-            </div>
+          <div style={{ minWidth: 0, flex: "1 1 140px" }}>
+            {uzan && prikaziPregled ? (
+              <Btn C={C} sekundarno onClick={() => setPrikaziPregled(false)}>
+                ← Dokumenti
+              </Btn>
+            ) : (
+              <>
+                <div style={{ fontWeight: 700, fontSize: mob ? 14 : 15 }}>📘 Uputstvo i obuka</div>
+                {!mob && (
+                  <div style={{ color: C.sivi, fontSize: 10, marginTop: 2 }}>
+                    Pregled materijala · štampa · PDF
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <Btn C={C} onClick={oznaciObukaPaket} sekundarno>Obuka paket</Btn>
-            <Btn C={C} onClick={stampaj} disabled={!pregled || pdfRadi} zeleni title="Štampa otvoreni dokument">
-              Štampaj
-            </Btn>
-            <Btn C={C} onClick={preuzmiPdf} disabled={!aktivni || pdfRadi} zeleni title="PDF otvorenog dokumenta">
-              {pdfRadi ? "PDF…" : "PDF"}
-            </Btn>
-            <Btn
-              C={C}
-              onClick={stampajIzabrano}
-              disabled={!izabraniDocs.length || pdfRadi}
-              sekundarno
-              title="Štampa / PDF svih čekiranih"
-            >
-              Štampaj izabrano ({izabraniDocs.length})
-            </Btn>
-            <Btn
-              C={C}
-              onClick={pdfIzabrano}
-              disabled={!izabraniDocs.length || pdfRadi}
-              sekundarno
-              title="PDF svih čekiranih dokumenata"
-            >
-              PDF izabrano
-            </Btn>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {pokazujCitac && (
+              <>
+                <Btn C={C} onClick={stampaj} disabled={!pregled || pdfRadi} zeleni title="Štampa otvoreni dokument">
+                  Štampaj
+                </Btn>
+                <Btn C={C} onClick={preuzmiPdf} disabled={!aktivni || pdfRadi} zeleni title="PDF otvorenog dokumenta">
+                  {pdfRadi ? "PDF…" : "PDF"}
+                </Btn>
+              </>
+            )}
+            {!uzan && akcijkeSekundarne}
+            {uzan && (
+              <Btn C={C} sekundarno onClick={() => setViseAkcija((v) => !v)}>
+                {viseAkcija ? "Manje" : "Više…"}
+              </Btn>
+            )}
             <Btn C={C} onClick={onZatvori}>Zatvori</Btn>
           </div>
+          {uzan && viseAkcija && (
+            <div style={{
+              width: "100%", display: "flex", gap: 6, flexWrap: "wrap",
+              paddingTop: 4,
+            }}>
+              {akcijkeSekundarne}
+            </div>
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 0, flex: 1, minHeight: 0 }}>
-          <aside style={{
-            width: 280, flexShrink: 0, borderRight: `1px solid ${C.border}`,
-            display: "flex", flexDirection: "column", minHeight: 0,
-          }}>
-            <div style={{
-              display: "flex", flexWrap: "wrap", gap: 4, padding: 8,
-              borderBottom: `1px solid ${C.border}`,
+        <div style={{
+          display: "flex",
+          flexDirection: uzan ? "column" : "row",
+          gap: 0, flex: 1, minHeight: 0,
+        }}>
+          {pokazujListu && (
+            <aside style={{
+              width: uzan ? "100%" : 280,
+              flexShrink: 0,
+              borderRight: uzan ? "none" : `1px solid ${C.border}`,
+              borderBottom: uzan ? `1px solid ${C.border}` : "none",
+              display: "flex", flexDirection: "column", minHeight: 0,
+              flex: uzan ? 1 : undefined,
             }}>
-              {vidljiveKategorije.map((k) => (
-                <button
-                  key={k.id}
-                  type="button"
-                  onClick={() => setKategorija(k.id)}
-                  style={{
-                    fontSize: 9, padding: "4px 8px", borderRadius: 6, cursor: "pointer",
-                    border: `1px solid ${kategorija === k.id ? C.plava : C.border}`,
-                    background: kategorija === k.id ? `${C.plava}22` : C.panel,
-                    color: kategorija === k.id ? C.tekst : C.sivi,
-                  }}
-                >
-                  {k.ikon} {k.naziv.split("—")[0].trim()}
-                </button>
-              ))}
-            </div>
-            <div style={{ overflowY: "auto", flex: 1, padding: 8 }}>
-              {uKategoriji.map((d) => {
-                const akt = d.id === izabraniId;
-                const oz = oznaceni.has(d.id);
-                return (
-                  <div
-                    key={d.id}
+              <div style={{
+                display: "flex", flexWrap: "wrap", gap: 4, padding: 8,
+                borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+              }}>
+                {vidljiveKategorije.map((k) => (
+                  <button
+                    key={k.id}
+                    type="button"
+                    onClick={() => setKategorija(k.id)}
                     style={{
-                      marginBottom: 6, padding: 8, borderRadius: 8,
-                      border: `1px solid ${akt ? C.plava : C.border}`,
-                      background: akt ? `${C.plava}15` : C.panel,
+                      fontSize: 9, padding: "6px 10px", borderRadius: 6, cursor: "pointer",
+                      border: `1px solid ${kategorija === k.id ? C.plava : C.border}`,
+                      background: kategorija === k.id ? `${C.plava}22` : C.panel,
+                      color: kategorija === k.id ? C.tekst : C.sivi,
                     }}
                   >
-                    <label style={{ display: "flex", gap: 6, alignItems: "flex-start", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={oz}
-                        onChange={() => toggleOznaka(d.id)}
-                        style={{ marginTop: 3 }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }} onClick={() => setIzabraniId(d.id)}>
-                        <div style={{ fontSize: 11, fontWeight: 700 }}>{d.naslov}</div>
-                        <div style={{ fontSize: 9, color: C.sivi, marginTop: 2 }}>{d.opis}</div>
-                        {d.obukaPaket && (
-                          <span style={{
-                            fontSize: 8, color: C.zuta, marginTop: 4, display: "inline-block",
-                          }}>obuka paket</span>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-                );
-              })}
-              {!uKategoriji.length && (
-                <div style={{ color: C.sivi, fontSize: 10 }}>Nema dokumenata za vašu ulogu.</div>
-              )}
-            </div>
-          </aside>
+                    {k.ikon} {k.naziv.split("—")[0].trim()}
+                  </button>
+                ))}
+              </div>
+              <div style={{ overflowY: "auto", flex: 1, padding: 8, WebkitOverflowScrolling: "touch" }}>
+                {uKategoriji.map((d) => {
+                  const akt = d.id === izabraniId;
+                  const oz = oznaceni.has(d.id);
+                  return (
+                    <div
+                      key={d.id}
+                      style={{
+                        marginBottom: 6, padding: 10, borderRadius: 8,
+                        border: `1px solid ${akt ? C.plava : C.border}`,
+                        background: akt ? `${C.plava}15` : C.panel,
+                      }}
+                    >
+                      <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={oz}
+                          onChange={() => toggleOznaka(d.id)}
+                          style={{ marginTop: 4, width: 16, height: 16 }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div
+                          style={{ flex: 1, minWidth: 0 }}
+                          onClick={() => izaberiDokument(d.id)}
+                          onKeyDown={(e) => { if (e.key === "Enter") izaberiDokument(d.id); }}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>{d.naslov}</div>
+                          <div style={{ fontSize: 10, color: C.sivi, marginTop: 2, lineHeight: 1.35 }}>{d.opis}</div>
+                          {d.obukaPaket && (
+                            <span style={{
+                              fontSize: 8, color: C.zuta, marginTop: 4, display: "inline-block",
+                            }}>obuka paket</span>
+                          )}
+                          {uzan && (
+                            <div style={{ fontSize: 9, color: C.plava, marginTop: 6, fontWeight: 700 }}>
+                              Otvori →
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })}
+                {!uKategoriji.length && (
+                  <div style={{ color: C.sivi, fontSize: 10 }}>Nema dokumenata za vašu ulogu.</div>
+                )}
+              </div>
+            </aside>
+          )}
 
-          <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
-            {aktivni && (
-              <div style={{
-                padding: "8px 12px", borderBottom: `1px solid ${C.border}`,
-                display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
-              }}>
-                <div style={{ fontSize: 12, fontWeight: 700 }}>{aktivni.naslov}</div>
-                <Btn C={C} sekundarno onClick={otvoriUNovom}>Otvori fajl</Btn>
-              </div>
-            )}
-            {greska && (
-              <div style={{ padding: 12, color: C.crvena, fontSize: 11 }}>{greska}</div>
-            )}
-            {ucitava && (
-              <div style={{ padding: 24, color: C.sivi, fontSize: 11 }}>Učitavam…</div>
-            )}
-            {!ucitava && pregled && aktivni?.tip === "html" && (
-              <iframe
-                title={aktivni.naslov}
-                src={aktivni.fajl}
-                style={{ flex: 1, border: "none", background: "#fff", minHeight: 320 }}
-              />
-            )}
-            {!ucitava && pregled && aktivni?.tip === "markdown" && (
-              <div
-                style={{
-                  flex: 1, overflowY: "auto", padding: 16,
-                  background: "#d0d0d0", minHeight: 0,
-                }}
-              >
+          {pokazujCitac && (
+            <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+              {aktivni && (
+                <div style={{
+                  padding: mob ? "8px 10px" : "8px 12px",
+                  borderBottom: `1px solid ${C.border}`,
+                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                  flexShrink: 0,
+                }}>
+                  <div style={{
+                    fontSize: mob ? 12 : 12, fontWeight: 700,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    minWidth: 0,
+                  }}>
+                    {aktivni.naslov}
+                  </div>
+                  <Btn C={C} sekundarno onClick={otvoriUNovom}>Otvori fajl</Btn>
+                </div>
+              )}
+              {greska && (
+                <div style={{ padding: 12, color: C.crvena, fontSize: 11 }}>{greska}</div>
+              )}
+              {ucitava && (
+                <div style={{ padding: 24, color: C.sivi, fontSize: 11 }}>Učitavam…</div>
+              )}
+              {!ucitava && pregled && aktivni?.tip === "html" && (
+                <div style={{
+                  flex: 1, minHeight: 0, overflow: "auto",
+                  WebkitOverflowScrolling: "touch", background: "#e8e8e8",
+                }}>
+                  <iframe
+                    title={aktivni.naslov}
+                    src={aktivni.fajl}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      minHeight: uzan ? "calc(100dvh - 140px)" : 320,
+                      border: "none",
+                      background: "#fff",
+                    }}
+                  />
+                </div>
+              )}
+              {!ucitava && pregled && aktivni?.tip === "markdown" && (
                 <div
-                  className="uputstvo-pregled list-beli"
                   style={{
-                    background: "#fff", color: "#111",
-                    fontFamily: "'Segoe UI', sans-serif", fontSize: 13, lineHeight: 1.5,
-                    maxWidth: 820, margin: "0 auto",
-                    padding: "28px 32px",
-                    border: "1px solid #ccc",
-                    boxShadow: "0 1px 6px rgba(0,0,0,.12)",
-                    minHeight: "100%",
-                    boxSizing: "border-box",
+                    flex: 1, overflowY: "auto", padding: mob ? 8 : 16,
+                    background: "#d0d0d0", minHeight: 0,
+                    WebkitOverflowScrolling: "touch",
                   }}
-                  dangerouslySetInnerHTML={{ __html: pregled.html }}
-                />
-              </div>
-            )}
-          </main>
+                >
+                  <div
+                    className="uputstvo-pregled list-beli"
+                    style={{
+                      background: "#fff", color: "#111",
+                      fontFamily: "'Segoe UI', sans-serif", fontSize: mob ? 14 : 13, lineHeight: 1.5,
+                      maxWidth: 820, margin: "0 auto",
+                      padding: mob ? "16px 14px" : "28px 32px",
+                      border: "1px solid #ccc",
+                      boxShadow: "0 1px 6px rgba(0,0,0,.12)",
+                      minHeight: "100%",
+                      boxSizing: "border-box",
+                    }}
+                    dangerouslySetInnerHTML={{ __html: pregled.html }}
+                  />
+                </div>
+              )}
+            </main>
+          )}
         </div>
 
         <style>{`
@@ -340,6 +442,7 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
           .uputstvo-pregled table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 12px; background: #fff; }
           .uputstvo-pregled th, .uputstvo-pregled td { border: 1px solid #333; padding: 6px 8px; text-align: left; vertical-align: top; background: #fff; }
           .uputstvo-pregled th { background: #e8f2ec; font-weight: 700; }
+          .uputstvo-pregled table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
           @media print {
             @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
             body { background: #fff !important; }

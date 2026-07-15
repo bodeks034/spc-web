@@ -97,7 +97,7 @@ export default function DeloviCrtezPanel({ C, addToast }) {
           snima={snima}
         />
       )}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
         <TableHead C={C} cols={["ID", "NAZIV", "SLIKA", ""]} widths="100px 1fr 140px 56px" />
         {prikaz.map((r, i) => (
           <TableRow key={r.id_deo} C={C} i={i} widths="100px 1fr 140px 56px" cols={[

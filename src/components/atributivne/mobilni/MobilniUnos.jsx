@@ -360,7 +360,7 @@ function MobilniUnos({
         }}>
           <div style={{ color: C.zelena, fontWeight: 700, fontSize: unosIdKompakt ? 14 : 18, marginBottom: unosIdKompakt ? 6 : 12 }}>
             ✓ {deoInfo?.naziv_dela || idDeo}
-            {pogonKod && (
+            {pogonKod && prikaziLokaciju && (
               <span style={{ color: C.plava, marginLeft: 8, fontSize: unosIdKompakt ? 11 : 13 }}>
                 {labelPogona(pogonKod)}
               </span>
@@ -369,8 +369,8 @@ function MobilniUnos({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: unosIdKompakt ? 6 : 8 }}>
             {[
               ...(prikaziLokaciju ? [["Linija", linijaNaziv], ["Mašina", masinaNaziv]] : []),
-              ["Kontrola", deoInfo?.karakteristika || "-"],
-              ["Napomena", deoInfo?.napomena || "-"],
+              ["Kontrola", voziloMode ? "Završna kontrola" : (deoInfo?.karakteristika || "-")],
+              ["Napomena", voziloMode ? "F — Završna kontrola" : (deoInfo?.napomena || "-")],
             ].map(([l, v]) => (
               <div key={l} style={{ background: C.panel, borderRadius: 8, padding: unosIdKompakt ? "6px 8px" : "10px 12px" }}>
                 <div style={{ color: C.sivi, fontSize: unosIdKompakt ? 9 : 10, marginBottom: 2 }}>{l}</div>
