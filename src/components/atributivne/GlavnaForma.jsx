@@ -102,7 +102,6 @@ import {
 } from "../../lib/pogonSop.js";
 import { kreirajAlarmNokAtributivne } from "../../lib/spcAlarmWorkflow.js";
 import { posleSnimanjaAtributivne } from "../../lib/autoAkcije.js";
-import { procitajPoslednjiDeo, sacuvajPoslednjiDeo } from "../../lib/poslednjiDeoLinija.js";
 import { predloziDelovaZaTablet, sacuvajTabletPogon } from "../../lib/linijaDeoMapa.js";
 import NotifikacijePodesavanja from "../NotifikacijePodesavanja.jsx";
 import MeriloBarkodUputstvo from "../MeriloBarkodUputstvo.jsx";
@@ -271,7 +270,6 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const prethodniIdAtr = useRef("");
   const prethodnaSmenaAtr = useRef(smena);
   const barkodRnRef = useRef("");
-  const poslednjiDeoUcitanoAtr = useRef(false);
   const [komentar,setKomentar]     = useState("");
   const [radniNalog,setRadniNalog] = useState("");
   const [karantinInfo, setKarantinInfo] = useState(null);
@@ -331,19 +329,6 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     }),
     [atributivniPogoni, pogonKod, deoInfo?.pogon_kod],
   );
-
-  useEffect(() => {
-    if (!jeLinija || loadInit || idDeo || poslednjiDeoUcitanoAtr.current) return;
-    const saved = procitajPoslednjiDeo("atributivne", smena);
-    if (!saved) return;
-    poslednjiDeoUcitanoAtr.current = true;
-    setIdDeo(saved);
-  }, [jeLinija, loadInit, smena, idDeo]);
-
-  useEffect(() => {
-    if (!jeLinija || !deoSpreman || !idDeo) return;
-    sacuvajPoslednjiDeo("atributivne", idDeo, smena);
-  }, [jeLinija, deoSpreman, idDeo, smena]);
 
   const { alarm: spcAlarm, blokira: spcBlokira, osvezi: osveziSpcAlarm, ocistiAlarm: ocistiSpcAlarm } = useSpcAlarmGate(supabase, {
     idDeo,
@@ -1305,12 +1290,6 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             >
               {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
             </button>
-            {(ekran.mob || ekran.tablet) && (
-              <span title={online ? "Online" : `Offline (${offlineCounts.total})`} style={{ flexShrink: 0, display: "flex" }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%",
-                  background: online ? C.zelena : C.crvena, display: "inline-block" }} />
-              </span>
-            )}
             {jeLinija && koristiMobLinija && mozeTabAtributivne("log", korisnik.uloga, rezimRada) && (
               <button
                 type="button"
@@ -1342,7 +1321,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             )}
           </>
         )}
-        trakaIspod={(ekran.mob || ekran.tablet) ? null : (
+        trakaIspod={ekran.telefon ? null : (
           jeLinija ? (
             <ShopFloorStatusBar
               C={C}

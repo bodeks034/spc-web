@@ -70,6 +70,15 @@ function saveToLocalStorageFallback(queue) {
   }
 }
 
+const QUEUE_EVENT = "spc-offline-queue";
+
+function emitQueueChange() {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent(QUEUE_EVENT));
+  } catch { /* */ }
+}
+
 async function persistCache(queue) {
   cache = [...queue];
   if (idbPodrzan()) {
@@ -80,6 +89,7 @@ async function persistCache(queue) {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(LEGACY_KEY);
       } catch { /* */ }
+      emitQueueChange();
       return;
     } catch (e) {
       console.warn("IndexedDB snimanje — fallback localStorage", e);
@@ -87,6 +97,7 @@ async function persistCache(queue) {
   }
   storageMode = "localStorage";
   saveToLocalStorageFallback(cache);
+  emitQueueChange();
 }
 
 async function initCache() {
@@ -307,7 +318,7 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
   }
 
   if (job.type === "merljive_serija") {
-    const { merenja = [], kpi } = job.payload || {};
+    const { merenja = [], kpi, meta } = job.payload || {};
     const rows = stampajClientIdNaRedove(merenja).map((r) => ({
       ...stripMeta(r),
       sesija_id: sid,
@@ -318,6 +329,20 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
     if (kpi) {
       const { error: eK } = await snimiKpiUnos(supabase, { ...kpi, sesija_id: sid });
       if (eK) throw eK;
+    }
+    if (meta?.pendingNokAlarm && (meta.rowsZaAlarm?.length || rows.length)) {
+      try {
+        const { proveriIKreirajAlarmeNokSerije } = await import("./spcAlarmWorkflow.js");
+        await proveriIKreirajAlarmeNokSerije(supabase, {
+          rows: meta.rowsZaAlarm?.length ? meta.rowsZaAlarm : rows,
+          idDeo: meta.idDeo || rows[0]?.id_deo,
+          radnikId: rows[0]?.radnik_id || null,
+          serija: meta.grupaAB || rows[0]?.sifra_merenja,
+          kolone: meta.koloneZaAlarm || [],
+        });
+      } catch (e) {
+        console.warn("Offline NOK alarm sync", e?.message);
+      }
     }
     return rows.length + (kpi ? 1 : 0);
   }
@@ -389,6 +414,12 @@ export function useOfflineQueue(supabase, options = {}) {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
     };
+  }, []);
+
+  useEffect(() => {
+    const onQueue = () => setQueue(loadQueue());
+    window.addEventListener(QUEUE_EVENT, onQueue);
+    return () => window.removeEventListener(QUEUE_EVENT, onQueue);
   }, []);
 
   const flushQueue = useCallback(async () => {

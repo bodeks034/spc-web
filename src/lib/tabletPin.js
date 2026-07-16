@@ -73,11 +73,12 @@ export function korisnikIzRadnika(radnik, authUser) {
 
 const IDLE_KEY = "spc_tablet_idle_min";
 
+/** Podrazumevano 10 min — 5 je kratko za čekanje / čitanje na liniji. */
 export function idleMinuta() {
   const n = Number(localStorage.getItem(IDLE_KEY));
-  return Number.isFinite(n) && n >= 1 ? n : 5;
+  return Number.isFinite(n) && n >= 1 ? n : 10;
 }
 
 export function snimiIdleMinuta(min) {
-  localStorage.setItem(IDLE_KEY, String(Math.max(1, Math.min(60, Number(min) || 5))));
+  localStorage.setItem(IDLE_KEY, String(Math.max(1, Math.min(60, Number(min) || 10))));
 }

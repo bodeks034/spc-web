@@ -74,9 +74,9 @@ import { ucitajPlanUzorkovanja, izracunajPlanUzorkovanja, datumSrUIso } from "./
 import { useOfflineQueue, stampajClientIdNaRedove } from "./lib/offlineQueue.js";
 import { useSpcAlarmGate } from "./hooks/useSpcAlarmGate.js";
 import SpcAlarmBlokada from "./components/SpcAlarmBlokada.jsx";
-import { proveriIKreirajAlarmeNokSerije } from "./lib/spcAlarmWorkflow.js";
+import { proveriIKreirajAlarmeNokSerije, lokalniOfflineNokAlarm } from "./lib/spcAlarmWorkflow.js";
+import { pozicijeSaPrekoracenimNok } from "./lib/spcAlarmPragovi.js";
 import { posleSnimanjaMerljiva, posleSnimanjaKpiDorade } from "./lib/autoAkcije.js";
-import { procitajPoslednjiDeo, sacuvajPoslednjiDeo } from "./lib/poslednjiDeoLinija.js";
 import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezimaUTacci, jeKontrolorLinija, jeLinijaUloga, pocetniKorakUnosMer, mozeInzenjerExcel, mozeInzenjerExcelUvoz, mozeOdobritiFai, mozePregledFaiOdobrenja, podrazumevaniTabMerljive, mozeOdobrenjaQA, mozeNcrCapa } from "./lib/uloge.js";
 import AnalitikaHeader from "./components/analitika/AnalitikaHeader.jsx";
 import useAnalitikaBadges from "./hooks/useAnalitikaBadges.js";
@@ -1369,7 +1369,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     koloneBridgeRef.current?.setAktivnaKolona?.(indeksSledecePrazno(cols, br, 0));
     prethodniId.current = id;
     prethodniPogon.current = pogon;
-    if (jeLinija) sacuvajPoslednjiDeo("varijabilne", id, smena);
     setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
     if (jeLinija) setLinijaKorak(1);
 
@@ -1670,15 +1669,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     clearTimeout(idUcitajTimer.current);
     if (idSpremanZaUcitavanje(s)) onIdChange(s, { potvrdi: true });
   }, [idDeo, onIdChange]);
-
-  const poslednjiDeoUcitano = useRef(false);
-  useEffect(() => {
-    if (!jeLinija || ucitava || poslednjiDeoUcitano.current || idDeo) return;
-    const saved = procitajPoslednjiDeo("varijabilne", smena);
-    if (!saved) return;
-    poslednjiDeoUcitano.current = true;
-    onIdChange(saved, { potvrdi: true });
-  }, [jeLinija, ucitava, smena, idDeo, onIdChange]);
 
   const onPogonChange = useCallback((pogon) => {
     const p = String(pogon || "").trim().toUpperCase();
@@ -1989,6 +1979,21 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       }
     }
     const rowsStamped = stampajClientIdNaRedove(rows);
+    const rowsZaAlarm = [];
+    for (const k of koloneZaSnim) {
+      if (k.naziv === "-") continue;
+      for (const m of k.merenja) {
+        if (m.raw === "" || m.raw == null) continue;
+        const st = proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica);
+        if (!st) continue;
+        rowsZaAlarm.push({
+          pozicija: k.naziv,
+          status: st,
+          vrednost_raw: m.raw,
+          vrednost_dec: m.dec,
+        });
+      }
+    }
     const kpiPayload = {
       modul: "merljive",
       datum: parsirajDatum(datum),
@@ -2009,10 +2014,30 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     }
 
     const staviUOffline = (razlog) => {
+      const klasaMap = Object.fromEntries(
+        (koloneZaSnim || [])
+          .filter((k) => k.naziv && k.naziv !== "-")
+          .map((k) => [k.naziv, k.klasa]),
+      );
+      const paliNok = pozicijeSaPrekoracenimNok(rowsZaAlarm, klasaMap);
       addMerljiveSerija({
         merenja: rowsStamped,
         kpi: kpiPayload,
-        meta: { grupaAB, idDeo },
+        meta: {
+          grupaAB,
+          idDeo,
+          rowsZaAlarm,
+          koloneZaAlarm: (koloneZaSnim || [])
+            .filter((k) => k.naziv && k.naziv !== "-")
+            .map((k) => ({
+              naziv: k.naziv,
+              lslDec: k.lslDec,
+              uslDec: k.uslDec,
+              jedinica: k.jedinica,
+              klasa: k.klasa,
+            })),
+          pendingNokAlarm: paliNok.length > 0,
+        },
       }, sesija_id);
       addToast(
         rowsStamped.length
@@ -2023,9 +2048,22 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       koloneBridgeRef.current?.clearFotoKomentar?.();
       setSacuvaneGrupe(prev => [...prev, grupaAB]);
       bumpPlanPosleSnimanja();
+      if (paliNok.length) {
+        const lok = lokalniOfflineNokAlarm({ idDeo, serija: grupaAB, pali: paliNok });
+        if (lok) {
+          postaviSpcAlarm(lok);
+          setPoruka(`⛔ SPC alarm (offline) — ${lok.pozicija} · potvrdite PIN/komentar pre nastavka.`);
+          addToast(
+            `⛔ Visok NOK (${paliNok[0].nok}/${paliNok[0].uk} na ${paliNok[0].pozicija}) — linija blokirana`,
+            "greska",
+          );
+        }
+        return true;
+      }
       if (!prebaciNaSledecuSerijuPosleSnimanja(grupaAB)) {
         setPoruka(`Sačuvano offline. Sinhronizuj kada bude mreža. Sesija: ${sesija_id}`);
       }
+      return false;
     };
 
     if (!online) {
@@ -2097,11 +2135,11 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
     try {
       const alarmiNok = await proveriIKreirajAlarmeNokSerije(supabase, {
-        rows,
+        rows: rowsZaAlarm,
         idDeo,
         radnikId: korisnik?.radnikId,
         serija: grupaAB,
-        kolone,
+        kolone: koloneZaSnim,
       });
       try {
         await posleSnimanjaMerljiva(supabase, {
@@ -2682,24 +2720,9 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
                     : (meriloSimulacija ? "Simulacija" : (autoSnimiMerilo ? "Merilo · auto" : "Merilo povezano"))}
                 </button>
               )}
-              {(ekran.mob || ekran.tablet) && (
-                <>
-                  <span title={digitalniUnos ? "Digitalni unos" : "Ručni unos"}
-                    style={{ color: C.zelena, fontSize: 8, fontWeight: 700, flexShrink: 0 }}>±</span>
-                  <span title={online ? "Online" : `Offline (${offlineCounts.total})`} style={{ flexShrink: 0, display: "flex" }}>
-                    <span style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: online ? C.zelena : C.crvena, display: "inline-block",
-                    }} />
-                  </span>
-                  {!online && offlineCounts.total > 0 && (
-                    <button type="button" onClick={() => flushQueue()} title="Sync"
-                      style={{
-                        background: C.zuta, border: "none", borderRadius: 5, color: C.onZuta,
-                        fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                      }}>↻</button>
-                  )}
-                </>
+              {digitalniUnos && (
+                <span title="Digitalni unos"
+                  style={{ color: C.zelena, fontSize: 8, fontWeight: 700, flexShrink: 0 }}>±</span>
               )}
               {mozePrebacivanjeRezimaUTacci(korisnik?.uloga) && typeof onPromeniRezim === "function" && (
                 <button
@@ -2746,7 +2769,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
               )}
             </>
           )}
-          trakaIspod={(ekran.mob || ekran.tablet) ? null : (
+          trakaIspod={ekran.telefon ? null : (
             jeLinija ? (
               <ShopFloorStatusBar
                 C={C}

@@ -1,6 +1,9 @@
 import { useEkran } from "../layout/useEkran.js";
 import LogoBrend from "./LogoBrend.jsx";
 import { useTabletSmena } from "../lib/TabletSmenaContext.jsx";
+import { jeLinijaUloga } from "../lib/uloge.js";
+import { useOfflineQueue } from "../lib/offlineQueue.js";
+import { supabase } from "../lib/supabaseClient.js";
 
 const SKRACENA_ULOGA = {
   kontrolor: "KON",
@@ -35,7 +38,11 @@ export default function AppHeader({
 }) {
   const ekran = useEkran();
   const smenaIzCtx = useTabletSmena();
-  const smenaFn = onSmena || smenaIzCtx;
+  const linijaUloga = jeLinijaUloga(korisnik?.uloga);
+  const smenaFn = (onSmena || smenaIzCtx) && linijaUloga
+    ? (onSmena || smenaIzCtx)
+    : null;
+  const { online, counts: offlineCounts, flushQueue } = useOfflineQueue(supabase);
   const podstrana = Boolean(onNazad) && (ekran.mob || ekran.tablet);
   const kompakt = ekran.mob || ekran.tablet;
   const padX = podstrana ? 10 : kompakt ? 12 : 20;
@@ -125,11 +132,50 @@ export default function AppHeader({
       }}>Smena</button>
   ) : null;
 
+  const statusMreza = linijaUloga ? (
+    <>
+      <span
+        title={online ? "Online" : `Offline (${offlineCounts.total})`}
+        style={{
+          flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
+          fontSize: podstrana || kompakt ? 8 : 9,
+          color: online ? C.zelena : C.crvena, fontWeight: 700,
+        }}
+      >
+        <span style={{
+          width: 7, height: 7, borderRadius: "50%",
+          background: online ? C.zelena : C.crvena, display: "inline-block",
+        }} />
+        {online ? "Online" : "Offline"}
+      </span>
+      <button
+        type="button"
+        onClick={() => flushQueue()}
+        title="Sinhronizuj offline red"
+        style={{
+          background: offlineCounts.total ? C.zuta : C.hover,
+          border: `1px solid ${C.border}`,
+          borderRadius: 5,
+          color: offlineCounts.total ? C.onZuta : C.sivi,
+          fontSize: podstrana || kompakt ? 8 : 9,
+          padding: podstrana || kompakt ? "2px 6px" : "3px 8px",
+          cursor: "pointer",
+          fontWeight: 700,
+          flexShrink: 0,
+          whiteSpace: "nowrap",
+        }}
+      >
+        ↻ Sync{offlineCounts.total ? ` (${offlineCounts.total})` : ""}
+      </button>
+    </>
+  ) : null;
+
   const desnoAkcije = (
     <div style={{
       display: "flex", alignItems: "center", gap,
       flexShrink: 0, flexWrap: "nowrap", minWidth: 0, justifyContent: "flex-end",
     }}>
+      {statusMreza}
       {desnoExtra}
       {btnTema}
       {badgeUloga}

@@ -18,7 +18,7 @@ import DefinicijaUputstvo from "../DefinicijaUputstvo.jsx";
 import LicencaStatusPanel from "../LicencaStatusPanel.jsx";
 import OProgramuPanel from "../OProgramuPanel.jsx";
 import AdminLozinkaModal from "../AdminLozinkaModal.jsx";
-import { snimiPinRadnika, obrisiPinRadnika, validanPinFormat } from "../../lib/tabletPin.js";
+import { snimiPinRadnika, obrisiPinRadnika, validanPinFormat, idleMinuta, snimiIdleMinuta } from "../../lib/tabletPin.js";
 import OfflineSyncPanel from "../OfflineSyncPanel.jsx";
 import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
 import ErpDiffPanel from "../ErpDiffPanel.jsx";
@@ -183,6 +183,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
   const [noviEmail,setNoviEmail] = useState("");
   const [novaUloga,setNovaUloga] = useState("kontrolor");
   const [lozinkaRadnik,setLozinkaRadnik] = useState(null);
+  const [idleMin, setIdleMin] = useState(() => idleMinuta());
   const ekran = useEkran();
 
   useEffect(()=>{
@@ -481,6 +482,45 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
               );})}
             </div>
           )}
+        </div>
+
+        <div style={{
+          background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
+          padding: 18, marginTop: 16,
+        }}>
+          <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
+            TABLET — IDLE LOCK
+          </div>
+          <div style={{ color: C.sivi, fontSize: 10, marginBottom: 12, lineHeight: 1.5 }}>
+            Posle neaktivnosti aplikacija traži PIN. Preporuka na liniji: 10–15 min (5 je kratko).
+            Čuva se u ovom pregledaču / tabletu.
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <label style={{ color: C.sivi, fontSize: 11 }}>Minuta:</label>
+            <select
+              value={idleMin}
+              onChange={(e) => {
+                const v = Number(e.target.value) || 10;
+                setIdleMin(v);
+                snimiIdleMinuta(v);
+                setModal({
+                  poruka: `✓ Idle lock: ${v} min (važi od sledeće neaktivnosti / osveženja stranice)`,
+                  tip: "uspeh",
+                });
+              }}
+              style={{
+                background: C.input, border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.tekst, fontSize: 13, padding: "8px 12px",
+              }}
+            >
+              {[3, 5, 10, 15, 20, 30, 45, 60].map((m) => (
+                <option key={m} value={m}>{m} min</option>
+              ))}
+            </select>
+            <span style={{ color: C.zelena, fontSize: 11, fontWeight: 700 }}>
+              trenutno {idleMin} min
+            </span>
+          </div>
         </div>
 
         <ZdravljeSistemaKartica C={C} korisnik={korisnik} />

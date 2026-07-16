@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import {
   idleMinuta,
@@ -6,43 +6,67 @@ import {
   proveriPinRadnika,
   korisnikIzRadnika,
 } from "../lib/tabletPin.js";
+import { jeLinijaUloga } from "../lib/uloge.js";
 
 /**
- * Idle zaključavanje + brza smena operatera PIN-om (isti Auth nalog tableta).
+ * Idle zaključavanje + brza smena — samo operator/kontrolor na tabletu.
+ * Admin / kvalitet / šef ne koriste PIN lock.
  */
 export default function TabletZakljucaj({
   C,
   korisnik,
   zakljucano,
+  onZatraziZakljucaj,
   onOtkljucaj,
   onPromeniRadnika,
-  onZatraziZakljucaj,
 }) {
   const [pin, setPin] = useState("");
   const [greska, setGreska] = useState("");
   const [busy, setBusy] = useState(false);
   const [lista, setLista] = useState([]);
   const [izabraniId, setIzabraniId] = useState(null);
-  const [rezim, setRezim] = useState("otkljucaj"); // otkljucaj | smena
+  const [rezim, setRezim] = useState("otkljucaj");
+
+  const zakljucajRef = useRef(onZatraziZakljucaj);
+  const zakljucanoRef = useRef(zakljucano);
+  zakljucajRef.current = onZatraziZakljucaj;
+  zakljucanoRef.current = zakljucano;
+
+  const idleAktivan = jeLinijaUloga(korisnik?.uloga);
 
   useEffect(() => {
-    if (!korisnik || !onZatraziZakljucaj) return undefined;
+    if (!korisnik || !idleAktivan) return undefined;
     const ms = idleMinuta() * 60 * 1000;
-    let t = setTimeout(() => onZatraziZakljucaj(), ms);
-    const reset = () => {
-      clearTimeout(t);
-      t = setTimeout(() => onZatraziZakljucaj(), ms);
+    let t = null;
+
+    const zakljucaj = () => {
+      if (zakljucanoRef.current) return;
+      zakljucajRef.current?.();
     };
-    const ev = ["pointerdown", "keydown", "touchstart"];
+
+    const reset = () => {
+      if (zakljucanoRef.current) return;
+      clearTimeout(t);
+      t = setTimeout(zakljucaj, ms);
+    };
+
+    reset();
+    const ev = ["pointerdown", "keydown", "touchstart", "mousemove", "scroll"];
     ev.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    const onVis = () => {
+      if (document.visibilityState === "visible") reset();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     return () => {
       clearTimeout(t);
       ev.forEach((e) => window.removeEventListener(e, reset));
+      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [korisnik?.radnikId, onZatraziZakljucaj, zakljucano]);
+  }, [korisnik?.radnikId, idleAktivan]);
 
   useEffect(() => {
-    if (!zakljucano) return;
+    if (!zakljucano || !idleAktivan) return;
     setPin("");
     setGreska("");
     setRezim("otkljucaj");
@@ -50,11 +74,9 @@ export default function TabletZakljucaj({
     listaRadnikaSaPin(supabase)
       .then(setLista)
       .catch(() => setLista([]));
-  }, [zakljucano, korisnik?.radnikId]);
+  }, [zakljucano, korisnik?.radnikId, idleAktivan]);
 
-  if (!zakljucano) return null;
-
-  const potvrdi = async () => {
+  const potvrdi = useCallback(async () => {
     setBusy(true);
     setGreska("");
     try {
@@ -73,15 +95,20 @@ export default function TabletZakljucaj({
     } finally {
       setBusy(false);
     }
-  };
+  }, [rezim, izabraniId, korisnik?.radnikId, pin, onOtkljucaj, onPromeniRadnika]);
+
+  if (!zakljucano || !idleAktivan) return null;
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 99999,
-      background: "rgba(0,0,0,0.72)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 16, fontFamily: "'IBM Plex Mono',monospace",
-    }}>
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 99999,
+        background: "rgba(0,0,0,0.78)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16, fontFamily: "'IBM Plex Mono',monospace",
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <div style={{
         width: "100%", maxWidth: 360, background: C.panel,
         border: `1px solid ${C.border}`, borderRadius: 14, padding: 20,
@@ -90,9 +117,8 @@ export default function TabletZakljucaj({
           🔒 Tablet zaključan
         </div>
         <div style={{ color: C.sivi, fontSize: 11, marginBottom: 14 }}>
-          {rezim === "otkljucaj"
-            ? `Unesite PIN za: ${korisnik?.ime || "operater"}`
-            : "Izaberite radnika i unesite PIN"}
+          Neaktivnost {idleMinuta()} min — unesite PIN da nastavite
+          {rezim === "otkljucaj" ? ` (${korisnik?.ime || "operater"})` : ""}.
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -137,6 +163,7 @@ export default function TabletZakljucaj({
           type="password"
           inputMode="numeric"
           autoComplete="one-time-code"
+          autoFocus
           placeholder="PIN (4–6 cifara)"
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -159,11 +186,9 @@ export default function TabletZakljucaj({
           }}>
           {busy ? "…" : "Potvrdi"}
         </button>
-        {!lista.length && rezim === "smena" && (
-          <div style={{ color: C.sivi, fontSize: 10, marginTop: 10 }}>
-            Nema radnika sa PIN-om. Admin → Radnici → PIN.
-          </div>
-        )}
+        <div style={{ color: C.sivi, fontSize: 10, marginTop: 10 }}>
+          Ako nema PIN-a: Admin → Radnici → PIN. Ručno: dugme Smena u headeru.
+        </div>
       </div>
     </div>
   );

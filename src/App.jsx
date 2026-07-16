@@ -238,22 +238,38 @@ export default function App() {
     setLoginKey((k) => k + 1);
   };
 
+  const zatraziTabletZakljucaj = useCallback(() => {
+    if (!jeLinijaUloga(korisnik?.uloga)) return;
+    setTabletZakljucan(true);
+  }, [korisnik?.uloga]);
+  const otkljucajTablet = useCallback((k) => {
+    if (k) setKorisnik(k);
+    setTabletZakljucan(false);
+  }, []);
+  const promeniRadnikaTablet = useCallback((k) => {
+    ocistiUnosDraft();
+    setKorisnik(k);
+  }, []);
+
+  useEffect(() => {
+    if (korisnik && !jeLinijaUloga(korisnik.uloga) && tabletZakljucan) {
+      setTabletZakljucan(false);
+    }
+  }, [korisnik?.uloga, tabletZakljucan]);
+
   const tabletOverlay = korisnik ? (
     <TabletZakljucaj
       C={C}
       korisnik={korisnik}
       zakljucano={tabletZakljucan}
-      onZatraziZakljucaj={() => setTabletZakljucan(true)}
-      onOtkljucaj={(k) => {
-        if (k) setKorisnik(k);
-        setTabletZakljucan(false);
-      }}
-      onPromeniRadnika={setKorisnik}
+      onZatraziZakljucaj={zatraziTabletZakljucaj}
+      onOtkljucaj={otkljucajTablet}
+      onPromeniRadnika={promeniRadnikaTablet}
     />
   ) : null;
 
   const wrapSaTabletom = (node) => (
-    <TabletSmenaContext.Provider value={() => setTabletZakljucan(true)}>
+    <TabletSmenaContext.Provider value={zatraziTabletZakljucaj}>
       {tabletOverlay}
       {node}
     </TabletSmenaContext.Provider>

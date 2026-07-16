@@ -84,6 +84,30 @@ describe("spcAlarmPragovi", () => {
     expect(pali[0].pozicija).toBe("D1");
   });
 
+  it("Critical 20% — 3/5 NOK pali alarm", () => {
+    const merenja = [
+      { status: "NOK" },
+      { status: "NOK" },
+      { status: "NOK" },
+      { status: "OK" },
+      { status: "OK" },
+    ];
+    const s = statistikaNokSerije(merenja, 0.20);
+    expect(s.pali).toBe(true);
+    expect(s.nok).toBe(3);
+  });
+
+  it("samo NOK redovi bez OK (auto-snim) i dalje pale ako je 100% NOK na poziciji", () => {
+    const rows = [
+      { pozicija: "D1", status: "NOK" },
+      { pozicija: "D1", status: "NOK" },
+      { pozicija: "D1", status: "NOK" },
+    ];
+    const pali = pozicijeSaPrekoracenimNok(rows, { D1: "Critical" });
+    expect(pali).toHaveLength(1);
+    expect(pali[0].proc).toBe(1);
+  });
+
   it("objasniLinijskiNokAlarm daje operateru razumljiv tekst", () => {
     const txt = objasniLinijskiNokAlarm({
       pozicija: "D1",

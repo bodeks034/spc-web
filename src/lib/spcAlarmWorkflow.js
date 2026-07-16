@@ -511,3 +511,20 @@ export async function proveriIKreirajAlarmeNokSerije(supabase, {
   }
   return kreirani;
 }
+
+/** Lokalni blokirajući alarm kad nema mreže — UI blokada do potvrde; DB se upisuje pri sync. */
+export function lokalniOfflineNokAlarm({ idDeo, serija, pali }) {
+  const p = pali?.[0];
+  if (!p) return null;
+  const pragTxt = Math.round((p.prag ?? 0.2) * 100);
+  return {
+    id: `offline-nok-${Date.now()}`,
+    id_deo: normalizujIdDeo(idDeo),
+    datum: dISO(),
+    tip_karte: "Linija",
+    pozicija: p.pozicija,
+    pravilo: `NOK ≥${pragTxt}% (${p.nok}/${p.uk}) · S${String(serija || "?").trim() || "?"}`,
+    status: "otvoren",
+    lokalni_offline: true,
+  };
+}

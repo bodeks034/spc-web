@@ -38,3 +38,10 @@ export function obrisiPoslednjiDeo(modul) {
     localStorage.setItem(KEY, JSON.stringify(raw));
   } catch { /* */ }
 }
+
+/** Pri prijavi / odjavi / smeni operatera — nema „starog” ID dela. */
+export function obrisiSvePoslednjeDelove() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch { /* */ }
+}

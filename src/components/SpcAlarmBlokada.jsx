@@ -53,6 +53,10 @@ export default function SpcAlarmBlokada({
       setGreska("Unesite šta ste proverili / uradili pre nastavka.");
       return;
     }
+    if (alarm?.lokalni_offline || String(alarm?.id || "").startsWith("offline-nok-")) {
+      await posleAkcije(onPotvrdjeno);
+      return;
+    }
     setLoading(true);
     setGreska("");
     try {
@@ -80,6 +84,10 @@ export default function SpcAlarmBlokada({
       setGreska("Unesite razlog za karantin (HOLD lota/RN).");
       return;
     }
+    if (alarm?.lokalni_offline || String(alarm?.id || "").startsWith("offline-nok-")) {
+      setGreska("Karantin zahteva mrežu — potvrdite alarm lokalno ili sačekajte sync.");
+      return;
+    }
     setLoading(true);
     setGreska("");
     try {
@@ -101,6 +109,10 @@ export default function SpcAlarmBlokada({
   const zatvori = async () => {
     if (!komentar.trim()) {
       setGreska("Komentar zatvaranja je obavezan.");
+      return;
+    }
+    if (alarm?.lokalni_offline || String(alarm?.id || "").startsWith("offline-nok-")) {
+      await posleAkcije(onZatvoreno);
       return;
     }
     setLoading(true);
