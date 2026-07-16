@@ -114,8 +114,7 @@ export function jeKontrolorLinija(uloga, rezimRada) {
   return rezimRada === "linija" && normalizujUlogu(uloga) === "kontrolor";
 }
 
-export function pocetniKorakUnosAtr(uloga, rezimRada, { voziloMode = false } = {}) {
-  if (voziloMode) return "forma";
+export function pocetniKorakUnosAtr(_uloga, _rezimRada, _opts = {}) {
   return "poka";
 }
 

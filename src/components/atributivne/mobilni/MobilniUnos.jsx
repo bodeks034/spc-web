@@ -82,10 +82,12 @@ function MobilniUnos({
 
   useEffect(() => { if (idDeo.length < 3) setKorak(1); }, [idDeo]);
 
+  // Sync mobilni korak sa unosKorakAtr — posle checkliste / učitanog dela ide na poka-yoke
   useEffect(() => {
-    if (idDeo.length < 3 || !voziloMode) return;
-    setKorak(korakUnos);
-  }, [idDeo, voziloMode, korakUnos]);
+    if (!kontrolnaListaOk || !deoSpreman) return;
+    if (unosKorakAtr === "forma") setKorak(korakUnos);
+    else if (unosKorakAtr === "poka") setKorak(korakPoka);
+  }, [kontrolnaListaOk, deoSpreman, unosKorakAtr, korakPoka, korakUnos]);
 
   const korakWizardId = linijaMode
     ? (korak === 1 ? "id" : korak === 2 ? "poka" : korak === 3 ? "unos" : kontrolorLinija ? "snimi" : "lista")

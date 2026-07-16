@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import {
   ucitajFaiCekaju, ucitajFaiPoId, odobriFai, faiImaNok, formatFaiKreirao,
 } from "../lib/faiWorkflow.js";
+import { stampajEkran, preuzmiEkranPdf } from "../lib/listaEkranIzvoz.js";
+import { stampajFai, preuzmiFaiPdf } from "../lib/faiPdf.js";
+import ListaIzvozDugmad from "./ListaIzvozDugmad.jsx";
 import { mozeOdobritiFai } from "../lib/uloge.js";
 
 function dISO() {
@@ -115,6 +118,9 @@ export default function FaiOdobrenjePanel({
   const [jedan, setJedan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [snimaId, setSnimaId] = useState(null);
+  const [busyEkran, setBusyEkran] = useState(false);
+  const [busyForma, setBusyForma] = useState(false);
+  const izvozRef = useRef(null);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -175,6 +181,56 @@ export default function FaiOdobrenjePanel({
 
   const prikaz = faiId ? (jedan ? [jedan] : []) : lista;
 
+  const exportOpts = { naslov: "FAI na čekanju" };
+
+  const stampajEkranFn = async () => {
+    if (!prikaz.length) { addToast?.("Nema FAI za štampu", "greska"); return; }
+    try {
+      await stampajEkran(izvozRef.current, { naslov: exportOpts.naslov, bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfEkran = async () => {
+    if (!prikaz.length) { addToast?.("Nema FAI za PDF", "greska"); return; }
+    setBusyEkran(true);
+    try {
+      await preuzmiEkranPdf(izvozRef.current, {
+        naslov: exportOpts.naslov,
+        prefiksFajla: "FAI",
+        bgColor: C.bg,
+      });
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyEkran(false);
+    }
+  };
+
+  const stampajFormaFn = () => {
+    if (!prikaz.length) { addToast?.("Nema FAI za štampu", "greska"); return; }
+    try {
+      stampajFai(prikaz, exportOpts);
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfForma = async () => {
+    if (!prikaz.length) { addToast?.("Nema FAI za PDF", "greska"); return; }
+    setBusyForma(true);
+    try {
+      await preuzmiFaiPdf(prikaz, exportOpts);
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyForma(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ color: C.sivi, fontSize: 12, padding: kompakt ? 8 : 20, textAlign: "center" }}>
@@ -183,36 +239,98 @@ export default function FaiOdobrenjePanel({
     );
   }
 
-  if (!prikaz.length) {
+  if (kompakt) {
+    if (!prikaz.length) {
+      return (
+        <div style={{
+          color: C.border, fontSize: 12, textAlign: "center",
+          padding: 12,
+          background: C.panel, borderRadius: 8, border: `1px solid ${C.border}`,
+        }}>
+          {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja za danas."}
+        </div>
+      );
+    }
     return (
-      <div style={{
-        color: C.border, fontSize: 12, textAlign: "center",
-        padding: kompakt ? 12 : 32,
-        background: C.panel, borderRadius: 8, border: `1px solid ${C.border}`,
-      }}>
-        {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja za danas."}
+      <div>
+        {prikaz.map((rec) => (
+          <FaiKartica
+            key={rec.id}
+            rec={rec}
+            C={C}
+            korisnik={korisnik}
+            snimaId={snimaId}
+            onOdobri={odobri}
+            kompakt
+          />
+        ))}
       </div>
     );
   }
 
   return (
-    <div style={{ padding: kompakt ? 0 : "12px 16px" }}>
-      {!kompakt && (
-        <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, marginBottom: 12, letterSpacing: 0.5 }}>
+    <div ref={izvozRef} style={{
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      minHeight: 0,
+      height: "100%",
+      padding: "12px 16px",
+      boxSizing: "border-box",
+    }}>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        marginBottom: 12,
+        flexShrink: 0,
+      }}>
+        <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>
           FAI NA ČEKANJU ({prikaz.length})
         </div>
-      )}
-      {prikaz.map((rec) => (
-        <FaiKartica
-          key={rec.id}
-          rec={rec}
+        <ListaIzvozDugmad
           C={C}
-          korisnik={korisnik}
-          snimaId={snimaId}
-          onOdobri={odobri}
-          kompakt={kompakt}
+          disabled={!prikaz.length}
+          busyEkran={busyEkran}
+          busyForma={busyForma}
+          akcent={C.plava}
+          onStampajEkran={stampajEkranFn}
+          onPdfEkran={exportPdfEkran}
+          onStampajForma={stampajFormaFn}
+          onPdfForma={exportPdfForma}
         />
-      ))}
+      </div>
+
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        WebkitOverflowScrolling: "touch",
+        paddingBottom: 12,
+      }}>
+        {!prikaz.length ? (
+          <div style={{
+            color: C.border, fontSize: 12, textAlign: "center",
+            padding: 32,
+            background: C.panel, borderRadius: 8, border: `1px solid ${C.border}`,
+          }}>
+            {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja za danas."}
+          </div>
+        ) : prikaz.map((rec) => (
+          <FaiKartica
+            key={rec.id}
+            rec={rec}
+            C={C}
+            korisnik={korisnik}
+            snimaId={snimaId}
+            onOdobri={odobri}
+            kompakt={false}
+          />
+        ))}
+      </div>
     </div>
   );
 }

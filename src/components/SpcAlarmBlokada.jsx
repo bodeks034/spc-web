@@ -142,6 +142,13 @@ export default function SpcAlarmBlokada({
     }
   };
 
+  const btnBase = {
+    borderRadius: 7,
+    fontWeight: 700,
+    padding: "8px 10px",
+    fontFamily: "inherit",
+  };
+
   return (
     <div
       role="dialog"
@@ -155,36 +162,52 @@ export default function SpcAlarmBlokada({
         alignItems: "center",
         justifyContent: "center",
         zIndex: 12000,
-        padding: 16,
+        padding: 10,
+        boxSizing: "border-box",
       }}
     >
       <div style={{
         background: C.panel,
         border: `2px solid ${jeKarantin ? C.ljubicasta || C.plava : C.crvena}`,
-        borderRadius: 14,
-        padding: "24px 28px",
-        maxWidth: 460,
+        borderRadius: 12,
+        padding: "12px 14px",
+        maxWidth: 420,
         width: "100%",
+        maxHeight: "min(92vh, 640px)",
+        overflowY: "auto",
+        overscrollBehavior: "contain",
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
+        boxSizing: "border-box",
       }}>
-        <div style={{ color: jeKarantin ? (C.ljubicasta || C.plava) : C.crvena, fontSize: 28, marginBottom: 8 }}>
-          {jeKarantin ? "🔒" : "⛔"}
-        </div>
-        <div id="spc-alarm-naslov" style={{ color: C.tekst, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
-          {jeKarantin ? "KARANTIN — proizvodnja obustavljena" : "SPC van kontrole — obustava unosa"}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 6,
+        }}>
+          <span style={{
+            color: jeKarantin ? (C.ljubicasta || C.plava) : C.crvena,
+            fontSize: 18,
+            lineHeight: 1,
+          }}>
+            {jeKarantin ? "🔒" : "⛔"}
+          </span>
+          <div id="spc-alarm-naslov" style={{ color: C.tekst, fontSize: 14, fontWeight: 700, lineHeight: 1.25 }}>
+            {jeKarantin ? "KARANTIN — proizvodnja obustavljena" : "SPC van kontrole — obustava unosa"}
+          </div>
         </div>
         {podnaslov && (
-          <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10 }}>{podnaslov}</div>
+          <div style={{ color: C.sivi, fontSize: 10, marginBottom: 6 }}>{podnaslov}</div>
         )}
         {jeKarantin && (
           <div style={{
             color: C.ljubicasta || C.plava,
-            fontSize: 11,
-            marginBottom: 10,
+            fontSize: 10,
+            marginBottom: 8,
             background: `${C.plava}18`,
-            padding: "8px 10px",
+            padding: "6px 8px",
             borderRadius: 6,
-            lineHeight: 1.5,
+            lineHeight: 1.4,
           }}>
             Deo/RN su u HOLD-u. Nastavak rada samo nakon odobrenja kvaliteta/admina.
             {alarm.eskalacija_id && (
@@ -194,20 +217,19 @@ export default function SpcAlarmBlokada({
         )}
         <div style={{
           color: C.sivi,
-          fontSize: 12,
-          marginBottom: 14,
-          lineHeight: 1.65,
+          fontSize: 11,
+          marginBottom: 8,
+          lineHeight: 1.45,
           background: C.bg,
-          borderRadius: 8,
-          padding: "10px 12px",
+          borderRadius: 7,
+          padding: "7px 9px",
           border: `1px solid ${C.border}`,
         }}>
           Deo: <strong style={{ color: C.tekst }}>{alarm.id_deo}</strong>
           {nazivDela ? ` — ${nazivDela}` : ""}
           {radniNalog ? (
             <>
-              <br />
-              RN: <strong style={{ color: C.tekst }}>{radniNalog}</strong>
+              {" · "}RN: <strong style={{ color: C.tekst }}>{radniNalog}</strong>
             </>
           ) : null}
           <br />
@@ -215,12 +237,11 @@ export default function SpcAlarmBlokada({
           <br />
           Vrednost: <strong style={{ color: C.crvena }}>{fmt(alarm.vrednost)}</strong>
           {" · "}UCL {fmt(alarm.ucl)} · LCL {fmt(alarm.lcl)}
-          <br />
-          <span style={{ fontSize: 10 }}>
-            {alarm.created_at
-              ? new Date(alarm.created_at).toLocaleString("sr-RS")
-              : ""}
-          </span>
+          {alarm.created_at && (
+            <span style={{ fontSize: 9, color: C.sivi }}>
+              {" · "}{new Date(alarm.created_at).toLocaleString("sr-RS")}
+            </span>
+          )}
           {jeKarantin && alarm.komentar_operater && (
             <>
               <br />
@@ -230,16 +251,16 @@ export default function SpcAlarmBlokada({
         </div>
         {objasnjenjePraga && !jeKarantin && (
           <div style={{
-            marginBottom: 14,
-            padding: "10px 12px",
-            borderRadius: 8,
+            marginBottom: 8,
+            padding: "6px 8px",
+            borderRadius: 7,
             border: `1px solid ${C.zuta}44`,
             background: `${C.zuta}12`,
-            fontSize: 11,
+            fontSize: 10,
             color: C.tekst,
-            lineHeight: 1.55,
+            lineHeight: 1.4,
           }}>
-            <div style={{ color: C.zuta, fontSize: 9, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>
+            <div style={{ color: C.zuta, fontSize: 8, fontWeight: 700, letterSpacing: 0.8, marginBottom: 2 }}>
               ZAŠTO JE UNOS BLOKIRAN?
             </div>
             {objasnjenjePraga}
@@ -247,14 +268,16 @@ export default function SpcAlarmBlokada({
         )}
         {predlogAkcija.length > 0 && (
           <div style={{
-            marginBottom: 14, padding: "10px 12px", borderRadius: 8,
+            marginBottom: 8, padding: "6px 8px", borderRadius: 7,
             border: `1px solid ${C.zuta}55`, background: `${C.zuta}10`,
+            maxHeight: 72,
+            overflowY: "auto",
           }}>
-            <div style={{ color: C.zuta, fontSize: 9, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>
-              REAKCIONI PLAN (PREPORUKA)
+            <div style={{ color: C.zuta, fontSize: 8, fontWeight: 700, letterSpacing: 0.8, marginBottom: 3 }}>
+              REAKCIONI PLAN
             </div>
             {predlogAkcija.map((r) => (
-              <div key={r.id} style={{ fontSize: 11, color: C.tekst, marginBottom: 4 }}>
+              <div key={r.id} style={{ fontSize: 10, color: C.tekst, marginBottom: 2, lineHeight: 1.35 }}>
                 <span style={{ color: C.sivi }}>{r.situacija}</span>
                 {" → "}
                 <strong>{r.akcija}</strong>
@@ -264,68 +287,70 @@ export default function SpcAlarmBlokada({
         )}
         {!jeKarantin && (
           <>
-            <div style={{ color: C.sivi, fontSize: 10, letterSpacing: 1.1, marginBottom: 6 }}>
+            <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1, marginBottom: 4 }}>
               OBAVEZAN KOMENTAR
             </div>
             <textarea
               value={komentar}
               onChange={(e) => { setKomentar(e.target.value); setGreska(""); }}
-              placeholder="Npr: proverena alatna postavka, uzrok identifikovan, uzorak ponovo meren..."
-              rows={3}
+              placeholder="Npr: proverena alatna postavka, uzrok identifikovan..."
+              rows={2}
               style={{
                 width: "100%",
                 background: C.input,
                 border: `1px solid ${greska ? C.crvena : C.border}`,
-                borderRadius: 8,
+                borderRadius: 7,
                 color: C.tekst,
-                fontSize: 13,
-                padding: "10px 12px",
+                fontSize: 12,
+                padding: "7px 9px",
                 boxSizing: "border-box",
                 outline: "none",
                 fontFamily: "inherit",
                 resize: "none",
+                minHeight: 48,
               }}
             />
           </>
         )}
         {jeKarantin && mozeZatvoriti && (
           <>
-            <div style={{ color: C.sivi, fontSize: 10, letterSpacing: 1.1, marginBottom: 6 }}>
+            <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1, marginBottom: 4 }}>
               KOMENTAR PUŠTANJA (kvalitet/admin)
             </div>
             <textarea
               value={komentar}
               onChange={(e) => { setKomentar(e.target.value); setGreska(""); }}
               placeholder="Obrazloženje puštanja iz karantina..."
-              rows={3}
+              rows={2}
               style={{
                 width: "100%",
                 background: C.input,
                 border: `1px solid ${greska ? C.crvena : C.border}`,
-                borderRadius: 8,
+                borderRadius: 7,
                 color: C.tekst,
-                fontSize: 13,
-                padding: "10px 12px",
+                fontSize: 12,
+                padding: "7px 9px",
                 boxSizing: "border-box",
                 outline: "none",
                 fontFamily: "inherit",
                 resize: "none",
+                minHeight: 48,
               }}
             />
           </>
         )}
         {greska && (
-          <div style={{ color: C.crvena, fontSize: 11, marginTop: 6 }}>{greska}</div>
+          <div style={{ color: C.crvena, fontSize: 10, marginTop: 4 }}>{greska}</div>
         )}
         {ncrInfo && (
           <div style={{
-            marginTop: 8, fontSize: 10, color: C.zelena, fontWeight: 700,
-            padding: "6px 10px", border: `1px solid ${C.zelena}44`, borderRadius: 6,
+            marginTop: 6, fontSize: 10, color: C.zelena, fontWeight: 700,
+            padding: "4px 8px", border: `1px solid ${C.zelena}44`, borderRadius: 6,
           }}>
             NCR: {ncrInfo.broj_ncr}
           </div>
         )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
           {!jeKarantin && (
             <>
               <button
@@ -333,13 +358,11 @@ export default function SpcAlarmBlokada({
                 onClick={potvrdi}
                 disabled={!komentar.trim() || loading}
                 style={{
+                  ...btnBase,
                   background: komentar.trim() && !loading ? C.zelena : C.hover,
                   border: "none",
-                  borderRadius: 8,
                   color: komentar.trim() ? C.onAkcent : C.sivi,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  padding: "12px",
+                  fontSize: 12,
                   cursor: komentar.trim() && !loading ? "pointer" : "not-allowed",
                 }}
               >
@@ -350,13 +373,11 @@ export default function SpcAlarmBlokada({
                 onClick={karantin}
                 disabled={!komentar.trim() || loading}
                 style={{
+                  ...btnBase,
                   background: komentar.trim() && !loading ? (C.ljubicasta || "#7c3aed") : C.hover,
                   border: "none",
-                  borderRadius: 8,
                   color: komentar.trim() ? C.onAkcent : C.sivi,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  padding: "11px",
+                  fontSize: 11,
                   cursor: komentar.trim() && !loading ? "pointer" : "not-allowed",
                 }}
               >
@@ -370,13 +391,11 @@ export default function SpcAlarmBlokada({
               onClick={onZahtevPrekid}
               disabled={loading}
               style={{
+                ...btnBase,
                 background: C.hover,
                 border: `1px solid ${C.zuta}`,
-                borderRadius: 8,
                 color: C.zuta,
-                fontSize: 12,
-                fontWeight: 700,
-                padding: "10px",
+                fontSize: 11,
                 cursor: loading ? "not-allowed" : "pointer",
               }}
             >
@@ -389,13 +408,11 @@ export default function SpcAlarmBlokada({
               onClick={zatvori}
               disabled={!komentar.trim() || loading}
               style={{
+                ...btnBase,
                 background: "none",
                 border: `1px solid ${C.plava}`,
-                borderRadius: 8,
                 color: C.plava,
-                fontSize: 12,
-                fontWeight: 700,
-                padding: "10px",
+                fontSize: 11,
                 cursor: komentar.trim() && !loading ? "pointer" : "not-allowed",
               }}
             >
@@ -409,13 +426,11 @@ export default function SpcAlarmBlokada({
               onClick={kreirajNcr}
               disabled={ncrBusy || loading}
               style={{
+                ...btnBase,
                 background: C.hover,
                 border: `1px solid ${C.narandzasta || C.zuta}`,
-                borderRadius: 8,
                 color: C.narandzasta || C.zuta,
-                fontSize: 12,
-                fontWeight: 700,
-                padding: "10px",
+                fontSize: 11,
                 cursor: ncrBusy ? "wait" : "pointer",
               }}
             >
@@ -423,7 +438,7 @@ export default function SpcAlarmBlokada({
             </button>
           )}
         </div>
-        <div style={{ color: C.sivi, fontSize: 10, marginTop: 12, textAlign: "center", lineHeight: 1.5 }}>
+        <div style={{ color: C.sivi, fontSize: 9, marginTop: 8, textAlign: "center", lineHeight: 1.35 }}>
           {jeKarantin
             ? "Linija ostaje blokirana dok kvalitet/admin ne pusti deo iz karantina."
             : "Unos je blokiran. Karantin šalje eskalaciju i HOLD lota/RN."}

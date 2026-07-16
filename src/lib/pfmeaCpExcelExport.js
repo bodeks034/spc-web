@@ -1,14 +1,20 @@
 /**
- * Izvoz PFMEA + Control Plan u .xlsx — isti raspored listova kao Excel šablon.
+ * Izvoz PFMEA + Control Plan u .xlsx — stilizovani listovi (header, zebra, freeze).
  */
 
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 import {
   PFMEA_EDIT_KOLONE,
   CP_EDIT_KOLONE,
   RPN_SUMMARY_KOLONE,
 } from "./pfmeaControlPlan.js";
 import { agregirajRpnSummary } from "./pfmeaCpPolja.js";
+import {
+  stilizujSheetHeader,
+  EXCEL_HEADER_PFMEA,
+  EXCEL_HEADER_CP,
+  EXCEL_HEADER_RPN,
+} from "./excelStil.js";
 
 const PFMEA_HEADERS = [
   "Br. Dela / ID dela",
@@ -60,11 +66,14 @@ const CP_HEADERS = [
 const PFMEA_KEYS = PFMEA_EDIT_KOLONE.map((k) => k.key);
 const CP_KEYS = CP_EDIT_KOLONE.map((k) => k.key);
 
+/** Red indeksa sa kolonama tabele (naslov, podnaslov, prazno, header). */
+const HEADER_ROW = 3;
+
 function redUFizicki(red, keys) {
   return keys.map((k) => red[k] ?? "");
 }
 
-function sheetSaZaglavljem({ naslov, podnaslov, headers, redovi, keys }) {
+function sheetSaZaglavljem({ naslov, podnaslov, headers, redovi, keys, headerRgb, maxColW = 28 }) {
   const aoa = [
     [naslov],
     [podnaslov || ""],
@@ -73,7 +82,16 @@ function sheetSaZaglavljem({ naslov, podnaslov, headers, redovi, keys }) {
     ...redovi.map((r) => redUFizicki(r, keys)),
   ];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = headers.map(() => ({ wch: 18 }));
+  stilizujSheetHeader(ws, {
+    headerRgb,
+    headerRow: HEADER_ROW,
+    zebra: true,
+    freezeHeader: true,
+    minColW: 10,
+    maxColW,
+    wrapData: true,
+    mergeTitle: true,
+  });
   return ws;
 }
 
@@ -91,7 +109,35 @@ function rpnSummarySheet(redovi) {
     ...dataRows.map((r) => redUFizicki(r, keys)),
     ...footer.map((r) => redUFizicki(r, keys)),
   ];
-  return XLSX.utils.aoa_to_sheet(aoa);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  stilizujSheetHeader(ws, {
+    headerRgb: EXCEL_HEADER_RPN,
+    headerRow: HEADER_ROW,
+    zebra: true,
+    freezeHeader: true,
+    minColW: 12,
+    maxColW: 32,
+    wrapData: true,
+    mergeTitle: true,
+  });
+
+  // Istakni agregatne (footer) redove
+  if (!ws["!ref"] || !footer.length) return ws;
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const footerStart = range.e.r - footer.length + 1;
+  for (let r = footerStart; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      const cell = ws[addr];
+      if (!cell) continue;
+      cell.s = {
+        ...(cell.s || {}),
+        font: { bold: true, sz: 10, name: "Calibri", color: { rgb: "1A1A1A" } },
+        fill: { patternType: "solid", fgColor: { rgb: "FFF3CD" } },
+      };
+    }
+  }
+  return ws;
 }
 
 /**
@@ -115,6 +161,8 @@ export function generisiPfmeaCpWorkbookBuffer(doc) {
       headers: PFMEA_HEADERS,
       redovi: doc.pfmeaRedovi || [],
       keys: PFMEA_KEYS,
+      headerRgb: EXCEL_HEADER_PFMEA,
+      maxColW: 26,
     }),
     "PFMEA",
   );
@@ -126,6 +174,8 @@ export function generisiPfmeaCpWorkbookBuffer(doc) {
       headers: CP_HEADERS,
       redovi: doc.cpRedovi || [],
       keys: CP_KEYS,
+      headerRgb: EXCEL_HEADER_CP,
+      maxColW: 28,
     }),
     "Control Plan",
   );

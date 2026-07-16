@@ -270,6 +270,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const prethodniIdAtr = useRef("");
   const prethodnaSmenaAtr = useRef(smena);
   const barkodRnRef = useRef("");
+  const poslednjiDeoUcitanoAtr = useRef(false);
   const [komentar,setKomentar]     = useState("");
   const [radniNalog,setRadniNalog] = useState("");
   const [karantinInfo, setKarantinInfo] = useState(null);
@@ -331,9 +332,11 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   );
 
   useEffect(() => {
-    if (!jeLinija || loadInit || idDeo) return;
+    if (!jeLinija || loadInit || idDeo || poslednjiDeoUcitanoAtr.current) return;
     const saved = procitajPoslednjiDeo("atributivne", smena);
-    if (saved) setIdDeo(saved);
+    if (!saved) return;
+    poslednjiDeoUcitanoAtr.current = true;
+    setIdDeo(saved);
   }, [jeLinija, loadInit, smena, idDeo]);
 
   useEffect(() => {
@@ -659,6 +662,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const zavrsiKontrolnuListu = useCallback(() => {
     setKontrolnaListaOk(true);
     setListaOkSession("atributivne", smena);
+    setUnosKorakAtr("poka");
   }, [smena]);
 
   useEffect(() => {
@@ -1666,7 +1670,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
               {kontrolorLinija && (
                 <LinijaWizardNav
-                  korak={unosKorakAtr}
+                  korak={!deoSpreman ? "id" : unosKorakAtr === "forma" ? "unos" : "poka"}
                   koraci={KORACI_ATRIB_KONTROLOR}
                   C={C}
                   akcent={C.plava}
@@ -2132,14 +2136,18 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         />
         </div>
       )}
-      {tab==="eskalacije" && <EskalacijePanel korisnik={korisnik} C={C}
-        addToast={addToast} sviDelovi={sviDelovi}
-        onOtvori8D={(e) => {
-          setOsmdPrefill(prefill8dIzEskalacije(e));
-          setTab("8d");
-        }}/>}
+      {tab==="eskalacije" && (
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <EskalacijePanel korisnik={korisnik} C={C}
+            addToast={addToast} sviDelovi={sviDelovi}
+            onOtvori8D={(e) => {
+              setOsmdPrefill(prefill8dIzEskalacije(e));
+              setTab("8d");
+            }}/>
+        </div>
+      )}
       {tab==="ncr" && (
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 20 }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: 20, display: "flex", flexDirection: "column" }}>
           <NcrCapaPanel
             korisnik={korisnik}
             C={C}
@@ -2171,6 +2179,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         </div>
       )}
       {tab==="pfmea-cp" && (
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <PfmeaCpModul
           C={C}
           addToast={addToast}
@@ -2201,6 +2210,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             setTab("8d");
           }}
         />
+        </div>
       )}
       {tab==="aql" && (
         <div style={{

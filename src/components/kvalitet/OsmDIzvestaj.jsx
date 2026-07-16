@@ -129,9 +129,9 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
   return (
     <OsmdScrollOkvir>
     <div style={{ padding: 18, maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:8,flexWrap:"wrap"}}>
         <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>8D IZVEŠTAJI</div>
-        <button onClick={()=>setAktivni({})}
+        <button type="button" onClick={()=>setAktivni({})}
           style={{background:C.plava,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
           + Novi 8D
@@ -148,7 +148,7 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
             padding:16,marginBottom:10,cursor:"pointer",transition:"border-color 0.2s"}}
           onMouseEnter={e=>e.currentTarget.style.borderColor=C.plava}
           onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,gap:8,flexWrap:"wrap"}}>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
               <span style={{color:C.tekst,fontWeight:700,fontSize:13}}>
                 {i.broj_8d || i.id_deo || "8D"}
@@ -160,11 +160,18 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
                 color:i.status==="zavrsen"?C.zelena:C.zuta,fontSize:9,
                 padding:"2px 8px",borderRadius:10}}>{statusNaziv8d(i.status)}</span>
             </div>
-            <button type="button" onClick={e=>{e.stopPropagation();exportPDF8D(i);}}
-              style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,
-                color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>
-              📄 PDF
-            </button>
+            <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+              <button type="button" onClick={() => stampaj8D(i)}
+                style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,
+                  color:C.sivi,fontSize:10,padding:"3px 10px",cursor:"pointer"}}>
+                Štampaj
+              </button>
+              <button type="button" onClick={() => exportPDF8D(i)}
+                style={{background:"none",border:`1px solid ${C.plava}55`,borderRadius:5,
+                  color:C.plava,fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>
+                PDF
+              </button>
+            </div>
           </div>
           <div style={{color:C.sivi,fontSize:11}}>{i.d2_opis_problema?.substring(0,80)||"—"}</div>
           <div style={{color:C.border,fontSize:10,marginTop:4}}>

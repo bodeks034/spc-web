@@ -75,6 +75,7 @@ export default function LinijaWizardNav({
 }
 
 export const KORACI_ATRIB_LINIJA = [
+  { id: "check", label: "CHECK LISTA" },
   { id: "id", label: "ID DELA" },
   { id: "poka", label: "POKA-YOKE" },
   { id: "unos", label: "UNOS MERENJA" },
@@ -82,6 +83,7 @@ export const KORACI_ATRIB_LINIJA = [
 ];
 
 export const KORACI_ATRIB_KONTROLOR = [
+  { id: "check", label: "CHECK LISTA" },
   { id: "id", label: "ID DELA" },
   { id: "poka", label: "POKA-YOKE" },
   { id: "unos", label: "UNOS MERENJA" },
@@ -89,12 +91,14 @@ export const KORACI_ATRIB_KONTROLOR = [
 ];
 
 export const KORACI_MERLJIVE_LINIJA = [
+  { id: "check", label: "CHECK LISTA" },
   { id: "id", label: "ID / SERIJA" },
   { id: "poka", label: "POKA-YOKE" },
   { id: "unos", label: "UNOS MERENJA" },
 ];
 
 export const KORACI_MERLJIVE_KONTROLOR = [
+  { id: "check", label: "CHECK LISTA" },
   { id: "id", label: "ID / SERIJA" },
   { id: "poka", label: "POKA-YOKE" },
   { id: "unos", label: "UNOS MERENJA" },

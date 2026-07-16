@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import {
   fetchNcrCapaLista,
@@ -12,6 +12,9 @@ import {
 } from "../../lib/ncrCapa.js";
 import { NCR_CAPA_TOOLTIP } from "../../lib/analitikaOpisi.js";
 import { normalizujPrefill8d } from "../../lib/eskalacijeHelper.js";
+import { stampajEkran, preuzmiEkranPdf } from "../../lib/listaEkranIzvoz.js";
+import { stampajNcrCapa, preuzmiNcrCapaPdf } from "../../lib/ncrCapaPdf.js";
+import ListaIzvozDugmad from "../ListaIzvozDugmad.jsx";
 import NcrWorkflowVeza from "./NcrWorkflowVeza.jsx";
 
 const PRAZNA = {
@@ -51,6 +54,9 @@ export default function NcrCapaPanel({
   const [forma, setForma] = useState(null);
   const [detalj, setDetalj] = useState(null);
   const [greske, setGreske] = useState({});
+  const [busyEkran, setBusyEkran] = useState(false);
+  const [busyForma, setBusyForma] = useState(false);
+  const izvozRef = useRef(null);
 
   useEffect(() => {
     if (prefill && !forma) {
@@ -130,6 +136,62 @@ export default function NcrCapaPanel({
     onOtvori8D?.(prefill);
   };
 
+  const exportOptsNaslov = filterDeo ? `NCR / CAPA — ${filterDeo}` : "NCR / CAPA";
+  const exportOpts = {
+    naslov: exportOptsNaslov,
+    filter,
+    filterDeo,
+    filterPrioritet,
+  };
+
+  const stampajEkranFn = async () => {
+    if (!lista.length) { addToast?.("Nema NCR zapisa za štampu", "greska"); return; }
+    try {
+      await stampajEkran(izvozRef.current, { naslov: exportOptsNaslov, bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfEkran = async () => {
+    if (!lista.length) { addToast?.("Nema NCR zapisa za PDF", "greska"); return; }
+    setBusyEkran(true);
+    try {
+      await preuzmiEkranPdf(izvozRef.current, {
+        naslov: exportOptsNaslov,
+        prefiksFajla: "NCR_CAPA",
+        bgColor: C.bg,
+      });
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyEkran(false);
+    }
+  };
+
+  const stampajFormaFn = () => {
+    if (!lista.length) { addToast?.("Nema NCR zapisa za štampu", "greska"); return; }
+    try {
+      stampajNcrCapa(lista, exportOpts);
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfForma = async () => {
+    if (!lista.length) { addToast?.("Nema NCR zapisa za PDF", "greska"); return; }
+    setBusyForma(true);
+    try {
+      await preuzmiNcrCapaPdf(lista, exportOpts);
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyForma(false);
+    }
+  };
+
   const INP = {
     background: C.input,
     border: `1px solid ${C.border}`,
@@ -139,6 +201,12 @@ export default function NcrCapaPanel({
     padding: "6px 8px",
     width: "100%",
     boxSizing: "border-box",
+  };
+
+  const BTN_SEC = {
+    background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6,
+    color: C.tekst, fontSize: 10, fontWeight: 700, padding: "7px 11px", cursor: "pointer",
+    fontFamily: "inherit",
   };
 
   const renderForma = (form, setForm) => (
@@ -232,7 +300,7 @@ export default function NcrCapaPanel({
   );
 
   return (
-    <div data-testid="ncr-panel" style={{
+    <div ref={izvozRef} data-testid="ncr-panel" style={{
       display: "flex",
       flexDirection: "column",
       height: "100%",
@@ -240,7 +308,7 @@ export default function NcrCapaPanel({
       maxWidth: 900,
       color: C.tekst,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
         <div>
           <div
             style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.5 }}
@@ -252,14 +320,27 @@ export default function NcrCapaPanel({
             NCR — izveštaj o neusaglašenosti · CAPA — korektivne i preventivne akcije
           </div>
         </div>
-        <button type="button" data-testid="ncr-novi" onClick={() => { setForma({ ...PRAZNA }); setGreske({}); }}
-          title="Novi NCR — izveštaj o neusaglašenosti"
-          style={{
-            background: C.crvena, border: "none", borderRadius: 6, color: C.onAkcent,
-            padding: "8px 14px", fontWeight: 700, fontSize: 11, cursor: "pointer",
-          }}>
-          + Novi NCR
-        </button>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <ListaIzvozDugmad
+            C={C}
+            disabled={!lista.length || loading}
+            busyEkran={busyEkran}
+            busyForma={busyForma}
+            akcent={C.plava}
+            onStampajEkran={stampajEkranFn}
+            onPdfEkran={exportPdfEkran}
+            onStampajForma={stampajFormaFn}
+            onPdfForma={exportPdfForma}
+          />
+          <button type="button" data-testid="ncr-novi" onClick={() => { setForma({ ...PRAZNA }); setGreske({}); }}
+            title="Novi NCR — izveštaj o neusaglašenosti"
+            style={{
+              background: C.crvena, border: "none", borderRadius: 6, color: C.onAkcent,
+              padding: "8px 14px", fontWeight: 700, fontSize: 11, cursor: "pointer",
+            }}>
+            + Novi NCR
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>

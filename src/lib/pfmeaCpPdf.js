@@ -328,3 +328,52 @@ export async function exportPfmeaCpPdf(doc, { preuzmi = true, imeFajla } = {}) {
   if (preuzmi) pdf.save(fname.endsWith(".pdf") ? fname : `${fname}.pdf`);
   return pdf;
 }
+
+function escHtml(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function tabelaHtml(naslov, kolone, redovi) {
+  const th = kolone.map((k) => `<th>${escHtml(k.label)}</th>`).join("");
+  const body = (redovi || []).map((r) => {
+    const tds = kolone.map((k) => `<td>${escHtml(vrednostPolja(r, k.key))}</td>`).join("");
+    return `<tr>${tds}</tr>`;
+  }).join("");
+  return `<h2>${escHtml(naslov)}</h2>
+<table><thead><tr>${th}</tr></thead>
+<tbody>${body || `<tr><td colspan="${kolone.length}">Nema stavki</td></tr>`}</tbody></table>`;
+}
+
+/** Otvara prozor za štampu — tabele PFMEA + CP + RPN. */
+export function stampajPfmeaCp(doc, { naslov = "PFMEA / Control Plan" } = {}) {
+  const pfmeaRedovi = doc.pfmeaRedovi || doc.pfmea?.redovi || [];
+  const cpRedovi = doc.cpRedovi || doc.controlPlan?.redovi || [];
+  const rpn = doc.rpnSummary?.length ? doc.rpnSummary : izracunajRpnSummary(pfmeaRedovi);
+  const meta = docMetaTekst(doc);
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${escHtml(naslov)}</title>
+<style>
+  body{font-family:Segoe UI,Arial,sans-serif;font-size:9px;color:#1a1a1a;margin:16px;}
+  h1{font-size:15px;color:#2c5282;margin:0 0 4px;}
+  h2{font-size:12px;color:#1a365d;margin:18px 0 6px;page-break-after:avoid;}
+  .meta{color:#555;margin-bottom:12px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:12px;page-break-inside:auto;}
+  th,td{border:1px solid #ccc;padding:4px 5px;text-align:left;vertical-align:top;}
+  th{background:#1c2333;color:#fff;font-size:7px;}
+  tr:nth-child(even){background:#e8eef6;}
+  tr{page-break-inside:avoid;}
+  @media print{body{margin:8mm;} th{print-color-adjust:exact;-webkit-print-color-adjust:exact;}}
+</style></head><body>
+<h1>${escHtml(naslov)}${doc.naziv ? ` — ${escHtml(doc.naziv)}` : ""}</h1>
+<div class="meta">${escHtml(meta)} · PFMEA: ${pfmeaRedovi.length} · CP: ${cpRedovi.length} · RPN: ${rpn.length}</div>
+${tabelaHtml("PFMEA", PFMEA_EDIT_KOLONE, pfmeaRedovi)}
+${tabelaHtml("Control Plan", CP_EDIT_KOLONE, cpRedovi)}
+${rpn.length ? tabelaHtml("RPN Summary", RPN_SUMMARY_KOLONE, rpn) : ""}
+</body></html>`;
+
+  const win = window.open("", "_blank", "width=1100,height=750");
+  if (!win) throw new Error("Pregledač je blokirao prozor za štampu. Dozvolite pop-up.");
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => setTimeout(() => win.print(), 500);
+}

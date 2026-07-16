@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { SpcTrendLinijaGraf } from "./SpcAnalitikaGrafovi.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { fetchSmenaStatMerljive, generisiIzvestajSmeneMerljive } from "../lib/merljiveSmenaStat.js";
@@ -6,6 +6,9 @@ import { HeatmapMerljivePanel } from "./MerljiveAnalitika.jsx";
 import { LAB_FPY_PCT, LAB_FPY_CILJ } from "../lib/rtyFpy.js";
 import IzvestajKupacPanel from "./IzvestajKupacPanel.jsx";
 import SmenaPogonaPanel from "./SmenaPogonaPanel.jsx";
+import { stampajEkran, preuzmiEkranPdf } from "../lib/listaEkranIzvoz.js";
+import { stampajCiljevi, preuzmiCiljeviPdf } from "../lib/ciljeviPdf.js";
+import ListaIzvozDugmad from "./ListaIzvozDugmad.jsx";
 
 function dISO() {
   return new Date().toISOString().split("T")[0];
@@ -108,6 +111,9 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
   const [ciljevi, setCiljevi] = useState([]);
   const [loading, setLoading] = useState(true);
   const [forma, setForma] = useState(false);
+  const [busyEkran, setBusyEkran] = useState(false);
+  const [busyForma, setBusyForma] = useState(false);
+  const izvozRef = useRef(null);
   const [aktuelni, setAktuelni] = useState({
     id_deo: "", rty_cilj: 95, dpmo_cilj: 50000, p_cilj: 5.0, napomena: "",
   });
@@ -162,21 +168,90 @@ export function CiljeviMerljive({ C, addToast, sviDelovi }) {
     return v >= c ? C.zelena : v >= c * 0.9 ? C.zuta : C.crvena;
   };
 
+  const exportOpts = { naslov: "Ciljevi kvaliteta (merljive)", prefiks: "Ciljevi_merljive", ostvaren };
+
+  const stampajEkranFn = async () => {
+    if (!ciljevi.length) { addToast?.("Nema ciljeva za štampu", "greska"); return; }
+    try {
+      await stampajEkran(izvozRef.current, { naslov: exportOpts.naslov, bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfEkran = async () => {
+    if (!ciljevi.length) { addToast?.("Nema ciljeva za PDF", "greska"); return; }
+    setBusyEkran(true);
+    try {
+      await preuzmiEkranPdf(izvozRef.current, {
+        naslov: exportOpts.naslov,
+        prefiksFajla: "Ciljevi_merljive",
+        bgColor: C.bg,
+      });
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyEkran(false);
+    }
+  };
+
+  const stampajFormaFn = () => {
+    if (!ciljevi.length) { addToast?.("Nema ciljeva za štampu", "greska"); return; }
+    try {
+      stampajCiljevi(ciljevi, exportOpts);
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfForma = async () => {
+    if (!ciljevi.length) { addToast?.("Nema ciljeva za PDF", "greska"); return; }
+    setBusyForma(true);
+    try {
+      await preuzmiCiljeviPdf(ciljevi, exportOpts);
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyForma(false);
+    }
+  };
+
   const INP = {
     width: "100%", background: C.input, border: `1px solid ${C.border}`, borderRadius: 8,
     color: C.tekst, fontSize: 13, padding: "10px 12px", boxSizing: "border-box",
     outline: "none", fontFamily: "inherit",
   };
 
+  const BTN_SEC = {
+    background: C.hover, border: `1px solid ${C.border}`, borderRadius: 8,
+    color: C.tekst, fontSize: 11, fontWeight: 700, padding: "8px 12px", cursor: "pointer",
+    fontFamily: "inherit",
+  };
+
   return (
-    <div style={{ padding: 18, flex: 1, overflow: "auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+    <div ref={izvozRef} style={{ padding: 18, flex: 1, overflow: "auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8, flexWrap: "wrap" }}>
         <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>CILJEVI KVALITETA (merljive)</div>
-        <button type="button" onClick={() => setForma(true)}
-          style={{
-            background: C.zelena, border: "none", borderRadius: 8, color: C.onAkcent,
-            fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
-          }}>+ Postavi cilj</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <ListaIzvozDugmad
+            C={C}
+            disabled={!ciljevi.length || loading}
+            busyEkran={busyEkran}
+            busyForma={busyForma}
+            akcent={C.plava}
+            onStampajEkran={stampajEkranFn}
+            onPdfEkran={exportPdfEkran}
+            onStampajForma={stampajFormaFn}
+            onPdfForma={exportPdfForma}
+          />
+          <button type="button" onClick={() => setForma(true)}
+            style={{
+              background: C.zelena, border: "none", borderRadius: 8, color: C.onAkcent,
+              fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
+            }}>+ Postavi cilj</button>
+        </div>
       </div>
       <div style={{ color: C.sivi, fontSize: 9, marginBottom: 12 }}>
         Ostvareno = poslednjih 30 dana iz merenja_varijabilna.

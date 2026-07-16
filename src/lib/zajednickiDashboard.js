@@ -175,7 +175,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
 
   const topNok = [...paretoAttr, ...paretoMerArr]
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 50);
 
   const otvoreniStatusi = ["otvoren", "u_toku", "aktivan", "open"];
   const eskOtvorene = eskalacije.filter(e =>
@@ -296,7 +296,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
       auto: eskAuto.length,
       rucne: eskRucne,
       ukupno: eskalacije.length,
-      lista: eskalacije.slice(0, 8),
+      lista: eskalacije,
     },
     merila: {
       ukupno: merila.length,
@@ -304,7 +304,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
       uskoro: merila.filter(m => m.kalStatus === "uskoro").length,
       nepoznato: merila.filter(m => m.kalStatus === "nepoznato").length,
       upozorenja: merila.filter(m => m.kalStatus === "istekla" || m.kalStatus === "uskoro").length,
-      lista: merila.filter(m => m.kalStatus !== "ok").slice(0, 6),
+      lista: merila.filter(m => m.kalStatus !== "ok"),
     },
     aktivniNalozi,
     alarmi,

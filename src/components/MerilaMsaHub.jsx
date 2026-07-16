@@ -54,9 +54,20 @@ export default function MerilaMsaHub({ C, addToast, korisnik }) {
     ["msa", "MSA KALENDAR"],
   ];
 
+  const skrolStil = {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    overflowX: "hidden",
+    WebkitOverflowScrolling: "touch",
+  };
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
-      <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+      <div style={{
+        display: "flex", gap: 4, padding: "8px 12px",
+        borderBottom: `1px solid ${C.border}`, flexWrap: "wrap", flexShrink: 0,
+      }}>
         {TAB.map(([id, label]) => (
           <button key={id} type="button" onClick={() => setPodtab(id)}
             style={{
@@ -71,7 +82,7 @@ export default function MerilaMsaHub({ C, addToast, korisnik }) {
       </div>
 
       {podtab === "pregled" && (
-        <div style={{ padding: 18, display: "flex", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ ...skrolStil, padding: 18, display: "flex", flexWrap: "wrap", gap: 12, alignContent: "flex-start" }}>
           {[
             ["MERILA", pod.merila, C.plava],
             ["KAL. ISTEKLO", pod.isteklo, C.crvena],
@@ -86,9 +97,21 @@ export default function MerilaMsaHub({ C, addToast, korisnik }) {
           ))}
         </div>
       )}
-      {podtab === "kalibracija" && <KalibracijaMerilaPanel korisnik={korisnik} C={C} addToast={addToast} />}
-      {podtab === "gage" && <GageRRPanel C={C} addToast={addToast} korisnik={korisnik} />}
-      {podtab === "msa" && <MsaKalendarPanel C={C} addToast={addToast} />}
+      {podtab === "kalibracija" && (
+        <div style={{ ...skrolStil, display: "flex", flexDirection: "column" }}>
+          <KalibracijaMerilaPanel korisnik={korisnik} C={C} addToast={addToast} />
+        </div>
+      )}
+      {podtab === "gage" && (
+        <div style={skrolStil}>
+          <GageRRPanel C={C} addToast={addToast} korisnik={korisnik} />
+        </div>
+      )}
+      {podtab === "msa" && (
+        <div style={skrolStil}>
+          <MsaKalendarPanel C={C} addToast={addToast} />
+        </div>
+      )}
     </div>
   );
 }

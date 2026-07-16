@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import {
   parsirajRadniNaloziCsv,
@@ -7,6 +7,9 @@ import {
 } from "../lib/radniNaloziUvoz.js";
 import { pogonIzRn } from "../lib/pogonSop.js";
 import { formatErpUvozVreme } from "../lib/erpUvozLog.js";
+import { stampajEkran, preuzmiEkranPdf } from "../lib/listaEkranIzvoz.js";
+import { stampajRadniNalozi, preuzmiRadniNaloziPdf } from "../lib/radniNaloziPdf.js";
+import ListaIzvozDugmad from "./ListaIzvozDugmad.jsx";
 
 export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   const [nalozi, setNalozi] = useState([]);
@@ -16,6 +19,9 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   const [filter, setFilter] = useState("aktivan");
   const [csvPreview, setCsvPreview] = useState(null);
   const [uvozi, setUvozi] = useState(false);
+  const [busyEkran, setBusyEkran] = useState(false);
+  const [busyForma, setBusyForma] = useState(false);
+  const izvozRef = useRef(null);
   const [poslednjiUvoz, setPoslednjiUvoz] = useState(null);
   const [nov, setNov] = useState({
     broj_naloga: "",
@@ -110,6 +116,56 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
   const statusBoja = { aktivan: C.zelena, zavrsen: C.sivi, otkazan: C.crvena };
   const filtrirani = nalozi.filter((n) => filter === "svi" || n.status === filter);
 
+  const exportOpts = { filter, naslov: "Radni nalozi (ERP)" };
+
+  const stampajEkranFn = async () => {
+    if (!filtrirani.length) { addToast?.("Nema naloga za štampu", "greska"); return; }
+    try {
+      await stampajEkran(izvozRef.current, { naslov: exportOpts.naslov, bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfEkran = async () => {
+    if (!filtrirani.length) { addToast?.("Nema naloga za PDF", "greska"); return; }
+    setBusyEkran(true);
+    try {
+      await preuzmiEkranPdf(izvozRef.current, {
+        naslov: exportOpts.naslov,
+        prefiksFajla: "Radni_nalozi",
+        bgColor: C.bg,
+      });
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyEkran(false);
+    }
+  };
+
+  const stampajFormaFn = () => {
+    if (!filtrirani.length) { addToast?.("Nema naloga za štampu", "greska"); return; }
+    try {
+      stampajRadniNalozi(filtrirani, exportOpts);
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfForma = async () => {
+    if (!filtrirani.length) { addToast?.("Nema naloga za PDF", "greska"); return; }
+    setBusyForma(true);
+    try {
+      await preuzmiRadniNaloziPdf(filtrirani, exportOpts);
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyForma(false);
+    }
+  };
+
   const INP = {
     width: "100%",
     background: C.input,
@@ -123,8 +179,20 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
     fontFamily: "inherit",
   };
 
+  const BTN_SEC = {
+    background: C.hover,
+    border: `1px solid ${C.border}`,
+    borderRadius: 8,
+    color: C.tekst,
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "8px 12px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
+
   return (
-    <div style={{ padding: 18 }}>
+    <div ref={izvozRef} style={{ padding: 18 }}>
       <div style={{
         display: "flex",
         justifyContent: "space-between",
@@ -156,7 +224,18 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
             Kupac i rok isporuke unosiš ovde (forma ili CSV) — prikazuju se u unosu merenja posle izbora dela.
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <ListaIzvozDugmad
+            C={C}
+            disabled={!filtrirani.length || loading}
+            busyEkran={busyEkran}
+            busyForma={busyForma}
+            akcent={C.plava}
+            onStampajEkran={stampajEkranFn}
+            onPdfEkran={exportPdfEkran}
+            onStampajForma={stampajFormaFn}
+            onPdfForma={exportPdfForma}
+          />
           <label style={{
             background: C.hover,
             border: `1px solid ${C.border}`,

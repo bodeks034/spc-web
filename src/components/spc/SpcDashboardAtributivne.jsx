@@ -41,6 +41,7 @@ import {
 } from "../SpcAnalitikaGrafovi.jsx";
 import AnalitikaSpcSnapshot from "../analitika/AnalitikaSpcSnapshot.jsx";
 import SpcAsistent8dDugme from "./SpcAsistent8dDugme.jsx";
+import { stampajEkran, preuzmiEkranPdf } from "../../lib/listaEkranIzvoz.js";
 
 function SekcijaNaslov({ C, naslov, onDetalj, detaljLabel = "Detalj →" }) {
   return (
@@ -116,10 +117,6 @@ function TopMasineMini({ rows, C, onDetalj }) {
   );
 }
 
-function dISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
 /** SPC dashboard atributivne — hero KPI, p-karta, trend, Pareto, heatmap. */
 export default function SpcDashboardAtributivne({
   C,
@@ -149,7 +146,7 @@ export default function SpcDashboardAtributivne({
   const [baselineP, setBaselineP] = useState(null);
   const [baselineC, setBaselineC] = useState(null);
   const [baselineU, setBaselineU] = useState(null);
-  const [pdfBusy, setPdfBusy] = useState(false);
+  const [busyEkran, setBusyEkran] = useState(false);
   const internalRef = useRef(null);
   const ref = dashRef || internalRef;
 
@@ -437,32 +434,37 @@ export default function SpcDashboardAtributivne({
     ? (spcTip) => () => onNavigacija({ tab: "karte", spcTip })
     : undefined;
 
-  const exportPDF = async () => {
-    if (!ref.current || pdfBusy) return;
-    setPdfBusy(true);
+  const imaPodatke = rawData.length > 0 || paretoData.length > 0;
+
+  const stampaj = async () => {
+    if (!imaPodatke) {
+      addToast?.("Nema podataka za štampu", "greska");
+      return;
+    }
     try {
-      const { default: jsPDF } = await import("jspdf");
-      const { default: h2c } = await import("html2canvas");
-      const { dodajPdfBrendZaglavlje, dodajPdfBrendPodnozje } = await import("../../lib/pdfBrending.js");
-      const canvas = await h2c(ref.current, { scale: 2, useCORS: true });
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const w = pdf.internal.pageSize.getWidth();
-      const headerH = await dodajPdfBrendZaglavlje(pdf, {
-        naslov: "Analitika — atributivne",
-        podnaslov: idDeo || "",
+      await stampajEkran(ref.current, { naslov: "Dashboard — atributivne", bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdf = async () => {
+    if (!imaPodatke) {
+      addToast?.("Nema podataka za PDF", "greska");
+      return;
+    }
+    setBusyEkran(true);
+    try {
+      await preuzmiEkranPdf(ref.current, {
+        naslov: "Dashboard — atributivne",
+        prefiksFajla: "Dashboard",
+        bgColor: C.bg,
       });
-      const imgH = canvas.height * w / canvas.width;
-      const pageH = pdf.internal.pageSize.getHeight();
-      const availH = pageH - headerH - 12;
-      const drawH = Math.min(imgH, availH);
-      const drawW = drawH * canvas.width / canvas.height;
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, headerH, drawW, drawH);
-      dodajPdfBrendPodnozje(pdf);
-      pdf.save(`TRI-CORE_Analitika_ATR_${idDeo || "pogon"}_${dISO()}.pdf`);
+      addToast?.("✓ PDF preuzet", "uspeh");
     } catch (e) {
       addToast?.(e.message || "PDF greška", "greska");
     } finally {
-      setPdfBusy(false);
+      setBusyEkran(false);
     }
   };
 
@@ -491,7 +493,7 @@ export default function SpcDashboardAtributivne({
             ANALITIKA
             {idDeo && <span style={{ color: C.sivi, fontWeight: 400, marginLeft: 8, fontSize: 11 }}>{idDeo}</span>}
           </span>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             {!periodOverride && (
               <select
                 value={periodLokal}
@@ -524,23 +526,43 @@ export default function SpcDashboardAtributivne({
                 dashboardProps={asistentDashboardProps}
               />
             )}
-            <button
-              type="button"
-              onClick={exportPDF}
-              disabled={pdfBusy || !rawData.length}
-              style={{
-                background: pdfBusy || !rawData.length ? C.hover : "#7c3aed",
-                border: "none",
-                borderRadius: 6,
-                color: pdfBusy || !rawData.length ? C.sivi : C.onAkcent,
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "7px 14px",
-                cursor: pdfBusy || !rawData.length ? "not-allowed" : "pointer",
-              }}
-            >
-              {pdfBusy ? "⏳ PDF…" : "📄 PDF"}
-            </button>
+            <div data-izvoz-hide style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={stampaj}
+                disabled={!imaPodatke}
+                style={{
+                  background: C.hover,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  color: C.tekst,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "7px 14px",
+                  cursor: !imaPodatke ? "not-allowed" : "pointer",
+                  opacity: !imaPodatke ? 0.5 : 1,
+                }}
+              >
+                Štampaj
+              </button>
+              <button
+                type="button"
+                onClick={exportPdf}
+                disabled={busyEkran || !imaPodatke}
+                style={{
+                  background: busyEkran || !imaPodatke ? C.hover : "#7c3aed",
+                  border: "none",
+                  borderRadius: 6,
+                  color: busyEkran || !imaPodatke ? C.sivi : C.onAkcent,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "7px 14px",
+                  cursor: busyEkran || !imaPodatke ? "not-allowed" : "pointer",
+                }}
+              >
+                {busyEkran ? "PDF…" : "PDF"}
+              </button>
+            </div>
             {onNavigacija && (
               <button
                 type="button"

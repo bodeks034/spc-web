@@ -27,7 +27,8 @@ import {
 } from "../lib/pfmeaCpLocal.js";
 import { resetujKešPredloga } from "../lib/predloziIzBaze.js";
 import { preuzmiPfmeaCpExcel } from "../lib/pfmeaCpExcelExport.js";
-import { exportPfmeaCpPdf } from "../lib/pfmeaCpPdf.js";
+import { exportPfmeaCpPdf, stampajPfmeaCp } from "../lib/pfmeaCpPdf.js";
+import { OsmdScrollOkvir } from "./OsmdEditor.jsx";
 import { jeKvalitetIliVise } from "../lib/uloge.js";
 import PfmeaCpUnosForma from "./pfmea/PfmeaCpUnosForma.jsx";
 import RpnSummaryPregled from "./pfmea/RpnSummaryPregled.jsx";
@@ -517,6 +518,43 @@ export default function PfmeaCpModul({
     rpnSummary: rpnRedovi,
   });
 
+  const payloadIzDokumenta = (d) => ({
+    naziv: d?.naziv,
+    idDeo: d?.idDeo || d?.id_deo,
+    revizija: d?.revizija,
+    pfmeaRedovi: d?.pfmeaRedovi || d?.pfmea?.redovi || [],
+    cpRedovi: d?.cpRedovi || d?.controlPlan?.redovi || [],
+    rpnSummary: d?.rpnSummary || [],
+  });
+
+  const ucitajZaIzvoz = async (id) => {
+    if (storageMode === "supabase") return ucitajPfmeaCpDokument(supabase, id);
+    return localUcitajDokument(id);
+  };
+
+  const exportPdfSaListe = async (meta, e) => {
+    e?.stopPropagation?.();
+    try {
+      const d = await ucitajZaIzvoz(meta.id);
+      if (!d) { addToast?.("Dokument nije pronađen", "greska"); return; }
+      await exportPfmeaCpPdf(payloadIzDokumenta(d));
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (err) {
+      addToast?.(err.message || "PDF greška", "greska");
+    }
+  };
+
+  const stampajSaListe = async (meta, e) => {
+    e?.stopPropagation?.();
+    try {
+      const d = await ucitajZaIzvoz(meta.id);
+      if (!d) { addToast?.("Dokument nije pronađen", "greska"); return; }
+      stampajPfmeaCp(payloadIzDokumenta(d));
+    } catch (err) {
+      addToast?.(err.message || "Štampa greška", "greska");
+    }
+  };
+
   const veza8d = useMemo(() => {
     if (!doc) return { osmdId: null, broj8d: "" };
     return {
@@ -727,6 +765,7 @@ export default function PfmeaCpModul({
 
   if (!doc && !prefillIz8d) {
     return (
+      <OsmdScrollOkvir>
       <div style={{ padding: 18, maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
         {storageMode === "local" && (
           <div style={{
@@ -787,9 +826,21 @@ export default function PfmeaCpModul({
                   </span>
                 )}
               </div>
-              <span style={{ color: C.border, fontSize: 10 }}>
-                {d.updated_at ? new Date(d.updated_at).toLocaleDateString("sr-RS") : "—"}
-              </span>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+                <span style={{ color: C.border, fontSize: 10 }}>
+                  {d.updated_at ? new Date(d.updated_at).toLocaleDateString("sr-RS") : "—"}
+                </span>
+                <button type="button" onClick={(e) => stampajSaListe(d, e)}
+                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5,
+                    color: C.sivi, fontSize: 10, padding: "3px 8px", cursor: "pointer" }}>
+                  Štampaj
+                </button>
+                <button type="button" onClick={(e) => exportPdfSaListe(d, e)}
+                  style={{ background: "none", border: `1px solid ${C.plava}55`, borderRadius: 5,
+                    color: C.plava, fontSize: 10, padding: "3px 8px", cursor: "pointer", fontWeight: 700 }}>
+                  PDF
+                </button>
+              </div>
             </div>
             <div style={{ color: C.sivi, fontSize: 11 }}>
               {d.napomena?.substring(0, 80) || "—"}
@@ -797,6 +848,7 @@ export default function PfmeaCpModul({
           </div>
         ))}
       </div>
+      </OsmdScrollOkvir>
     );
   }
 
@@ -841,7 +893,18 @@ export default function PfmeaCpModul({
           {prljavo && <span style={{ color: C.narandzasta, fontSize: 10 }}>● Nesačuvano</span>}
           {mozeEdit && <button type="button" onClick={sacuvajDokument} style={BTN(C.plava)}>💾 Sačuvaj</button>}
           <button type="button" onClick={() => preuzmiPfmeaCpExcel(exportPayload())} style={BTN(C.zelena, { outline: true })}>Excel</button>
-          <button type="button" onClick={() => { exportPfmeaCpPdf(exportPayload()); }} style={BTN(C.zelena, { outline: true })}>PDF</button>
+          <button type="button" onClick={() => {
+            try { stampajPfmeaCp(exportPayload()); }
+            catch (e) { addToast?.(e.message || "Štampa greška", "greska"); }
+          }} style={BTN(C.zelena, { outline: true })}>Štampaj</button>
+          <button type="button" onClick={async () => {
+            try {
+              await exportPfmeaCpPdf(exportPayload());
+              addToast?.("✓ PDF preuzet", "uspeh");
+            } catch (e) {
+              addToast?.(e.message || "PDF greška", "greska");
+            }
+          }} style={BTN(C.zelena, { outline: true })}>PDF</button>
           {(onOtvori8d || onUbaciU8d) && (
             <button
               type="button"

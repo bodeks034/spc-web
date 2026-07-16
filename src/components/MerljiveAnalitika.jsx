@@ -650,14 +650,26 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
                 background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8,
                 padding: "12px 14px", cursor: "pointer",
               }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ color: C.tekst, fontWeight: 700, fontSize: 12 }}>{i.broj_8d || i.id_deo}</span>
                 {i.broj_reklamacije && (
                   <span style={{ color: C.sivi, fontSize: 10 }}>· {i.broj_reklamacije}</span>
                 )}
-                <span style={{ color: C.sivi, fontSize: 10 }}>
+                <span style={{ color: C.sivi, fontSize: 10, flex: 1 }}>
                   {new Date(i.created_at).toLocaleDateString("sr-RS")}
                 </span>
+                <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                  <button type="button" onClick={() => stampaj8D(i)}
+                    style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5,
+                      color: C.sivi, fontSize: 10, padding: "3px 8px", cursor: "pointer" }}>
+                    Štampaj
+                  </button>
+                  <button type="button" onClick={() => exportPDF8D(i)}
+                    style={{ background: "none", border: `1px solid ${C.plava}55`, borderRadius: 5,
+                      color: C.plava, fontSize: 10, padding: "3px 8px", cursor: "pointer", fontWeight: 700 }}>
+                    PDF
+                  </button>
+                </div>
               </div>
               <div style={{
                 color: C.sivi, fontSize: 10, marginTop: 4,

@@ -623,15 +623,12 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
   useEffect(() => { proveriFai(); }, [proveriFai]);
 
-  /** Uvek otvori korak unosa kad FAI nije završen (inače prazan ekran + poruka o seriji). */
+  /** FAI se radi u koraku unosa — ne preskači poka-yoke. */
   useEffect(() => {
     if (!idUcitano || !listaSpremna || !idDeo || !trebaFaiEkran) return;
+    if (unosKorak === "poka") return;
     if (unosKorak !== "forma") setUnosKorak("forma");
-    if (jeLinija && koristiMobLinija && linijaKorak < 3) setLinijaKorak(3);
-  }, [
-    idUcitano, listaSpremna, idDeo, trebaFaiEkran, unosKorak,
-    jeLinija, koristiMobLinija, linijaKorak,
-  ]);
+  }, [idUcitano, listaSpremna, idDeo, trebaFaiEkran, unosKorak]);
 
   useEffect(() => {
     if (!faiRezimAktivan) {
@@ -670,7 +667,9 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const zavrsiKontrolnuListu = useCallback(() => {
     setKontrolnaListaOk(true);
     setListaOkSession("varijabilne", Number(smena));
-  }, [smena]);
+    setUnosKorak("poka");
+    if (jeLinija) setLinijaKorak(idUcitano ? 2 : 1);
+  }, [smena, jeLinija, idUcitano]);
 
   const proveriPrekid = useCallback(async () => {
     const seq = ++prekidProveraSeqRef.current;
@@ -1555,18 +1554,74 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const idUcitajTimer = useRef(null);
 
   const onIdChange = (v, { potvrdi = false, radniNalogEksplicitni, pogonEksplicitni } = {}) => {
-    const s = String(v || "").trim().toUpperCase();
-    if (prethodniId.current && s !== prethodniId.current && !mozePreskociti) {
-      if (imaBiloSta(kolone) && !svaMerenjaZavrsena(kolone, potrebanBroj)) {
-        setPoruka("Moraš završiti sva merenja pre promene ID!");
-        setIdDeo(prethodniId.current);
-        return;
-      }
-    }
+    const s = String(v ?? "").toUpperCase().replace(/\s+/g, "");
+    const prev = prethodniId.current;
+
+    // Uvek ažuriraj polje — brisanje/kucanje mora da radi odmah
     setIdDeo(s);
     clearTimeout(idUcitajTimer.current);
     idUcitajTimer.current = null;
-    if (s !== prethodniId.current) {
+
+    if (!s) {
+      prethodniId.current = "";
+      prethodniPogon.current = "";
+      prethodniAB.current = "";
+      pogonKodRef.current = "";
+      ucitajDeoSeq.current += 1;
+      ucitajDeoAktivni.current = "";
+      poslednjaGreskaIdRef.current = "";
+      setPogonKod("");
+      setGrupe([]);
+      setGrupaAB("");
+      setNazivDela("");
+      setRadniNalog("");
+      setNalogInfo(null);
+      setPoruka("");
+      setSacuvaneGrupe([]);
+      setPrekidOdobrenId(null);
+      resetKolone(5);
+      setKpiPoSeriji({});
+      setKpiDbIdPoSeriji({});
+      kpiRucniUnos.current = false;
+      setUnosKorak(pocetniKorakUnosMer(korisnik?.uloga, rezimRada));
+      if (jeLinija) {
+        setLinijaKorak(1);
+        setFaiOdobren(false);
+        setFaiCekaOdobrenje(false);
+        setFaiPoslednjiId(null);
+      }
+      return;
+    }
+
+    // Još se kuca / briše — ne učitavaj i ne vraćaj stari ID
+    if (!potvrdi && !idSpremanZaUcitavanje(s)) {
+      if (prev && s !== prev) {
+        prethodniId.current = "";
+        prethodniPogon.current = "";
+        prethodniAB.current = "";
+        pogonKodRef.current = "";
+        setPogonKod("");
+        setGrupe([]);
+        setGrupaAB("");
+        setNazivDela("");
+        setRadniNalog("");
+        setNalogInfo(null);
+        setSacuvaneGrupe([]);
+        setPoruka("");
+      }
+      return;
+    }
+
+    // Potvrda / kompletan ID — blokiraj promenu na drugi deo dok merenja nisu gotova
+    if (prev && s !== prev && !mozePreskociti) {
+      if (imaBiloSta(kolone) && !svaMerenjaZavrsena(kolone, potrebanBroj)) {
+        setPoruka("Moraš završiti sva merenja pre promene ID!");
+        setIdDeo(prev);
+        return;
+      }
+    }
+
+    if (s !== prev) {
       ucitajDeoSeq.current += 1;
       ucitajDeoAktivni.current = "";
       poslednjaGreskaIdRef.current = "";
@@ -1591,21 +1646,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         setFaiPoslednjiId(null);
       }
     }
-    if (!s) {
-      prethodniId.current = "";
-      prethodniPogon.current = "";
-      prethodniAB.current = "";
-      pogonKodRef.current = "";
-      setGrupe([]);
-      setGrupaAB("");
-      setSacuvaneGrupe([]);
-      setPrekidOdobrenId(null);
-      setRadniNalog("");
-      setPogonKod("");
-      setNalogInfo(null);
-      resetKolone(5);
-      return;
-    }
+
     const pogonZaUcitavanje = pogonEksplicitni || pogonKodRef.current || undefined;
     if (!idSpremanZaUcitavanje(s)) {
       if (s.length >= 3 && s.includes("-") && s.endsWith("-")) {
@@ -2791,6 +2832,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
       {tab === "pfmea-cp" && !jeLinija && (
         <LazyTab C={C} label="Učitavam PFMEA/CP…">
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%" }}>
         <PfmeaCpModul
           C={C}
           addToast={addToast}
@@ -2821,11 +2863,13 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
             setTab("8d");
           }}
         />
+        </div>
         </LazyTab>
       )}
 
       {tab === "eskalacije" && !jeLinija && (
         <LazyTab C={C} label="Učitavam eskalacije…">
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%" }}>
         <EskalacijePanel
           korisnik={korisnik}
           C={C}
@@ -2836,11 +2880,12 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
             setTab("8d");
           }}
         />
+        </div>
         </LazyTab>
       )}
 
       {tab === "ncr" && !jeLinija && (
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 20 }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: 20, display: "flex", flexDirection: "column" }}>
           <LazyTab C={C} label="Učitavam NCR/CAPA…">
           <NcrCapaPanel
             korisnik={korisnik}
@@ -2899,7 +2944,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       )}
 
       {tab === "fai" && (
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <LazyTab C={C} label="Učitavam FAI…">
           <FaiOdobrenjePanel
             C={C}

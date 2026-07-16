@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { ucitajRadnika } from "../lib/radnikAuth.js";
 import { proveriMaxKorisnika } from "../lib/licencaMaxKorisnika.js";
@@ -13,13 +13,20 @@ export default function LoginScreen({ onLogin, C, licenca = null }) {
   const [err, setErr] = useState("");
   const [load, setLoad] = useState(false);
   const [inputsReady, setInputsReady] = useState(false);
+  const emailRef = useRef(null);
 
   useEffect(() => {
     setEmail("");
     setLoz("");
     setErr("");
     setInputsReady(false);
-    const t = setTimeout(() => setInputsReady(true), 80);
+    const t = setTimeout(() => {
+      setInputsReady(true);
+      requestAnimationFrame(() => {
+        emailRef.current?.focus?.();
+        emailRef.current?.select?.();
+      });
+    }, 80);
     return () => clearTimeout(t);
   }, []);
 
@@ -83,6 +90,7 @@ export default function LoginScreen({ onLogin, C, licenca = null }) {
             <div key={name} style={{ textAlign: "left", marginBottom: 10 }}>
               <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 1.5, marginBottom: 4 }}>{l}</div>
               <input
+                ref={name === "spc-login-email" ? emailRef : undefined}
                 name={name}
                 id={name}
                 value={v}
@@ -95,6 +103,7 @@ export default function LoginScreen({ onLogin, C, licenca = null }) {
                 autoCorrect="off"
                 autoCapitalize="none"
                 spellCheck={false}
+                autoFocus={name === "spc-login-email"}
                 style={{
                   width: "100%", background: C.input, border: `1px solid ${C.border}`, borderRadius: 6,
                   color: C.tekst, fontSize: 13, padding: "8px 12px", boxSizing: "border-box",

@@ -38,6 +38,7 @@ import {
   kpiPoljaIzForme,
 } from "./kpiExcelExport.js";
 import { DELOVI_EXCEL_COLS } from "./excelColumnDefs.js";
+import { downloadStyledWorkbook, workbookToArrayBuffer } from "./excelStil.js";
 
 export { DELOVI_EXCEL_COLS };
 
@@ -395,7 +396,7 @@ function rowsToExportRows(rows, cols) {
 }
 
 export function downloadWorkbook(wb, filename) {
-  XLSX.writeFile(wb, filename);
+  downloadStyledWorkbook(wb, filename);
 }
 
 export function readWorkbookFromArrayBuffer(ab) {
@@ -914,7 +915,7 @@ export async function exportMerenjaVarijabilnaExcel(supabase, idDeo, pozicija, d
 }
 
 export async function uploadWorkbookToStorage(supabase, wb, path) {
-  const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+  const buf = workbookToArrayBuffer(wb);
   const { error } = await supabase.storage.from(EXCEL_BUCKET).upload(path, buf, {
     upsert: true,
     contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

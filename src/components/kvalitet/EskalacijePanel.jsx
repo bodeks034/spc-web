@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { predloziDodeljenogInzenjera } from "../../lib/eskalacijeHelper.js";
 import { procitajNavigacijuEskalacije } from "../../lib/workflowAkcije.js";
 import { normalizujIdDeo } from "../../lib/idDeoUtil.js";
+import { stampajEkran, preuzmiEkranPdf } from "../../lib/listaEkranIzvoz.js";
+import { stampajEskalacije, preuzmiEskalacijePdf } from "../../lib/eskalacijePdf.js";
+import ListaIzvozDugmad from "../ListaIzvozDugmad.jsx";
 
 export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOtvori8D }) {
   const [eskalacije, setEskalacije] = useState([]);
@@ -11,6 +14,9 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
   const [radnici,    setRadnici]    = useState([]);
   const [filter,     setFilter]     = useState("sve");
   const [idDeoFilter, setIdDeoFilter] = useState("");
+  const [busyEkran, setBusyEkran] = useState(false);
+  const [busyForma, setBusyForma] = useState(false);
+  const izvozRef = useRef(null);
 
   useEffect(() => {
     const nav = procitajNavigacijuEskalacije();
@@ -66,17 +72,83 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
     return true;
   });
 
+  const exportOpts = {
+    filter,
+    idDeo: idDeoFilter,
+    naslov: idDeoFilter ? `Eskalacije — ${idDeoFilter}` : "Eskalacije",
+  };
+
+  const stampajEkranFn = async () => {
+    if (!filtrirane.length) { addToast?.("Nema eskalacija za štampu", "greska"); return; }
+    try {
+      await stampajEkran(izvozRef.current, { naslov: exportOpts.naslov, bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfEkran = async () => {
+    if (!filtrirane.length) { addToast?.("Nema eskalacija za PDF", "greska"); return; }
+    setBusyEkran(true);
+    try {
+      await preuzmiEkranPdf(izvozRef.current, {
+        naslov: exportOpts.naslov,
+        prefiksFajla: "Eskalacije",
+        bgColor: C.bg,
+      });
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyEkran(false);
+    }
+  };
+
+  const stampajFormaFn = () => {
+    if (!filtrirane.length) { addToast?.("Nema eskalacija za štampu", "greska"); return; }
+    try {
+      stampajEskalacije(filtrirane, exportOpts);
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdfForma = async () => {
+    if (!filtrirane.length) { addToast?.("Nema eskalacija za PDF", "greska"); return; }
+    setBusyForma(true);
+    try {
+      await preuzmiEskalacijePdf(filtrirane, exportOpts);
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyForma(false);
+    }
+  };
+
   const PRIORITET_BOJA = {kriticno:C.crvena,visok:C.narandzasta,srednji:C.zuta,nizak:C.zelena};
   const STATUS_BOJA    = {otvoren:C.crvena,u_toku:C.zuta,zatvoren:C.zelena};
 
   if (forma==="nova") return (
-    <NovaEskalacija korisnik={korisnik} sviDelovi={sviDelovi} radnici={radnici}
-      onSnimi={novaEskalacija} onOtkazati={()=>setForma(null)} C={C}/>
+    <div style={{
+      flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch",
+    }}>
+      <NovaEskalacija korisnik={korisnik} sviDelovi={sviDelovi} radnici={radnici}
+        onSnimi={novaEskalacija} onOtkazati={()=>setForma(null)} C={C}/>
+    </div>
   );
 
   return (
-    <div style={{padding:18}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+    <div ref={izvozRef} style={{
+      padding: 18,
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      minHeight: 0,
+      height: "100%",
+      boxSizing: "border-box",
+    }}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8,flexShrink:0}}>
         <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>
           ESKALACIJE
           {idDeoFilter && (
@@ -85,7 +157,7 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
             </span>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {idDeoFilter && (
             <button type="button" onClick={() => setIdDeoFilter("")}
               style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8,
@@ -93,7 +165,18 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
               ✕ filter dela
             </button>
           )}
-        <button onClick={()=>setForma("nova")}
+          <ListaIzvozDugmad
+            C={C}
+            disabled={!filtrirane.length || loading}
+            busyEkran={busyEkran}
+            busyForma={busyForma}
+            akcent={C.plava}
+            onStampajEkran={stampajEkranFn}
+            onPdfEkran={exportPdfEkran}
+            onStampajForma={stampajFormaFn}
+            onPdfForma={exportPdfForma}
+          />
+        <button type="button" onClick={()=>setForma("nova")}
           style={{background:C.crvena,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
           + Nova eskalacija
@@ -102,9 +185,9 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
       </div>
 
       {/* Filter */}
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexShrink:0,flexWrap:"wrap"}}>
         {[["sve","Sve"],["otvoren","Otvorene"],["u_toku","U toku"],["zatvoren","Zatvorene"]].map(([v,l])=>(
-          <button key={v} onClick={()=>setFilter(v)} style={{
+          <button key={v} type="button" onClick={()=>setFilter(v)} style={{
             background:filter===v?C.plava:"none",border:`1px solid ${filter===v?C.plava:C.border}`,
             borderRadius:8,color:filter===v? C.onAkcent:C.sivi,fontSize:11,
             padding:"6px 14px",cursor:"pointer"}}>
@@ -116,6 +199,14 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
         ))}
       </div>
 
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        WebkitOverflowScrolling: "touch",
+        paddingBottom: 12,
+      }}>
       {loading ? <div style={{color:C.sivi,fontSize:12,padding:20}}>Učitavanje...</div>
        : !filtrirane.length ? (
         <div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
@@ -168,13 +259,13 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
                 </button>
               )}
               {e.status==="otvoren"&&(
-                <button onClick={()=>azuriraj(e.id,{status:"u_toku"})}
+                <button type="button" onClick={()=>azuriraj(e.id,{status:"u_toku"})}
                   style={{background:C.zuta+"20",border:`1px solid ${C.zuta}40`,borderRadius:7,
                     color:C.zuta,fontSize:11,fontWeight:700,padding:"6px 14px",cursor:"pointer"}}>
                   → Preuzmi
                 </button>
               )}
-              <button onClick={()=>{
+              <button type="button" onClick={()=>{
                 const akcija = prompt("Unesi korektivnu akciju:");
                 if (akcija) azuriraj(e.id,{status:"zatvoren",korektivna_akcija:akcija});
               }} style={{background:C.zelena+"20",border:`1px solid ${C.zelena}40`,borderRadius:7,
@@ -185,6 +276,7 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
           )}
         </div>
       ))}
+      </div>
     </div>
   );
 }

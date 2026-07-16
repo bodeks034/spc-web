@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { useAnalitikaFilter } from "../../lib/AnalitikaFilterContext.jsx";
 import { datumOdIzPerioda } from "../../lib/analitikaFilterUtils.js";
@@ -25,6 +25,7 @@ import { useEkran } from "../../lib/useEkran.js";
 import AnalitikaSpcSnapshot from "../analitika/AnalitikaSpcSnapshot.jsx";
 import SpcDashboardMerljive from "./SpcDashboardMerljive.jsx";
 import SpcAsistent8dDugme from "./SpcAsistent8dDugme.jsx";
+import { stampajEkran, preuzmiEkranPdf } from "../../lib/listaEkranIzvoz.js";
 
 /** Modul 2 — SPC Dashboard merljive (filter iz hedera). */
 export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, korisnik, onOtvori8D }) {
@@ -172,9 +173,44 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
     ? (spcTip) => onNavigacija({ tab: "karte", spcTip })
     : undefined;
 
+  const [busyPdf, setBusyPdf] = useState(false);
+  const izvozRef = useRef(null);
+
+  const stampaj = async () => {
+    if (!idDeo || !rawData.length) {
+      addToast?.("Nema podataka za štampu — izaberi deo sa merenjima", "greska");
+      return;
+    }
+    try {
+      await stampajEkran(izvozRef.current, { naslov: "Dashboard — merljive", bgColor: C.bg });
+    } catch (e) {
+      addToast?.(e.message || "Štampa greška", "greska");
+    }
+  };
+
+  const exportPdf = async () => {
+    if (!idDeo || !rawData.length) {
+      addToast?.("Nema podataka za PDF — izaberi deo sa merenjima", "greska");
+      return;
+    }
+    setBusyPdf(true);
+    try {
+      await preuzmiEkranPdf(izvozRef.current, {
+        naslov: "Dashboard — merljive",
+        prefiksFajla: "Dashboard",
+        bgColor: C.bg,
+      });
+      addToast?.("✓ PDF preuzet", "uspeh");
+    } catch (e) {
+      addToast?.(e.message || "PDF greška", "greska");
+    } finally {
+      setBusyPdf(false);
+    }
+  };
+
   return (
     <div style={{ padding: 16, overflow: "auto", flex: 1, boxSizing: "border-box" }}>
-      <div style={{ width: "100%", maxWidth: 960, margin: "0 auto" }}>
+      <div ref={izvozRef} style={{ width: "100%", maxWidth: 960, margin: "0 auto" }}>
         <AnalitikaSpcSnapshot
           C={C}
           modul="merljive"
@@ -216,17 +252,56 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
                 </span>
               )}
             </div>
-            {onOtvori8D && idDeo && rawData.length > 0 && (
-              <SpcAsistent8dDugme
-                C={C}
-                korisnik={korisnik}
-                izvor="merljive"
-                onOtvori8D={onOtvori8D}
-                addToast={addToast}
-                disabled={loading}
-                merljiveProps={asistentMerljiveProps}
-              />
-            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <div data-izvoz-hide style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={stampaj}
+                  disabled={!rawData.length}
+                  style={{
+                    background: C.hover,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 6,
+                    color: C.tekst,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "7px 14px",
+                    cursor: rawData.length ? "pointer" : "not-allowed",
+                    opacity: rawData.length ? 1 : 0.5,
+                  }}
+                >
+                  Štampaj
+                </button>
+                <button
+                  type="button"
+                  onClick={exportPdf}
+                  disabled={busyPdf || !rawData.length}
+                  style={{
+                    background: busyPdf || !rawData.length ? C.hover : "#7c3aed",
+                    border: "none",
+                    borderRadius: 6,
+                    color: busyPdf || !rawData.length ? C.sivi : C.onAkcent,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "7px 14px",
+                    cursor: busyPdf || !rawData.length ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {busyPdf ? "PDF…" : "PDF"}
+                </button>
+              </div>
+              {onOtvori8D && idDeo && rawData.length > 0 && (
+                <SpcAsistent8dDugme
+                  C={C}
+                  korisnik={korisnik}
+                  izvor="merljive"
+                  onOtvori8D={onOtvori8D}
+                  addToast={addToast}
+                  disabled={loading}
+                  merljiveProps={asistentMerljiveProps}
+                />
+              )}
+            </div>
           </div>
 
           {!idDeo ? (
