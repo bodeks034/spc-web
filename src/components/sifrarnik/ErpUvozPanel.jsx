@@ -190,6 +190,26 @@ export default function ErpUvozPanel({ C, addToast }) {
             {config.opis || config.erp_sistem}
           </div>
         )}
+        {config && (
+          <div style={{
+            marginTop: 10, padding: 10, borderRadius: 8,
+            background: C.hover, border: `1px solid ${C.border}`, fontSize: 10, color: C.tekst,
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Očekivani fajlovi (drop folder)</div>
+            <ul style={{ margin: 0, paddingLeft: 18, color: C.sivi, lineHeight: 1.5 }}>
+              {entiteti.filter((e) => e.ukljuceno).map((e) => (
+                <li key={e.id}>
+                  <code style={{ color: C.tekst }}>{e.fajl}</code>
+                  {e.alternativni?.length ? ` (ili: ${e.alternativni.join(", ")})` : ""}
+                  {" "}→ {e.tabela}
+                </li>
+              ))}
+            </ul>
+            <div style={{ marginTop: 6, color: C.border }}>
+              Folderi: <code>erp-drop/incoming</code> · SAP CSV: <code>sap-drop/incoming</code>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={CARD(C)}>

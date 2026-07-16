@@ -45,13 +45,16 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
 
   const logQ = supabase.from("kontrolni_log")
     .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena,id_deo,inspekcija_id,sesija_id,created_at,id")
-    .gte("datum", od);
+    .gte("datum", od)
+    .limit(4000);
   const merQ = supabase.from("merenja_varijabilna")
     .select("datum,status,id_deo,pozicija,smena,linija")
-    .gte("datum", od);
+    .gte("datum", od)
+    .limit(4000);
   const merDanasQ = supabase.from("merenja_varijabilna")
     .select("datum,status,id_deo,linija")
-    .eq("datum", danas);
+    .eq("datum", danas)
+    .limit(2000);
   const eskQ = supabase.from("eskalacije")
     .select("id,id_deo,opis,prioritet,status,created_at,rok")
     .order("created_at", { ascending: false })
@@ -71,6 +74,12 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   let idDelovaLinija = null;
   if (linijaFilter && !deoFilter) {
     idDelovaLinija = await idDeloviZaLinijuFilter(linijaFilter);
+    if (idDelovaLinija?.length) {
+      logQ.in("id_deo", idDelovaLinija);
+      merQ.in("id_deo", idDelovaLinija);
+      merDanasQ.in("id_deo", idDelovaLinija);
+      eskQ.in("id_deo", idDelovaLinija);
+    }
   }
 
   const [

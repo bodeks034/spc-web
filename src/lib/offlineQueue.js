@@ -287,7 +287,7 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
 }
 
 export async function flushOfflineQueue(supabase, options = {}) {
-  const { mirrorKontrolniLog, onJobError } = options;
+  const { mirrorKontrolniLog, onJobError, samoSaGreskom = false } = options;
   await ensureQueueReady();
   const queue = loadQueue();
   if (!queue.length || !navigator.onLine) {
@@ -300,6 +300,10 @@ export async function flushOfflineQueue(supabase, options = {}) {
   let failed = 0;
 
   for (const job of queue) {
+    if (samoSaGreskom && !job.lastError) {
+      remaining.push(job);
+      continue;
+    }
     try {
       const n = await insertJob(supabase, job, { mirrorKontrolniLog });
       syncedJobs += 1;

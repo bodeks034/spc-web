@@ -51,7 +51,7 @@ export default function OfflineSyncPanel({
   useEffect(() => { refresh(); }, [refresh]);
   const counts = queueCounts(queue);
 
-  const sync = async () => {
+  const sync = async (samoSaGreskom = false) => {
     if (!navigator.onLine) {
       addToast?.("Nema mreže — sync kada bude online", "greska");
       return;
@@ -59,6 +59,7 @@ export default function OfflineSyncPanel({
     setSyncing(true);
     const res = await flushOfflineQueue(supabase, {
       mirrorKontrolniLog,
+      samoSaGreskom,
       onJobError: (_j, e) => console.warn(e?.message),
     });
     refresh();
@@ -70,8 +71,12 @@ export default function OfflineSyncPanel({
       addToast?.(`${res.failed} paketa nije ušlo — proveri grešku ispod`, "greska");
     } else if (!queue.length) {
       addToast?.("Red je prazan", "info");
+    } else if (samoSaGreskom) {
+      addToast?.("Nema paketa sa greškom za ponovni pokušaj", "info");
     }
   };
+
+  const brojGresaka = queue.filter((j) => j.lastError).length;
 
   if (kompakt && !queue.length) return null;
 
@@ -112,7 +117,7 @@ export default function OfflineSyncPanel({
       </p>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <button type="button" disabled={syncing || !counts.total} onClick={sync}
+        <button type="button" disabled={syncing || !counts.total} onClick={() => sync(false)}
           style={{
             background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent,
             fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
@@ -120,6 +125,15 @@ export default function OfflineSyncPanel({
           }}>
           {syncing ? "Šaljem…" : "↻ Sinhronizuj sve"}
         </button>
+        {brojGresaka > 0 && (
+          <button type="button" disabled={syncing} onClick={() => sync(true)}
+            style={{
+              background: C.zuta, border: "none", borderRadius: 6, color: "#1a1a1a",
+              fontSize: 11, fontWeight: 700, padding: "8px 14px", cursor: "pointer",
+            }}>
+            Ponovi samo greške ({brojGresaka})
+          </button>
+        )}
         <button type="button" onClick={refresh}
           style={{
             background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6,

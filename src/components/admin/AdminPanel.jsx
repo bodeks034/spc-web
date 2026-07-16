@@ -34,6 +34,8 @@ import AutoPravilaPodesavanja from "../AutoPravilaPodesavanja.jsx";
 import AdminKalibracijaPanel from "../AdminKalibracijaPanel.jsx";
 import AdminPrekidiPanel from "../AdminPrekidiPanel.jsx";
 import AdminSpcAlarmiPanel from "../AdminSpcAlarmiPanel.jsx";
+import GoLiveChecklistPanel from "../GoLiveChecklistPanel.jsx";
+import ZdravljeSistemaKartica from "../ZdravljeSistemaKartica.jsx";
 import { Modal } from "../ui/SpcUi.jsx";
 
 function dISO() { return new Date().toISOString().split("T")[0]; }
@@ -449,6 +451,11 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
           )}
         </div>
 
+        <ZdravljeSistemaKartica C={C} korisnik={korisnik} />
+        <GoLiveChecklistPanel
+          C={C}
+          addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
+        />
         <OfflineSyncPanel
           supabase={supabase}
           C={C}

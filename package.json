@@ -92,6 +92,8 @@
     "backup:storage": "node scripts/download-supabase-storage.mjs",
     "restore:storage": "node scripts/upload-storage-local.mjs",
     "pakuj:server": "powershell -ExecutionPolicy Bypass -File scripts/pakuj-za-firminski-server.ps1",
+    "setup:desktop": "scripts\\setup-desktop-trening.cmd",
+    "migrate:local": "scripts\\primeni-migracije-lokalno.cmd",
     "licenca:kljuc": "node scripts/generisi-par-licence.mjs",
     "licenca:fajl": "node scripts/generisi-licencu.mjs",
     "licenca:baza": "node scripts/postavi-licencu.mjs",

@@ -18,6 +18,7 @@ import KpiDoradaHub from "./KpiDoradaHub.jsx";
 import LicencaStatusPanel from "./LicencaStatusPanel.jsx";
 import DnevniPregledPanel from "./DnevniPregledPanel.jsx";
 import UputstvoHub from "./UputstvoHub.jsx";
+import ZdravljeSistemaKartica from "./ZdravljeSistemaKartica.jsx";
 import { procitajNavigacijuKpi, trebaSkrolKpiHub } from "../lib/workflowAkcije.js";
 import { datumIsoUSr } from "../lib/kpiUnos.js";
 
@@ -296,7 +297,38 @@ export default function PocetniEkran({
             varijanta={ekran.mob ? "kompakt" : "pocetna"}
             dobrodoslica={korisnik.ime}
           />
+          <div style={{
+            marginTop: 8,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: C.hover,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            padding: "4px 10px",
+            fontSize: 11,
+            color: C.sivi,
+          }}>
+            Uloga:
+            <strong style={{ color: C.tekst, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              {korisnik.uloga || "—"}
+            </strong>
+          </div>
         </div>
+
+        {(mozeAdmin(korisnik.uloga) || mozePregledSemeAlarm(korisnik.uloga)) && (
+          <div style={{ width: "100%", maxWidth: 960 }}>
+            <ZdravljeSistemaKartica
+              C={C}
+              korisnik={korisnik}
+              onOtvoriAdmin={
+                mozeAdmin(korisnik.uloga) && modulDozvoljen(licenca, "admin")
+                  ? () => onIzbor("admin")
+                  : undefined
+              }
+            />
+          </div>
+        )}
 
         {mozePregledSemeAlarm(korisnik.uloga) && (
           <div style={{ width: "100%", maxWidth: 960 }}>

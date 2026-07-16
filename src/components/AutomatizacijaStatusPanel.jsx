@@ -102,6 +102,8 @@ export default function AutomatizacijaStatusPanel({ C }) {
 
       <p style={{ color: C.sivi, fontSize: 9, margin: "0 0 12px", lineHeight: 1.5 }}>
         Zadaci: <code>npm run auto:install</code> · logovi: <code>npm run logs:auto</code>
+        {" · "}digest: <code>npm run digest:smena</code> / <code>digest:smena:pdf</code>
+        {" · "}predaja smene PDF u tabu Smena.
       </p>
 
       {greska && (

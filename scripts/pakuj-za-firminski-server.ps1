@@ -43,14 +43,20 @@ Get-ChildItem -Path $root -Recurse -File | ForEach-Object {
 SPC Web — deploy paket ($datum)
 ================================
 
-1. Pročitaj docs/UPUTSTVO_FIRMINSKI_SERVER.md
+1. Pročitaj docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md
 2. IT checklist: deploy/IT_CHECKLIST.md
-3. Na serveru: Docker + Supabase (vidi uputstvo)
-4. SQL migracije redom (docs/MIGRACIJE.md)
-5. Restore backup/supabase/*.sql ako postoji
-6. Kopiraj deploy/env.production.example -> .env.production
-7. npm ci && npm run build
-8. Nginx: deploy/nginx-spc.conf.example
+3. HTTPS: deploy/TLS_QUICKSTART.md
+4. Na serveru: Docker + Supabase (vidi uputstvo)
+5. SQL migracije redom (docs/MIGRACIJE.md) ili scripts/primeni-migracije-lokalno.cmd (trening)
+6. Restore backup/supabase/*.sql ako postoji
+7. Kopiraj deploy/env.production.example -> .env.production (firminski URL!)
+8. npm ci && npm run build
+9. Nginx: deploy/nginx-spc.conf.example
+
+Desktop trening (pre firme):
+  scripts\setup-desktop-trening.cmd
+  scripts\primeni-migracije-lokalno.cmd
+  npm run dev
 
 Backup folder: $(if (Test-Path (Join-Path $root 'backup')) { 'UKLJUCEN' } else { 'NIJE PRONADJEN - pokreni backup:db pre pakovanja' })
 

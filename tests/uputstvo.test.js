@@ -14,13 +14,19 @@ describe("uputstvoRender", () => {
 });
 
 describe("uputstvoKatalog", () => {
-  it("operator vidi obuku modul1", () => {
+  it("operator vidi samo Obuku Modul 1 (bez Korišćenje aplikacije)", () => {
     const d = dokumentiZaUlogu("operator");
-    const m1 = d.find((x) => x.id === "operater-modul1");
-    expect(m1).toBeTruthy();
-    expect(m1.tip).toBe("html");
-    expect(m1.naslov).not.toMatch(/beli list/i);
-    expect(d.some((x) => x.id === "erp-konfig")).toBe(false);
+    expect(d.map((x) => x.id)).toEqual(["operater-modul1"]);
+    expect(d[0].tip).toBe("html");
+    expect(d.some((x) => x.kategorija === "koriscenje")).toBe(false);
+    expect(d.some((x) => x.id === "koriscenje-app")).toBe(false);
+    expect(d.some((x) => x.id === "inzenjer-modul2")).toBe(false);
+  });
+
+  it("kontrolor vidi isto što i operator", () => {
+    const op = dokumentiZaUlogu("operator").map((x) => x.id);
+    const ko = dokumentiZaUlogu("kontrolor").map((x) => x.id);
+    expect(ko).toEqual(op);
   });
 
   it("kvalitet vidi inzenjer modul2 kao HTML", () => {
@@ -28,6 +34,7 @@ describe("uputstvoKatalog", () => {
     const m2 = d.find((x) => x.id === "inzenjer-modul2");
     expect(m2?.tip).toBe("html");
     expect(m2?.fajl).toContain("/obuka-paket/OBUKA_INZENJER_MODUL2.html");
+    expect(d.some((x) => x.id === "operater-modul1")).toBe(true);
   });
 
   it("admin vidi ERP", () => {

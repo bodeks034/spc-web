@@ -209,3 +209,13 @@ export function opisUloge(uloga, rezimRada) {
   if (u === "operator") return "Samo unos i log";
   return "Unos, karte, smena";
 }
+
+/** Operator na liniji — bez admin/brisanja šifrarnika. */
+export function mozeBrisanjeSifrarnik(uloga) {
+  return jeKvalitetIliVise(uloga) || normalizujUlogu(uloga) === "admin";
+}
+
+/** Samo unos na liniji (bez analitike tabova). */
+export function mozeSamoLinijaUnos(uloga) {
+  return jeLinijaUloga(uloga) || normalizujUlogu(uloga) === "operator";
+}

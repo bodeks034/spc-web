@@ -1,6 +1,7 @@
 /**
  * Katalog uputstava — putanje su u /obuka-paket/ (docs + public, sync skripta).
- * uloge: null = svi; inače lista dozvoljenih uloga.
+ * uloge: lista dozvoljenih uloga (obavezno — bez null „svi”).
+ * Operater / kontrolor = samo unos merenja (Modul 1); inženjer/šef/admin = širi set.
  */
 export const UPUTSTVO_KATEGORIJE = [
   { id: "obuka-operater", naziv: "Obuka — operater / linija", ikon: "👷" },
@@ -9,20 +10,24 @@ export const UPUTSTVO_KATEGORIJE = [
   { id: "erp-it", naziv: "ERP, deploy i IT", ikon: "⚙️" },
 ];
 
-const SVE_ULOGE = null;
-const KANCELARIJA = ["kontrolor", "kvalitet", "sef", "admin"];
+/** Linija — samo Obuka Modul 1 (bez „Korišćenje aplikacije”). */
+const LINIJA = ["operator", "kontrolor"];
+/** Kancelarija — Modul 2, šifrarnik, analitika, indeks korišćenja. */
+const KANCELARIJA = ["kvalitet", "sef", "admin"];
+/** Obuka Modul 1 — linija + kancelarija. */
+const UNOS_MERENJA = [...LINIJA, ...KANCELARIJA];
 const ADMIN = ["admin"];
 
-/** @type {Array<{id:string,kategorija:string,naslov:string,opis:string,fajl:string,tip:'markdown'|'html',uloge:string[]|null,obukaPaket?:boolean}>} */
+/** @type {Array<{id:string,kategorija:string,naslov:string,opis:string,fajl:string,tip:'markdown'|'html',uloge:string[],obukaPaket?:boolean}>} */
 export const UPUTSTVO_DOKUMENTI = [
   {
     id: "obuka-komplet-html",
-    kategorija: "obuka-operater",
+    kategorija: "obuka-inzenjer",
     naslov: "Obuka SPC — komplet (HTML)",
     opis: "Cela aplikacija A4: uloge, M0/M1/M2, tabovi, problem→rešenje",
     fajl: "/obuka-paket/OBUKA_SPC_KOMPLET.html",
     tip: "html",
-    uloge: SVE_ULOGE,
+    uloge: KANCELARIJA,
     obukaPaket: true,
   },
   {
@@ -32,7 +37,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "A4 štampa: zlatna pravila, koraci, LOG, FAI, checklist",
     fajl: "/obuka-paket/OBUKA_OPERATER_MODUL1.html",
     tip: "html",
-    uloge: SVE_ULOGE,
+    uloge: UNOS_MERENJA,
     obukaPaket: true,
   },
   {
@@ -52,7 +57,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "Kalkulator prihvatanja lota po broju NOK",
     fajl: "/obuka-paket/UPUTSTVO_ISO_2859.md",
     tip: "markdown",
-    uloge: SVE_ULOGE,
+    uloge: KANCELARIJA,
   },
   {
     id: "iso-3951",
@@ -70,7 +75,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "Indeks: moduli, uloge, linkovi na svu obuku",
     fajl: "/obuka-paket/UPUTSTVO_KORISCENJE_APLIKACIJE.md",
     tip: "markdown",
-    uloge: SVE_ULOGE,
+    uloge: KANCELARIJA,
     obukaPaket: true,
   },
   {
@@ -89,7 +94,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "Skeniranje, digitalna merila, kalibracija",
     fajl: "/obuka-paket/UPUTSTVO_BARKOD_I_MERILA.md",
     tip: "markdown",
-    uloge: SVE_ULOGE,
+    uloge: KANCELARIJA,
   },
   {
     id: "barkod-pravljenje",
@@ -116,7 +121,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "Svih 25 tabova, ERP CSV uvoz, Glavni unos, propagacija",
     fajl: "/obuka-paket/UPUTSTVO_MODUL_SIFARNIK.md",
     tip: "markdown",
-    uloge: ["kvalitet", "sef", "admin"],
+    uloge: KANCELARIJA,
     obukaPaket: true,
   },
   {
@@ -126,7 +131,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "Dijagram, tipovi, delovi tip_kontrole=vozilo, defekti po zonama, pogon F",
     fajl: "/obuka-paket/UPUTSTVO_NOVO_VOZILO_SIFARNIK.md",
     tip: "markdown",
-    uloge: ["kvalitet", "sef", "admin"],
+    uloge: KANCELARIJA,
     obukaPaket: true,
   },
   {
@@ -136,7 +141,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "Master deo, greške, crtež, pogon, RN, merljive — tip_kontrole=deo",
     fajl: "/obuka-paket/UPUTSTVO_NOVI_DEO_SIFARNIK.md",
     tip: "markdown",
-    uloge: ["kvalitet", "sef", "admin"],
+    uloge: KANCELARIJA,
     obukaPaket: true,
   },
   {
@@ -146,7 +151,7 @@ export const UPUTSTVO_DOKUMENTI = [
     opis: "A4 PDF — svi tabovi, ERP CSV",
     fajl: "/obuka-paket/OBUKA_MODUL_SIFARNIK.html",
     tip: "html",
-    uloge: ["kvalitet", "sef", "admin"],
+    uloge: KANCELARIJA,
     obukaPaket: true,
   },
   {
@@ -207,7 +212,7 @@ export const UPUTSTVO_DOKUMENTI = [
 
 export function dokumentiZaUlogu(uloga) {
   const u = String(uloga || "operator").toLowerCase();
-  return UPUTSTVO_DOKUMENTI.filter((d) => !d.uloge || d.uloge.includes(u));
+  return UPUTSTVO_DOKUMENTI.filter((d) => Array.isArray(d.uloge) && d.uloge.includes(u));
 }
 
 export function dokumentPoId(id) {

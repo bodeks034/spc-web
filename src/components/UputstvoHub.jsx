@@ -11,11 +11,13 @@ import {
   spojiZaStampu,
 } from "../lib/uputstvoRender.js";
 import { useEkran } from "../layout/useEkran.js";
+import { jeLinijaUloga } from "../lib/uloge.js";
 
 export default function UputstvoHub({ C, korisnik, onZatvori }) {
   const ekran = useEkran();
   const uzan = ekran.linijaUredjaj;
   const mob = ekran.mob || ekran.telefon;
+  const samoUnos = jeLinijaUloga(korisnik?.uloga);
 
   const dostupni = useMemo(
     () => dokumentiZaUlogu(korisnik?.uloga),
@@ -236,7 +238,9 @@ export default function UputstvoHub({ C, korisnik, onZatvori }) {
                 <div style={{ fontWeight: 700, fontSize: mob ? 14 : 15 }}>📘 Uputstvo i obuka</div>
                 {!mob && (
                   <div style={{ color: C.sivi, fontSize: 10, marginTop: 2 }}>
-                    Pregled materijala · štampa · PDF
+                    {samoUnos
+                      ? "Samo Modul 1 — unos merenja · štampa · PDF"
+                      : "Pregled materijala · štampa · PDF"}
                   </div>
                 )}
               </>
