@@ -18,6 +18,7 @@ import DefinicijaUputstvo from "../DefinicijaUputstvo.jsx";
 import LicencaStatusPanel from "../LicencaStatusPanel.jsx";
 import OProgramuPanel from "../OProgramuPanel.jsx";
 import AdminLozinkaModal from "../AdminLozinkaModal.jsx";
+import { snimiPinRadnika, obrisiPinRadnika, validanPinFormat } from "../../lib/tabletPin.js";
 import OfflineSyncPanel from "../OfflineSyncPanel.jsx";
 import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
 import ErpDiffPanel from "../ErpDiffPanel.jsx";
@@ -185,7 +186,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
   const ekran = useEkran();
 
   useEffect(()=>{
-    supabase.from("radnici").select("id,ime,uloga,user_id,email,aktivan").order("ime")
+    supabase.from("radnici").select("id,ime,uloga,user_id,email,aktivan,pin_hash").order("ime")
       .then(({data})=>{ setRadnici(data||[]); setLoading(false); });
   },[]);
 
@@ -424,6 +425,37 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
                         fontSize: 9, padding: "4px 8px", cursor: "pointer", fontWeight: 700,
                       }}>
                       Lozinka
+                    </button>
+                  )}
+                  {korisnik.uloga==="admin" && (
+                    <button type="button" onClick={async () => {
+                      const pin = window.prompt(`PIN za ${r.ime} (4–6 cifara, prazno = obriši):`, "");
+                      if (pin === null) return;
+                      try {
+                        if (!String(pin).trim()) {
+                          await obrisiPinRadnika(supabase, r.id);
+                          setModal({ poruka: `PIN obrisan za ${r.ime}`, tip: "uspeh" });
+                        } else {
+                          if (!validanPinFormat(pin)) throw new Error("PIN mora biti 4–6 cifara.");
+                          await snimiPinRadnika(supabase, r.id, pin);
+                          setModal({ poruka: `✓ PIN sačuvan za ${r.ime}`, tip: "uspeh" });
+                        }
+                        setRadnici((p) => p.map((x) => (
+                          x.id === r.id
+                            ? { ...x, pin_hash: String(pin).trim() ? "set" : null }
+                            : x
+                        )));
+                      } catch (e) {
+                        setModal({ poruka: e.message || "PIN greška", tip: "greska" });
+                      }
+                    }}
+                      style={{
+                        background: r.pin_hash ? "#0c2010" : C.hover,
+                        border: `1px solid ${r.pin_hash ? C.zelena + "55" : C.border}`,
+                        borderRadius: 6, color: r.pin_hash ? C.zelena : C.sivi,
+                        fontSize: 9, padding: "4px 8px", cursor: "pointer", fontWeight: 700,
+                      }}>
+                      {r.pin_hash ? "PIN ✓" : "PIN"}
                     </button>
                   )}
                   {korisnik.uloga==="admin" && (

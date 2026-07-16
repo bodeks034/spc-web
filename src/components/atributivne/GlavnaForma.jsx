@@ -48,7 +48,7 @@ import KpiDoradaHub from "../KpiDoradaHub.jsx";
 import { podrazumevaniKpiIzListeP } from "../../lib/oeeKpi.js";
 import { porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf, pronadjiAgregiraniKpiAtributivne, snimiIliAzurirajKpiUnos, kpiVrednostiIzDb, saberiKpiVrednosti } from "../../lib/kpiUnos.js";
 import { generisiPredajaSmenePdf } from "../../lib/predajaSmenePdf.js";
-import { useOfflineQueue } from "../../lib/offlineQueue.js";
+import { useOfflineQueue, stampajClientIdNaRedove } from "../../lib/offlineQueue.js";
 import { ensureSesija, novaSesija, clearSveSesije, getAktivnaSesija } from "../../lib/spcSesija.js";
 import SchemaStatusPanel from "../SchemaStatusPanel.jsx";
 import StatusServera from "../StatusServera.jsx";
@@ -150,8 +150,9 @@ import {
   filtrirajGreskeZaUnos,
   filtrirajKatalogVozilaZaUnos,
 } from "../../lib/katalogFilter.js";
-import { porukaDbGreske } from "../../lib/dbGreske.js";
+import { porukaDbGreske, jeMreznaGreska, jeDupliClientId } from "../../lib/dbGreske.js";
 import { supabase } from "../../lib/supabaseClient.js";
+import FotoNokUnos from "../FotoNokUnos.jsx";
 import { modulDozvoljen } from "../../lib/licenca.js";
 import AppHeader from "../AppHeader.jsx";
 import BrendingNaslov from "../BrendingNaslov.jsx";
@@ -912,7 +913,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
 
     setSaving(true);
     const sesija_id = ensureSesija({ modul: "atributivne", idDeo, smena, radniNalog });
-    const redovi=listaP.map(s=>{const j=s.status==="OK";return ocistiRedZaInsert({
+    const redovi=stampajClientIdNaRedove(listaP.map(s=>{const j=s.status==="OK";return ocistiRedZaInsert({
       datum:s.datum,smena,radni_nalog:radniNalog||null,pogon_kod:pogonKod||null,id_deo:s.idDeo,naziv_dela:deoInfo?.naziv_dela||"",
       linija_id:deoInfo?.linija?.id||null,masina_id:deoInfo?.masina?.id||null,
       kontrolor_id:korisnik.radnikId,operater_id:korisnik.uloga==="operator"?korisnik.radnikId:null,
@@ -925,8 +926,9 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       ukupno_merenja:s.kolicina||1,
       potreban_broj:cilj,
       komentar:s.komentar||null,
+      foto:s.status==="NOK"?(s.foto||null):null,
       sesija_id,
-    });});
+    });}));
     const kpiPayload = {
       modul: "atributivne",
       datum: dISO(),
@@ -937,15 +939,30 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       sesija_id,
       kpi: kpiSerija,
     };
+    const staviUOfflineRed = (razlog) => {
+      addAtributivneBatch({ logRows: redovi, kpi: kpiPayload, sesija_id });
+      addToast(`📶 ${razlog}: paket u redu (${redovi.length} stavki + KPI)`,"info");
+      setListaP([]);setListaG([]);noviNalog();
+    };
     try{
       if(!online){
-        addAtributivneBatch({ logRows: redovi, kpi: kpiPayload, sesija_id });
-        addToast(`📶 Offline: paket u redu (${redovi.length} stavki + KPI)`,"info");
-        setListaP([]);setListaG([]);noviNalog();
+        staviUOfflineRed("Offline");
         return;
       }
-      const{error}=await supabase.from("kontrolni_log").insert(redovi);
-      if(error)throw error;
+      const{error}=await supabase.from("kontrolni_log").upsert(redovi, {
+        onConflict: "client_id",
+        ignoreDuplicates: true,
+      });
+      if(error){
+        if(jeMreznaGreska(error)){ staviUOfflineRed("Mreža nestabilna"); return; }
+        // Fallback ako migracija 66 još nije primenjena
+        const { error: e2 } = await supabase.from("kontrolni_log").insert(redovi);
+        if (e2) {
+          if (jeDupliClientId(e2)) { /* već snimljeno */ }
+          else if (jeMreznaGreska(e2)) { staviUOfflineRed("Mreža nestabilna"); return; }
+          else throw e2;
+        }
+      }
       const postojeciKpi = await pronadjiAgregiraniKpiAtributivne(supabase, {
         idDeo,
         datum: dISO(),
@@ -1022,7 +1039,13 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       setListaG([]);
       setModal({poruka:`✓ Sačuvano ${redovi.length} stavki u bazu!`,tip:"uspeh",
         onOK:()=>{setModal(null);noviNalog();}});
-    }catch(e){addToast(porukaDbGreske(e),"greska");}
+    }catch(e){
+      if(jeMreznaGreska(e)){
+        staviUOfflineRed("Mreža nestabilna");
+      } else {
+        addToast(porukaDbGreske(e),"greska");
+      }
+    }
     finally{setSaving(false);}
   };
 
@@ -1437,6 +1460,9 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           kontrolnaListaOk={listaSpremna}
           idRef={idRef}
           onBarkodSken={obradiBarkodSken}
+          foto={foto} setFoto={setFoto}
+          komentar={komentar} setKomentar={setKomentar}
+          onFotoGreska={(m) => addToast(m, "greska")}
           dostupniPogoni={dostupniPogoni}
           omoguceniPogoni={omoguceniPogoni}
           pogonKod={pogonKod}
@@ -1814,14 +1840,16 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
               </select>
             </div>
 
-            <div>
-              <label style={{color:C.sivi,fontSize:9,letterSpacing:1.5,marginBottom:4,display:"block"}}>
-                KOMENTAR (opciono)
-              </label>
-              <input value={komentar} onChange={e=>setKomentar(e.target.value)}
-                placeholder="Npr: alat istrošen..."
-                style={{...INP, fontSize:12}}/>
-            </div>
+            {status === "NOK" && (
+              <FotoNokUnos
+                C={C}
+                foto={foto}
+                komentar={komentar}
+                onFoto={setFoto}
+                onKomentar={setKomentar}
+                onGreska={(m) => addToast(m, "greska")}
+              />
+            )}
 
             <button onClick={dodajGresku} disabled={!deoInfo || !status || (status === "NOK" && (
               (voziloMode && !voziloZona) || !kategorija || !podkat || (koristiDefekte && !defekt)

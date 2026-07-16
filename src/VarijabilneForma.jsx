@@ -71,7 +71,7 @@ import KpiDoradaHub from "./components/KpiDoradaHub.jsx";
 import { podrazumevaniKpiIzMerenja, agregirajKpiPoSerijama } from "./lib/oeeKpi.js";
 import { snimiKpiUnos, snimiIliAzurirajKpiUnos, pronadjiKpiUnos, kpiVrednostiIzDb, porukaKpiGreske, fetchKpiUnos } from "./lib/kpiUnos.js";
 import { ucitajPlanUzorkovanja, izracunajPlanUzorkovanja, datumSrUIso } from "./lib/planUzorkovanja.js";
-import { useOfflineQueue } from "./lib/offlineQueue.js";
+import { useOfflineQueue, stampajClientIdNaRedove } from "./lib/offlineQueue.js";
 import { useSpcAlarmGate } from "./hooks/useSpcAlarmGate.js";
 import SpcAlarmBlokada from "./components/SpcAlarmBlokada.jsx";
 import { proveriIKreirajAlarmeNokSerije } from "./lib/spcAlarmWorkflow.js";
@@ -142,7 +142,7 @@ import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
 import SmenaAutoPrikaz from "./components/SmenaAutoPrikaz.jsx";
 import PogonIzborPanel from "./components/PogonIzborPanel.jsx";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
-import { porukaDbGreske } from "./lib/dbGreske.js";
+import { porukaDbGreske, jeMreznaGreska, jeDupliClientId } from "./lib/dbGreske.js";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./components/LinijaWizardNav.jsx";
 import MobilniMerljiviUnos from "./components/MobilniMerljiviUnos.jsx";
 import { normalizujPrefill8d, prefill8dIzEskalacije, procitajNavigacijuNcr } from "./lib/eskalacijeHelper.js";
@@ -1867,14 +1867,16 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     if (!k?.id) return;
 
     snimaMeriloRef.current = true;
+    let row = null;
+    let sesija_id = null;
     try {
-      const sesija_id = ensureSesija({
+      sesija_id = ensureSesija({
         modul: "merljive",
         idDeo,
         smena,
         radniNalog,
       });
-      const row = buildMerenjeVarijabilnaRow({
+      row = buildMerenjeVarijabilnaRow({
         datum: parsirajDatum(datum),
         smena,
         radniNalog,
@@ -1903,6 +1905,14 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       oznaciMerenjeSnimljeno(colIdx, merIdx);
       addToast(`✓ ${k.naziv}=${raw} u bazi`, "uspeh");
     } catch (e) {
+      if (jeMreznaGreska(e) && row) {
+        try {
+          addMerljiveSerija({ merenja: [row] }, sesija_id);
+          oznaciMerenjeSnimljeno(colIdx, merIdx);
+          addToast(`📶 Mreža nestabilna: ${k.naziv}=${raw} u redu`, "info");
+          return;
+        } catch { /* */ }
+      }
       addToast(e.message || "Greška auto-snimanja", "greska");
     } finally {
       snimaMeriloRef.current = false;
@@ -1978,6 +1988,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         });
       }
     }
+    const rowsStamped = stampajClientIdNaRedove(rows);
     const kpiPayload = {
       modul: "merljive",
       datum: parsirajDatum(datum),
@@ -1992,38 +2003,54 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     const svaSnimljena = !koloneZaSnim.some(
       (k) => k.naziv !== "-" && k.merenja.some((m) => !m.snimljenoDb),
     );
-    if (!rows.length && !svaSnimljena) {
+    if (!rowsStamped.length && !svaSnimljena) {
       setPoruka("Nema novih merenja za snimanje.");
       return;
     }
 
-    if (!online) {
+    const staviUOffline = (razlog) => {
       addMerljiveSerija({
-        merenja: rows,
+        merenja: rowsStamped,
         kpi: kpiPayload,
         meta: { grupaAB, idDeo },
       }, sesija_id);
       addToast(
-        rows.length
-          ? `📶 Offline: serija ${grupaAB} u redu (${rows.length} merenja + KPI)`
-          : `📶 Offline: KPI serija ${grupaAB} (merenja već auto-snimljena)`,
+        rowsStamped.length
+          ? `📶 ${razlog}: serija ${grupaAB} u redu (${rowsStamped.length} merenja + KPI)`
+          : `📶 ${razlog}: KPI serija ${grupaAB}`,
         "info",
       );
       koloneBridgeRef.current?.clearFotoKomentar?.();
       setSacuvaneGrupe(prev => [...prev, grupaAB]);
       bumpPlanPosleSnimanja();
       if (!prebaciNaSledecuSerijuPosleSnimanja(grupaAB)) {
-        setPoruka(`Offline sačuvano. Sinhronizuj kada bude mreža. Sesija: ${sesija_id}`);
+        setPoruka(`Sačuvano offline. Sinhronizuj kada bude mreža. Sesija: ${sesija_id}`);
       }
+    };
+
+    if (!online) {
+      staviUOffline("Offline");
       return;
     }
 
     let error = null;
-    if (rows.length) {
-      const res = await supabase.from("merenja_varijabilna").insert(rows);
+    if (rowsStamped.length) {
+      const res = await supabase.from("merenja_varijabilna").upsert(rowsStamped, {
+        onConflict: "client_id",
+        ignoreDuplicates: true,
+      });
       error = res.error;
+      if (error && !jeMreznaGreska(error) && !jeDupliClientId(error)) {
+        const res2 = await supabase.from("merenja_varijabilna").insert(rowsStamped);
+        error = res2.error;
+      }
+      if (error && jeDupliClientId(error)) error = null;
     }
     if (error) {
+      if (jeMreznaGreska(error)) {
+        staviUOffline("Mreža nestabilna");
+        return;
+      }
       const msg = porukaDbGreske(error);
       setPoruka(
         msg.includes("19_fix_merenja_varijabilna_sequence")
@@ -2031,7 +2058,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           : msg.includes("sesija_id")
             ? `${msg}\nPokreni 15_sesija_id.sql u Supabase.`
             : msg.includes("foto") || msg.includes("komentar") || msg.includes("schema cache")
-              ? `${msg}\nPokreni 13_merenja_varijabilna_foto.sql u Supabase.`
+              ? `${msg}\nPokreni 13_merenja_varijabilna_foto.sql / 66_linija_pouzdanost.sql u Supabase.`
               : msg,
       );
       return;
@@ -2137,8 +2164,13 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       addToast(`ID ${deoZaKpi}: unesite doradu za ${neusUkupno} neusaglašenih (KPI panel)`, "info");
     }
     } catch (e) {
-      addToast(e?.message || "Greška snimanja", "greska");
-      setPoruka(e?.message || "Greška snimanja");
+      if (jeMreznaGreska(e)) {
+        addToast("📶 Mreža nestabilna — pokušajte ponovo ili sačekajte offline sync", "greska");
+        setPoruka("Mreža nestabilna. Ako je serija u offline redu, sinhronizovaće se automatski.");
+      } else {
+        addToast(e?.message || "Greška snimanja", "greska");
+        setPoruka(e?.message || "Greška snimanja");
+      }
     } finally {
       setSnima(false);
     }

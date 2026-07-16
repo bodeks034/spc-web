@@ -27,6 +27,8 @@ import { modulDozvoljen } from "./lib/licenca.js";
 import AppHeader from "./components/AppHeader.jsx";
 import LoginScreen from "./components/LoginScreen.jsx";
 import PocetniEkran from "./components/PocetniEkran.jsx";
+import TabletZakljucaj from "./components/TabletZakljucaj.jsx";
+import { TabletSmenaContext } from "./lib/TabletSmenaContext.jsx";
 const SifrarnikModul = lazy(() => import("./components/sifrarnik/SifrarnikModul.jsx"));
 const VarijabilneForma = lazy(() => import("./VarijabilneForma.jsx"));
 const GlavnaForma = lazy(() => import("./components/atributivne/GlavnaForma.jsx"));
@@ -64,6 +66,7 @@ export default function App() {
   const [korisnik, setKorisnik] = useState(null);
   const [checking, setChecking] = useState(true);
   const [modul, setModul] = useState(null);
+  const [tabletZakljucan, setTabletZakljucan] = useState(false);
   const [C, setC] = useState(() => {
     const saved = localStorage.getItem("spc_tema");
     return saved === "svetla" ? TEME.svetla : TEME.tamna;
@@ -231,8 +234,30 @@ export default function App() {
     ocistiUnosDraft();
     setKorisnik(null);
     setModul(null);
+    setTabletZakljucan(false);
     setLoginKey((k) => k + 1);
   };
+
+  const tabletOverlay = korisnik ? (
+    <TabletZakljucaj
+      C={C}
+      korisnik={korisnik}
+      zakljucano={tabletZakljucan}
+      onZatraziZakljucaj={() => setTabletZakljucan(true)}
+      onOtkljucaj={(k) => {
+        if (k) setKorisnik(k);
+        setTabletZakljucan(false);
+      }}
+      onPromeniRadnika={setKorisnik}
+    />
+  ) : null;
+
+  const wrapSaTabletom = (node) => (
+    <TabletSmenaContext.Provider value={() => setTabletZakljucan(true)}>
+      {tabletOverlay}
+      {node}
+    </TabletSmenaContext.Provider>
+  );
 
   if (licenca.ucitava || checking) {
     return (
@@ -252,7 +277,7 @@ export default function App() {
   if (!korisnik) return <LoginScreen key={loginKey} onLogin={setKorisnik} C={C} licenca={licenca} />;
 
   if (!modul) {
-    return (
+    return wrapSaTabletom(
       <>
         {globalToastEl}
         <LicencaUpozorenje licenca={licenca} C={C} />
@@ -269,7 +294,7 @@ export default function App() {
           onOtvoriNcr={otvoriNcrIzvana}
           onOtvoriTab={otvoriSpoljniTab}
         />
-      </>
+      </>,
     );
   }
 
@@ -287,7 +312,7 @@ export default function App() {
   }
 
   if (modul === "atributivne" && aktivniRezim === "linija" && !listaOk && !jeAdmin(korisnik?.uloga)) {
-    return (
+    return wrapSaTabletom(
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'IBM Plex Mono',monospace" }}>
         <AppHeader
           korisnik={korisnik}
@@ -308,12 +333,12 @@ export default function App() {
           }}
           C={C}
         />
-      </div>
+      </div>,
     );
   }
 
   if (modul === "varijabilne" && aktivniRezim === "linija" && !listaOkVar && !jeAdmin(korisnik?.uloga)) {
-    return (
+    return wrapSaTabletom(
       <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'IBM Plex Mono',monospace" }}>
         <AppHeader
           korisnik={korisnik}
@@ -335,12 +360,12 @@ export default function App() {
           }}
           C={C}
         />
-      </div>
+      </div>,
     );
   }
 
   if (modul === "admin") {
-    return jeAdmin(korisnik.uloga) ? (
+    return jeAdmin(korisnik.uloga) ? wrapSaTabletom(
       <>
         {globalToastEl}
         <LicencaUpozorenje licenca={licenca} C={C} />
@@ -352,7 +377,7 @@ export default function App() {
             C={C}
           />
         </Suspense>
-      </>
+      </>,
     ) : (
       <div style={{
         minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center",
@@ -371,7 +396,7 @@ export default function App() {
   }
 
   if (modul === "sifrarnik") {
-    return mozeSifrarnik(korisnik.uloga) ? (
+    return mozeSifrarnik(korisnik.uloga) ? wrapSaTabletom(
       <>
         <LicencaUpozorenje licenca={licenca} C={C} />
         <Suspense fallback={<ModulUcitavanje C={C} />}>
@@ -384,7 +409,7 @@ export default function App() {
             temaTamna={C.naziv === "tamna"}
           />
         </Suspense>
-      </>
+      </>,
     ) : (
       <div style={{
         minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center",
@@ -403,7 +428,7 @@ export default function App() {
   }
 
   if (modul === "atributivne") {
-    return (
+    return wrapSaTabletom(
       <>
         {globalToastEl}
         <Suspense fallback={<ModulUcitavanje C={C} />}>
@@ -420,12 +445,12 @@ export default function App() {
             listaPotvrdena={listaOk}
           />
         </Suspense>
-      </>
+      </>,
     );
   }
 
   if (modul === "varijabilne") {
-    return (
+    return wrapSaTabletom(
       <>
         {globalToastEl}
         <Suspense fallback={<ModulUcitavanje C={C} />}>
@@ -444,7 +469,7 @@ export default function App() {
             licenca={licenca}
           />
         </Suspense>
-      </>
+      </>,
     );
   }
 

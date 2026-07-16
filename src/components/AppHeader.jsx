@@ -1,5 +1,6 @@
 import { useEkran } from "../layout/useEkran.js";
 import LogoBrend from "./LogoBrend.jsx";
+import { useTabletSmena } from "../lib/TabletSmenaContext.jsx";
 
 const SKRACENA_ULOGA = {
   kontrolor: "KON",
@@ -30,8 +31,11 @@ export default function AppHeader({
   temaTamna,
   trakaIspod,
   desnoExtra,
+  onSmena,
 }) {
   const ekran = useEkran();
+  const smenaIzCtx = useTabletSmena();
+  const smenaFn = onSmena || smenaIzCtx;
   const podstrana = Boolean(onNazad) && (ekran.mob || ekran.tablet);
   const kompakt = ekran.mob || ekran.tablet;
   const padX = podstrana ? 10 : kompakt ? 12 : 20;
@@ -110,6 +114,17 @@ export default function AppHeader({
     }}>Odjava</button>
   );
 
+  const btnSmena = smenaFn ? (
+    <button type="button" onClick={smenaFn} title="Zaključaj / promeni operatera (PIN)"
+      style={{
+        background: C.hover, border: `1px solid ${C.border}`,
+        flexShrink: 0, borderRadius: 5, color: C.sivi,
+        fontSize: podstrana ? 9 : kompakt ? 9 : 10,
+        padding: podstrana ? "2px 6px" : kompakt ? "2px 6px" : "3px 10px",
+        cursor: "pointer", whiteSpace: "nowrap",
+      }}>Smena</button>
+  ) : null;
+
   const desnoAkcije = (
     <div style={{
       display: "flex", alignItems: "center", gap,
@@ -119,6 +134,7 @@ export default function AppHeader({
       {btnTema}
       {badgeUloga}
       {txtIme}
+      {btnSmena}
       {btnOdjava}
     </div>
   );

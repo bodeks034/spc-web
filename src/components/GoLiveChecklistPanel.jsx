@@ -5,14 +5,20 @@ const STORAGE_KEY = "spc_go_live_checklist_v1";
 
 const STAVKE = [
   { id: "docker", label: "Docker / Supabase radi (ping baze OK)" },
-  { id: "migracije", label: "SQL migracije primenjene (Admin → Status šeme)" },
-  { id: "auth", label: "Auth korisnici + radnici povezani" },
+  { id: "migracije", label: "SQL migracije primenjene (uključujući 66_linija_pouzdanost)" },
+  { id: "auth", label: "Auth email ↔ radnici.user_id povezano (nema „nema radnik ID”)" },
+  { id: "pin", label: "PIN postavljen za operatere/kontrolore na tabletu (Admin → PIN)" },
   { id: "licenca", label: "Licenca OK (proveri_licencu)" },
-  { id: "sifrarnik", label: "Šifrarnik: bar 1 deo + greške / karakteristike" },
+  { id: "sifrarnik", label: "Šifrarnik: delovi + greške / karakteristike" },
+  { id: "lista", label: "Kontrolna lista: ≥5 aktivnih stavki" },
+  { id: "rn", label: "Bar 1 aktivan radni nalog (RN) za pilot deo" },
   { id: "unos", label: "Probni unos atributivne + merljive sačuvan" },
-  { id: "backup", label: "Backup urađen (Admin → Backup ili npm run backup:db)" },
+  { id: "offline", label: "Probaj offline / nestabilnu mrežu — red se sinhronizuje" },
+  { id: "alarm", label: "Alarm drill: blokada → potvrdi/zatvori sa komentarom" },
+  { id: "backup", label: "Backup urađen (JSON ili npm run backup:db)" },
+  { id: "restore", label: "Restore dump testiran (npm run restore:db)" },
   { id: "https", label: "HTTPS / interni URL za tablete (firma)" },
-  { id: "obuka", label: "Operateri imaju uputstvo / obuku" },
+  { id: "obuka", label: "Operateri imaju Obuku Modul 1" },
   { id: "erp", label: "ERP drop folder / cron (ako se koristi)" },
 ];
 
@@ -51,7 +57,7 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
   const eksportJsonBackup = async () => {
     setBusyBackup(true);
     try {
-      const tabele = ["delovi", "radnici", "eskalacije", "radni_nalozi", "ciljevi"];
+      const tabele = ["delovi", "radnici", "eskalacije", "radni_nalozi", "ciljevi", "kontrolna_lista_stavke"];
       const out = { datum: new Date().toISOString(), tabele: {} };
       for (const t of tabele) {
         const { data, error } = await supabase.from(t).select("*").limit(5000);
@@ -70,6 +76,35 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
       addToast?.(e.message || "Backup greška", "greska");
     } finally {
       setBusyBackup(false);
+    }
+  };
+
+  const proveriPilotPodatke = async () => {
+    try {
+      const [lista, rn, radnici] = await Promise.all([
+        supabase.from("kontrolna_lista_stavke").select("id", { count: "exact", head: true }).eq("aktivna", true),
+        supabase.from("radni_nalozi").select("id", { count: "exact", head: true }).in("status", ["aktivan", "u_toku", "otvoren"]),
+        supabase.from("radnici").select("id,user_id,pin_hash,aktivan").eq("aktivan", true).limit(200),
+      ]);
+      const listaN = lista.count || 0;
+      const rnN = rn.count ?? (Array.isArray(rn.data) ? rn.data.length : 0);
+      const rs = radnici.data || [];
+      const saAuth = rs.filter((r) => r.user_id).length;
+      const saPin = rs.filter((r) => r.pin_hash).length;
+      const next = {
+        ...stanje,
+        lista: listaN >= 5,
+        rn: rnN >= 1,
+        auth: saAuth >= 1,
+        pin: saPin >= 1,
+      };
+      snimi(next);
+      addToast?.(
+        `Pilot: lista ${listaN}, RN aktivnih ${rnN}, Auth ${saAuth}, PIN ${saPin}`,
+        listaN >= 5 && rnN >= 1 && saAuth >= 1 ? "uspeh" : "info",
+      );
+    } catch (e) {
+      addToast?.(e.message || "Provera nije uspela", "greska");
     }
   };
 
@@ -94,6 +129,13 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" onClick={proveriPilotPodatke}
+            style={{
+              background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6,
+              color: C.tekst, fontSize: 10, fontWeight: 700, padding: "7px 12px", cursor: "pointer",
+            }}>
+            Proveri pilot
+          </button>
           <button type="button" onClick={eksportJsonBackup} disabled={busyBackup}
             style={{
               background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent,

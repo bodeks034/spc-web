@@ -253,6 +253,18 @@ export async function zatvoriSpcAlarm(supabase, { alarmId, radnikId, komentar })
     { dozvoljeniStari: ["otvoren", "potvrden", "karantin"] },
   );
   await pustiKarantinZaAlarm(supabase, alarmId, radnikId);
+
+  if (trenutni.eskalacija_id) {
+    await supabase.from("eskalacije")
+      .update({
+        status: "zatvoren",
+        zatvoreno_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", trenutni.eskalacija_id)
+      .in("status", ["otvoren", "u_toku"]);
+  }
+
   return data;
 }
 

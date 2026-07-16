@@ -19,6 +19,7 @@ import { idBarkodInputHandleri } from "../../../lib/barkod.js";
 import { mozeAdminLokalno as mozeAdmin } from "../../../lib/atributivneUnosHelper.js";
 import { labelPogona } from "../../../lib/pogonSop.js";
 import { UnosCiljBanner, UnosAqlPanel } from "../UnosAqlBlok.jsx";
+import FotoNokUnos from "../../FotoNokUnos.jsx";
 
 function MobilniUnos({
   linijaMode = false,
@@ -63,6 +64,9 @@ function MobilniUnos({
   kontrolnaListaOk = true,
   idRef,
   onBarkodSken,
+  foto = null, setFoto,
+  komentar = "", setKomentar,
+  onFotoGreska,
 }) {
   const ekran = useEkran();
   const { url: voziloDijagramSrc, loading: voziloDijagramUcitava } = useVoziloDijagramSrc(deoInfo);
@@ -647,6 +651,18 @@ function MobilniUnos({
             </div>
           )}
         </div>
+      )}
+
+      {status === "NOK" && setFoto && (
+        <FotoNokUnos
+          C={C}
+          foto={foto}
+          komentar={komentar}
+          onFoto={setFoto}
+          onKomentar={setKomentar || (() => {})}
+          onGreska={onFotoGreska}
+          kompakt
+        />
       )}
 
       {!linijaMode && <div style={{ flex: 1 }} />}

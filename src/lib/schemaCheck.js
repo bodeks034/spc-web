@@ -40,6 +40,7 @@ export const MIGRACIJE_LISTA = [
   { id: "erp_uvoz_constraints", naziv: "ERP uvoz UNIQUE (mašine, kupci, RN)", fajl: "62_erp_uvoz_constraints.sql" },
   { id: "greske_katalog_erp", naziv: "ERP greške katalog upsert", fajl: "64_greske_katalog_erp_upsert.sql" },
   { id: "licenca_uredjaji", naziv: "Licenca po uređaju (max_uredjaja)", fajl: "65_licenca_uredjaji.sql" },
+  { id: "linija_pouzdanost", naziv: "Linija: foto NOK, client_id, PIN", fajl: "66_linija_pouzdanost.sql" },
 ];
 
 const PROBES = [
@@ -97,6 +98,9 @@ const PROBES = [
   { id: "greske_katalog_defekt", table: "greske_katalog", select: "id,kategorija,podkategorija,defekt" },
   { id: "licenca_uredjaji_tbl", table: "licenca_uredjaji", select: "id,uredjaj_id,poslednji_login" },
   { id: "licenca_max_uredjaja", table: "app_licenca", select: "id,max_uredjaja" },
+  { id: "foto_atr", table: "kontrolni_log", select: "id,foto,client_id" },
+  { id: "client_id_mer", table: "merenja_varijabilna", select: "id,client_id" },
+  { id: "radnici_pin", table: "radnici", select: "id,pin_hash" },
 ];
 
 function greskaNedostaje(error) {
@@ -213,6 +217,7 @@ export async function proveriSemu(supabase) {
     erp_uvoz_constraints: byId.erp_uvoz_constraints?.ok,
     greske_katalog_erp: byId.greske_katalog_erp?.ok,
     licenca_uredjaji: byId.licenca_uredjaji_tbl?.ok && byId.licenca_max_uredjaja?.ok,
+    linija_pouzdanost: byId.foto_atr?.ok && byId.client_id_mer?.ok && byId.radnici_pin?.ok,
     sifrarnik_modul: byId.sifrarnik_tipovi?.ok && byId.sifrarnik_barkod?.ok,
     glavni_unos_app: byId.glavni_unos_redovi?.ok && byId.pogon_linija_mapa?.ok,
     sifrarnik_liste: byId.sifrarnik_liste?.ok,

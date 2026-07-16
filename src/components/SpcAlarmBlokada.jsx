@@ -38,7 +38,10 @@ export default function SpcAlarmBlokada({
   }, [alarm?.id]);
 
   const jeKarantin = alarm?.status === "karantin";
-  const mozeZatvoriti = jeAdmin(korisnik?.uloga) || jeKvalitetIliVise(korisnik?.uloga);
+  /** Kontrolor na liniji može zatvoriti sa komentarom; operator samo potvrdi/karantin. */
+  const mozeZatvoriti = jeAdmin(korisnik?.uloga)
+    || jeKvalitetIliVise(korisnik?.uloga)
+    || String(korisnik?.uloga || "").toLowerCase() === "kontrolor";
 
   const posleAkcije = async (cb) => {
     await onOsvezi?.();

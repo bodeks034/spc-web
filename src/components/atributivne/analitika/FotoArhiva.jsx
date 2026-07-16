@@ -9,13 +9,16 @@ export default function FotoArhiva({ C, addToast }) {
 
   useEffect(()=>{
     supabase.from("kontrolni_log")
-      .select("id,datum,id_deo,naziv_dela,greska_naziv,podkategorija,komentar,nok_kolicina")
-      .eq("status","NOK").not("komentar","is",null).neq("komentar","")
-      .order("created_at",{ascending:false}).limit(100)
-      .then(({data})=>{ setPodaci(data||[]); setLoading(false); });
+      .select("id,datum,id_deo,naziv_dela,greska_naziv,podkategorija,komentar,nok_kolicina,foto")
+      .eq("status","NOK")
+      .order("created_at",{ascending:false}).limit(150)
+      .then(({data})=>{
+        const rows = (data || []).filter((p) => p.foto || String(p.komentar || "").trim());
+        setPodaci(rows);
+        setLoading(false);
+      });
   },[]);
 
-  // Za slike iz Supabase Storage — za sada prikazujemo komentare kao katalog
   const filtrirani = filter
     ? podaci.filter(p=>p.greska_naziv?.toLowerCase().includes(filter.toLowerCase())
         || p.id_deo?.toLowerCase().includes(filter.toLowerCase()))
@@ -46,6 +49,11 @@ export default function FotoArhiva({ C, addToast }) {
                 <span style={{color:C.tekst,fontWeight:500}}>{v}</span>
               </div>
             ))}
+            {uvecana.foto && (
+              <img src={uvecana.foto} alt="NOK" style={{
+                width: "100%", borderRadius: 8, marginTop: 10, maxHeight: 280, objectFit: "contain",
+              }} />
+            )}
             {uvecana.komentar&&(
               <div style={{background:C.zuta+"15",border:`1px solid ${C.zuta}30`,
                 borderRadius:8,padding:"10px 12px",marginTop:10,color:C.tekst,fontSize:12}}>
@@ -57,7 +65,7 @@ export default function FotoArhiva({ C, addToast }) {
       )}
 
       <div style={{color:C.sivi,fontSize:10,letterSpacing:1.2,marginBottom:14}}>
-        FOTO ARHIVA GREŠAKA — NOK sa komentarima
+        FOTO ARHIVA GREŠAKA — NOK sa foto / komentarom
       </div>
 
       {/* Filter */}
@@ -104,8 +112,10 @@ export default function FotoArhiva({ C, addToast }) {
               onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
               <div style={{background:`${C.crvena}15`,borderRadius:8,height:80,
                 display:"flex",alignItems:"center",justifyContent:"center",
-                marginBottom:10,fontSize:32}}>
-                ⚠
+                marginBottom:10,fontSize:32,overflow:"hidden"}}>
+                {p.foto
+                  ? <img src={p.foto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : "⚠"}
               </div>
               <div style={{color:C.crvena,fontWeight:700,fontSize:12,marginBottom:4}}>
                 {p.greska_naziv}

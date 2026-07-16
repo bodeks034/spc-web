@@ -90,6 +90,7 @@
     "barkodi:seed-excel": "node scripts/sync-barkod-excel.mjs csv-to-xlsx",
     "backup:db": "powershell -ExecutionPolicy Bypass -File scripts/backup-supabase-db.ps1",
     "backup:storage": "node scripts/download-supabase-storage.mjs",
+    "restore:db": "powershell -ExecutionPolicy Bypass -File scripts/restore-postgres-dump.ps1",
     "restore:storage": "node scripts/upload-storage-local.mjs",
     "pakuj:server": "powershell -ExecutionPolicy Bypass -File scripts/pakuj-za-firminski-server.ps1",
     "setup:desktop": "scripts\\setup-desktop-trening.cmd",

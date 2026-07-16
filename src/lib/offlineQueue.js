@@ -7,6 +7,7 @@ import {
   idbUcitajSve,
   idbSnimiSve,
 } from "./offlineQueueDb.js";
+import { jeDupliClientId } from "./dbGreske.js";
 
 const STORAGE_KEY = "spc_q_v2";
 const LEGACY_KEY = "spc_q";
@@ -18,6 +19,21 @@ let storageMode = "indexedDB";
 
 function uuid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function noviClientId() {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch { /* */ }
+  return uuid();
+}
+
+/** Osiguraj client_id na svakom redu (idempotentni insert / retry). */
+export function stampajClientIdNaRedove(rows) {
+  return (rows || []).map((r) => ({
+    ...r,
+    client_id: r.client_id || noviClientId(),
+  }));
 }
 
 function normalizeLegacy(raw) {
@@ -188,11 +204,13 @@ export function queueCounts(queue) {
 
 export function enqueueJob(job) {
   const entry = {
-    id: uuid(),
+    id: job.id || uuid(),
     createdAt: new Date().toISOString(),
     ...job,
   };
-  cache = [...cache, entry];
+  // Zameni postojeći job sa istim id (retry istog paketa)
+  const bez = cache.filter((j) => j.id !== entry.id);
+  cache = [...bez, entry];
   persistCache(cache);
   return entry;
 }
@@ -201,24 +219,26 @@ export function enqueueKontrolniLog(rows, sesija_id) {
   return enqueueJob({
     type: "kontrolni_log",
     sesija_id: sesija_id || null,
-    payload: rows,
+    payload: stampajClientIdNaRedove(rows),
     kpi: null,
   });
 }
 
-export function enqueueMerljiveSerija({ merenja, kpi, sesija_id, meta }) {
+export function enqueueMerljiveSerija({ merenja, kpi, sesija_id, meta, id }) {
   return enqueueJob({
+    id: id || undefined,
     type: "merljive_serija",
     sesija_id: sesija_id || null,
-    payload: { merenja, kpi, meta },
+    payload: { merenja: stampajClientIdNaRedove(merenja), kpi, meta },
   });
 }
 
-export function enqueueAtributivneBatch({ logRows, kpi, sesija_id }) {
+export function enqueueAtributivneBatch({ logRows, kpi, sesija_id, id }) {
   return enqueueJob({
+    id: id || undefined,
     type: "atributivne_batch",
     sesija_id: sesija_id || null,
-    payload: { logRows, kpi },
+    payload: { logRows: stampajClientIdNaRedove(logRows), kpi },
   });
 }
 
@@ -227,23 +247,40 @@ function stripMeta(row) {
   return rest;
 }
 
+async function insertRowsIdempotent(supabase, table, rows) {
+  if (!rows.length) return;
+  const { error } = await supabase.from(table).upsert(rows, {
+    onConflict: "client_id",
+    ignoreDuplicates: true,
+  });
+  if (!error) return;
+  if (jeDupliClientId(error)) return;
+  const { error: e2 } = await supabase.from(table).insert(rows);
+  if (!e2 || jeDupliClientId(e2)) return;
+  throw e2;
+}
+
 async function insertJob(supabase, job, { mirrorKontrolniLog }) {
   const sid = job.sesija_id || null;
 
   if (job.type === "kontrolni_log") {
-    const batch = (job.payload || []).map(r => ({ ...stripMeta(r), sesija_id: sid }));
-    const { error } = await supabase.from("kontrolni_log").insert(batch);
-    if (error) throw error;
+    const batch = stampajClientIdNaRedove(job.payload || []).map((r) => ({
+      ...stripMeta(r),
+      sesija_id: sid,
+    }));
+    await insertRowsIdempotent(supabase, "kontrolni_log", batch);
     if (mirrorKontrolniLog) await mirrorKontrolniLog(supabase, batch).catch(() => {});
     return batch.length;
   }
 
   if (job.type === "atributivne_batch") {
     const { logRows = [], kpi } = job.payload || {};
-    const batch = logRows.map(r => ({ ...stripMeta(r), sesija_id: sid }));
+    const batch = stampajClientIdNaRedove(logRows).map((r) => ({
+      ...stripMeta(r),
+      sesija_id: sid,
+    }));
     if (batch.length) {
-      const { error } = await supabase.from("kontrolni_log").insert(batch);
-      if (error) throw error;
+      await insertRowsIdempotent(supabase, "kontrolni_log", batch);
       if (mirrorKontrolniLog) await mirrorKontrolniLog(supabase, batch).catch(() => {});
     }
     if (kpi) {
@@ -271,10 +308,12 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
 
   if (job.type === "merljive_serija") {
     const { merenja = [], kpi } = job.payload || {};
-    const rows = merenja.map(r => ({ ...stripMeta(r), sesija_id: sid }));
+    const rows = stampajClientIdNaRedove(merenja).map((r) => ({
+      ...stripMeta(r),
+      sesija_id: sid,
+    }));
     if (rows.length) {
-      const { error } = await supabase.from("merenja_varijabilna").insert(rows);
-      if (error) throw error;
+      await insertRowsIdempotent(supabase, "merenja_varijabilna", rows);
     }
     if (kpi) {
       const { error: eK } = await snimiKpiUnos(supabase, { ...kpi, sesija_id: sid });
@@ -373,12 +412,8 @@ export function useOfflineQueue(supabase, options = {}) {
     refresh();
   }, [refresh]);
 
-  const addAtributivneBatch = useCallback(({ logRows, kpi, sesija_id }) => {
-    enqueueJob({
-      type: "atributivne_batch",
-      sesija_id: sesija_id || null,
-      payload: { logRows, kpi },
-    });
+  const addAtributivneBatch = useCallback(({ logRows, kpi, sesija_id, id }) => {
+    enqueueAtributivneBatch({ logRows, kpi, sesija_id, id });
     refresh();
   }, [refresh]);
 

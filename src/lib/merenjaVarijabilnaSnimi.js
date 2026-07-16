@@ -1,5 +1,8 @@
 /** Pojedinačno snimanje digitalnog merenja u merenja_varijabilna. */
 
+import { stampajClientIdNaRedove } from "./offlineQueue.js";
+import { jeDupliClientId } from "./dbGreske.js";
+
 export function buildMerenjeVarijabilnaRow({
   datum,
   smena,
@@ -18,8 +21,9 @@ export function buildMerenjeVarijabilnaRow({
   sesijaId,
   foto = null,
   komentar = null,
+  clientId = null,
 }) {
-  return {
+  const [row] = stampajClientIdNaRedove([{
     datum,
     smena: Number(smena) || 1,
     radni_nalog: radniNalog || null,
@@ -40,15 +44,26 @@ export function buildMerenjeVarijabilnaRow({
     foto: status === "NOK" ? foto : null,
     komentar: status === "NOK" ? komentar : null,
     sesija_id: sesijaId,
-  };
+    client_id: clientId || undefined,
+  }]);
+  return row;
 }
 
 export async function snimiJednoMerenjeVarijabilno(supabase, row) {
+  const stamped = stampajClientIdNaRedove([row])[0];
   const { data, error } = await supabase
     .from("merenja_varijabilna")
-    .insert(row)
+    .upsert(stamped, { onConflict: "client_id", ignoreDuplicates: true })
+    .select("id")
+    .maybeSingle();
+  if (!error) return data;
+  if (jeDupliClientId(error)) return { id: null, client_id: stamped.client_id };
+  const { data: d2, error: e2 } = await supabase
+    .from("merenja_varijabilna")
+    .insert(stamped)
     .select("id")
     .single();
-  if (error) throw error;
-  return data;
+  if (e2 && jeDupliClientId(e2)) return { id: null, client_id: stamped.client_id };
+  if (e2) throw e2;
+  return d2;
 }
