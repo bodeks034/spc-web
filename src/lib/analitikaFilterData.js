@@ -1,7 +1,7 @@
 import { supabase } from "./supabaseClient.js";
 import { fetchPogonLinijaMapa } from "./glavniUnosApi.js";
 import { LINIJA_FAZA_POGON_DEFAULT } from "./pogonLinijaLookup.js";
-import listeSeed from "../data/sifrarnikListeSeed.json";
+import listeSeed from "../data/sifrarnikListeSeed.json" with { type: "json" };
 
 /** Jedinstveni ključ — bez obzira na velika/mala slova, razmake i dijakritike. */
 export function normalizujLinijuKljuč(naziv) {

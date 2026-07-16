@@ -1,9 +1,9 @@
 /**
  * ERP preset + config za browser (Vite JSON import).
  */
-import sapPreset from "../../config/erp/presets/sap.json";
-import pantheonPreset from "../../config/erp/presets/pantheon.json";
-import userConfig from "../../config/erp/erp-uvoz.config.json";
+import sapPreset from "../../config/erp/presets/sap.json" with { type: "json" };
+import pantheonPreset from "../../config/erp/presets/pantheon.json" with { type: "json" };
+import userConfig from "../../config/erp/erp-uvoz.config.json" with { type: "json" };
 import { deepMerge } from "./erpUvozCore.js";
 
 export const ERP_PRESETI = {

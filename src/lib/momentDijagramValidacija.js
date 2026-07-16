@@ -1,7 +1,7 @@
 /**
  * Uporedba inženjerskog lista sa legendom u dijagram SVG + komplet šifrarnikom.
  */
-import komplet from "../data/momentKljucKomplet.json";
+import komplet from "../data/momentKljucKomplet.json" with { type: "json" };
 import { imeDijagrama, pozKlucevi } from "./momentDijagramHotspot.js";
 
 /** dijagram → poz_br → { klasifikacija, opis, cilj_nm? } iz komplet seed-a. */

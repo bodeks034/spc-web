@@ -1,4 +1,4 @@
-import hotspotData from "../data/momentDijagramHotspot.json";
+import hotspotData from "../data/momentDijagramHotspot.json" with { type: "json" };
 
 export const PRIKAZ_EKRANA_KLJUCA = "Prikaz_ekrana_digitalnog_kljuca.svg";
 

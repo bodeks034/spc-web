@@ -22,7 +22,7 @@ import {
   filtrirajKarakteristikeBezBrojeva,
   karakteristikaImaBroj,
 } from "./sifrarnikListeKanoni.js";
-import listeSeed from "../data/sifrarnikListeSeed.json";
+import listeSeed from "../data/sifrarnikListeSeed.json" with { type: "json" };
 
 const PRAZNE_OPCIJE = {
   linija: [],

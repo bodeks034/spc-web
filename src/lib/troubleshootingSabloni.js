@@ -12,7 +12,7 @@
 
 import { ucitajPrimere8dIzJson, scoreSablonZaDefekt } from "./troubleshootingPrimeri.js";
 
-import primeriJson from "../data/primeri-8d.json";
+import primeriJson from "../data/primeri-8d.json" with { type: "json" };
 
 
 
