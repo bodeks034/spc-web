@@ -1,0 +1,5 @@
+SifraLinije,NazivLinije,Pogon,proces,Status
+LIN-A,Ulazna kontrola,A,Ulazna kontrola,aktivan
+LIN-B,Preseraj,B,Presovanje i savijanje,aktivan
+LIN-C,Karoserija,C,Montaza nosaca,aktivan
+LIN-F,Zavrsna kontrola,F,Zavrsna kontrola,aktivan

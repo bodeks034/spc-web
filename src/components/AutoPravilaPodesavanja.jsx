@@ -14,6 +14,8 @@ const LABELI = {
   [AUTO_PRAVILO_KLJUCEVI.weekly]: "Nedeljni rollup email",
   [AUTO_PRAVILO_KLJUCEVI.health]: "Dnevni health check (+ email ako problem)",
   [AUTO_PRAVILO_KLJUCEVI.erp]: "ERP dnevni uvoz (CSV drop folder)",
+  [AUTO_PRAVILO_KLJUCEVI.erp_izvoz]: "ERP dnevni izvoz kvaliteta (outgoing, 06:15)",
+  [AUTO_PRAVILO_KLJUCEVI.erp_cleanup]: "ERP arhiva: nedeljno retention čišćenje (90 dana)",
   [AUTO_PRAVILO_KLJUCEVI.push_kriticno]: "Browser push (kritično u aplikaciji)",
 };
 

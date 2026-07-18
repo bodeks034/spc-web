@@ -48,6 +48,8 @@ export function kreirajSkriptaLog(root, fileName, { jobId = null } = {}) {
 
 export const AUTO_LOG_FAJLOVI = [
   "erp-uvoz.log",
+  "erp-izvoz-kvalitet.log",
+  "erp-processed-cleanup.log",
   "smenski-digest.log",
   "auto-podsetnici.log",
   "auto-health.log",

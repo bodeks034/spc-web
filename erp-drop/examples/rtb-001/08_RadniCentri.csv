@@ -1,0 +1,5 @@
+SifraRadnogCentra,NazivRadnogCentra,SifraLinije,Status
+RC-ULAZ,Ulazna kontrola materijala,LIN-A,aktivan
+RC-PRES,Preseraj - secenje i savijanje,LIN-B,aktivan
+RC-KARO,Karoserija - montaza nosaca,LIN-C,aktivan
+RC-ZAVR,Zavrsna kontrola i zastita,LIN-F,aktivan

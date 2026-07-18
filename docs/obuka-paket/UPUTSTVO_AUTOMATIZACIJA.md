@@ -8,7 +8,7 @@ Kompletan pregled cron zadataka, real-time pravila i održavanja.
 
 ```powershell
 cd C:\mix\spc-web
-npm run auto:install:admin    # Task Scheduler (8 zadataka)
+npm run auto:install:admin    # Task Scheduler (10 zadataka)
 npm run db:migrate:auto       # telemetrija (ako nije vec primenjeno)
 ```
 
@@ -26,6 +26,8 @@ chmod +x scripts/install-automatizacija-linux.sh scripts/backup-postgres-linux.s
 | Zadatak | Raspored | Skripta | Log |
 |---------|----------|---------|-----|
 | ERP uvoz | 06:00 | `erp-dnevni-uvoz.mjs` | `logs/erp-uvoz.log` |
+| ERP izvoz kvaliteta | 06:15 | `erp-izvoz-kvalitet.mjs` | `logs/erp-izvoz-kvalitet.log` |
+| ERP arhiva retention | Ned 03:00 | `erp-processed-cleanup.mjs --apply` | `logs/erp-processed-cleanup.log` |
 | Health check | 06:30 | `auto-health-check.mjs --email` | `logs/auto-health.log` |
 | Podsetnici | 08:00 | `auto-podsetnici.mjs` | `logs/auto-podsetnici.log` |
 | Digest smena 1 | 14:05 | `smenski-digest.mjs --pdf` | `logs/smenski-digest.log` |
@@ -74,6 +76,9 @@ npm run digest:smena:dry -- --po-linijama   # digest po linijama (dry)
 npm run digest:smena -- --linija "Ulazna kontrola"   # jedna linija
 npm run auto:health            # health check
 npm run auto:smoke             # smoke (dry podsetnici + digest)
+npm run erp:izvoz:dry          # pregled dnevnog quality izvoza bez pisanja
+npm run erp:cleanup            # processed retention dry-run (90 dana)
+npm run erp:cleanup:apply      # primeni potvrđene retention kandidate
 npm run auto:uninstall         # ukloni Windows taskove
 ```
 
@@ -83,7 +88,7 @@ npm run auto:uninstall         # ukloni Windows taskove
 
 - **Status automatizacije** — poslednji runovi iz `auto_run_log`, audit iz `auto_akcije_log`, CSV export
 - **Status šeme** — provera migracija ukljucujuci `61_auto_telemetrija.sql`
-- **Podešavanja auto-pravila** — toggle po pravilu (ukljucujuci health i ERP)
+- **Podešavanja auto-pravila** — odvojeni toggle-i za ERP uvoz i ERP izvoz
 
 ---
 
@@ -92,7 +97,7 @@ npm run auto:uninstall         # ukloni Windows taskove
 1. Supabase konekcija i kljucne tabele
 2. Nedostajuce SQL migracije
 3. `SMTP_TO` podešen
-4. ERROR u logovima (erp, digest, podsetnici)
+4. ERROR u logovima (ERP uvoz/izvoz, digest, podsetnici)
 5. **2× uzastopni FAIL** istog cron joba u `auto_run_log` → email upozorenje
 
 ---

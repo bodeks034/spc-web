@@ -71,12 +71,16 @@ function Register-SpcTask {
   $Trigger = switch ($Schedule) {
     "daily02" { New-ScheduledTaskTrigger -Daily -At "02:00" }
     "daily06" { New-ScheduledTaskTrigger -Daily -At "06:00" }
+    "daily0615" { New-ScheduledTaskTrigger -Daily -At "06:15" }
     "daily0630" { New-ScheduledTaskTrigger -Daily -At "06:30" }
     "daily08" { New-ScheduledTaskTrigger -Daily -At "08:00" }
     "shift14" { New-ScheduledTaskTrigger -Daily -At "14:05" }
     "shift22" { New-ScheduledTaskTrigger -Daily -At "22:05" }
     "weeklyFri15" {
       New-ScheduledTaskTrigger -Weekly -DaysOfWeek Friday -At "15:00"
+    }
+    "weeklySun03" {
+      New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "03:00"
     }
     "atlogon" { New-ScheduledTaskTrigger -AtLogOn }
     default { New-ScheduledTaskTrigger -Daily -At "06:30" }
@@ -123,6 +127,8 @@ Ili: desni klik PowerShell -> Run as administrator -> npm run auto:install
 
 $tasks = @(
   @{ Name = "SPC-ERP-Dnevni-Uvoz"; Script = "scripts\erp-dnevni-uvoz.mjs"; Extra = ""; Schedule = "daily06"; Desc = "ERP CSV dnevni uvoz"; Type = "node" },
+  @{ Name = "SPC-ERP-Quality-Izvoz"; Script = "scripts\erp-izvoz-kvalitet.mjs"; Extra = ""; Schedule = "daily0615"; Desc = "Dnevni izvoz kvaliteta u ERP outgoing"; Type = "node" },
+  @{ Name = "SPC-ERP-Processed-Cleanup"; Script = "scripts\erp-processed-cleanup.mjs"; Extra = "--apply --remove-empty-dirs"; Schedule = "weeklySun03"; Desc = "ERP processed retention 90 dana"; Type = "node" },
   @{ Name = "SPC-Smenski-Digest-S1"; Script = "scripts\smenski-digest.mjs"; Extra = "--pdf"; Schedule = "shift14"; Desc = "Email digest smena 1 (14h)"; Type = "node" },
   @{ Name = "SPC-Smenski-Digest-S2"; Script = "scripts\smenski-digest.mjs"; Extra = "--smena 2 --pdf"; Schedule = "shift22"; Desc = "Email digest smena 2 (22h)"; Type = "node" },
   @{ Name = "SPC-Auto-Podsetnici"; Script = "scripts\auto-podsetnici.mjs"; Extra = ""; Schedule = "daily08"; Desc = "Proaktivni podsetnici (oba modula)"; Type = "node" },

@@ -1,0 +1,2 @@
+SifraDobavljaca,NazivDobavljaca,Drzava,Grad,PIB,Kontakt,Telefon,Email,Status
+DOB-001,Primer dobavljač,RS,Beograd,100000001,Petar Petrović,+381111111,dobavljac@example.rs,aktivan

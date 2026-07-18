@@ -12,6 +12,8 @@ export const AUTO_PRAVILO_KLJUCEVI = {
   weekly: "auto_pravilo_weekly",
   health: "auto_pravilo_health",
   erp: "auto_pravilo_erp",
+  erp_izvoz: "auto_pravilo_erp_izvoz",
+  erp_cleanup: "auto_pravilo_erp_cleanup",
   push_kriticno: "auto_pravilo_push",
 };
 

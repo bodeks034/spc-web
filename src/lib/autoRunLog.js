@@ -2,6 +2,8 @@
 
 export const AUTO_JOB_DEFINICIJE = [
   { id: "erp-dnevni-uvoz", naziv: "ERP dnevni uvoz", log: "erp-uvoz.log", raspored: "06:00" },
+  { id: "erp-quality-izvoz", naziv: "ERP izvoz kvaliteta", log: "erp-izvoz-kvalitet.log", raspored: "06:15" },
+  { id: "erp-processed-cleanup", naziv: "ERP arhiva retention", log: "erp-processed-cleanup.log", raspored: "Ned 03:00" },
   { id: "smenski-digest", naziv: "Smenski digest", log: "smenski-digest.log", raspored: "14:05 / 22:05" },
   { id: "auto-podsetnici", naziv: "Proaktivni podsetnici", log: "auto-podsetnici.log", raspored: "08:00" },
   { id: "auto-health", naziv: "Health check", log: "auto-health.log", raspored: "06:30" },

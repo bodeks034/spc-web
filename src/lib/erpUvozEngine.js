@@ -9,6 +9,7 @@ import {
   pokreniErpUvozIzIzvora,
   fajlOdgovaraEntitetu,
 } from "./erpUvozCore.js";
+import { jeErpUlazniFajl, erpUlazUCsvTekst } from "./erpCsvIo.js";
 
 export {
   deepMerge,
@@ -50,14 +51,13 @@ export async function ucitajErpConfig(root, { configPath, preset: presetOverride
 
   const merged = deepMerge(preset, userCfg);
   merged.preset = presetName;
-  merged.drop_dir = merged.drop_dir || process.env.ERP_DROP_DIR || "erp-drop/incoming";
-  merged.min_age_min = Number(merged.min_age_min ?? process.env.ERP_MIN_AGE_MIN ?? 2);
+  merged.drop_dir = process.env.ERP_DROP_DIR || merged.drop_dir || "erp-drop/incoming";
+  merged.min_age_min = Number(process.env.ERP_MIN_AGE_MIN ?? merged.min_age_min ?? 2);
   return merged;
 }
 
+/** Pronađi CSV ili XLSX/XLS za entitet (CSV ima prednost ako postoje oba). */
 export async function nadjiCsvZaEntitet(incomingDir, entityCfg) {
-  const names = [entityCfg.fajl, ...(entityCfg.fajl_alternativni || [])].filter(Boolean);
-
   let entries;
   try {
     entries = await fs.readdir(incomingDir, { withFileTypes: true });
@@ -65,23 +65,27 @@ export async function nadjiCsvZaEntitet(incomingDir, entityCfg) {
     return null;
   }
 
-  const byName = new Map(
-    entries
-      .filter((e) => e.isFile() && /\.csv$/i.test(e.name))
-      .map((e) => [e.name.toLowerCase(), path.join(incomingDir, e.name)]),
-  );
+  const kandidati = entries
+    .filter((e) => e.isFile() && jeErpUlazniFajl(e.name) && fajlOdgovaraEntitetu(e.name, entityCfg))
+    .map((e) => e.name);
 
-  for (const name of names) {
-    const hit = byName.get(name.toLowerCase());
-    if (hit) return hit;
-  }
-  return null;
+  if (!kandidati.length) return null;
+
+  const csv = kandidati.find((n) => /\.csv$/i.test(n));
+  const pick = csv || kandidati[0];
+  return path.join(incomingDir, pick);
 }
 
 async function fajlDovoljnoStar(csvPath, minAgeMin) {
   if (!minAgeMin || minAgeMin <= 0) return true;
   const st = await fs.stat(csvPath);
   return Date.now() - st.mtimeMs >= minAgeMin * 60 * 1000;
+}
+
+async function ucitajErpUlazniFajl(filePath) {
+  const buf = await fs.readFile(filePath);
+  const { text, encoding, format } = erpUlazUCsvTekst(buf, path.basename(filePath));
+  return { text, encoding, format };
 }
 
 /** Uvoz iz drop foldera (cron / API server). */
@@ -92,6 +96,7 @@ export async function pokreniErpUvoz(supabase, config, options = {}) {
     entitetFilter = null,
     arhivirajFn = null,
     minAgeMin = config.min_age_min,
+    izvor = "folder",
   } = options;
 
   const redosled = config.redosled_uvoza || Object.keys(config.entiteti || {});
@@ -112,14 +117,21 @@ export async function pokreniErpUvoz(supabase, config, options = {}) {
       continue;
     }
 
-    const txt = await fs.readFile(csvPath, "utf8");
-    csvPoEntitetu[entId] = { text: txt, fajl: path.basename(csvPath), putanja: csvPath };
+    const ucitano = await ucitajErpUlazniFajl(csvPath);
+    csvPoEntitetu[entId] = {
+      text: ucitano.text,
+      fajl: path.basename(csvPath),
+      putanja: csvPath,
+      encoding: ucitano.encoding,
+      format: ucitano.format,
+    };
   }
 
   const res = await pokreniErpUvozIzIzvora(supabase, config, {
     csvPoEntitetu,
     dryRun,
     entitetFilter,
+    izvor,
   });
 
   for (const [entId, fajl] of Object.entries(premladEntiteti)) {

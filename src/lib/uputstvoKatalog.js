@@ -173,6 +173,15 @@ export const UPUTSTVO_DOKUMENTI = [
     uloge: ADMIN,
   },
   {
+    id: "erp-master-v2",
+    kategorija: "erp-it",
+    naslov: "ERP master podaci v2",
+    opis: "Kupci, dobavljači, BOM, operacije, RN, lot/serial, merila, PFMEA i Control Plan",
+    fajl: "/obuka-paket/UPUTSTVO_ERP_MASTER_V2.md",
+    tip: "markdown",
+    uloge: ADMIN,
+  },
+  {
     id: "erp-rn",
     kategorija: "erp-it",
     naslov: "ERP radni nalozi",

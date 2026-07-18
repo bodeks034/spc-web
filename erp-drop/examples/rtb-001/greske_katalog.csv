@@ -1,0 +1,5 @@
+kategorija,podkategorija,defekt,opis,id_deo,pogon_kod
+Dimenzija,CC-01,Razmak van tolerancije,Razmak montaznih otvora van LSL/USL,RTB-001,B
+Dimenzija,CC-02,Precnik van tolerancije,Precnik otvora van LSL/USL,RTB-001,B
+Povrsina,ZAST,Ostecen premaz,Ogrebotine udubljenja ili pukotine,RTB-001,F
+Materijal,DEBLJ,Debljina lima NOK,Debljina van 3.85-4.15 mm,RTB-001,A

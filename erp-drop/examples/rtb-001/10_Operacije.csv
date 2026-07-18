@@ -1,0 +1,7 @@
+SifraOperacije,SifraDela,BrojOperacije,NazivOperacije,SifraRadnogCentra,SifraMasine,VremeCiklusa,VremePripreme
+OP-ULAZ,RTB-001,10,Ulazna kontrola lima S355MC,RC-ULAZ,,2,5
+OP-SEC,RTB-001,20,Lasersko secenje konture,RC-PRES,LASER-01,1.5,15
+OP-PRES,RTB-001,30,Probijanje otvora i savijanje,RC-PRES,PRESA-250,2.5,30
+OP-KARO,RTB-001,40,Kontrola polozaja pri montazi u karoseriji,RC-KARO,,3,5
+OP-KTL,RTB-001,50,KTL + plastifikacija,RC-ZAVR,KTL-LIN,45,20
+OP-ZAVR,RTB-001,60,Zavrsna kontrola i pakovanje,RC-ZAVR,,3,5

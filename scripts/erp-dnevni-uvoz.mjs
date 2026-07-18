@@ -137,6 +137,7 @@ async function pokreniErpUvozGlavni(args) {
     incomingDir: dropDir,
     dryRun: args.dryRun,
     entitetFilter: args.entitet,
+    izvor: "cron",
     minAgeMin: args.dryRun ? 0 : config.min_age_min,
     arhivirajFn: args.dryRun
       ? null

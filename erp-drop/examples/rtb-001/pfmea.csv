@@ -1,0 +1,7 @@
+SifraDela,Revizija,SifraOperacije,NacinOtkaza,PosledicaOtkaza,UzrokOtkaza,PreventivnaKontrola,DetekcionaKontrola,S,O,D,AP
+RTB-001,0,OP-PRES,Pogresan razmak rupa,Nemoguca montaza rezervoara,Istrazen alat / habanje,Preventivno odrzavanje alata,CMM CC-01,8,3,4,H
+RTB-001,0,OP-PRES,Precnik van tolerancije,Labava / teska montaza,Istrosen cep / punch,Zamena alata po planu,GO/NO GO + CMM CC-02,7,3,3,M
+RTB-001,0,OP-PRES,Visina savijanja van tolerancije,Nepravilan zazor,Pogresan setup prese,Setup checklist,Digitalni visinomer CC-03,7,4,4,H
+RTB-001,0,OP-PRES,Ugao savijanja van tolerancije,Deformacija pri montazi,Nestabilan setup,Standard parametara savijanja,Digitalni uglomer CC-04,6,3,4,M
+RTB-001,0,OP-ULAZ,Debljina lima van specifikacije,Slaba nosivost,Pogresan lim od dobavljaca,Sertifikat materijala + ulazna,Mikrometar CC-06,8,2,3,H
+RTB-001,0,OP-ZAVR,Nedovoljna debljina premaza,Korozija,Pogresan KTL/plastifikacija,Kontrola procesa premaza,Merac premaza,7,3,3,M

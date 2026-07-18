@@ -16,6 +16,7 @@ import {
   stripKarakteristikeForDbUpsert,
   KARAKTERISTIKE_UPSERT_CONFLICT,
 } from "./karakteristikaMerljive.js";
+import { syncErpGlavniUnos } from "./erpGlavniUnosSync.js";
 
 const ULOGA_MAP = {
   operator: "operator",
@@ -83,6 +84,22 @@ function toBool(v) {
   return undefined;
 }
 
+function toAktivanIzDeleteFlag(v) {
+  if (v === "" || v == null) return undefined;
+  const s = String(v).trim().toLowerCase();
+  if (["x", "1", "true", "da", "yes", "deleted", "obrisan"].includes(s)) return false;
+  if (["0", "false", "ne", "no", "active", "aktivan"].includes(s)) return true;
+  return undefined;
+}
+
+function toAktivanStatus(v) {
+  if (v === "" || v == null) return undefined;
+  const s = String(v).trim().toLowerCase();
+  if (["aktivan", "aktivna", "aktivno", "active", "otvoren", "open", "1", "da", "yes", "true"].includes(s)) return true;
+  if (["neaktivan", "neaktivna", "neaktivno", "inactive", "zatvoren", "closed", "obrisan", "deleted", "0", "ne", "no", "false"].includes(s)) return false;
+  return toBool(v);
+}
+
 function toUpper(v) {
   return v ? String(v).trim().toUpperCase() : "";
 }
@@ -112,6 +129,10 @@ export function transformVrednost(v, transform, ctx = {}) {
       return toNum(v);
     case "bool":
       return toBool(v);
+    case "aktivan_iz_delete_flag":
+      return toAktivanIzDeleteFlag(v);
+    case "aktivan_status":
+      return toAktivanStatus(v);
     case "datum":
       return normalizujDatum(v);
     case "status":
@@ -153,6 +174,11 @@ export function mapCsvRed(row, entityCfg) {
     if (raw === "" && spec.obavezno !== true) continue;
     ctx[dbPolje] = raw;
     out[dbPolje] = transformVrednost(raw, spec.transform, ctx);
+  }
+
+  if (out._delete_flag !== undefined) {
+    out.aktivan = out._delete_flag;
+    delete out._delete_flag;
   }
 
   for (const polje of entityCfg.obavezna_polja || []) {
@@ -203,6 +229,9 @@ export function mapCsvRed(row, entityCfg) {
   }
 
   if (entityCfg.tabela === "kalibracije") {
+    out._merilo_sifra = pickFromRow(row, entityCfg.merilo_sifra_iz || [
+      "sifra_merila", "SifraMerila", "tool_code",
+    ]);
     out._merilo_serijski = pickFromRow(row, entityCfg.merilo_serijski_iz || [
       "serijski_broj", "merilo_serijski", "serijski br", "equnr", "merilo",
     ]);
@@ -211,10 +240,10 @@ export function mapCsvRed(row, entityCfg) {
     ]);
     if (out.datum_kal) out.datum_kal = normalizujDatum(out.datum_kal);
     if (out.sledeca_kal) out.sledeca_kal = normalizujDatum(out.sledeca_kal);
-    if (!out._merilo_serijski && !out._merilo_naziv) {
+    if (!out._merilo_sifra && !out._merilo_serijski && !out._merilo_naziv) {
       return {
         ok: false,
-        greska: `Linija ${row._linija || "?"}: nedostaje merilo (serijski_broj ili naziv_merila)`,
+        greska: `Linija ${row._linija || "?"}: nedostaje merilo (sifra, serijski_broj ili naziv)`,
       };
     }
   }
@@ -227,6 +256,12 @@ export function mapCsvRed(row, entityCfg) {
     out.pogon_kod = toUpper(out.pogon_kod);
   }
 
+  if (entityCfg.erp_kljuc_polja?.length) {
+    out.erp_kljuc = entityCfg.erp_kljuc_polja
+      .map((polje) => String(out[polje] ?? "").trim().toUpperCase())
+      .join("|");
+  }
+
   return { ok: true, row: out };
 }
 
@@ -235,11 +270,17 @@ export function parsirajEntitetCsv(txt, entityCfg) {
   const redovi = [];
   const greske = [];
   const upsertKey = entityCfg.upsert_kljuc;
+  const compositeKeyPolja = String(entityCfg.upsert_kljuc || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const lookupPolja = entityCfg.upsert_strategija === "ref_lookup"
     ? (entityCfg.lookup_polja || [])
     : entityCfg.upsert_strategija === "karakteristike_merljive"
       ? (entityCfg.upsert_kljuc || KARAKTERISTIKE_UPSERT_CONFLICT).split(",").map((s) => s.trim())
-      : null;
+      : compositeKeyPolja.length > 1
+        ? compositeKeyPolja
+        : null;
   const seen = new Set();
 
   sirovi.forEach((r) => {
@@ -272,12 +313,76 @@ export function parsirajEntitetCsv(txt, entityCfg) {
   return { redovi, greske, ukupno: sirovi.length, validnih: redovi.length };
 }
 
-/** Da li ime fajla odgovara entitetu iz configa. */
+async function validirajReferenceEntiteta(supabase, entityCfg, rows) {
+  const checks = entityCfg.reference_checks || [];
+  if (!supabase || !checks.length || !rows.length) return { redovi: rows, greske: [] };
+
+  const normalizedChecks = checks.map((check, idx) => ({
+    ...check,
+    _id: idx,
+    _polja: check.polja || [check.polje],
+    _refPolja: check.ref_polja || [check.ref_polje],
+  }));
+  const keyZa = (obj, polja) => polja.map((p) => String(obj[p] ?? "").trim()).join("|");
+  const dozvoljenoPoProveri = new Map();
+
+  for (const check of normalizedChecks) {
+    const prvaPolja = check._polja[0];
+    const prvoRefPolje = check._refPolja[0];
+    const vrednosti = [...new Set(
+      rows.map((row) => row[prvaPolja]).filter((v) => v != null && String(v).trim() !== ""),
+    )];
+    const dozvoljeno = new Set();
+    for (let i = 0; i < vrednosti.length; i += 100) {
+      const chunk = vrednosti.slice(i, i + 100);
+      const { data, error } = await supabase
+        .from(check.tabela)
+        .select(check._refPolja.join(","))
+        .in(prvoRefPolje, chunk);
+      if (error) {
+        return {
+          redovi: [],
+          greske: [`Provera reference ${check._polja.join("+")} → ${check.tabela}.${check._refPolja.join("+")}: ${error.message}`],
+        };
+      }
+      (data || []).forEach((r) => dozvoljeno.add(keyZa(r, check._refPolja)));
+    }
+    dozvoljenoPoProveri.set(check._id, dozvoljeno);
+  }
+
+  const validni = [];
+  const greske = [];
+  rows.forEach((row, idx) => {
+    const neispravne = normalizedChecks.filter((check) => {
+      const values = check._polja.map((p) => row[p]);
+      const prazno = values.some((value) => value == null || String(value).trim() === "");
+      if (prazno) return check.obavezna === true;
+      return !dozvoljenoPoProveri.get(check._id)?.has(keyZa(row, check._polja));
+    });
+    if (!neispravne.length) {
+      validni.push(row);
+      return;
+    }
+    greske.push(
+      `Red ${idx + 2}: nepostojeća referenca ${neispravne
+        .map((check) => check._polja.map((p) => `${p}=${row[p] ?? ""}`).join("+"))
+        .join(", ")}`,
+    );
+  });
+  return { redovi: validni, greske };
+}
+
+/** Da li ime fajla odgovara entitetu iz configa (.csv / .xlsx / .xls). */
 export function fajlOdgovaraEntitetu(imeFajla, entityCfg) {
-  const low = String(imeFajla || "").toLowerCase();
+  const canonical = (value) => String(value || "")
+    .toLowerCase()
+    .replace(/\.(csv|xlsx|xls)$/i, "")
+    .replace(/^\d+[\s_.-]*/, "")
+    .replace(/[^a-z0-9čćžšđ]+/g, "");
+  const low = canonical(imeFajla);
   const names = [entityCfg.fajl, ...(entityCfg.fajl_alternativni || [])]
     .filter(Boolean)
-    .map((n) => n.toLowerCase());
+    .map(canonical);
   return names.includes(low);
 }
 
@@ -478,14 +583,20 @@ async function upsertNameLookup(supabase, entityCfg, rows) {
 
 async function upsertMeriloLookup(supabase, entityCfg, rows) {
   const tabela = entityCfg.tabela;
+  const sifraPolje = entityCfg.merilo_sifra_polje || "sifra_merila";
   const serijskiPolje = entityCfg.merilo_serijski_polje || "serijski_broj";
   const nazivPolje = entityCfg.lookup_polje || "naziv";
   let upsertovano = 0;
 
   for (const row of rows) {
     let postojeci = null;
+    const sifra = row[sifraPolje];
+    if (sifra) {
+      const res = await supabase.from(tabela).select("*").eq(sifraPolje, sifra).maybeSingle();
+      postojeci = res.data;
+    }
     const serijski = row[serijskiPolje];
-    if (serijski) {
+    if (!postojeci && serijski) {
       const res = await supabase.from(tabela).select("*").eq(serijskiPolje, serijski).maybeSingle();
       postojeci = res.data;
     }
@@ -515,11 +626,16 @@ async function upsertKalibracijeMerilo(supabase, entityCfg, rows) {
   let upsertovano = 0;
 
   for (const row of rows) {
+    const sifra = row._merilo_sifra;
     const serijski = row._merilo_serijski;
     const naziv = row._merilo_naziv;
     let merilo = null;
 
-    if (serijski) {
+    if (sifra) {
+      const res = await supabase.from("merila").select("id").eq("sifra_merila", sifra).maybeSingle();
+      merilo = res.data;
+    }
+    if (!merilo && serijski) {
       const res = await supabase.from("merila").select("id").eq("serijski_broj", serijski).maybeSingle();
       merilo = res.data;
     }
@@ -530,6 +646,7 @@ async function upsertKalibracijeMerilo(supabase, entityCfg, rows) {
     if (!merilo?.id) continue;
 
     const payload = { ...row };
+    delete payload._merilo_sifra;
     delete payload._merilo_serijski;
     delete payload._merilo_naziv;
     for (const p of entityCfg.izbaci_polja || []) delete payload[p];
@@ -582,6 +699,35 @@ async function upsertEmailLookup(supabase, entityCfg, rows) {
   return { ok: true, upsertovano };
 }
 
+async function upsertCodeOrFallbackLookup(supabase, entityCfg, rows) {
+  const tabela = entityCfg.tabela;
+  const codeField = entityCfg.lookup_polje;
+  const fallback = entityCfg.fallback_lookup;
+  let upsertovano = 0;
+
+  for (const row of rows) {
+    let postojeci = null;
+    if (codeField && row[codeField]) {
+      const res = await supabase.from(tabela).select("id").eq(codeField, row[codeField]).maybeSingle();
+      postojeci = res.data;
+    }
+    if (!postojeci && fallback && row[fallback]) {
+      const res = await supabase.from(tabela).select("id").eq(fallback, row[fallback]).maybeSingle();
+      postojeci = res.data;
+    }
+
+    if (postojeci?.id) {
+      const { error } = await supabase.from(tabela).update(row).eq("id", postojeci.id);
+      if (error) return { ok: false, error, upsertovano };
+    } else {
+      const { error } = await supabase.from(tabela).insert(row);
+      if (error) return { ok: false, error, upsertovano };
+    }
+    upsertovano += 1;
+  }
+  return { ok: true, upsertovano };
+}
+
 async function upsertLegacyRadniNalozi(supabase, entityCfg, rows) {
   let finalRows = rows.map((r) => ({ ...r, status: r.status ?? "aktivan" }));
 
@@ -596,6 +742,65 @@ async function upsertLegacyRadniNalozi(supabase, entityCfg, rows) {
     syncKupci: entityCfg.sync_kupci !== false,
     mergeNulls: false,
   });
+}
+
+async function upsertQmsDocumentRows(supabase, entityCfg, rows) {
+  const nazivDokumenta = entityCfg.qms_tip === "pfmea" ? "ERP PFMEA" : "ERP Control Plan";
+  const grupe = new Map();
+  for (const row of rows) {
+    const idDeo = toUpper(row.br_dela);
+    const revizija = String(row.revizija_dokumenta || "A").trim() || "A";
+    const key = `${idDeo}|${revizija}`;
+    if (!grupe.has(key)) grupe.set(key, { idDeo, revizija, rows: [] });
+    grupe.get(key).rows.push(row);
+  }
+
+  let upsertovano = 0;
+  for (const grupa of grupe.values()) {
+    let { data: dokument, error: findError } = await supabase
+      .from("pfmea_cp_dokumenti")
+      .select("id")
+      .eq("naziv", nazivDokumenta)
+      .eq("id_deo", grupa.idDeo)
+      .eq("revizija", grupa.revizija)
+      .limit(1)
+      .maybeSingle();
+    if (findError) return { ok: false, error: findError, upsertovano };
+
+    if (!dokument?.id) {
+      const created = await supabase
+        .from("pfmea_cp_dokumenti")
+        .insert({
+          naziv: nazivDokumenta,
+          id_deo: grupa.idDeo,
+          revizija: grupa.revizija,
+          napomena: "Automatski sinhronizovano iz ERP sistema",
+          aktivan: true,
+        })
+        .select("id")
+        .single();
+      if (created.error) return { ok: false, error: created.error, upsertovano };
+      dokument = created.data;
+    }
+
+    const payload = grupa.rows.map((row, idx) => {
+      const out = { ...row };
+      delete out.revizija_dokumenta;
+      out.dokument_id = dokument.id;
+      out.red_broj = idx + 1;
+      return out;
+    });
+    const res = await upsertConflictBatch(
+      supabase,
+      entityCfg.tabela,
+      "erp_kljuc",
+      payload,
+      entityCfg.izbaci_polja || [],
+    );
+    if (!res.ok) return { ...res, upsertovano: upsertovano + (res.upsertovano || 0) };
+    upsertovano += res.upsertovano;
+  }
+  return { ok: true, upsertovano };
 }
 
 async function syncDeloviAtributivniPogon(supabase, rows) {
@@ -655,11 +860,17 @@ export async function upsertEntitet(supabase, entityCfg, rows) {
   if (strategija === "legacy_radni_nalozi") {
     return upsertLegacyRadniNalozi(supabase, entityCfg, finalRows);
   }
+  if (strategija === "qms_document_rows") {
+    return upsertQmsDocumentRows(supabase, entityCfg, finalRows);
+  }
   if (strategija === "name_lookup") {
     return upsertNameLookup(supabase, entityCfg, finalRows);
   }
   if (strategija === "email_lookup") {
     return upsertEmailLookup(supabase, entityCfg, finalRows);
+  }
+  if (strategija === "code_or_fallback_lookup") {
+    return upsertCodeOrFallbackLookup(supabase, entityCfg, finalRows);
   }
   if (strategija === "ref_lookup") {
     return upsertRefLookup(supabase, entityCfg, finalRows);
@@ -721,12 +932,29 @@ export async function pokreniErpUvozIzIzvora(supabase, config, options = {}) {
     csvPoEntitetu = {},
     dryRun = false,
     entitetFilter = null,
+    izvor = "erp",
   } = options;
+
+  const batchId = globalThis.crypto?.randomUUID?.()
+    || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  let batchAktivan = false;
+  if (supabase && !dryRun) {
+    try {
+      const { error } = await supabase.from("erp_uvoz_batch").insert({
+        id: batchId,
+        izvor,
+        preset: config.preset || config.erp_sistem || null,
+        status: "pokrenut",
+      });
+      batchAktivan = !error;
+    } catch { /* migracija 67 još nije primenjena — stari uvoz ostaje kompatibilan */ }
+  }
 
   const redosled = config.redosled_uvoza || Object.keys(config.entiteti || {});
   const entiteti = config.entiteti || {};
   const rezultati = [];
   let biloGreske = false;
+  const promenjeniDelovi = new Set();
 
   for (const entId of redosled) {
     if (entitetFilter && entId !== entitetFilter) continue;
@@ -737,17 +965,23 @@ export async function pokreniErpUvozIzIzvora(supabase, config, options = {}) {
       continue;
     }
 
-    const izvor = csvPoEntitetu[entId];
-    if (!izvor?.text) {
+    const izvorEntiteta = csvPoEntitetu[entId];
+    if (!izvorEntiteta?.text) {
       rezultati.push({ entitet: entId, status: "nema_fajla", fajl: entityCfg.fajl });
       continue;
     }
 
-    const parsed = parsirajEntitetCsv(izvor.text, entityCfg);
+    const parsed = parsirajEntitetCsv(izvorEntiteta.text, entityCfg);
+    if (supabase && entityCfg.reference_checks?.length) {
+      const refs = await validirajReferenceEntiteta(supabase, entityCfg, parsed.redovi);
+      parsed.redovi = refs.redovi;
+      parsed.validnih = refs.redovi.length;
+      parsed.greske.push(...refs.greske);
+    }
     const entry = {
       entitet: entId,
       tabela: entityCfg.tabela,
-      fajl: izvor.fajl || entityCfg.fajl,
+      fajl: izvorEntiteta.fajl || entityCfg.fajl,
       ukupno: parsed.ukupno,
       validnih: parsed.validnih,
       greske: parsed.greske,
@@ -755,9 +989,26 @@ export async function pokreniErpUvozIzIzvora(supabase, config, options = {}) {
     };
 
     if (parsed.greske.length) entry.upozorenja = parsed.greske.length;
+    if (batchAktivan && parsed.greske.length) {
+      const rejects = parsed.greske.slice(0, 200).map((poruka) => ({
+        batch_id: batchId,
+        entitet: entId,
+        fajl: izvorEntiteta.fajl || entityCfg.fajl,
+        poruka,
+      }));
+      try {
+        await supabase.from("erp_uvoz_reject").insert(rejects);
+      } catch { /* audit ne sme oboriti osnovni uvoz */ }
+    }
 
     if (!parsed.redovi.length) {
-      entry.status = "prazno";
+      if (parsed.ukupno > 0 && parsed.greske.length) {
+        entry.status = "greska";
+        entry.greska = parsed.greske[0];
+        biloGreske = true;
+      } else {
+        entry.status = "prazno";
+      }
       rezultati.push(entry);
       continue;
     }
@@ -780,15 +1031,68 @@ export async function pokreniErpUvozIzIzvora(supabase, config, options = {}) {
       continue;
     }
 
+    for (const row of parsed.redovi) {
+      const idDeo = row.id_deo || row.br_dela || row.ref_id;
+      if (idDeo) promenjeniDelovi.add(String(idDeo).trim().toUpperCase());
+    }
     rezultati.push(entry);
   }
 
-  return {
+  if (!dryRun && supabase && promenjeniDelovi.size) {
+    const syncRes = await syncErpGlavniUnos(supabase, [...promenjeniDelovi]);
+    if (syncRes.ok) {
+      rezultati.push({
+        entitet: "glavni_unos",
+        tabela: "glavni_unos_redovi",
+        fajl: "ERP → Glavni unos",
+        status: "ok",
+        ukupno: syncRes.upsertovano,
+        validnih: syncRes.upsertovano,
+        upsertovano: syncRes.upsertovano,
+        upozorenja: syncRes.bezMape?.length || 0,
+        greske: (syncRes.bezMape || []).map(
+          (sifra) => `SifraVozila ${sifra} nema dodeljen sheet u Glavnom unosu`,
+        ),
+      });
+    } else if (syncRes.nedostajeMigracija) {
+      rezultati.push({
+        entitet: "glavni_unos",
+        status: "greska",
+        greska: "Nedostaje migracija 68_erp_glavni_unos_sheetovi.sql",
+      });
+      biloGreske = true;
+    } else {
+      rezultati.push({
+        entitet: "glavni_unos",
+        status: "greska",
+        greska: syncRes.error?.message || String(syncRes.error),
+      });
+      biloGreske = true;
+    }
+  }
+
+  const out = {
     ok: !biloGreske,
     preset: config.preset,
     erp_sistem: config.erp_sistem,
+    batch_id: batchAktivan ? batchId : null,
     rezultati,
   };
+  if (batchAktivan) {
+    const sum = sumErpRezultati(rezultati);
+    try {
+      await supabase.from("erp_uvoz_batch").update({
+        status: biloGreske ? "greska" : "uspeh",
+        ukupno_redova: sum.ukupno,
+        validnih: sum.validnih,
+        upsertovano: sum.upsertovano,
+        upozorenja: sum.upozorenja,
+        detalj: rezultati,
+        finished_at: new Date().toISOString(),
+      }).eq("id", batchId);
+    } catch { /* audit ne sme oboriti osnovni uvoz */ }
+  }
+  return out;
 }
 
 export function sumErpRezultati(rezultati) {

@@ -3,21 +3,32 @@
   "erp_sistem": "sap",
   "opis": "SAP S/4HANA / ECC — tipični nazivi kolona iz izvoza (MATNR, AUFNR, KUNNR…)",
   "redosled_uvoza": [
-    "linije",
-    "masine",
+    "kupci",
+    "dobavljaci",
     "smene",
+    "linije",
+    "radni_centri",
+    "masine",
     "tipovi_vozila",
     "pogon_linija_mapa",
+    "materijali",
     "delovi",
     "crtezi_dela",
+    "sastavnica",
+    "operacije",
     "greske_katalog",
-    "kupci",
     "merila",
     "kalibracije",
     "karakteristike_merljive",
+    "kontrolni_plan_erp",
+    "pfmea_erp",
     "barkod_profili",
     "radnici",
-    "radni_nalozi"
+    "skladista",
+    "lokacije",
+    "radni_nalozi",
+    "serije",
+    "serijski_brojevi"
   ],
   "entiteti": {
     "linije": {
@@ -26,14 +37,19 @@
       "fajl": "linije.csv",
       "fajl_alternativni": ["sap_linije.csv", "work_centers.csv", "crhd.csv"],
       "tabela": "linije",
-      "upsert_strategija": "name_lookup",
-      "lookup_polje": "linija",
+      "upsert_strategija": "code_or_fallback_lookup",
+      "lookup_polje": "sifra_linije",
+      "fallback_lookup": "linija",
       "obavezna_polja": ["linija"],
-      "podrazumevano": {},
+      "podrazumevano": { "aktivna": true },
       "kolone": {
-        "linija": { "iz": ["ARBPL", "arbpl", "linija", "work_center", "radno_mesto"] },
+        "sifra_linije": { "iz": ["SifraLinije", "ARBPL", "arbpl", "line_code"], "transform": "upper" },
+        "linija": { "iz": ["NazivLinije", "ARBPL", "arbpl", "linija", "work_center", "radno_mesto"] },
+        "pogon_kod": { "iz": ["Pogon", "WERKS", "plant"], "transform": "upper" },
         "proces": { "iz": ["KTEXT", "ktext", "proces", "process"] },
-        "operacija": { "iz": ["VORNR", "vornr", "operacija", "operation"] }
+        "operacija": { "iz": ["VORNR", "vornr", "operacija", "operation"] },
+        "opis": { "iz": ["Opis", "description"] },
+        "aktivna": { "iz": ["Status", "aktivan", "active"], "transform": "aktivan_status" }
       }
     },
     "masine": {
@@ -42,10 +58,20 @@
       "fajl": "masine.csv",
       "fajl_alternativni": ["sap_masine.csv", "equipment.csv", "equi.csv"],
       "tabela": "masine",
-      "upsert_kljuc": "naziv",
+      "upsert_strategija": "code_or_fallback_lookup",
+      "lookup_polje": "sifra_masine",
+      "fallback_lookup": "naziv",
       "obavezna_polja": ["naziv"],
+      "podrazumevano": { "aktivna": true },
       "kolone": {
-        "naziv": { "iz": ["EQUNR", "equnr", "EQKTU", "naziv", "masina", "equipment"] }
+        "sifra_masine": { "iz": ["SifraMasine", "EQUNR", "equnr", "equipment"], "transform": "upper" },
+        "naziv": { "iz": ["NazivMasine", "EQKTU", "EQUNR", "naziv", "masina", "equipment"] },
+        "sifra_radnog_centra": { "iz": ["SifraRadnogCentra", "ARBPL", "work_center"], "transform": "upper" },
+        "proizvodjac": { "iz": ["Proizvodjac", "manufacturer"] },
+        "model": { "iz": ["Model"] },
+        "serijski_broj": { "iz": ["SerijskiBroj", "SERNR", "serial"] },
+        "godina": { "iz": ["Godina", "Baujahr", "year"], "transform": "int" },
+        "aktivna": { "iz": ["Status", "aktivan", "active"], "transform": "aktivan_status" }
       }
     },
     "smene": {
@@ -54,10 +80,15 @@
       "fajl": "smene.csv",
       "fajl_alternativni": ["sap_smene.csv", "shifts.csv"],
       "tabela": "smene",
-      "upsert_kljuc": "naziv",
+      "upsert_strategija": "code_or_fallback_lookup",
+      "lookup_polje": "sifra_smene",
+      "fallback_lookup": "naziv",
       "obavezna_polja": ["naziv"],
       "kolone": {
-        "naziv": { "iz": ["naziv", "smena", "shift", "TSHIFT"] }
+        "sifra_smene": { "iz": ["SifraSmene", "shift_code"], "transform": "upper" },
+        "naziv": { "iz": ["NazivSmene", "naziv", "smena", "shift", "TSHIFT"] },
+        "pocetak": { "iz": ["VremePocetka", "pocetak", "start_time"] },
+        "kraj": { "iz": ["VremeZavrsetka", "kraj", "end_time"] }
       }
     },
     "tipovi_vozila": {
@@ -70,8 +101,12 @@
       "obavezna_polja": ["kod", "naziv"],
       "podrazumevano": { "aktivan": true },
       "kolone": {
-        "kod": { "iz": ["MVGR1", "mvgr1", "kod", "product_group", "PRDHA"], "transform": "upper" },
-        "naziv": { "iz": ["WGBEZ", "wgbez", "naziv", "opis", "description"] },
+        "kod": { "iz": ["SifraVozila", "MVGR1", "mvgr1", "kod", "product_group", "PRDHA"], "transform": "upper" },
+        "naziv": { "iz": ["NazivVozila", "WGBEZ", "wgbez", "naziv", "opis", "description"] },
+        "platforma": { "iz": ["Platforma", "platform"] },
+        "model": { "iz": ["Model"] },
+        "godiste": { "iz": ["Godiste", "model_year"], "transform": "int" },
+        "sifra_kupca": { "iz": ["Kupac", "SifraKupca", "KUNNR"], "transform": "upper" },
         "prefiks_id_deo": { "iz": ["prefiks_id_deo", "prefiks", "prefix"] },
         "slika_sop": { "iz": ["slika_sop", "slika"] },
         "aktivan": { "iz": ["aktivan", "active"], "transform": "bool" },
@@ -94,8 +129,14 @@
         "kom_za_kontrolu": 30
       },
       "kolone": {
-        "id_deo": { "iz": ["MATNR", "matnr", "id_deo", "material", "sifra_dela", "artikal"], "transform": "upper" },
-        "naziv_dela": { "iz": ["MAKTX", "maktx", "naziv_dela", "naziv", "text", "opis"] },
+        "id_deo": { "iz": ["SifraDela", "MATNR", "matnr", "id_deo", "material", "sifra_dela", "artikal"], "transform": "upper" },
+        "naziv_dela": { "iz": ["NazivDela", "MAKTX", "maktx", "naziv_dela", "naziv", "text", "opis"] },
+        "sifra_vozila": { "iz": ["SifraVozila", "MVGR1", "product_group"], "transform": "upper" },
+        "broj_crteza": { "iz": ["BrojCrteza", "drawing_no"] },
+        "revizija": { "iz": ["Revizija", "REV", "revision"] },
+        "sifra_materijala": { "iz": ["Materijal", "SifraMaterijala", "material_code"], "transform": "upper" },
+        "masa": { "iz": ["Masa", "BRGEW", "weight"], "transform": "num" },
+        "jedinica_mere": { "iz": ["JedinicaMere", "MEINS", "unit"] },
         "pogon_kod": { "iz": ["WERKS", "werks", "pogon_kod", "plant"], "transform": "upper" },
         "radni_nalog": { "iz": ["AUFNR", "aufnr", "radni_nalog"], "transform": "upper" },
         "karakteristika": { "iz": ["karakteristika", "inspection_char"] },
@@ -103,7 +144,8 @@
         "masina_id": { "iz": ["masina_id", "masina id"], "transform": "int" },
         "kom_za_kontrolu": { "iz": ["kom_za_kontrolu", "sample_size"], "transform": "int" },
         "slika_naziv": { "iz": ["slika_naziv", "drawing"] },
-        "aktivan": { "iz": ["aktivan", "LVORM", "active"], "transform": "bool" },
+        "aktivan": { "iz": ["Status", "aktivan", "active"], "transform": "aktivan_status" },
+        "_delete_flag": { "iz": ["LVORM"], "transform": "aktivan_iz_delete_flag" },
         "napomena": { "iz": ["napomena", "note"] },
         "tip_kontrole": { "iz": ["tip_kontrole", "MTART"], "transform": "tip_kontrole" },
         "vozilo_katalog_id": { "iz": ["vozilo_katalog_id", "product_group"] }
@@ -127,14 +169,18 @@
         "aktivna": true
       },
       "kolone": {
-        "ref_id": { "iz": ["id_deo", "MATNR", "matnr", "ref_id", "sifra_dela", "Ident"], "transform": "upper" },
+        "ref_id": { "iz": ["SifraDela", "id_deo", "MATNR", "matnr", "ref_id", "sifra_dela", "Ident"], "transform": "upper" },
         "ref_tip": { "iz": ["ref_tip", "tip", "ref_type"] },
-        "naziv": { "iz": ["naziv", "drawing_name", "ZEICHNUNG", "crtez", "naziv_crteza"] },
+        "naziv": { "iz": ["NazivCrteza", "naziv", "drawing_name", "ZEICHNUNG", "crtez", "naziv_crteza"] },
+        "broj_crteza": { "iz": ["BrojCrteza", "drawing_no"] },
         "izvor_format": { "iz": ["izvor_format", "source_format", "dwg_format"] },
         "izvor_putanja": { "iz": ["izvor_putanja", "dwg_path", "source_path", "izvor"] },
         "prikaz_format": { "iz": ["prikaz_format", "display_format"] },
-        "prikaz_putanja": { "iz": ["prikaz_putanja", "svg_path", "display_path", "slika", "prikaz", "putanja_svg"] },
-        "revizija": { "iz": ["revizija", "revision", "REV", "rev"] },
+        "prikaz_putanja": { "iz": ["NazivFajla", "prikaz_putanja", "svg_path", "display_path", "slika", "prikaz", "putanja_svg"] },
+        "naziv_fajla": { "iz": ["NazivFajla", "file_name"] },
+        "revizija": { "iz": ["Revizija", "revizija", "revision", "REV", "rev"] },
+        "datum_revizije": { "iz": ["DatumRevizije", "revision_date"], "transform": "datum" },
+        "odobrio": { "iz": ["Odobrio", "approved_by"] },
         "aktivna": { "iz": ["aktivan", "aktivna", "active"], "transform": "bool" },
         "napomena": { "iz": ["napomena", "note"] }
       }
@@ -145,15 +191,26 @@
       "fajl": "kupci.csv",
       "fajl_alternativni": ["sap_kupci.csv", "customers.csv", "kna1.csv"],
       "tabela": "kupci",
-      "upsert_kljuc": "naziv",
+      "upsert_strategija": "code_or_fallback_lookup",
+      "lookup_polje": "sifra_kupca",
+      "fallback_lookup": "naziv",
       "izbaci_polja": ["id"],
       "merge_nulls": true,
       "obavezna_polja": ["naziv"],
       "podrazumevano": { "aktivan": true },
       "kolone": {
-        "id": { "iz": ["id", "KUNNR", "kunnr"], "transform": "int" },
-        "naziv": { "iz": ["NAME1", "name1", "naziv", "kupac", "customer", "kunde"] },
-        "aktivan": { "iz": ["aktivan", "LOEVM", "active"], "transform": "bool" }
+        "sifra_kupca": { "iz": ["SifraKupca", "KUNNR", "kunnr"], "transform": "upper" },
+        "naziv": { "iz": ["NazivKupca", "NAME1", "name1", "naziv", "kupac", "customer", "kunde"] },
+        "skraceni_naziv": { "iz": ["SkraceniNaziv", "sortl"] },
+        "drzava": { "iz": ["Drzava", "LAND1", "country"] },
+        "grad": { "iz": ["Grad", "ORT01", "city"] },
+        "adresa": { "iz": ["Adresa", "STRAS", "address"] },
+        "pib": { "iz": ["PIB", "STCEG", "tax_id"] },
+        "kontakt": { "iz": ["Kontakt", "contact"] },
+        "telefon": { "iz": ["Telefon", "TELF1", "phone"] },
+        "email": { "iz": ["Email", "SMTP_ADDR", "mail"] },
+        "aktivan": { "iz": ["Status", "aktivan", "active"], "transform": "aktivan_status" },
+        "_delete_flag": { "iz": ["LOEVM"], "transform": "aktivan_iz_delete_flag" }
       }
     },
     "radnici": {
@@ -162,17 +219,22 @@
       "fajl": "radnici.csv",
       "fajl_alternativni": ["sap_radnici.csv", "employees.csv", "pernr.csv"],
       "tabela": "radnici",
-      "upsert_strategija": "email_lookup",
-      "lookup_polje": "email",
-      "fallback_lookup": "ime",
+      "upsert_strategija": "code_or_fallback_lookup",
+      "lookup_polje": "broj_zaposlenog",
+      "fallback_lookup": "email",
       "obavezna_polja": ["ime", "uloga"],
       "podrazumevano": { "uloga": "operator", "aktivan": true },
       "kolone": {
-        "ime": { "iz": ["ENAME", "ename", "ime", "name", "zaposleni"] },
+        "broj_zaposlenog": { "iz": ["BrojZaposlenog", "PERNR", "pernr"], "transform": "upper" },
+        "ime": { "iz": ["Ime", "ENAME", "ename", "ime", "name", "zaposleni"] },
+        "prezime": { "iz": ["Prezime", "NACHN", "last_name"] },
+        "odeljenje": { "iz": ["Odeljenje", "ORGEH", "department"] },
+        "kvalifikacija": { "iz": ["Kvalifikacija", "qualification"] },
+        "sifra_smene": { "iz": ["Smena", "SifraSmene", "shift_code"], "transform": "upper" },
         "uloga": { "iz": ["uloga", "role"], "transform": "uloga" },
         "email": { "iz": ["email", "SMTP_ADDR", "mail"] },
-        "aktivan": { "iz": ["aktivan", "active"], "transform": "bool" },
-        "napomena": { "iz": ["PERNR", "pernr", "napomena"] }
+        "aktivan": { "iz": ["Status", "aktivan", "active"], "transform": "aktivan_status" },
+        "napomena": { "iz": ["napomena"] }
       }
     },
     "radni_nalozi": {
@@ -185,13 +247,27 @@
       "sync_kupci": true,
       "merge_nulls": true,
       "obavezna_polja": ["broj_naloga", "id_deo"],
+      "reference_checks": [
+        { "polje": "id_deo", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true },
+        { "polje": "sifra_linije", "tabela": "linije", "ref_polje": "sifra_linije" },
+        { "polje": "sifra_masine", "tabela": "masine", "ref_polje": "sifra_masine" },
+        { "polje": "sifra_smene", "tabela": "smene", "ref_polje": "sifra_smene" },
+        { "polje": "broj_zaposlenog", "tabela": "radnici", "ref_polje": "broj_zaposlenog" }
+      ],
       "podrazumevano": { "status": "aktivan" },
       "kolone": {
-        "broj_naloga": { "iz": ["AUFNR", "aufnr", "broj_naloga", "order_no", "radni nal", "rn"] },
-        "id_deo": { "iz": ["MATNR", "matnr", "id_deo", "material"] },
+        "broj_naloga": { "iz": ["BrojRadnogNaloga", "AUFNR", "aufnr", "broj_naloga", "order_no", "radni nal", "rn"] },
+        "id_deo": { "iz": ["SifraDela", "MATNR", "matnr", "id_deo", "material"] },
+        "revizija": { "iz": ["Revizija", "revision"] },
         "pogon_kod": { "iz": ["WERKS", "werks", "pogon_kod", "plant"] },
         "naziv_dela": { "iz": ["MAKTX", "maktx", "naziv_dela"] },
-        "kolicina": { "iz": ["GAMNG", "gamng", "kolicina", "menge", "qty"], "transform": "int" },
+        "kolicina": { "iz": ["Kolicina", "GAMNG", "gamng", "kolicina", "menge", "qty"], "transform": "int" },
+        "sifra_linije": { "iz": ["SifraLinije", "ARBPL", "line_code"], "transform": "upper" },
+        "sifra_masine": { "iz": ["SifraMasine", "EQUNR", "equipment"], "transform": "upper" },
+        "sifra_smene": { "iz": ["SifraSmene", "shift_code"], "transform": "upper" },
+        "broj_zaposlenog": { "iz": ["BrojZaposlenog", "PERNR"], "transform": "upper" },
+        "broj_serije": { "iz": ["BrojSerije", "CHARG", "batch"], "transform": "upper" },
+        "datum_proizvodnje": { "iz": ["DatumProizvodnje", "production_date"], "transform": "datum" },
         "kupac": { "iz": ["KUNNR", "kunnr", "kupac", "customer", "KDAUF"] },
         "datum_unosa": { "iz": ["GSTRP", "gstrp", "datum_unosa", "created"], "transform": "datum" },
         "rok_isporuke": { "iz": ["GLTRP", "gltrp", "rok_isporuke", "due_date"], "transform": "datum" },
@@ -231,12 +307,18 @@
       "obavezna_polja": ["naziv"],
       "podrazumevano": { "aktivno": true },
       "kolone": {
-        "naziv": { "iz": ["naziv", "EQKTU", "naziv_merila", "instrument", "opis"] },
-        "serijski_broj": { "iz": ["serijski_broj", "serijski br", "EQUNR", "serial", "inventarski"] },
-        "tip": { "iz": ["tip", "EQTYP", "vrsta", "kategorija"] },
+        "sifra_merila": { "iz": ["SifraMerila", "EQUNR", "tool_code"], "transform": "upper" },
+        "naziv": { "iz": ["NazivMerila", "naziv", "EQKTU", "naziv_merila", "instrument", "opis"] },
+        "serijski_broj": { "iz": ["SerijskiBroj", "serijski_broj", "serijski br", "SERNR", "serial", "inventarski"] },
+        "tip": { "iz": ["TipMerila", "tip", "EQTYP", "vrsta", "kategorija"] },
+        "proizvodjac": { "iz": ["Proizvodjac", "manufacturer"] },
+        "model": { "iz": ["Model"] },
+        "tacnost": { "iz": ["Tacnost", "accuracy"] },
+        "jedinica_mere": { "iz": ["JedinicaMere", "unit"] },
+        "period_kalibracije_meseci": { "iz": ["PeriodKalibracije", "calibration_period_months"], "transform": "int" },
         "lokacija": { "iz": ["lokacija", "STORT", "mesto", "stanica"] },
         "opseg": { "iz": ["opseg", "merni_opseg", "range"] },
-        "aktivno": { "iz": ["aktivno", "aktivan", "active"], "transform": "bool" },
+        "aktivno": { "iz": ["Status", "aktivno", "aktivan", "active"], "transform": "aktivan_status" },
         "kategorija": { "iz": ["kategorija_merila", "merna_kategorija"] },
         "vendor_profil": { "iz": ["vendor_profil", "proizvodjac_alat"] },
         "linija_stanica": { "iz": ["linija_stanica", "stanica", "work_center"] }
@@ -246,7 +328,7 @@
       "ukljuceno": true,
       "opis": "Kalibracije merila (datum isteka, sertifikat)",
       "fajl": "kalibracije.csv",
-      "fajl_alternativni": ["sap_kalibracije.csv", "calibration.csv", "pm_kalibracije.csv"],
+      "fajl_alternativni": ["kalibracija.csv", "sap_kalibracije.csv", "calibration.csv", "pm_kalibracije.csv"],
       "tabela": "kalibracije",
       "upsert_strategija": "kalibracije_merilo",
       "lookup_polja": ["merilo_id", "datum_kal"],
@@ -255,11 +337,12 @@
       "obavezna_polja": ["datum_kal"],
       "izbaci_polja": ["id"],
       "kolone": {
-        "datum_kal": { "iz": ["datum_kal", "datum kal", "cal_date", "datum_kalibracije"], "transform": "datum" },
-        "sledeca_kal": { "iz": ["sledeca_kal", "sledeca kal", "next_cal", "datum_isteka"], "transform": "datum" },
+        "datum_kal": { "iz": ["DatumKalibracije", "datum_kal", "datum kal", "cal_date", "datum_kalibracije"], "transform": "datum" },
+        "sledeca_kal": { "iz": ["DatumSledeceKalibracije", "sledeca_kal", "sledeca kal", "next_cal", "datum_isteka"], "transform": "datum" },
         "izvrsio": { "iz": ["izvrsio", "izvršio", "calibrated_by", "servis"] },
-        "sertifikat_br": { "iz": ["sertifikat_br", "cert br", "certificate", "sertifikat"] },
-        "rezultat": { "iz": ["rezultat", "result", "status_kal"] },
+        "sertifikat_br": { "iz": ["BrojSertifikata", "sertifikat_br", "cert br", "certificate", "sertifikat"] },
+        "rezultat": { "iz": ["Rezultat", "rezultat", "result", "status_kal"] },
+        "laboratorija": { "iz": ["Laboratorija", "laboratory"] },
         "napomena": { "iz": ["napomena", "note"] }
       }
     },
@@ -292,6 +375,255 @@
         "tip_koda": { "iz": ["tip_koda", "barcode_type"] },
         "aktivna": { "iz": ["aktivna", "aktivan", "active"], "transform": "bool" },
         "napomena": { "iz": ["napomena", "note"] }
+      }
+    },
+    "dobavljaci": {
+      "ukljuceno": true,
+      "opis": "Dobavljači (LFA1 / vendor master)",
+      "fajl": "dobavljaci.csv",
+      "fajl_alternativni": ["sap_dobavljaci.csv", "vendors.csv", "lfa1.csv"],
+      "tabela": "dobavljaci",
+      "upsert_kljuc": "sifra_dobavljaca",
+      "obavezna_polja": ["sifra_dobavljaca", "naziv_dobavljaca"],
+      "podrazumevano": { "aktivan": true },
+      "kolone": {
+        "sifra_dobavljaca": { "iz": ["SifraDobavljaca", "LIFNR", "vendor"], "transform": "upper" },
+        "naziv_dobavljaca": { "iz": ["NazivDobavljaca", "NAME1", "vendor_name"] },
+        "drzava": { "iz": ["Drzava", "LAND1", "country"] },
+        "grad": { "iz": ["Grad", "ORT01", "city"] },
+        "pib": { "iz": ["PIB", "STCEG", "tax_id"] },
+        "kontakt": { "iz": ["Kontakt", "contact"] },
+        "telefon": { "iz": ["Telefon", "TELF1", "phone"] },
+        "email": { "iz": ["Email", "SMTP_ADDR", "mail"] },
+        "aktivan": { "iz": ["Status", "active"], "transform": "aktivan_status" },
+        "_delete_flag": { "iz": ["LOEVM"], "transform": "aktivan_iz_delete_flag" }
+      }
+    },
+    "radni_centri": {
+      "ukljuceno": true,
+      "opis": "Radni centri odvojeni od proizvodnih linija",
+      "fajl": "radni_centri.csv",
+      "fajl_alternativni": ["sap_radni_centri.csv", "work_centers.csv", "crhd.csv"],
+      "tabela": "radni_centri",
+      "upsert_kljuc": "sifra_radnog_centra",
+      "obavezna_polja": ["sifra_radnog_centra", "naziv_radnog_centra"],
+      "reference_checks": [
+        { "polje": "sifra_linije", "tabela": "linije", "ref_polje": "sifra_linije" }
+      ],
+      "podrazumevano": { "aktivan": true },
+      "kolone": {
+        "sifra_radnog_centra": { "iz": ["SifraRadnogCentra", "ARBPL", "work_center"], "transform": "upper" },
+        "sifra_linije": { "iz": ["SifraLinije", "line_code"], "transform": "upper" },
+        "naziv_radnog_centra": { "iz": ["NazivRadnogCentra", "KTEXT", "description"] },
+        "aktivan": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "operacije": {
+      "ukljuceno": true,
+      "opis": "Tehnološke operacije / routing",
+      "fajl": "operacije.csv",
+      "fajl_alternativni": ["sap_operacije.csv", "routing.csv", "afvc.csv"],
+      "tabela": "operacije",
+      "upsert_kljuc": "id_deo,sifra_operacije",
+      "obavezna_polja": ["id_deo", "sifra_operacije", "naziv_operacije"],
+      "reference_checks": [
+        { "polje": "id_deo", "tabela": "delovi", "ref_polje": "id_deo" },
+        { "polje": "sifra_radnog_centra", "tabela": "radni_centri", "ref_polje": "sifra_radnog_centra" },
+        { "polje": "sifra_masine", "tabela": "masine", "ref_polje": "sifra_masine" }
+      ],
+      "podrazumevano": { "aktivna": true },
+      "kolone": {
+        "sifra_operacije": { "iz": ["SifraOperacije", "VORNR", "operation_code"], "transform": "upper" },
+        "id_deo": { "iz": ["SifraDela", "MATNR", "id_deo"], "transform": "upper" },
+        "broj_operacije": { "iz": ["BrojOperacije", "VORNR", "operation_no"] },
+        "naziv_operacije": { "iz": ["NazivOperacije", "LTXA1", "description"] },
+        "sifra_radnog_centra": { "iz": ["SifraRadnogCentra", "ARBPL", "work_center"], "transform": "upper" },
+        "sifra_masine": { "iz": ["SifraMasine", "EQUNR", "equipment"], "transform": "upper" },
+        "vreme_ciklusa_min": { "iz": ["VremeCiklusa", "VGW01", "cycle_time"], "transform": "num" },
+        "vreme_pripreme_min": { "iz": ["VremePripreme", "VGW02", "setup_time"], "transform": "num" },
+        "aktivna": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "materijali": {
+      "ukljuceno": true,
+      "opis": "Ulazni materijali i dobavljač",
+      "fajl": "materijali.csv",
+      "fajl_alternativni": ["sap_materijali.csv", "raw_materials.csv"],
+      "tabela": "materijali",
+      "upsert_kljuc": "sifra_materijala",
+      "obavezna_polja": ["sifra_materijala", "naziv_materijala"],
+      "reference_checks": [
+        { "polje": "sifra_dobavljaca", "tabela": "dobavljaci", "ref_polje": "sifra_dobavljaca" }
+      ],
+      "podrazumevano": { "aktivan": true },
+      "kolone": {
+        "sifra_materijala": { "iz": ["SifraMaterijala", "MATNR", "material"], "transform": "upper" },
+        "naziv_materijala": { "iz": ["NazivMaterijala", "MAKTX", "description"] },
+        "standard": { "iz": ["Standard", "norm"] },
+        "debljina": { "iz": ["Debljina", "thickness"], "transform": "num" },
+        "jedinica_mere": { "iz": ["JedinicaMere", "MEINS", "unit"] },
+        "sifra_dobavljaca": { "iz": ["SifraDobavljaca", "LIFNR", "vendor"], "transform": "upper" },
+        "aktivan": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "sastavnica": {
+      "ukljuceno": true,
+      "opis": "BOM / sastavnica dela",
+      "fajl": "sastavnica.csv",
+      "fajl_alternativni": ["sap_sastavnica.csv", "bom.csv", "stpo.csv"],
+      "tabela": "sastavnica",
+      "upsert_kljuc": "nadredjeni_deo,podredjeni_deo,revizija",
+      "obavezna_polja": ["nadredjeni_deo", "podredjeni_deo"],
+      "reference_checks": [
+        { "polje": "nadredjeni_deo", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true },
+        { "polje": "podredjeni_deo", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true }
+      ],
+      "podrazumevano": { "revizija": "A", "aktivna": true },
+      "kolone": {
+        "nadredjeni_deo": { "iz": ["NadredjeniDeo", "MATNR", "parent_part"], "transform": "upper" },
+        "podredjeni_deo": { "iz": ["PodredjeniDeo", "IDNRK", "component"], "transform": "upper" },
+        "kolicina": { "iz": ["Kolicina", "MENGE", "quantity"], "transform": "num" },
+        "jedinica_mere": { "iz": ["JedinicaMere", "MEINS", "unit"] },
+        "revizija": { "iz": ["Revizija", "revision"] },
+        "aktivna": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "skladista": {
+      "ukljuceno": true,
+      "opis": "Skladišta relevantna za sledljivost",
+      "fajl": "skladista.csv",
+      "fajl_alternativni": ["sap_skladista.csv", "warehouses.csv"],
+      "tabela": "skladista",
+      "upsert_kljuc": "sifra_skladista",
+      "obavezna_polja": ["sifra_skladista", "naziv_skladista"],
+      "podrazumevano": { "aktivno": true },
+      "kolone": {
+        "sifra_skladista": { "iz": ["SifraSkladista", "LGORT", "warehouse"], "transform": "upper" },
+        "naziv_skladista": { "iz": ["NazivSkladista", "LGOBE", "warehouse_name"] },
+        "opis": { "iz": ["Opis", "description"] },
+        "aktivno": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "lokacije": {
+      "ukljuceno": true,
+      "opis": "Lokacije unutar skladišta",
+      "fajl": "lokacije.csv",
+      "fajl_alternativni": ["sap_lokacije.csv", "storage_bins.csv", "lqua.csv"],
+      "tabela": "lokacije",
+      "upsert_kljuc": "sifra_skladista,sifra_lokacije",
+      "obavezna_polja": ["sifra_lokacije", "sifra_skladista"],
+      "reference_checks": [
+        { "polje": "sifra_skladista", "tabela": "skladista", "ref_polje": "sifra_skladista", "obavezna": true }
+      ],
+      "podrazumevano": { "aktivna": true },
+      "kolone": {
+        "sifra_lokacije": { "iz": ["SifraLokacije", "LGPLA", "storage_bin"], "transform": "upper" },
+        "sifra_skladista": { "iz": ["SifraSkladista", "LGORT", "warehouse"], "transform": "upper" },
+        "regal": { "iz": ["Regal", "rack"] },
+        "polica": { "iz": ["Polica", "shelf"] },
+        "pozicija": { "iz": ["Pozicija", "position"] },
+        "aktivna": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "serije": {
+      "ukljuceno": true,
+      "opis": "Proizvodne serije / lotovi",
+      "fajl": "serije.csv",
+      "fajl_alternativni": ["sap_serije.csv", "batches.csv", "mcha.csv"],
+      "tabela": "serije",
+      "upsert_kljuc": "id_deo,broj_serije",
+      "obavezna_polja": ["broj_serije", "id_deo"],
+      "reference_checks": [
+        { "polje": "id_deo", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true }
+      ],
+      "kolone": {
+        "broj_serije": { "iz": ["BrojSerije", "CHARG", "batch"], "transform": "upper" },
+        "id_deo": { "iz": ["SifraDela", "MATNR", "id_deo"], "transform": "upper" },
+        "datum_proizvodnje": { "iz": ["DatumProizvodnje", "HSDAT", "production_date"], "transform": "datum" },
+        "kolicina": { "iz": ["Kolicina", "CLABS", "quantity"], "transform": "num" },
+        "status": { "iz": ["Status", "batch_status"] }
+      }
+    },
+    "serijski_brojevi": {
+      "ukljuceno": true,
+      "opis": "Serijski brojevi proizvoda",
+      "fajl": "serijski_brojevi.csv",
+      "fajl_alternativni": ["sap_serijski_brojevi.csv", "serial_numbers.csv", "obk1.csv"],
+      "tabela": "serijski_brojevi",
+      "upsert_kljuc": "serijski_broj",
+      "obavezna_polja": ["serijski_broj", "id_deo"],
+      "reference_checks": [
+        { "polje": "id_deo", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true },
+        {
+          "polja": ["id_deo", "broj_serije"],
+          "tabela": "serije",
+          "ref_polja": ["id_deo", "broj_serije"]
+        }
+      ],
+      "kolone": {
+        "serijski_broj": { "iz": ["SerijskiBroj", "SERNR", "serial"], "transform": "upper" },
+        "broj_serije": { "iz": ["BrojSerije", "CHARG", "batch"], "transform": "upper" },
+        "id_deo": { "iz": ["SifraDela", "MATNR", "id_deo"], "transform": "upper" },
+        "datum_proizvodnje": { "iz": ["DatumProizvodnje", "production_date"], "transform": "datum" },
+        "status": { "iz": ["Status", "serial_status"] }
+      }
+    },
+    "kontrolni_plan_erp": {
+      "ukljuceno": true,
+      "opis": "Control Plan stavke po delu i reviziji",
+      "fajl": "kontrolni_plan.csv",
+      "fajl_alternativni": ["KontrolniPlan.csv", "sap_control_plan.csv", "control_plan.csv"],
+      "tabela": "control_plan_stavke",
+      "upsert_strategija": "qms_document_rows",
+      "upsert_kljuc": "erp_kljuc",
+      "qms_tip": "control_plan",
+      "obavezna_polja": ["br_dela", "karakteristika"],
+      "reference_checks": [
+        { "polje": "br_dela", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true }
+      ],
+      "erp_kljuc_polja": ["br_dela", "revizija_dokumenta", "proces", "karakteristika"],
+      "kolone": {
+        "br_dela": { "iz": ["SifraDela", "MATNR", "id_deo"], "transform": "upper" },
+        "revizija_dokumenta": { "iz": ["Revizija", "revision"] },
+        "sifra_operacije": { "iz": ["SifraOperacije", "operation_code"], "transform": "upper" },
+        "proces": { "iz": ["NazivOperacije", "SifraOperacije", "operation"] },
+        "sifra_karakteristike": { "iz": ["SifraKarakteristike", "characteristic_code"], "transform": "upper" },
+        "karakteristika": { "iz": ["NazivKarakteristike", "SifraKarakteristike", "characteristic"] },
+        "velicina_uzoraka": { "iz": ["VelicinaUzorka", "sample_size"] },
+        "ucestalost": { "iz": ["Ucestalost", "frequency"] },
+        "reakcija_nekontrolisano": { "iz": ["ReakcioniPlan", "reaction_plan"] },
+        "odgovorni": { "iz": ["OdgovornoLice", "responsible"] }
+      }
+    },
+    "pfmea_erp": {
+      "ukljuceno": true,
+      "opis": "PFMEA stavke po delu i reviziji",
+      "fajl": "pfmea.csv",
+      "fajl_alternativni": ["sap_pfmea.csv"],
+      "tabela": "pfmea_stavke",
+      "upsert_strategija": "qms_document_rows",
+      "upsert_kljuc": "erp_kljuc",
+      "qms_tip": "pfmea",
+      "obavezna_polja": ["br_dela", "proces", "mod_greske"],
+      "reference_checks": [
+        { "polje": "br_dela", "tabela": "delovi", "ref_polje": "id_deo", "obavezna": true }
+      ],
+      "erp_kljuc_polja": ["br_dela", "revizija_dokumenta", "proces", "mod_greske", "uzrok_greske"],
+      "kolone": {
+        "br_dela": { "iz": ["SifraDela", "MATNR", "id_deo"], "transform": "upper" },
+        "revizija_dokumenta": { "iz": ["Revizija", "revision"] },
+        "sifra_operacije": { "iz": ["SifraOperacije", "operation_code"], "transform": "upper" },
+        "proces": { "iz": ["SifraOperacije", "operation"] },
+        "mod_greske": { "iz": ["NacinOtkaza", "failure_mode"] },
+        "efekat_greske": { "iz": ["PosledicaOtkaza", "failure_effect"] },
+        "uzrok_greske": { "iz": ["UzrokOtkaza", "failure_cause"] },
+        "preventivna_kontrola": { "iz": ["PreventivnaKontrola", "prevention_control"] },
+        "detekciona_kontrola": { "iz": ["DetekcionaKontrola", "detection_control"] },
+        "postojece_kontrole": { "iz": ["DetekcionaKontrola", "PreventivnaKontrola", "controls"] },
+        "s": { "iz": ["S"] },
+        "o": { "iz": ["O"] },
+        "d": { "iz": ["D"] },
+        "ap": { "iz": ["AP", "action_priority"] }
       }
     },
     "pogon_linija_mapa": {

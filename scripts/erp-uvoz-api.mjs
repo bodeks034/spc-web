@@ -100,6 +100,7 @@ async function handleTrigger(req, res, ctx) {
     const rez = await pokreniErpUvoz(supabase, config, {
       incomingDir: dropDir,
       dryRun,
+      izvor: "ui-server",
       minAgeMin: dryRun ? 0 : config.min_age_min,
       arhivirajFn: dryRun ? null : (p) => arhiviraj(p, processedRoot),
     });

@@ -21,10 +21,11 @@ const skriptaLog = kreirajSkriptaLog(ROOT, "auto-health.log", { jobId: "auto-hea
 const args = process.argv.slice(2);
 const emailAkoProblem = args.includes("--email");
 
-async function proveriLogove(erpUkljucen = true) {
+async function proveriLogove(erpUkljucen = true, erpIzvozUkljucen = true) {
   const upozorenja = [];
   const fajlovi = ["smenski-digest.log", "auto-podsetnici.log"];
   if (erpUkljucen) fajlovi.unshift("erp-uvoz.log");
+  if (erpIzvozUkljucen) fajlovi.unshift("erp-izvoz-kvalitet.log");
   for (const f of fajlovi) {
     const { linije } = await procitajPoslednjeLinije(ROOT, f, 5);
     const poslednja = linije[linije.length - 1] || "";
@@ -49,10 +50,10 @@ async function proveriUzastopneFailove(supabase) {
   }
 }
 
-/** Jedan FAIL na pg-backup ili nedeljni-rollup — odmah upozorenje (operativni alarm). */
+/** Jedan FAIL na ključnim operativnim jobovima — odmah upozorenje. */
 async function proveriOperativneJobFailove(supabase) {
   if (!supabase) return [];
-  const kriticki = ["pg-backup", "nedeljni-rollup"];
+  const kriticki = ["pg-backup", "nedeljni-rollup", "erp-quality-izvoz"];
   try {
     const { data } = await supabase
       .from("auto_run_log")
@@ -102,6 +103,7 @@ async function main() {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     let supabase = null;
     let erpUkljucen = true;
+    let erpIzvozUkljucen = true;
 
     if (!url || !key) {
       problemi.push("Nedostaje SUPABASE_URL ili SUPABASE_SERVICE_ROLE_KEY");
@@ -109,6 +111,7 @@ async function main() {
       supabase = createClient(url, key);
       const settings = await ucitajAutoPodesavanja(supabase);
       erpUkljucen = jeAutoPraviloUkljuceno(settings, "erp");
+      erpIzvozUkljucen = jeAutoPraviloUkljuceno(settings, "erp_izvoz");
       if (!jeAutoPraviloUkljuceno(settings, "health")) {
         await skriptaLog.info("Health check iskljucen u podesavanjima");
         return;
@@ -134,7 +137,7 @@ async function main() {
       problemi.push("SMTP_TO nije podešen (digest/podsetnici neće slati email)");
     }
 
-    const logUpoz = await proveriLogove(erpUkljucen);
+    const logUpoz = await proveriLogove(erpUkljucen, erpIzvozUkljucen);
     problemi.push(...logUpoz);
 
     const dupleFail = await proveriUzastopneFailove(supabase);

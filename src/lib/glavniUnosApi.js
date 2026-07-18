@@ -57,6 +57,17 @@ export function ocistiRedZaInsertGlavniUnos(row, { sheetNaziv, redosled } = {}) 
 }
 
 export async function fetchGlavniUnosSheetovi() {
+  const { data: konfiguracije, error: cfgError } = await supabase
+    .from("glavni_unos_sheetovi")
+    .select("naziv")
+    .eq("aktivan", true)
+    .order("redosled")
+    .order("naziv");
+  if (!cfgError && konfiguracije?.length) {
+    return konfiguracije.map((r) => r.naziv);
+  }
+  if (cfgError && !greskaNedostaje(cfgError)) throw cfgError;
+
   const { data, error } = await supabase.from("glavni_unos_redovi")
     .select("sheet_naziv")
     .limit(GLAVNI_UNOS_FETCH_LIMIT);
@@ -66,6 +77,73 @@ export async function fetchGlavniUnosSheetovi() {
   }
   const sheets = [...new Set((data || []).map((r) => r.sheet_naziv).filter(Boolean))].sort();
   return sheets.length ? sheets : ["vozilo1"];
+}
+
+export async function fetchGlavniUnosSheetKonfiguracije() {
+  const { data, error } = await supabase
+    .from("glavni_unos_sheetovi")
+    .select("naziv,sifra_vozila,redosled,aktivan")
+    .eq("aktivan", true)
+    .order("redosled")
+    .order("naziv");
+  if (error) {
+    if (greskaNedostaje(error)) return [];
+    throw error;
+  }
+  return data || [];
+}
+
+export async function kreirajGlavniUnosSheet({ naziv, sifraVozila = null } = {}) {
+  const sheet = String(naziv || "").trim().toLowerCase();
+  const vozilo = String(sifraVozila || "").trim().toUpperCase() || null;
+  if (!/^[a-z0-9_-]{2,40}$/.test(sheet)) {
+    throw new Error("Naziv sheeta: 2–40 znakova (slova, brojevi, _ ili -).");
+  }
+
+  const { data: postojeci, error: postojeciError } = await supabase
+    .from("glavni_unos_sheetovi")
+    .select("naziv,redosled")
+    .eq("naziv", sheet)
+    .maybeSingle();
+  if (postojeciError) {
+    if (greskaNedostaje(postojeciError)) {
+      throw new Error("Pokreni migraciju 68_erp_glavni_unos_sheetovi.sql.");
+    }
+    throw postojeciError;
+  }
+
+  const { data: maxRows, error: maxError } = await supabase
+    .from("glavni_unos_sheetovi")
+    .select("redosled")
+    .order("redosled", { ascending: false })
+    .limit(1);
+  if (maxError) {
+    if (greskaNedostaje(maxError)) {
+      throw new Error("Pokreni migraciju 68_erp_glavni_unos_sheetovi.sql.");
+    }
+    throw maxError;
+  }
+
+  const payload = {
+      naziv: sheet,
+      sifra_vozila: vozilo,
+      redosled: postojeci?.redosled ?? (Number(maxRows?.[0]?.redosled || 0) + 1),
+      aktivan: true,
+      updated_at: new Date().toISOString(),
+  };
+  const zahtev = postojeci
+    ? supabase.from("glavni_unos_sheetovi").update(payload).eq("naziv", sheet)
+    : supabase.from("glavni_unos_sheetovi").insert(payload);
+  const { data, error } = await zahtev
+    .select("naziv,sifra_vozila,redosled,aktivan")
+    .single();
+  if (error) {
+    if (error.code === "23505" && vozilo) {
+      throw new Error(`Šifra vozila ${vozilo} je već dodeljena drugom sheetu.`);
+    }
+    throw error;
+  }
+  return data;
 }
 
 /** Svi redovi glavnog unosa za jedan deo — direktan upit (ne zavisi od limita po sheet-u). */

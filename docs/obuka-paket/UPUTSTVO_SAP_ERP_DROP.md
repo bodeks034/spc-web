@@ -116,4 +116,6 @@ Migracije (jednom u Supabase): `62_erp_uvoz_constraints.sql`, `63_erp_uvoz_praks
 
 ---
 
-*Detaljno mapiranje kolona: `config/erp/presets/sap.json` · puni ERP vodič: `UPUTSTVO_ERP_KONFIGURACIJA.md`*
+*Detaljno mapiranje kolona: `config/erp/presets/sap.json` · puni ERP vodič:
+`UPUTSTVO_ERP_KONFIGURACIJA.md` · prošireni proizvodni/QMS paket:
+`UPUTSTVO_ERP_MASTER_V2.md`*

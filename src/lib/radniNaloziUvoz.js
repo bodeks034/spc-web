@@ -36,15 +36,19 @@ export function normHeader(h) {
   return String(h || "")
     .trim()
     .replace(/\*+$/, "")
+    .replace(/([a-z0-9šđčćž])([A-ZŠĐČĆŽ])/g, "$1_$2")
     .replace(/š/gi, "s")
     .replace(/č/gi, "c")
     .replace(/ć/gi, "c")
     .replace(/ž/gi, "z")
     .replace(/đ/gi, "d")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
 }
 
-export function parseCsvLine(line) {
+export function parseCsvLine(line, delimiter = ",") {
   const out = [];
   let cur = "";
   let inQuotes = false;
@@ -57,7 +61,7 @@ export function parseCsvLine(line) {
       } else inQuotes = !inQuotes;
       continue;
     }
-    if (ch === "," && !inQuotes) {
+    if (ch === delimiter && !inQuotes) {
       out.push(cur.trim());
       cur = "";
       continue;
@@ -68,12 +72,36 @@ export function parseCsvLine(line) {
   return out;
 }
 
+function brojDelimiterVanNavodnika(line, delimiter) {
+  let count = 0;
+  let inQuotes = false;
+  for (let i = 0; i < String(line || "").length; i += 1) {
+    const ch = line[i];
+    if (ch === "\"") {
+      if (inQuotes && line[i + 1] === "\"") i += 1;
+      else inQuotes = !inQuotes;
+    } else if (!inQuotes && ch === delimiter) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function detektujCsvDelimiter(headerLine) {
+  const kandidati = [",", ";", "\t"];
+  return kandidati
+    .map((delimiter) => ({ delimiter, count: brojDelimiterVanNavodnika(headerLine, delimiter) }))
+    .sort((a, b) => b.count - a.count)[0]?.delimiter || ",";
+}
+
 export function parseCsvText(txt) {
-  const lines = String(txt || "").split(/\r?\n/).filter((l) => l.trim());
+  const normalized = String(txt || "").replace(/^\uFEFF/, "");
+  const lines = normalized.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines[0]).map((h) => normHeader(h));
+  const delimiter = detektujCsvDelimiter(lines[0]);
+  const headers = parseCsvLine(lines[0], delimiter).map((h) => normHeader(h));
   return lines.slice(1).map((line, idx) => {
-    const cols = parseCsvLine(line);
+    const cols = parseCsvLine(line, delimiter);
     const row = { _linija: idx + 2 };
     headers.forEach((h, i) => {
       row[h] = (cols[i] ?? "").trim();
@@ -84,7 +112,8 @@ export function parseCsvText(txt) {
 
 function pick(row, ...keys) {
   for (const k of keys) {
-    if (row[k] !== undefined && row[k] !== "") return row[k];
+    const key = normHeader(k);
+    if (row[key] !== undefined && row[key] !== "") return row[key];
   }
   return "";
 }
@@ -95,15 +124,64 @@ function num(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Normalizuj datum iz ERP/CSV/XLSX u ISO YYYY-MM-DD.
+ * Podržava: ISO, DD.MM.YYYY, DD-MM-YYYY, DD/MM/YYYY, MM/DD/YYYY,
+ * Excel serijal (npr. 45822) i Date objekat iz sheet_to_csv/xlsx.
+ * Ambiguous 01/02/2026 → evropski DD/MM (fabrički default).
+ */
 export function normalizujDatum(v) {
-  if (!v) return null;
+  if (v == null || v === "") return null;
+  if (v instanceof Date && Number.isFinite(v.getTime())) {
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, "0");
+    const d = String(v.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
   const s = String(v).trim();
+  if (!s) return null;
+
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const sr = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-  if (sr) {
-    return `${sr[3]}-${String(sr[2]).padStart(2, "0")}-${String(sr[1]).padStart(2, "0")}`;
+
+  // Excel serijal (ceo broj dana od 1899-12-30)
+  if (/^\d{4,6}(\.\d+)?$/.test(s)) {
+    const serial = Number(s);
+    if (Number.isFinite(serial) && serial >= 20000 && serial <= 80000) {
+      const epoch = Date.UTC(1899, 11, 30);
+      const dt = new Date(epoch + Math.round(serial) * 86400000);
+      if (Number.isFinite(dt.getTime())) {
+        return [
+          dt.getUTCFullYear(),
+          String(dt.getUTCMonth() + 1).padStart(2, "0"),
+          String(dt.getUTCDate()).padStart(2, "0"),
+        ].join("-");
+      }
+    }
   }
+
+  const tacka = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (tacka) {
+    return `${tacka[3]}-${String(tacka[2]).padStart(2, "0")}-${String(tacka[1]).padStart(2, "0")}`;
+  }
+
+  const sep = s.match(/^(\d{1,2})([/-])(\d{1,2})\2(\d{4})$/);
+  if (sep) {
+    const a = Number(sep[1]);
+    const b = Number(sep[3]);
+    const y = sep[4];
+    // Ako jedan deo > 12, nedvosmisleno je dan
+    if (a > 12 && b <= 12) {
+      return `${y}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
+    }
+    if (b > 12 && a <= 12) {
+      return `${y}-${String(a).padStart(2, "0")}-${String(b).padStart(2, "0")}`;
+    }
+    // Ambiguous / evropski default: DD/MM/YYYY
+    return `${y}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
+  }
+
   return s || null;
 }
 

@@ -9,12 +9,19 @@ import {
   granicaTextZaKarakteristiku,
 } from "./glavniUnosGranice.js";
 import { isUgao } from "./varijabilneUtils.js";
+import { normHeader } from "./radniNaloziUvoz.js";
 
 export const KARAKTERISTIKE_MERLJIVE_HEADER = [
   "id",
   "id_deo",
   "pogon_kod",
   "sifra_merenja",
+  "sifra_karakteristike",
+  "revizija",
+  "sifra_operacije",
+  "tip_karakteristike",
+  "sifra_merila",
+  "kriticna_karakteristika",
   "radni_nalog",
   "faza_naziv",
   "linija_faza",
@@ -61,7 +68,16 @@ export async function getKarakteristikeDbCols(supabase) {
   if (karakteristikeDbColsCache) return karakteristikeDbColsCache;
 
   let cols = [...KARAKTERISTIKE_DB_COLS];
-  for (const opt of ["fai_broj_merenja", "klasa"]) {
+  for (const opt of [
+    "fai_broj_merenja",
+    "klasa",
+    "sifra_karakteristike",
+    "revizija",
+    "sifra_operacije",
+    "tip_karakteristike",
+    "sifra_merila",
+    "kriticna_karakteristika",
+  ]) {
     const { error } = await supabase.from("karakteristike_merljive").select(`id,${opt}`).limit(0);
     if (error && kolonaNedostajeUGresci(error, opt)) {
       cols = cols.filter((c) => c !== opt);
@@ -93,7 +109,7 @@ function num(v) {
 
 function pick(r, ...keys) {
   for (const k of keys) {
-    const v = r?.[k];
+    const v = r?.[normHeader(k)];
     if (v !== undefined && v !== null && String(v).trim() !== "") return v;
   }
   return "";
@@ -265,12 +281,28 @@ export function faiBrojMerenjaIzReda(r) {
 
 /** Normalizuj jedan red iz Excel/CSV u kanonski oblik. */
 export function mapKarakteristikaMerljiveRow(r) {
-  const idDeo = String(pick(r, "id_deo", "id dela", "id dela*") || "").trim().toUpperCase();
+  const idDeo = String(pick(
+    r,
+    "id_deo",
+    "id dela",
+    "id dela*",
+    "sifra_dela",
+    "ident",
+    "artikal",
+    "matnr",
+  ) || "").trim().toUpperCase();
   let pogon = String(pick(r, "pogon_kod", "pogon kod", "pogon") || "").trim().toUpperCase();
   const linijaFaza = String(pick(r, "linija_faza", "linija faza") || "").trim();
   if (!pogon && linijaFaza) pogon = pogonIzLinijeFaze(linijaFaza);
 
-  const rnRaw = String(pick(r, "radni_nalog", "radni nalog") || "").trim();
+  const rnRaw = String(pick(
+    r,
+    "radni_nalog",
+    "radni nalog",
+    "rn",
+    "broj_rn",
+    "delovni_nalog",
+  ) || "").trim();
   if (!pogon && rnRaw) {
     const m = rnRaw.toUpperCase().match(/-([A-H])$/);
     if (m) pogon = m[1];
@@ -281,29 +313,37 @@ export function mapKarakteristikaMerljiveRow(r) {
 
   const kom = num(pick(r, "kom_za_kontrolu_n", "kom za kontrolu n"));
   const brojMerenja = brojMerenjaIzReda(r);
-  const jedinicaRaw = String(pick(r, "jedinica") || "").trim() || "mm";
+  const jedinicaRaw = String(pick(r, "jedinica", "jedinica_mere") || "").trim() || "mm";
   const uslNum = granicaZaSnimanje(pick(r, "usl"), jedinicaRaw);
   const lslNum = granicaZaSnimanje(pick(r, "lsl"), jedinicaRaw);
-  const nomNum = granicaZaSnimanje(pick(r, "nominala"), jedinicaRaw);
+  const nomNum = granicaZaSnimanje(pick(r, "nominala", "nominal"), jedinicaRaw);
   const jedinica = isUgao(jedinicaRaw) ? "stepen" : jedinicaRaw;
 
   const row = {
     id: num(r.id),
     id_deo: idDeo,
     pogon_kod: pogon || null,
-    sifra_merenja: String(pick(r, "sifra_merenja", "sifra merenja") || "").trim(),
+    sifra_merenja: String(pick(r, "sifra_merenja", "sifra merenja", "sifra_karakteristike") || "").trim(),
+    sifra_karakteristike: String(pick(r, "sifra_karakteristike") || "").trim() || null,
+    revizija: String(pick(r, "revizija") || "").trim() || null,
+    sifra_operacije: String(pick(r, "sifra_operacije") || "").trim() || null,
+    tip_karakteristike: String(pick(r, "tip_karakteristike") || "").trim() || null,
+    sifra_merila: String(pick(r, "sifra_merila") || "").trim() || null,
+    kriticna_karakteristika: ["da", "true", "1", "x"].includes(
+      String(pick(r, "kriticna_karakteristika") || "").trim().toLowerCase(),
+    ),
     radni_nalog: radniNalog,
     faza_naziv: String(pick(r, "faza_naziv", "faza naziv") || "").trim() || null,
     linija_faza: linijaFaza || null,
     linija_id: num(pick(r, "linija_id", "linija id", "linij_id")),
     masina_id: num(pick(r, "masina_id", "masina id")),
-    naziv_dela: String(pick(r, "naziv_dela", "naziv dela") || "").trim() || null,
+    naziv_dela: String(pick(r, "naziv_dela", "naziv dela", "naziv", "opis_artikla") || "").trim() || null,
     slika: String(pick(r, "slika", "slika/crtez") || "").trim() || null,
     ukupno_kom: num(pick(r, "ukupno_kom", "ukupno kom")),
     kom_za_kontrolu_n: kom,
-    pozicija: String(pick(r, "pozicija", "dimenzija") || "").trim(),
+    pozicija: String(pick(r, "pozicija", "dimenzija", "sifra_karakteristike") || "").trim(),
     klasa: String(pick(r, "klasa", "Klasa") || "").trim() || null,
-    naziv_mere: String(pick(r, "naziv_mere", "naziv mere") || "").trim() || null,
+    naziv_mere: String(pick(r, "naziv_mere", "naziv mere", "naziv_karakteristike") || "").trim() || null,
     nominala: nomNum,
     usl: uslNum,
     lsl: lslNum,

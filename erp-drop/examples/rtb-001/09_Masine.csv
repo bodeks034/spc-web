@@ -1,0 +1,5 @@
+SifraMasine,SifraRadnogCentra,NazivMasine,Proizvodjac,Model,SerijskiBroj,Godina,Status
+LASER-01,RC-PRES,Laser za secenje lima,Trumpf,TruLaser 3030,TL3030-2019-114,2019,aktivan
+PRESA-250,RC-PRES,Hidraulicna presa 250t,Amada,HFE 2504,AM250-2021-052,2021,aktivan
+SAVIJ-01,RC-PRES,Apkant presa za savijanje,Amada,HFE 1303,AM130-2020-031,2020,aktivan
+KTL-LIN,RC-ZAVR,KTL + plastifikacija linija,Eisenmann,E-Coat 2000,EIS-2018-007,2018,aktivan

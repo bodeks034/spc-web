@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchGlavniUnosSheetovi,
+  fetchGlavniUnosSheetKonfiguracije,
+  kreirajGlavniUnosSheet,
   fetchGlavniUnosRedovi,
   zameniSheetRedove,
   propagirajGlavniUnos,
@@ -167,6 +169,7 @@ function normalizujRedZaSnimanje(r, sheetNaziv, redosled) {
 export default function GlavniUnosPanel({ C, addToast, korisnik }) {
   const { opcije: bazaOpcije } = useSifrarnikOpcije(addToast);
   const [sheetovi, setSheetovi] = useState(DEFAULT_SHEETS);
+  const [sheetKonfiguracije, setSheetKonfiguracije] = useState([]);
   const [aktivniSheet, setAktivniSheet] = useState("vozilo1");
   const [redovi, setRedovi] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -186,9 +189,13 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
 
   const ucitajSheetove = useCallback(async () => {
     try {
-      const s = await fetchGlavniUnosSheetovi();
+      const [s, konfiguracije] = await Promise.all([
+        fetchGlavniUnosSheetovi(),
+        fetchGlavniUnosSheetKonfiguracije(),
+      ]);
       const merged = [...new Set([...DEFAULT_SHEETS, ...s])].sort();
       setSheetovi(merged);
+      setSheetKonfiguracije(konfiguracije);
       if (!merged.includes(aktivniSheet)) setAktivniSheet(merged[0] || "vozilo1");
     } catch (e) {
       addToast?.(e.message, "greska");
@@ -212,6 +219,37 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
 
   useEffect(() => { ucitajSheetove(); }, [ucitajSheetove]);
   useEffect(() => { ucitajRedove(aktivniSheet); }, [aktivniSheet, ucitajRedove]);
+
+  const dodajSheet = async () => {
+    const predlog = `vozilo${sheetovi.length + 1}`;
+    const ime = window.prompt(
+      "Naziv novog sheeta ili postojećeg kojem menjaš ERP vezu (npr. vozilo4):",
+      predlog,
+    );
+    if (!ime?.trim()) return;
+    const sifraVozila = window.prompt(
+      "ERP šifra vozila za automatsko raspoređivanje (npr. NTV, MRAP, TV4X4):",
+      "",
+    );
+    if (sifraVozila == null) return;
+    try {
+      const novi = await kreirajGlavniUnosSheet({
+        naziv: ime,
+        sifraVozila,
+      });
+      await ucitajSheetove();
+      setAktivniSheet(novi.naziv);
+      setRedovi([]);
+      setDirty(false);
+      addToast?.(
+        `✓ Sheet ${novi.naziv} sačuvan`
+        + (novi.sifra_vozila ? ` · ERP vozilo ${novi.sifra_vozila}` : ""),
+        "uspeh",
+      );
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    }
+  };
 
   const prikaz = redovi.filter((r) => {
     if (!filter.trim()) return true;
@@ -464,22 +502,17 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
             }}
           >
             {s}
+            {sheetKonfiguracije.find((r) => r.naziv === s)?.sifra_vozila
+              ? ` · ${sheetKonfiguracije.find((r) => r.naziv === s).sifra_vozila}`
+              : ""}
           </button>
         ))}
         <button
           type="button"
-          onClick={() => {
-            const ime = window.prompt("Naziv novog sheet-a (npr. vozilo4):", "vozilo4");
-            if (!ime?.trim()) return;
-            const s = ime.trim().toLowerCase();
-            if (!sheetovi.includes(s)) setSheetovi([...sheetovi, s].sort());
-            setAktivniSheet(s);
-            setRedovi([]);
-            setDirty(false);
-          }}
+          onClick={dodajSheet}
           style={{ ...inpStyle(C), cursor: "pointer", fontSize: 9 }}
         >
-          + Sheet
+          + / Veži sheet
         </button>
       </div>
 

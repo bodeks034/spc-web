@@ -41,6 +41,8 @@ export const MIGRACIJE_LISTA = [
   { id: "greske_katalog_erp", naziv: "ERP greške katalog upsert", fajl: "64_greske_katalog_erp_upsert.sql" },
   { id: "licenca_uredjaji", naziv: "Licenca po uređaju (max_uredjaja)", fajl: "65_licenca_uredjaji.sql" },
   { id: "linija_pouzdanost", naziv: "Linija: foto NOK, client_id, PIN", fajl: "66_linija_pouzdanost.sql" },
+  { id: "erp_master_v2", naziv: "ERP master podaci v2 (BOM, operacije, lot/serial, QMS)", fajl: "67_erp_master_podaci.sql" },
+  { id: "erp_glavni_sheetovi", naziv: "ERP raspored delova po sheetovima vozila", fajl: "68_erp_glavni_unos_sheetovi.sql" },
 ];
 
 const PROBES = [
@@ -70,6 +72,10 @@ const PROBES = [
   { id: "kar_unique_pogon", table: "karakteristike_merljive", select: "id,id_deo,pogon_kod,sifra_merenja,pozicija" },
   { id: "faza5_smtp", table: "app_podesavanja", select: "kljuc,vrednost" },
   { id: "erp_uvoz_log", table: "erp_uvoz_log", select: "id,izvor,uspeh,created_at" },
+  { id: "erp_master_v2", table: "erp_uvoz_batch", select: "id,preset,status,started_at" },
+  { id: "erp_master_v2_bom", table: "sastavnica", select: "nadredjeni_deo,podredjeni_deo,revizija" },
+  { id: "erp_master_v2_serial", table: "serijski_brojevi", select: "serijski_broj,id_deo" },
+  { id: "erp_glavni_sheetovi", table: "glavni_unos_sheetovi", select: "naziv,sifra_vozila,aktivan" },
   { id: "sifrarnik_tipovi", table: "tipovi_vozila", select: "kod,naziv" },
   { id: "sifrarnik_barkod", table: "barkod_profili", select: "id_deo,format" },
   { id: "glavni_unos_redovi", table: "glavni_unos_redovi", select: "id,sheet_naziv,id_deo" },
@@ -214,6 +220,7 @@ export async function proveriSemu(supabase) {
     klasa_karakteristike: byId.klasa_karakteristike?.ok,
     kar_unique_pogon: byId.kar_unique_pogon?.ok,
     erp_uvoz_log: byId.erp_uvoz_log?.ok,
+    erp_master_v2: byId.erp_master_v2?.ok && byId.erp_master_v2_bom?.ok && byId.erp_master_v2_serial?.ok,
     erp_uvoz_constraints: byId.erp_uvoz_constraints?.ok,
     greske_katalog_erp: byId.greske_katalog_erp?.ok,
     licenca_uredjaji: byId.licenca_uredjaji_tbl?.ok && byId.licenca_max_uredjaja?.ok,
@@ -267,6 +274,9 @@ export async function proveriSemu(supabase) {
       m.id === "klasa_karakteristike" && byId.klasa_karakteristike,
       m.id === "kar_unique_pogon" && byId.kar_unique_pogon,
       m.id === "erp_uvoz_log" && byId.erp_uvoz_log,
+      m.id === "erp_master_v2" && byId.erp_master_v2,
+      m.id === "erp_master_v2" && byId.erp_master_v2_bom,
+      m.id === "erp_master_v2" && byId.erp_master_v2_serial,
       m.id === "erp_uvoz_constraints" && byId.erp_uvoz_constraints,
       m.id === "greske_katalog_erp" && byId.greske_katalog_defekt,
       m.id === "greske_katalog_erp" && byId.greske_katalog_erp,

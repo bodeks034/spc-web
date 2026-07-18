@@ -255,13 +255,13 @@ export default function ErpUvozPanel({ C, addToast }) {
           <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 8 }}>Upload CSV fajlova</div>
           <p style={{ margin: "0 0 10px" }}>
             Izaberi jedan ili više CSV iz ERP izvoza. Imena fajlova se uparuju sa configom
-            (npr. <code>delovi.csv</code>, <code>sap_radni_nalozi.csv</code>).
+            (npr. <code>delovi.csv</code>, <code>04_Delovi.xlsx</code>, Windows-1250 OK).
           </p>
           <label style={{ ...btnStyle(C, C.plava, { disabled: busy, display: "inline-block" }) }}>
             Izaberi CSV
             <input
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               multiple
               onChange={onFajlovi}
               style={{ display: "none" }}
@@ -280,7 +280,24 @@ export default function ErpUvozPanel({ C, addToast }) {
           {preview?.stavke?.length > 0 && (
             <div style={{ marginTop: 10, padding: 8, background: C.bg, borderRadius: 6 }}>
               {preview.stavke.map((s) => (
-                <div key={s.entitet}>✓ {s.fajl} → {s.entitet}</div>
+                <div key={s.entitet} style={{
+                  padding: "5px 0",
+                  borderBottom: `1px solid ${C.border}`,
+                  color: s.validnih > 0 ? C.tekst : C.crvena,
+                }}>
+                  <div>
+                    {s.validnih > 0 ? "✓" : "✗"} {s.fajl} → {s.entitet}
+                    {" · "}{s.validnih}/{s.ukupno} validnih
+                    {s.encoding ? ` · ${s.encoding}` : ""}
+                    {s.format === "xlsx" ? " · xlsx" : ""}
+                    {s.upozorenja ? ` · ${s.upozorenja} upozorenja` : ""}
+                  </div>
+                  {s.greske?.slice(0, 3).map((g, idx) => (
+                    <div key={`${s.entitet}-${idx}`} style={{ color: C.zuta, paddingLeft: 14 }}>
+                      {g}
+                    </div>
+                  ))}
+                </div>
               ))}
             </div>
           )}

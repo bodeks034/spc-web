@@ -249,7 +249,7 @@ export function formatStep(s) {
   return `${d}° ${String(m).padStart(2, "0")}' ${String(sec).padStart(2, "0")}"`;
 }
 
-/** Ugao: pakovani broj ili decimal → mm (ista formula kao DMS u decimalnom obliku) */
+/** Ugao: pakovani DMS ili decimalni stepeni (ERP/CSV: 90, 89.5). */
 export function toDecStepen(t) {
   const s = String(t ?? "").trim();
   if (!s) return 0;
@@ -257,9 +257,12 @@ export function toDecStepen(t) {
   const bezSimbola = s.replace(/°/g, "").replace(/'/g, "").replace(/"/g, "").replace(/\s/g, "");
   const normalized = bezSimbola.replace(",", ".");
 
-  if (/^-?\d+\.\d+$/.test(normalized)) {
+  // Decimalni stepeni (≤180) — ne tumači "90" kao DMS (inače excelUgaoG7 → 0.025).
+  if (/^-?\d+(\.\d+)?$/.test(normalized)) {
     const n = Number(normalized);
-    return Number.isFinite(n) ? n : 0;
+    const cifreBroja = samoCifre(normalized);
+    if (Number.isFinite(n) && Math.abs(n) <= 180 && cifreBroja.length < 5) return n;
+    if (Number.isFinite(n) && /^-?\d+\.\d+$/.test(normalized)) return n;
   }
 
   const cifre = samoCifre(s);

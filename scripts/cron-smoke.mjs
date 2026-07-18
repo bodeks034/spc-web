@@ -26,6 +26,8 @@ function run(label, script, extra = []) {
 
 run("Podsetnici dry-run", "scripts/auto-podsetnici.mjs", ["--dry-run"]);
 run("Digest dry-run", "scripts/smenski-digest.mjs", ["--dry-run"]);
+run("ERP quality izvoz dry-run", "scripts/erp-izvoz-kvalitet.mjs", ["--dry-run"]);
+run("ERP processed cleanup dry-run", "scripts/erp-processed-cleanup.mjs");
 
 const sum = await sumirajLogove(ROOT);
 console.log("\n-- Log sumar --");
