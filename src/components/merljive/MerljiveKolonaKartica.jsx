@@ -6,6 +6,7 @@ import {
   bojaUnosMerenja,
   formatOpsegPlausibilnosti,
   sanitizujInputMerenja,
+  tekstNominalaOznaka,
 } from "../../lib/varijabilneUtils.js";
 import { tekstInstrumentaSaBrojem } from "../../lib/meriloStatus.js";
 import { dimKolonaUnos, onFocusTastatura } from "../../layout/index.js";
@@ -91,7 +92,9 @@ function MerljiveKolonaKartica({
           {!kompakt && (
             <>
               {metaRed(C, "Šta se meri", k.naziv, C.plava, K)}
-              {k.nazivMere ? metaRed(C, "Nominala / oznaka", k.nazivMere, undefined, K) : null}
+              {tekstNominalaOznaka(k)
+                ? metaRed(C, "Nominala / oznaka", tekstNominalaOznaka(k), undefined, K)
+                : null}
               {metaRed(C, "Merni instrument", tekstInstrumentaSaBrojem(k.instrument, merilaMap), undefined, K)}
               {k.klasaLabel ? metaRed(C, "Klasa defekta", k.klasaLabel, C.sivi, K) : null}
               {metaRed(C, "Broj merenja", k.ukupnoLabel, C.zuta, K)}
@@ -126,7 +129,7 @@ function MerljiveKolonaKartica({
                 </div>
                 <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
                   {mobMetaCelija(C, "LSL", k.lslText, undefined, "left", K)}
-                  {mobMetaCelija(C, "Nominala / oznaka", k.nazivMere || "—", undefined, "center", K)}
+                  {mobMetaCelija(C, "Nominala / oznaka", tekstNominalaOznaka(k) || "—", undefined, "center", K)}
                   {mobMetaCelija(C, "USL", k.uslText, undefined, "right", K)}
                 </div>
                 {kolonaPuna ? <KolonaKompletna k={k} K={K} kompakt C={C} /> : (

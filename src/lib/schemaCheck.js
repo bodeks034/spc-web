@@ -43,6 +43,9 @@ export const MIGRACIJE_LISTA = [
   { id: "linija_pouzdanost", naziv: "Linija: foto NOK, client_id, PIN", fajl: "66_linija_pouzdanost.sql" },
   { id: "erp_master_v2", naziv: "ERP master podaci v2 (BOM, operacije, lot/serial, QMS)", fajl: "67_erp_master_podaci.sql" },
   { id: "erp_glavni_sheetovi", naziv: "ERP raspored delova po sheetovima vozila", fajl: "68_erp_glavni_unos_sheetovi.sql" },
+  { id: "dobavljaci_prijem", naziv: "Dobavljači — prijemna kontrola i KPI", fajl: "69_dobavljaci_prijemna_kontrola.sql" },
+  { id: "prijemna_veza_log", naziv: "Prijem ↔ Ulazna kontrola (FK na log)", fajl: "70_prijemna_veza_kontrolni_log.sql" },
+  { id: "ocena_dobavljaca", naziv: "Periodična ocena dobavljača (A–D)", fajl: "71_ocena_dobavljaca.sql" },
 ];
 
 const PROBES = [
@@ -76,6 +79,9 @@ const PROBES = [
   { id: "erp_master_v2_bom", table: "sastavnica", select: "nadredjeni_deo,podredjeni_deo,revizija" },
   { id: "erp_master_v2_serial", table: "serijski_brojevi", select: "serijski_broj,id_deo" },
   { id: "erp_glavni_sheetovi", table: "glavni_unos_sheetovi", select: "naziv,sifra_vozila,aktivan" },
+  { id: "dobavljaci_prijem", table: "prijemna_kontrola_dobavljaca", select: "id,erp_kljuc,sifra_dobavljaca,datum,status,foto_nok,foto_komentar" },
+  { id: "prijemna_veza_log", table: "kontrolni_log", select: "id,prijemna_kontrola_id" },
+  { id: "ocena_dobavljaca", table: "ocene_dobavljaca", select: "id,sifra_dobavljaca,ukupna_ocena,klasa,status" },
   { id: "sifrarnik_tipovi", table: "tipovi_vozila", select: "kod,naziv" },
   { id: "sifrarnik_barkod", table: "barkod_profili", select: "id_deo,format" },
   { id: "glavni_unos_redovi", table: "glavni_unos_redovi", select: "id,sheet_naziv,id_deo" },
@@ -244,6 +250,10 @@ export async function proveriSemu(supabase) {
     pfmea_osmd_veza: byId.pfmea_osmd_veza?.ok,
     moment_pilot_tockovi: byId.moment_pilot_tockovi?.ok,
     auto_telemetrija: byId.auto_run_log?.ok && byId.auto_akcije_log?.ok,
+    dobavljaci_prijem: byId.dobavljaci_prijem?.ok,
+    prijemna_veza_log: byId.prijemna_veza_log?.ok,
+    ocena_dobavljaca: byId.ocena_dobavljaca?.ok,
+    erp_glavni_sheetovi: byId.erp_glavni_sheetovi?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({
@@ -306,6 +316,10 @@ export async function proveriSemu(supabase) {
       m.id === "moment_pilot_tockovi" && byId.moment_pilot_tockovi,
       m.id === "auto_telemetrija" && byId.auto_run_log,
       m.id === "auto_telemetrija" && byId.auto_akcije_log,
+      m.id === "dobavljaci_prijem" && byId.dobavljaci_prijem,
+      m.id === "prijemna_veza_log" && byId.prijemna_veza_log,
+      m.id === "ocena_dobavljaca" && byId.ocena_dobavljaca,
+      m.id === "erp_glavni_sheetovi" && byId.erp_glavni_sheetovi,
     ].filter(Boolean),
   }));
 }

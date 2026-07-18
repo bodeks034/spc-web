@@ -3,7 +3,8 @@ import { fetchDelovi, upsertDeo } from "../../lib/sifrarnikApi.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
-  vozilo_katalog_id: "", kom_za_kontrolu: 30, aktivan: true, napomena: "",
+  vozilo_katalog_id: "", sifra_vozila: "", broj_crteza: "", revizija: "",
+  kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
 export default function DeloviPanel({ C, addToast, onStampaj }) {
@@ -54,7 +55,7 @@ export default function DeloviPanel({ C, addToast, onStampaj }) {
   const prikaz = lista.filter((d) => {
     if (!filter.trim()) return true;
     const q = filter.toLowerCase();
-    return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id].some(
+    return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
       (s) => String(s || "").toLowerCase().includes(q),
     );
   });
@@ -102,6 +103,21 @@ export default function DeloviPanel({ C, addToast, onStampaj }) {
               <input value={forma.vozilo_katalog_id || ""} onChange={(e) => setForma((p) => ({ ...p, vozilo_katalog_id: e.target.value }))} style={INP} />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <span style={{ color: C.sivi, fontSize: 9 }}>ŠIFRA VOZILA / FAMILIJA</span>
+              <input value={forma.sifra_vozila || ""} placeholder="npr. HAM"
+                onChange={(e) => setForma((p) => ({ ...p, sifra_vozila: e.target.value }))} style={INP} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <span style={{ color: C.sivi, fontSize: 9 }}>BROJ CRTEŽA</span>
+              <input value={forma.broj_crteza || ""} placeholder="npr. HAM-NM-001"
+                onChange={(e) => setForma((p) => ({ ...p, broj_crteza: e.target.value }))} style={INP} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <span style={{ color: C.sivi, fontSize: 9 }}>REVIZIJA</span>
+              <input value={forma.revizija || ""} placeholder="A"
+                onChange={(e) => setForma((p) => ({ ...p, revizija: e.target.value }))} style={INP} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <span style={{ color: C.sivi, fontSize: 9 }}>KOM ZA KONTROLU</span>
               <input type="number" value={forma.kom_za_kontrolu ?? 30} onChange={(e) => setForma((p) => ({ ...p, kom_za_kontrolu: e.target.value }))} style={INP} />
             </label>
@@ -124,22 +140,23 @@ export default function DeloviPanel({ C, addToast, onStampaj }) {
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
-            display: "grid", gridTemplateColumns: "100px 1fr 80px 80px 56px 70px",
+            display: "grid", gridTemplateColumns: "100px 1fr 80px 70px 80px 56px 70px",
             background: C.hover, padding: "8px 10px", fontSize: 9, color: C.sivi, gap: 8,
           }}>
-            <span>ID</span><span>NAZIV</span><span>TIP</span><span>KOM</span><span>AKT</span><span />
+            <span>ID</span><span>NAZIV</span><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span><span />
           </div>
           {!prikaz.length ? (
             <div style={{ padding: 20, textAlign: "center", color: C.border, fontSize: 11 }}>Nema delova</div>
           ) : prikaz.map((d, i) => (
             <div key={d.id_deo} style={{
-              display: "grid", gridTemplateColumns: "100px 1fr 80px 80px 56px 70px",
+              display: "grid", gridTemplateColumns: "100px 1fr 80px 70px 80px 56px 70px",
               padding: "8px 10px", borderTop: i ? `1px solid ${C.border}` : "none", fontSize: 11, gap: 8, alignItems: "center",
               opacity: d.aktivan === false ? 0.55 : 1,
             }}>
               <span style={{ fontWeight: 700, color: C.plava }}>{d.id_deo}</span>
               <span>{d.naziv_dela}</span>
               <span style={{ color: C.sivi, fontSize: 10 }}>{d.tip_kontrole || "deo"}</span>
+              <span style={{ color: C.sivi, fontSize: 10 }}>{d.sifra_vozila || "—"}</span>
               <span style={{ color: C.sivi }}>{d.kom_za_kontrolu ?? "—"}</span>
               <span style={{ color: d.aktivan !== false ? C.zelena : C.crvena, fontSize: 10 }}>{d.aktivan !== false ? "DA" : "NE"}</span>
               <div style={{ display: "flex", gap: 4 }}>

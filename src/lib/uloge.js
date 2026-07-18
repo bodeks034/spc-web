@@ -129,7 +129,7 @@ export function efektivniRezimRada(uloga, izabraniRezim = "linija") {
 }
 
 const TAB_LINIJA_ATRIB_OPERATOR = new Set(["unos"]);
-const TAB_LINIJA_ATRIB_KONTROLOR = new Set(["unos", "log"]);
+const TAB_LINIJA_ATRIB_KONTROLOR = new Set(["unos", "log", "prijemna"]);
 const TAB_LINIJA_MERLJIVE_OPERATOR = new Set(["unos", "moment"]);
 const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "moment", "log", "fai"]);
 
@@ -140,7 +140,7 @@ const TAB_MERLJIVE_KONTROLOR = new Set([
 ]);
 const TAB_ATRIB_OPERATOR = new Set(["unos"]);
 const TAB_ATRIB_KONTROLOR = new Set([
-  "unos", "log", "dashboard", "karte", "crtez", "foto", "oee", "msa", "kplan",
+  "unos", "log", "prijemna", "dashboard", "karte", "crtez", "foto", "oee", "msa", "kplan",
 ]);
 
 export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {

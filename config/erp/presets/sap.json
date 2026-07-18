@@ -28,7 +28,8 @@
     "lokacije",
     "radni_nalozi",
     "serije",
-    "serijski_brojevi"
+    "serijski_brojevi",
+    "prijemna_kontrola_dobavljaca"
   ],
   "entiteti": {
     "linije": {
@@ -464,6 +465,37 @@
         "jedinica_mere": { "iz": ["JedinicaMere", "MEINS", "unit"] },
         "sifra_dobavljaca": { "iz": ["SifraDobavljaca", "LIFNR", "vendor"], "transform": "upper" },
         "aktivan": { "iz": ["Status", "active"], "transform": "aktivan_status" }
+      }
+    },
+    "prijemna_kontrola_dobavljaca": {
+      "ukljuceno": true,
+      "opis": "Prijemna kontrola dobavljača / incoming inspection",
+      "fajl": "prijemna_kontrola.csv",
+      "fajl_alternativni": ["sap_prijemna_kontrola.csv", "incoming_inspection.csv", "02_PrijemnaKontrola.csv"],
+      "tabela": "prijemna_kontrola_dobavljaca",
+      "upsert_kljuc": "erp_kljuc",
+      "obavezna_polja": ["erp_kljuc", "datum", "sifra_dobavljaca"],
+      "reference_checks": [
+        { "polje": "sifra_dobavljaca", "tabela": "dobavljaci", "ref_polje": "sifra_dobavljaca" },
+        { "polje": "sifra_materijala", "tabela": "materijali", "ref_polje": "sifra_materijala" },
+        { "polje": "id_deo", "tabela": "delovi", "ref_polje": "id_deo" }
+      ],
+      "podrazumevano": { "status": "otvoreno" },
+      "kolone": {
+        "erp_kljuc": { "iz": ["ErpKljuc", "ERP_KLJUC", "MBLNR", "receipt_line_id", "document_line"], "transform": "upper" },
+        "datum": { "iz": ["Datum", "BUDAT", "inspection_date", "receipt_date"], "transform": "datum" },
+        "sifra_dobavljaca": { "iz": ["SifraDobavljaca", "LIFNR", "vendor"], "transform": "upper" },
+        "sifra_materijala": { "iz": ["SifraMaterijala", "MATNR", "material"], "transform": "upper" },
+        "id_deo": { "iz": ["SifraDela", "id_deo", "part"], "transform": "upper" },
+        "broj_lota": { "iz": ["BrojLota", "CHARG", "lot", "batch"] },
+        "broj_dokumenta": { "iz": ["BrojDokumenta", "MBLNR", "document", "receipt_no"] },
+        "primljeno": { "iz": ["Primljeno", "ERFMG", "received_qty"], "transform": "num" },
+        "kontrolisano": { "iz": ["Kontrolisano", "inspected_qty"], "transform": "num" },
+        "ok_kolicina": { "iz": ["OkKolicina", "OK", "ok_qty"], "transform": "num" },
+        "nok_kolicina": { "iz": ["NokKolicina", "NOK", "nok_qty"], "transform": "num" },
+        "defekt": { "iz": ["Defekt", "defect", "fehler"] },
+        "status": { "iz": ["Status", "status"], "transform": "lower" },
+        "napomena": { "iz": ["Napomena", "note", "remark"] }
       }
     },
     "sastavnica": {

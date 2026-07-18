@@ -190,6 +190,42 @@ async function ucitajOsmd(supabase, { idDeoList, kupac }) {
   return out.slice(0, 25);
 }
 
+const KUPAC_SELECT = [
+  "sifra_kupca", "naziv", "skraceni_naziv", "drzava", "grad", "adresa",
+  "pib", "kontakt", "telefon", "email", "aktivan",
+].join(",");
+
+/** Master podaci kupca iz šifrarnika (po nazivu ili šifri). */
+export async function ucitajKupacInfo(supabase, kupacNaziv) {
+  const naziv = String(kupacNaziv || "").trim();
+  if (!naziv) return null;
+  try {
+    const { data: poNazivu } = await supabase.from("kupci")
+      .select(KUPAC_SELECT)
+      .eq("naziv", naziv)
+      .limit(1);
+    if (poNazivu?.[0]) return poNazivu[0];
+
+    const { data: poSifri } = await supabase.from("kupci")
+      .select(KUPAC_SELECT)
+      .eq("sifra_kupca", naziv)
+      .limit(1);
+    if (poSifri?.[0]) return poSifri[0];
+
+    const { data: ilike } = await supabase.from("kupci")
+      .select(KUPAC_SELECT)
+      .ilike("naziv", naziv)
+      .limit(1);
+    if (ilike?.[0]) return ilike[0];
+  } catch { /* kolone možda još nisu migrirane */ }
+  return { naziv, aktivan: true };
+}
+
+export function statusKupcaTekst(info) {
+  if (!info) return "—";
+  return info.aktivan === false ? "Neaktivan" : "Aktivan";
+}
+
 function nazivPoDeluIzNaloga(nalozi) {
   const map = {};
   for (const n of nalozi || []) {
@@ -266,15 +302,19 @@ export async function fetchIzvestajKupacPodaci(supabase, {
   const datumOd = datumOdPerioda(period);
   const merljive = modul === "merljive";
 
-  const { data: nalozi, error: rnErr } = await supabase.from("radni_nalozi")
-    .select("id_deo,naziv_dela,broj_naloga,kolicina,rok_isporuke,status")
-    .eq("kupac", kupac);
-  if (rnErr) throw rnErr;
+  const [kupacInfo, rnRes] = await Promise.all([
+    ucitajKupacInfo(supabase, kupac),
+    supabase.from("radni_nalozi")
+      .select("id_deo,naziv_dela,broj_naloga,kolicina,rok_isporuke,status")
+      .eq("kupac", kupac),
+  ]);
+  if (rnRes.error) throw rnRes.error;
+  const nalozi = rnRes.data;
 
   const idDeoList = [...new Set((nalozi || []).map((n) => String(n.id_deo || "").toUpperCase()).filter(Boolean))];
   if (!idDeoList.length) {
     return {
-      kupac, period, modul,
+      kupac, period, modul, kupacInfo,
       nalozi: [], log: [], poDeo: [], defekti: [], trend: [],
       ciljevi: [], spcSummary: [], ncr: [], osmd: [],
       stat: { n: 0, nok: 0, ok: 0, rty: "—", dpmo: "—" },
@@ -339,6 +379,7 @@ export async function fetchIzvestajKupacPodaci(supabase, {
     kupac,
     period,
     modul,
+    kupacInfo,
     nalozi: nalozi || [],
     log,
     stat,

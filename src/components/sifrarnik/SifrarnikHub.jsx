@@ -17,6 +17,7 @@ import DeloviVoziloPanel from "./DeloviVoziloPanel.jsx";
 import DeloviPanel from "./DeloviPanel.jsx";
 
 import KupciPanel from "./KupciPanel.jsx";
+import DobavljaciPanel from "./DobavljaciPanel.jsx";
 
 import GreskeKatalogPanel from "./GreskeKatalogPanel.jsx";
 
@@ -75,6 +76,8 @@ const GRUPE = [
       ["rn", "Radni nalozi"],
 
       ["kupci", "Kupci"],
+
+      ["dobavljaci", "Dobavljači"],
 
       ["linije", "Linije"],
 
@@ -390,6 +393,8 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
         {podtab === "rn" && <RadniNaloziPanel C={C} addToast={addToast} sviDelovi={deloviZaRn} />}
 
         {podtab === "kupci" && <KupciPanel C={C} addToast={addToast} />}
+
+        {podtab === "dobavljaci" && <DobavljaciPanel C={C} addToast={addToast} />}
 
         {podtab === "linije" && <LinijePanel C={C} addToast={addToast} />}
 

@@ -1,3 +1,25 @@
+/** Kadar iz <video> elementa (kamera uživo) → smanjeni JPEG data URL. */
+export function dataUrlIzVidea(video, maxW = 960, kvalitet = 0.82) {
+  let w = video.videoWidth;
+  let h = video.videoHeight;
+  if (!w || !h) throw new Error("Kamera još nije spremna — sačekaj sliku pa probaj ponovo.");
+  if (w > maxW) {
+    h = Math.round(h * maxW / w);
+    w = maxW;
+  }
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("Canvas nije dostupan.");
+  ctx.drawImage(video, 0, 0, w, h);
+  const url = c.toDataURL("image/jpeg", kvalitet);
+  if (url.length > 900_000) {
+    throw new Error("Slika je prevelika posle kompresije — probaj bliži kadar.");
+  }
+  return url;
+}
+
 /** Učitaj sliku i smanji za čuvanje u TEXT (JPEG data URL). */
 export function ucitajSlikuKaoDataUrl(file, maxW = 960, kvalitet = 0.82) {
   return new Promise((resolve, reject) => {

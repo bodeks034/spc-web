@@ -48,6 +48,7 @@ import {
   IzvestajSmeneMerljive,
   CiljeviMerljive,
   KupacMerljive,
+  IzvestajDobavljacPanel,
   StabilnostMerljive,
   OCKrivaPanel,
   RadniNaloziPanel,
@@ -266,6 +267,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     ["ciljevi", "CILJEVI"],
     ["nalozi", "NALOZI"],
     ["kupac", "KUPAC"],
+    ["dobavljac", "DOBAVLJAČI"],
     ["oc", "OC KRIVA"],
     ["stabilnost", "STABILNOST"],
     ["oee", "OEE"],
@@ -330,6 +332,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     if (id === "ciljevi") return C.zelena;
     if (id === "nalozi") return C.plava;
     if (id === "kupac") return "#22d3ee";
+    if (id === "dobavljac") return "#34d399";
     if (id === "oc") return "#a3e635";
     if (id === "stabilnost") return "#f472b6";
     if (id === "oee") return C.narandzasta;
@@ -3100,6 +3103,12 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       {tab === "kupac" && (
         <LazyTab C={C} label="Učitavam kupca…">
           <KupacMerljive C={C} addToast={addToast} />
+        </LazyTab>
+      )}
+
+      {tab === "dobavljac" && (
+        <LazyTab C={C} label="Učitavam dobavljača…">
+          <IzvestajDobavljacPanel C={C} addToast={addToast} korisnik={korisnik} />
         </LazyTab>
       )}
 

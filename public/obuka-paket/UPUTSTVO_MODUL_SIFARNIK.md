@@ -1,6 +1,6 @@
 # Modul 0 — Šifrarnik (kompletno uputstvo)
 
-Uputstvo za **Modul 0 — Šifrarnik** u SPC Web aplikaciji. Obuhvata svih **6 grupa** i **25 tabova**, sa objašnjenjem šta se unosi, gde se čuva i kako utiče na unos na liniji (Modul 1) i analitiku (Modul 2).
+Uputstvo za **Modul 0 — Šifrarnik** u SPC Web aplikaciji. Obuhvata svih **6 grupa** i njihove tabove, sa objašnjenjem šta se unosi, gde se čuva i kako utiče na unos na liniji (Modul 1) i analitiku (Modul 2).
 
 ---
 
@@ -88,7 +88,7 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 
 | Grupa | Tabovi |
 |-------|--------|
-| **Osnovno** | Glavni unos, Pogon mapa, Linija↔deo, Liste, Delovi, RN, Kupci, Linije, Mašine, Smene, Ciljevi, Kontrolna lista |
+| **Osnovno** | Glavni unos, Pogon mapa, Linija↔deo, Liste, Delovi, RN, Kupci, Dobavljači, Linije, Mašine, Smene, Ciljevi, Kontrolna lista |
 | **Atributivne** | Katalog grešaka, Crtež dela, Pogoni po delu |
 | **Merljive** | Dimenzije, SPC alarm %, SOP po delu, Merila/kalibracija |
 | **Celo vozilo** | Tipovi vozila, Defekti vozila, Delovi vozila |
@@ -244,6 +244,27 @@ Za masovni uvoz svih entiteta koristite **Alati → ERP uvoz**.
 **Tabela:** `kupci` — `naziv`, `aktivan`.
 
 Ručni unos ili ERP CSV (`kupci.csv`).
+
+---
+
+### 6.7a Dobavljači
+
+**Tabela:** `dobavljaci`
+
+Osnovni podaci: šifra, naziv, država, grad i status. Šifra treba da odgovara ERP šifri
+dobavljača. Neaktivan dobavljač ostaje u istoriji, ali se ne nudi za novi prijem.
+
+ERP CSV: `dobavljaci.csv`.
+
+### 6.7b Prijemna kontrola — nije u Šifrarniku
+
+Unos prijemne kontrole je u **Modulu 1 — Atributivne → PRIJEM**.
+Šifrarnik drži samo master **Dobavljači**. Dugme **Pokreni Ulaznu kontrolu**
+otvara atributivni UNOS (pogon A) i vraća OK/NOK u prijem.
+
+Detaljno uputstvo, PPM formula i izveštaj:
+
+[Dobavljači i prijemna kontrola](./UPUTSTVO_DOBAVLJACI_I_PRIJEMNA_KONTROLA.md)
 
 ---
 

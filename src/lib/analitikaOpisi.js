@@ -28,12 +28,14 @@ export const OPISI_ANALITIKA_ATRIB = {
   eskalacije: "Otvoreni problemi, rokovi i eskalacije ka inženjeru / menadžmentu.",
   aql: "AQL uzorkovanje po ISO — prihvatljiv nivo kvaliteta za lot.",
   kupac: "Izveštaj kvaliteta formatiran za kupca / audit.",
+  dobavljac: "Izveštaj i ocena dobavljača: PPM, OK stopa, A–D klasa (kvalitet 60% + isporuka/dokumentacija/reakcija).",
   trasabilitet: "Trag dela kroz merenja, log i KPI — ko, kada, šta.",
   smena: "Rezime smene: OK/NOK, DPMO, ključni događaji.",
   oee: "OEE, škart i dorada iz KPI unosa za period filtera.",
   kalibracija: "Status merila i kalibracija — istek, upozorenja, zahtevi.",
   ciljevi: "Ciljevi FPY/DPMO po delu — uporedi stvarno vs cilj.",
   nalozi: "Radni nalozi povezani sa delovima i proizvodnjom.",
+  prijemna: "Prijem dobavljača: lot/prijemnica, pa Ulazna kontrola (pogon A) za OK/NOK po komadu.",
   excel: "Izvoz podataka u Excel za inženjera (bez admin uvoza).",
 };
 
@@ -54,6 +56,7 @@ export const OPISI_ANALITIKA_MER = {
   aql: "AQL uzorkovanje po ISO — prihvatljiv nivo kvaliteta za lot.",
   fai: "First Article Inspection — odobrenje prvog uzorka serije.",
   kupac: "Merljivi izveštaj za kupca.",
+  dobavljac: "Izveštaj i ocena dobavljača: PPM, OK stopa, A–D klasa (kvalitet 60% + isporuka/dokumentacija/reakcija).",
   trasabilitet: "Trag merenja po delu, seriji i operateru.",
   smena: "Rezime merenja i NOK po smeni.",
   oee: "OEE i KPI dorade/škarta za merljive serije.",

@@ -29,6 +29,7 @@
     "lokacije": { "ukljuceno": true },
     "serije": { "ukljuceno": true },
     "serijski_brojevi": { "ukljuceno": true },
+    "prijemna_kontrola_dobavljaca": { "ukljuceno": true },
     "smene": { "ukljuceno": false },
     "radnici": { "ukljuceno": false }
   }

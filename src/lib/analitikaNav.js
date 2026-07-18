@@ -19,6 +19,7 @@ export const KVALITET_TABOVI = [
   ["eskalacije", "ESKALACIJE"],
   ["aql", "ISO 2859"],
   ["kupac", "KUPAC"],
+  ["dobavljac", "DOBAVLJAČI"],
   ["trasabilitet", "TRASABILITET"],
 ];
 
@@ -54,6 +55,7 @@ export const ANALITIKA_GRUPE_ATRIB = [
       ["oee", "OEE"],
       ["ciljevi", "CILJEVI"],
       ["nalozi", "NALOZI"],
+      ["prijemna", "PRIJEM"],
     ],
   },
   {
@@ -157,6 +159,7 @@ export function bojaAnalitikaTaba(id, C) {
   if (t === "heatmap" || t === "stabilnost") return "#f472b6";
   if (t === "oee") return C.narandzasta;
   if (t === "kupac") return "#22d3ee";
+  if (t === "dobavljac") return "#34d399";
   if (t === "excel") return C.plava;
   if (t === "eskalacije" || t === "8d" || t === "ncr") return C.crvena;
   if (t === "pfmea-cp") return C.ljubicasta;

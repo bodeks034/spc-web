@@ -1,5 +1,6 @@
 import { LAB_FPY_PCT } from "../lib/rtyFpy.js";
 import { ocenaIsporuke } from "../lib/izvestajKupacPdf.js";
+import { statusKupcaTekst } from "../lib/izvestajKupacData.js";
 
 function Sekcija({ naslov, C, children }) {
   return (
@@ -46,6 +47,52 @@ function statusBoja(status, C) {
   return C.tekst;
 }
 
+function PodaciKupcaBlok({ info, C }) {
+  if (!info) return null;
+  const polja = [
+    ["Šifra kupca", info.sifra_kupca],
+    ["Naziv kupca", info.naziv],
+    ["Skraćeni naziv", info.skraceni_naziv],
+    ["Država", info.drzava],
+    ["Grad", info.grad],
+    ["Adresa", info.adresa],
+    ["PIB", info.pib],
+    ["Kontakt", info.kontakt],
+    ["Telefon", info.telefon],
+    ["Email", info.email],
+    ["Status", statusKupcaTekst(info)],
+  ];
+  return (
+    <Sekcija naslov="PODACI O KUPCU" C={C}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: 10,
+        background: C.panel,
+        border: `1px solid ${C.border}`,
+        borderRadius: 10,
+        padding: "12px 14px",
+      }}>
+        {polja.map(([label, vrednost]) => (
+          <div key={label}>
+            <div style={{ color: C.sivi, fontSize: 9, letterSpacing: 0.6, marginBottom: 2 }}>{label.toUpperCase()}</div>
+            <div style={{
+              color: label === "Status"
+                ? (info.aktivan === false ? C.crvena : C.zelena)
+                : C.tekst,
+              fontSize: 12,
+              fontWeight: label === "Naziv kupca" || label === "Status" ? 700 : 500,
+              wordBreak: "break-word",
+            }}>
+              {vrednost || "—"}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Sekcija>
+  );
+}
+
 export default function IzvestajKupacPregled({ podaci, C, modul = "atributivne" }) {
   if (!podaci) return null;
 
@@ -54,6 +101,8 @@ export default function IzvestajKupacPregled({ podaci, C, modul = "atributivne" 
 
   return (
     <>
+      <PodaciKupcaBlok info={podaci.kupacInfo || { naziv: podaci.kupac }} C={C} />
+
       <div style={{
         background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10,
         padding: "10px 14px", marginBottom: 16, fontSize: 11,

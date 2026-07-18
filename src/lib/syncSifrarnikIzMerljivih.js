@@ -215,6 +215,9 @@ export function generisiIzKarakteristika(karRows, { postojeciSop = [], postojeci
         napomena: napomenaDeloviIzMeta(m, stariDeo.napomena || ""),
         tip_kontrole: dm.tip_kontrole || stariDeo.tip_kontrole || "deo",
         vozilo_katalog_id: dm.vozilo_katalog_id ?? stariDeo.vozilo_katalog_id ?? null,
+        sifra_vozila: dm.sifra_vozila || stariDeo.sifra_vozila || null,
+        broj_crteza: dm.broj_crteza || stariDeo.broj_crteza || null,
+        revizija: dm.revizija || stariDeo.revizija || null,
         greska_katalog_id: stariDeo.greska_katalog_id || null,
       });
     }

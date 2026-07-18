@@ -131,8 +131,8 @@ export const GLAVNI_UNOS_DEMO_REDOVI = [
   },
 ];
 
-/** Mapa id_deo → tip kontrole (iz glavnog unosa). */
-export function metaDeoIzGlavnogUnosa(dbRedovi) {
+/** Mapa id_deo → tip kontrole + meta iz glavnog unosa. */
+export function metaDeoIzGlavnogUnosa(dbRedovi, sheetSifraPoNazivu = null) {
   const byDeo = new Map();
   for (const row of dbRedovi || []) {
     const id = String(row.id_deo || "").trim().toUpperCase();
@@ -141,12 +141,32 @@ export function metaDeoIzGlavnogUnosa(dbRedovi) {
     const kar = String(row.karakteristika || "").toLowerCase();
     const isVozilo = tip.includes("vozilo")
       || /celog vozila|celo vozilo|finalna vizuelna kontrola/.test(kar);
+    const sheetNaziv = String(row.sheet_naziv || "").trim();
+    const sifraSaSheeta = sheetSifraPoNazivu?.get?.(sheetNaziv)
+      || sheetSifraPoNazivu?.[sheetNaziv]
+      || null;
+    const prev = byDeo.get(id) || {
+      tip_kontrole: "deo",
+      vozilo_katalog_id: null,
+      sifra_vozila: null,
+      broj_crteza: null,
+      revizija: null,
+    };
     if (isVozilo) {
       const prefiks = id.includes("-") ? id.split("-")[0] : id.replace(/\d+$/, "");
-      byDeo.set(id, { tip_kontrole: "vozilo", vozilo_katalog_id: prefiks || null });
-    } else if (!byDeo.has(id)) {
-      byDeo.set(id, { tip_kontrole: "deo", vozilo_katalog_id: null });
+      prev.tip_kontrole = "vozilo";
+      prev.vozilo_katalog_id = prefiks || prev.vozilo_katalog_id || null;
     }
+    if (!prev.sifra_vozila && sifraSaSheeta) {
+      prev.sifra_vozila = String(sifraSaSheeta).trim().toUpperCase() || null;
+    }
+    if (!prev.broj_crteza && row.broj_crteza) {
+      prev.broj_crteza = String(row.broj_crteza).trim() || null;
+    }
+    if (!prev.revizija && row.revizija) {
+      prev.revizija = String(row.revizija).trim().toUpperCase() || null;
+    }
+    byDeo.set(id, prev);
   }
   return byDeo;
 }
@@ -158,5 +178,11 @@ export function deoMetaMapa(deoMeta) {
 
 export function metaZaDeo(deoMeta, idDeo) {
   const id = String(idDeo || "").trim().toUpperCase();
-  return deoMetaMapa(deoMeta).get(id) || { tip_kontrole: "deo", vozilo_katalog_id: null };
+  return deoMetaMapa(deoMeta).get(id) || {
+    tip_kontrole: "deo",
+    vozilo_katalog_id: null,
+    sifra_vozila: null,
+    broj_crteza: null,
+    revizija: null,
+  };
 }

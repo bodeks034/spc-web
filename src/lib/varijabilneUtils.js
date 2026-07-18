@@ -158,15 +158,30 @@ export function graniceIzKarakteristike(k) {
     if (!Number.isFinite(nominalDec)) nominalDec = null;
   }
 
+  const nominalText = Number.isFinite(nominalDec)
+    ? fmtTxt(k.nominala != null ? String(k.nominala) : "", nominalDec)
+    : "";
+
   return {
     jeUgao,
     jedinica,
     lslText: fmtTxt(lslT, k.lsl),
     uslText: fmtTxt(uslT, k.usl),
+    nominalText,
     lslDec: Number.isFinite(lslDec) ? lslDec : 0,
     uslDec: Number.isFinite(uslDec) ? uslDec : 0,
     nominalDec,
   };
+}
+
+/** Prikaz u kartici: nominala, ili naziv mere ako nije duplikat „šta se meri”. */
+export function tekstNominalaOznaka(k) {
+  const nom = String(k?.nominalText || "").trim();
+  if (nom && nom !== "—") return nom;
+  const mere = String(k?.nazivMere || "").trim();
+  const naziv = String(k?.naziv || "").trim();
+  if (mere && mere.toLowerCase() !== naziv.toLowerCase()) return mere;
+  return "";
 }
 
 /** Kolona koristi DMS unos (stepeni). */
@@ -849,6 +864,7 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj,
     lslDec: 0,
     uslDec: 0,
     nominalDec: null,
+    nominalText: "",
     plausibilnost: null,
     faiObavezno: false,
     faiBrojMerenja: 1,
@@ -873,6 +889,7 @@ export function koloneZaGrupu(karakteristike, idDeo, sifraMerenja, potrebanBroj,
       nazivMere: kn.naziv_mere || "",
       lslText: g.lslText,
       uslText: g.uslText,
+      nominalText: g.nominalText || "",
       instrument: kn.merni_instrument || "-",
       jedinica: g.jedinica,
       lslDec: g.lslDec,
@@ -915,6 +932,7 @@ export function koloneFaiZaDeo(karakteristike, idDeo, pogonKod) {
       nazivMere: kn.naziv_mere || "",
       lslText: g.lslText,
       uslText: g.uslText,
+      nominalText: g.nominalText || "",
       instrument: kn.merni_instrument || "-",
       jedinica: g.jedinica,
       lslDec: g.lslDec,
@@ -952,6 +970,7 @@ export function praznaKolonaMerenja(potrebanBroj = 5) {
     lslDec: 0,
     uslDec: 0,
     nominalDec: null,
+    nominalText: "",
     plausibilnost: null,
     faiObavezno: false,
     faiBrojMerenja: 1,

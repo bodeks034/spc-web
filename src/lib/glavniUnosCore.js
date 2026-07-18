@@ -256,8 +256,10 @@ export function mapGlavniUnosVoziloRed(raw, lookups) {
     slika: pick(raw, "Slika", "slika"),
     ukupno_kom: num(pick(raw, "Ukupno_kom", "ukupno_kom")),
     kom_za_kontrolu_n: num(pick(raw, "Kom_za_kontrolu_n", "kom za kontrolu n")),
+    // „Šta se meri” = pozicija. Naziv mere ostaje prazan — inače se na unosu
+    // duplira isti tekst u „Šta se meri” i „Nominala / oznaka”. Nominala ide u nominala.
     pozicija: karakteristika,
-    naziv_mere: karakteristika,
+    naziv_mere: null,
     nominala: nomNum,
     usl: uslNum,
     lsl: lslNum,

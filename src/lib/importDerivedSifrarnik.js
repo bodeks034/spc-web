@@ -58,6 +58,9 @@ function minimalDeloviMasterIzKar(karRows, deoMeta) {
       aktivan: true,
       tip_kontrole: dm.tip_kontrole || "deo",
       vozilo_katalog_id: dm.vozilo_katalog_id || null,
+      sifra_vozila: dm.sifra_vozila || null,
+      broj_crteza: dm.broj_crteza || null,
+      revizija: dm.revizija || null,
     });
   }
   return out;

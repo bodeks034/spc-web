@@ -27,7 +27,10 @@ export default function IzvestajKupacPanel({
       setKupciLoading(true);
       try {
         const [kRes, rnRes] = await Promise.all([
-          supabase.from("kupci").select("id,naziv").eq("aktivan", true).order("naziv"),
+          supabase.from("kupci")
+            .select("id,naziv,sifra_kupca,skraceni_naziv")
+            .eq("aktivan", true)
+            .order("naziv"),
           supabase.from("radni_nalozi").select("kupac").not("kupac", "is", null),
         ]);
         if (cancelled) return;
@@ -36,6 +39,8 @@ export default function IzvestajKupacPanel({
         const izSifrarnika = (kRes.data || []).map((k) => ({
           id: k.id,
           naziv: String(k.naziv || "").trim(),
+          sifra_kupca: String(k.sifra_kupca || "").trim(),
+          skraceni_naziv: String(k.skraceni_naziv || "").trim(),
         })).filter((k) => k.naziv);
 
         const izRn = [...new Set(
@@ -151,7 +156,12 @@ export default function IzvestajKupacPanel({
             disabled={kupciLoading}
             style={{ ...INP_S, width: "100%", cursor: "pointer" }}>
             <option value="">{kupciLoading ? "Učitavanje…" : "— Izaberi —"}</option>
-            {kupci.map((k) => <option key={k.id} value={k.naziv}>{k.naziv}</option>)}
+            {kupci.map((k) => (
+              <option key={k.id} value={k.naziv}>
+                {k.sifra_kupca ? `${k.sifra_kupca} — ${k.naziv}` : k.naziv}
+                {k.skraceni_naziv ? ` (${k.skraceni_naziv})` : ""}
+              </option>
+            ))}
           </select>
         </div>
         <select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ ...INP_S, cursor: "pointer" }}>

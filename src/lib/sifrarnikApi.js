@@ -116,7 +116,7 @@ export async function deleteDefektVozilo(id) {
 
 export async function fetchDelovi({ tipKontrole = null, voziloKatalogId = null, samoAktivni = false } = {}) {
   let q = supabase.from("delovi")
-    .select("id,id_deo,naziv_dela,karakteristika,tip_kontrole,vozilo_katalog_id,slika_naziv,aktivan,napomena,kom_za_kontrolu,greska_katalog_id,linija_id,masina_id")
+    .select("id,id_deo,naziv_dela,karakteristika,tip_kontrole,vozilo_katalog_id,sifra_vozila,broj_crteza,revizija,slika_naziv,aktivan,napomena,kom_za_kontrolu,greska_katalog_id,linija_id,masina_id")
     .order("id_deo");
   if (samoAktivni) q = q.eq("aktivan", true);
   if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
@@ -136,6 +136,9 @@ export async function upsertDeo(deo) {
     karakteristika: deo.karakteristika?.trim() || null,
     tip_kontrole: tip,
     vozilo_katalog_id: deo.vozilo_katalog_id?.trim().toUpperCase() || (tip === "vozilo" ? idDeo.split("-")[0] : null),
+    sifra_vozila: deo.sifra_vozila?.trim().toUpperCase() || null,
+    broj_crteza: deo.broj_crteza?.trim() || null,
+    revizija: deo.revizija?.trim().toUpperCase() || null,
     kom_za_kontrolu: deo.kom_za_kontrolu != null ? Number(deo.kom_za_kontrolu) : 30,
     slika_naziv: deo.slika_naziv?.trim() || null,
     aktivan: deo.aktivan !== false,
@@ -162,7 +165,16 @@ export async function upsertKupac(kupac) {
   const naziv = String(kupac.naziv || "").trim();
   if (!naziv) throw new Error("Naziv kupca je obavezan");
   const payload = {
+    sifra_kupca: String(kupac.sifra_kupca || "").trim() || null,
     naziv,
+    skraceni_naziv: String(kupac.skraceni_naziv || "").trim() || null,
+    drzava: String(kupac.drzava || "").trim() || null,
+    grad: String(kupac.grad || "").trim() || null,
+    adresa: String(kupac.adresa || "").trim() || null,
+    pib: String(kupac.pib || "").trim() || null,
+    kontakt: String(kupac.kontakt || "").trim() || null,
+    telefon: String(kupac.telefon || "").trim() || null,
+    email: String(kupac.email || "").trim() || null,
     aktivan: kupac.aktivan !== false,
   };
   if (kupac.id) {

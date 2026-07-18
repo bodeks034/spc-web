@@ -13,6 +13,11 @@ const PDF_ALT = [232, 238, 246];
 const PDF_GRANICA = [120, 130, 145];
 const MARGIN = 14;
 
+function statusKupcaTekst(info) {
+  if (!info) return "—";
+  return info.aktivan === false ? "Neaktivan" : "Aktivan";
+}
+
 function pdfSekcijaNaslov(pdf, y, tekst) {
   const w = pdf.internal.pageSize.getWidth() - MARGIN * 2;
   pdf.setFillColor(...PDF_BREND.plava);
@@ -31,6 +36,47 @@ function pdfMetaRed(pdf, y, tekst, bold = false) {
   pdf.setTextColor(...PDF_CRNI);
   pdf.text(tekst, MARGIN, y);
   return y + 5;
+}
+
+function pdfKupacPodaci(pdf, y, info, rezervniNaziv) {
+  const k = info || { naziv: rezervniNaziv };
+  const redovi = [
+    ["Šifra kupca", k.sifra_kupca],
+    ["Naziv kupca", k.naziv || rezervniNaziv],
+    ["Skraćeni naziv", k.skraceni_naziv],
+    ["Država", k.drzava],
+    ["Grad", k.grad],
+    ["Adresa", k.adresa],
+    ["PIB", k.pib],
+    ["Kontakt", k.kontakt],
+    ["Telefon", k.telefon],
+    ["Email", k.email],
+    ["Status", statusKupcaTekst(k)],
+  ];
+  y = pdfSekcijaNaslov(pdf, y, "PODACI O KUPCU");
+  const pageW = pdf.internal.pageSize.getWidth();
+  const colW = (pageW - MARGIN * 2 - 4) / 2;
+  let leftY = y;
+  let rightY = y;
+  redovi.forEach(([label, vrednost], i) => {
+    const tekst = `${label}: ${vrednost || "—"}`;
+    const naLevo = i % 2 === 0;
+    const x = naLevo ? MARGIN : MARGIN + colW + 4;
+    let atY = naLevo ? leftY : rightY;
+    if (atY > 275) {
+      pdf.addPage();
+      leftY = 20;
+      rightY = 20;
+      atY = 20;
+    }
+    pdf.setFont(PDF_FONT_SR, "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(...PDF_CRNI);
+    pdf.text(tekst, x, atY, { maxWidth: colW });
+    if (naLevo) leftY = atY + 5;
+    else rightY = atY + 5;
+  });
+  return Math.max(leftY, rightY) + 2;
 }
 
 function pdfTabela(pdf, { y, kolone, redovi, maxRedova = null }) {
@@ -365,7 +411,9 @@ export async function kreirajIzvestajKupacPdf(podaci, {
   y = pdfMetaRed(pdf, y, `Broj izveštaja: ${br}`, true);
   y = pdfMetaRed(pdf, y, `Datum generisanja: ${new Date().toLocaleString("sr-RS")}`);
   y = pdfMetaRed(pdf, y, `Obuhvaćeno radnih naloga: ${(podaci.nalozi || []).length}`);
-  y += 4;
+  y += 2;
+  y = pdfKupacPodaci(pdf, y, podaci.kupacInfo, kupac);
+  y += 2;
 
   y = pdfSekcijaNaslov(pdf, y, "KPI PERIODA");
   y = pdfKpiKartice(pdf, y, stat);
@@ -456,6 +504,20 @@ export function buildIzvestajKupacPrintHtml(podaci, {
   const br = brojIzvestaja || `IK-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
   const modulNaziv = modul === "merljive" ? "Merljive karakteristike" : "Atributivna kontrola";
   const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const k = podaci.kupacInfo || { naziv: kupac };
+  const kupacHtml = [
+    ["Šifra kupca", k.sifra_kupca],
+    ["Naziv kupca", k.naziv || kupac],
+    ["Skraćeni naziv", k.skraceni_naziv],
+    ["Država", k.drzava],
+    ["Grad", k.grad],
+    ["Adresa", k.adresa],
+    ["PIB", k.pib],
+    ["Kontakt", k.kontakt],
+    ["Telefon", k.telefon],
+    ["Email", k.email],
+    ["Status", statusKupcaTekst(k)],
+  ].map(([l, v]) => `<div class="kupac-polje"><div class="kpi-l">${esc(l)}</div><div>${esc(v || "—")}</div></div>`).join("");
 
   const kpiHtml = [
     ["Mereno", stat.n], ["OK", stat.ok], ["NOK", stat.nok],
@@ -504,6 +566,8 @@ export function buildIzvestajKupacPrintHtml(podaci, {
   .kpi{background:#f0f4f8;padding:10px;border-radius:6px;}
   .kpi-l{font-size:9px;color:#666;text-transform:uppercase;}
   .kpi-v{font-size:18px;font-weight:700;}
+  .kupac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 16px;background:#f8fafc;padding:12px;border-radius:6px;border:1px solid #dbe3ee;}
+  .kupac-polje{font-size:11px;}
   h2{font-size:12px;color:#2c5282;border-bottom:2px solid #2c5282;padding-bottom:4px;margin-top:20px;}
   table{width:100%;border-collapse:collapse;margin-top:8px;}
   th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;}
@@ -520,6 +584,8 @@ export function buildIzvestajKupacPrintHtml(podaci, {
   <div><b>Broj izveštaja:</b> ${esc(br)} · <b>Datum:</b> ${new Date().toLocaleString("sr-RS")}</div>
   <div><b>Status isporuke:</b> ${esc(statusIsporuke)}</div>
 </div>
+<h2>Podaci o kupcu</h2>
+<div class="kupac-grid">${kupacHtml}</div>
 <h2>KPI perioda</h2>
 <div class="kpi-grid">${kpiHtml}</div>
 ${rnRows ? `<h2>Radni nalozi (${podaci.nalozi.length})</h2><table><thead><tr><th>Nalog</th><th>ID dela</th><th>Naziv</th><th>Kol.</th></tr></thead><tbody>${rnRows}</tbody></table>` : ""}

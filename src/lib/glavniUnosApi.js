@@ -313,7 +313,24 @@ export async function propagirajGlavniUnos({ sheetNaziv = null, idDeo = null } =
   if (loadErr) throw loadErr;
 
   const merged = mergeKarakteristike(postojeci || [], izGlavnog);
-  const deoMeta = metaDeoIzGlavnogUnosa(dbRedovi);
+
+  const sheetNazivi = [...new Set((dbRedovi || []).map((r) => r.sheet_naziv).filter(Boolean))];
+  const sheetSifraPoNazivu = new Map();
+  if (sheetNazivi.length) {
+    try {
+      const { data: sheetCfg } = await supabase
+        .from("glavni_unos_sheetovi")
+        .select("naziv,sifra_vozila")
+        .in("naziv", sheetNazivi);
+      for (const s of sheetCfg || []) {
+        if (s?.naziv && s?.sifra_vozila) {
+          sheetSifraPoNazivu.set(s.naziv, String(s.sifra_vozila).trim().toUpperCase());
+        }
+      }
+    } catch { /* migracija sheetova možda nije aktivna */ }
+  }
+
+  const deoMeta = metaDeoIzGlavnogUnosa(dbRedovi, sheetSifraPoNazivu);
   const kupacPoDeo = kupacPoDeoIzGlavnogUnosa(dbRedovi);
 
   const kupciZaSync = [...kupacPoDeo.values()]
