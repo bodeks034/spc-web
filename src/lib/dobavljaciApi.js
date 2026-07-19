@@ -121,7 +121,65 @@ export async function upsertPrijemnaKontrola(red) {
   return data;
 }
 
-/** Agregira atributivni kontrolni_log vezan za prijem i upiše OK/NOK u prijem. Status prijema ne menja. */
+/**
+ * Kreira ili pronalazi prijem iz konteksta merenja.
+ * Primljena količina ostaje ručni podatak; OK/NOK kasnije dolaze iz merenja.
+ */
+export async function aktivirajPrijemZaMerenje({
+  sifraDobavljaca,
+  idDeo,
+  brojLota,
+  brojDokumenta = "",
+  primljeno,
+  datum = new Date().toISOString().slice(0, 10),
+}) {
+  const sifra = String(sifraDobavljaca || "").trim().toUpperCase();
+  const deo = String(idDeo || "").trim().toUpperCase();
+  const lot = String(brojLota || "").trim();
+  const dokument = String(brojDokumenta || "").trim();
+  const kolicina = Number(primljeno);
+  if (!sifra) throw new Error("Izaberi dobavljača");
+  if (!deo) throw new Error("Unesi ili skeniraj ID dela");
+  if (!lot) throw new Error("Broj lota je obavezan za prijem iz merenja");
+  if (!Number.isFinite(kolicina) || kolicina <= 0) {
+    throw new Error("Primljena količina mora biti veća od 0");
+  }
+
+  const { data: kandidati, error } = await supabase
+    .from("prijemna_kontrola_dobavljaca")
+    .select("*")
+    .eq("sifra_dobavljaca", sifra)
+    .eq("id_deo", deo)
+    .eq("broj_lota", lot)
+    .order("id", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  const postojeci = (kandidati || []).find(
+    (r) => String(r.broj_dokumenta || "").trim() === dokument,
+  );
+  if (postojeci) {
+    if (Number(postojeci.primljeno) !== kolicina) {
+      return upsertPrijemnaKontrola({ ...postojeci, primljeno: kolicina });
+    }
+    return postojeci;
+  }
+
+  return upsertPrijemnaKontrola({
+    datum,
+    sifra_dobavljaca: sifra,
+    id_deo: deo,
+    broj_lota: lot,
+    broj_dokumenta: dokument,
+    primljeno: kolicina,
+    kontrolisano: 0,
+    ok_kolicina: 0,
+    nok_kolicina: 0,
+    status: "otvoreno",
+    napomena: "Automatski kreiran iz Ulazne kontrole — odluka o prijemu nije doneta.",
+  });
+}
+
+/** Agregira atributivna i merljiva merenja vezana za prijem. Status prijema ne menja. */
 export async function syncPrijemnaIzKontrolnogLoga(prijemnaId) {
   const id = Number(prijemnaId);
   if (!Number.isFinite(id) || id <= 0) throw new Error("Nedostaje ID prijema");
@@ -133,25 +191,42 @@ export async function syncPrijemnaIzKontrolnogLoga(prijemnaId) {
     .single();
   if (ePrijem) throw ePrijem;
 
-  const { data: logRows, error: eLog } = await supabase
-    .from("kontrolni_log")
-    .select("id,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,inspekcija_id,sesija_id,created_at,greska_naziv")
-    .eq("prijemna_kontrola_id", id);
+  const [logRes, merRes] = await Promise.all([
+    supabase
+      .from("kontrolni_log")
+      .select("id,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,inspekcija_id,sesija_id,created_at,greska_naziv")
+      .eq("prijemna_kontrola_id", id),
+    supabase
+      .from("merenja_varijabilna")
+      .select("id,status,inspekcija_id,sesija_id,sifra_merenja,client_id")
+      .eq("prijemna_kontrola_id", id),
+  ]);
+  const { data: logRows, error: eLog } = logRes;
   if (eLog) {
     if (/prijemna_kontrola_id|does not exist|schema cache|column/i.test(String(eLog.message || ""))) {
       throw new Error("Pokreni migraciju 70_prijemna_veza_kontrolni_log.sql (veza prijema ↔ Ulazna kontrola).");
     }
     throw eLog;
   }
+  if (merRes.error) {
+    if (/prijemna_kontrola_id|inspekcija_id|does not exist|schema cache|column/i.test(String(merRes.error.message || ""))) {
+      throw new Error("Pokreni migraciju 72_prijemna_veza_merljiva.sql (veza prijema ↔ merljiva kontrola).");
+    }
+    throw merRes.error;
+  }
 
-  const { agregirajAtributivneJedinice } = await import("./atributivneAgregacija.js");
-  const { ok, nok, n } = agregirajAtributivneJedinice(logRows || []);
-  let kontrolisano = n;
-  let primljeno = Number(prijem.primljeno) || 0;
-  if (kontrolisano > primljeno) primljeno = kontrolisano;
+  const { agregirajPrijemIzMerenja } = await import("./prijemnaAgregacija.js");
+  const zbir = agregirajPrijemIzMerenja(logRows || [], merRes.data || []);
+  const { ok, nok, n: kontrolisano } = zbir;
+  const primljeno = Number(prijem.primljeno) || 0;
+  if (kontrolisano > primljeno) {
+    throw new Error(
+      `Kontrolisano (${kontrolisano}) je veće od primljenog (${primljeno}). `
+      + "Ispravi primljenu količinu na PRIJEMU; aplikacija je ne menja automatski.",
+    );
+  }
 
   const payload = {
-    primljeno,
     kontrolisano,
     ok_kolicina: ok,
     nok_kolicina: nok,
@@ -164,5 +239,15 @@ export async function syncPrijemnaIzKontrolnogLoga(prijemnaId) {
     .select("*")
     .single();
   if (error) throw error;
-  return { prijem: data, ok, nok, kontrolisano, brojRedova: (logRows || []).length };
+  return {
+    prijem: data,
+    ok,
+    nok,
+    kontrolisano,
+    brojRedova: (logRows || []).length + (merRes.data || []).length,
+    atributivni: zbir.atributivni,
+    merljivi: zbir.merljivi,
+  };
 }
+
+export const syncPrijemnaIzMerenja = syncPrijemnaIzKontrolnogLoga;

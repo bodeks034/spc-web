@@ -45,7 +45,8 @@ Pre rada moraju biti primenjene SQL migracije:
 1. `67_erp_master_podaci.sql` — dobavljači i materijali;
 2. `69_dobavljaci_prijemna_kontrola.sql` — prijemne kontrole, KPI i foto NOK;
 3. `70_prijemna_veza_kontrolni_log.sql` — veza prijema ↔ Ulazna kontrola (`kontrolni_log.prijemna_kontrola_id`);
-4. `71_ocena_dobavljaca.sql` — periodična ocena dobavljača (A–D) i istorija.
+4. `71_ocena_dobavljaca.sql` — periodična ocena dobavljača (A–D) i istorija;
+5. `72_prijemna_veza_merljiva.sql` — veza prijema ↔ merljiva merenja i ID uzorka.
 
 Migracija 69 je idempotentna i može se ponovo pokrenuti kada se dodaju nove kolone.
 
@@ -73,7 +74,7 @@ U trenutnoj aplikaciji:
 
 - **šifrarnik dobavljača** (Modul 0) održavaju korisnici sa pristupom Šifrarniku
   (tipično **kvalitet, šef ili admin**);
-- **prijemnu kontrolu** (Modul 1 — Atributivne → **PRIJEMNA**) unose **kontrolor**,
+- **prijemnu kontrolu** (Modul 1 — Atributivne → **PRIJEM**) unose **kontrolor**,
   **kvalitet**, **šef** ili **admin**.
 
 ---
@@ -125,9 +126,15 @@ telefon i email. Ručni tab prikazuje operativna osnovna polja.
 Put (Modul 1 — operativni unos):
 
 **Početni ekran → Modul 1 — Unos → Atributivne → tab PRIJEM**
+**Početni ekran → Modul 1 — Unos → Merljive → tab PRIJEM**
 
-- u **režimu linija**: tab **PRIJEM** je pored UNOS / LOG (na tabletu dugme **PRIJEM** u zaglavlju);
+Isti ekran PRIJEM postoji i u atributivnom i u merljivom modulu — zapisi su
+zajednički, pa prijem otvoren u jednom modulu vidiš i u drugom.
+
+- u **režimu linija**: tab **PRIJEM** je pored UNOS / LOG (u merljivim pored
+  UNOS / FAI / LOG; na tabletu dugmad **PRIJEM** i **POVEŽI** u zaglavlju);
 - u **režimu analitika**: **Operativa → PRIJEM** (isti unosni ekran).
+  Povezivanje merenja sa prijemom radi se na tabu **POVEŽI PRIJEM** (linija).
 
 Šifrarnik (Modul 0) sadrži samo master **Dobavljači**, ne i unos prijema.
 
@@ -150,12 +157,41 @@ Važno:
 
 - **PRIJEM** je zaglavlje i odluka za ceo lot/prijemnicu;
 - **Ulazna kontrola** je dokaz šta je konkretno pregledano i sa kojim rezultatom;
-- veza se čuva preko `kontrolni_log.prijemna_kontrola_id`, zato se rezultati ne
-  povezuju samo po datumu ili nazivu dela;
-- trenutno automatsko povezivanje radi za **atributivnu Ulaznu kontrolu (pogon A)**;
-  merljive dimenzije još nisu uključene u isti automatski zbir.
+- atributivna veza se čuva preko `kontrolni_log.prijemna_kontrola_id`;
+- merljiva veza se čuva preko `merenja_varijabilna.prijemna_kontrola_id`;
+- zato se rezultati ne povezuju nepouzdano samo po datumu ili nazivu dela.
 
-### Tok sa Ulaznom kontrolom (pogon A)
+### Preporučeni tok — kreni iz merenja
+
+Ovo je preporučeni i najbrži tok za kontrolora:
+
+1. Otvori **Modul 1 → Atributivne → UNOS** ili **Modul 1 → Merljive → UNOS**.
+2. Unesi ili skeniraj **ID dela**.
+3. Otvori tab **POVEŽI PRIJEM** (pored taba PRIJEM; na tabletu dugme **POVEŽI**
+   u zaglavlju). Forma za povezivanje nije na ekranu UNOS — ne zauzima prostor
+   iznad unosa.
+4. Izaberi/skeniraj dobavljača i unesi **lot**, prijemnicu i **primljenu količinu**.
+5. Klikni **Aktiviraj i nastavi merenje**. Aplikacija pronalazi postojeći ili kreira
+   novi otvoreni PRIJEM za isti dobavljač + deo + lot + dokument, postavlja
+   **pogon A (Ulazna kontrola)** i vraća te na UNOS.
+6. Radi atributivna ili merljiva merenja kao i obično. Merenja se vezuju za prijem
+   **samo dok je pogon A**. Iznad forme stoji plava traka **PRIJEM #…** — dugmetom
+   **—** možeš da je skupiš (prijem ostaje povezan), a dugmetom **✕** da odspojiš
+   prijem. Ako prebaciš na drugi pogon, traka upozorava „Prebaci pogon na A“.
+7. Posle snimanja aplikacija automatski popunjava **Kontrolisano**, **OK** i **NOK**
+   na PRIJEMU.
+8. Na tabu **PRIJEM** odgovorna osoba ručno bira konačnu odluku:
+   **Prihvaćeno / Uslovno / Odbijeno**.
+
+Primljena količina i odluka se **ne izračunavaju iz merenja**:
+
+- **Primljeno** dolazi sa prijemnice / iz ERP-a;
+- **status prijema** je poslovna odluka kvaliteta ili nabavke.
+
+Ako broj kontrolisanih uzoraka pređe primljenu količinu, aplikacija neće sama
+povećati Primljeno — prvo ispravi podatak na PRIJEMU.
+
+### Alternativni tok — kreni iz PRIJEMA
 
 1. Klikni **+ Novi prijem**, unesi dobavljača, lot, prijemnicu, **ID deo**, primljenu količinu.
 2. Sačuvaj, zatim **Pokreni Ulaznu kontrolu** (ili dugme **Kontrola** u tabeli).
@@ -163,6 +199,26 @@ Važno:
 4. Unesi OK/NOK po komadu kao običnu atributivnu kontrolu i snimi.
 5. Aplikacija upiše OK/NOK nazad u prijem. Odluku **Prihvaćeno / Uslovno / Odbijeno** i dalje biraš na tabu PRIJEM.
 6. Dugme **↻** / **Osveži OK/NOK iz kontrole** ponovo agregira log ako treba.
+
+Ovaj smer ostaje koristan kada magacin prvo evidentira prijem, a kontrolor tek
+kasnije uzima uzorak.
+
+### Kako se računaju merljivi uzorci
+
+Jedan merljivi uzorak/komad može imati više dimenzija. Sve dimenzije istog uzorka
+dele `inspekcija_id`, pa se ne broje kao više kontrolisanih komada:
+
+```text
+ako su sve dimenzije uzorka OK  → uzorak je OK
+ako je bar jedna dimenzija NOK → ceo uzorak je NOK
+```
+
+Primer: izmereno je 5 komada, svaki sa 8 dimenzija. To je **5 kontrolisanih**, ne
+40 merenja. Ako na drugom komadu jedna dimenzija izađe iz tolerancije, rezultat
+prijema je **4 OK + 1 NOK**.
+
+Za isti fizički uzorak nemoj praviti dva odvojena unosa u atributivnom i merljivom
+modulu, jer se odvojene kontrolisane jedinice sabiraju.
 
 Ne upisuj lot ili broj prijemnice u polje **Radni nalog**. Lot i dokument se prenose
 iz zapisa PRIJEM i prikazuju u baneru iznad Ulazne kontrole.
@@ -188,6 +244,16 @@ Popuni:
 | ID deo | Po potrebi | `HAM-NM-001` |
 | Broj lota | Preporuka | `LOT-2026-0718-01` |
 | Dokument / prijemnica | Preporuka | `PR-2026-00451` |
+
+Dobavljača možeš izabrati iz liste ili kliknuti ikonu **📷** pored polja
+**Dobavljač** i skenirati njegov barkod. Barkod može sadržati:
+
+- samo šifru, npr. `DOB-001`;
+- šifru kao prvi segment, npr. `DOB-001|LOT-0718`;
+- JSON sa poljem `sifra_dobavljaca`, `supplier` ili `vendor`.
+
+Skenirana šifra mora postojati u šifrarniku **Modul 0 → Dobavljači**. Ako nije
+pronađena, aplikacija neće izabrati drugog dobavljača i prikazaće poruku o grešci.
 
 Koristi:
 

@@ -113,6 +113,10 @@ import { useSpcAlarmGate } from "../../hooks/useSpcAlarmGate.js";
 import SpcBaselinePanel from "../SpcBaselinePanel.jsx";
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
 import PrijemnaKontrolaPanel from "./PrijemnaKontrolaPanel.jsx";
+import PrijemMerenjeKontekst, {
+  sacuvajPrijemKontekst,
+  ucitajPrijemKontekst,
+} from "../PrijemMerenjeKontekst.jsx";
 import IzvestajDobavljacPanel from "../IzvestajDobavljacPanel.jsx";
 import { syncPrijemnaIzKontrolnogLoga } from "../../lib/dobavljaciApi.js";
 import OfflineSyncPanel from "../OfflineSyncPanel.jsx";
@@ -208,7 +212,11 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const [loadInit,setLoadInit]   = useState(true);
   const [idDeo,setIdDeo]         = useState("");
   const [deoInfo,setDeoInfo]     = useState(null);
-  const [prijemKontekst, setPrijemKontekst] = useState(null);
+  const [prijemKontekst, setPrijemKontekst] = useState(
+    () => ucitajPrijemKontekst("atributivne"),
+  );
+  const prijemKontekstRef = useRef(prijemKontekst);
+  prijemKontekstRef.current = prijemKontekst;
   const [upoz,setUpoz]           = useState("");
   const [status,setStatus]       = useState("");
   const [kategorija,setKategorija] = useState("");
@@ -295,6 +303,12 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const onFlushed = useCallback((res) => {
     if (res.syncedJobs > 0) {
       addToast(`✓ Sinhronizovano ${res.syncedJobs} offline paketa (${res.syncedRows} stavki)`, "uspeh");
+      const prijemId = prijemKontekstRef.current?.id;
+      if (prijemId) {
+        syncPrijemnaIzKontrolnogLoga(prijemId)
+          .then((r) => addToast(`✓ Prijem #${prijemId}: OK ${r.ok} · NOK ${r.nok}`, "uspeh"))
+          .catch((e) => addToast(`Prijem nije osvežen: ${e.message}`, "greska"));
+      }
     }
   }, [addToast]);
 
@@ -902,7 +916,11 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
 
     setSaving(true);
     const sesija_id = ensureSesija({ modul: "atributivne", idDeo, smena, radniNalog });
-    const prijemnaId = prijemKontekst?.id || null;
+    const prijemnaId = prijemKontekst?.id
+      && String(pogonKod || "").toUpperCase() === "A"
+      && String(prijemKontekst.id_deo || "").toUpperCase() === String(idDeo || "").toUpperCase()
+      ? prijemKontekst.id
+      : null;
     const redovi=stampajClientIdNaRedove(listaP.map(s=>{const j=s.status==="OK";return ocistiRedZaInsert({
       datum:s.datum,smena,radni_nalog:radniNalog||null,pogon_kod:pogonKod||null,id_deo:s.idDeo,naziv_dela:deoInfo?.naziv_dela||"",
       linija_id:deoInfo?.linija?.id||null,masina_id:deoInfo?.masina?.id||null,
@@ -1111,7 +1129,9 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     cursor:dis?"not-allowed":"pointer",letterSpacing:1,width:"100%",opacity:dis?0.5:1,transition:"all 0.15s"});
 
   const TABOVI=[
-    ["unos","UNOS"],["log","LOG"],["prijemna","PRIJEM"],["crtez","CRTEŽ"],["smena","SMENA"],["karte","KONTROLNE KARTE"],
+    ["unos","UNOS"],["log","LOG"],["prijemna","PRIJEM"],
+    ...(jeLinija?[["povezi-prijem","POVEŽI PRIJEM"]]:[]),
+    ["crtez","CRTEŽ"],["smena","SMENA"],["karte","KONTROLNE KARTE"],
     ["dashboard","DASHBOARD"],["stanje","STANJE"],["eskalacije","ESKALACIJE"],["8d","8D"],["pfmea-cp","PFMEA / CP"],["aql","ISO 2859"],
     ["foto","FOTO"],["oee","OEE"],["kalibracija","MERILA"],["ciljevi","CILJEVI"],["nalozi","NALOZI"],
     ["kupac","KUPAC"],["dobavljac","DOBAVLJAČI"],["oc","OC KRIVA"],["stabilnost","STABILNOST"],
@@ -1163,14 +1183,16 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       addToast("Za Ulaznu kontrolu unesi ID deo na prijemu", "greska");
       return;
     }
-    setPrijemKontekst({
+    const kontekst = {
       id: prijem.id,
       sifra_dobavljaca: prijem.sifra_dobavljaca || "",
       broj_lota: prijem.broj_lota || "",
       broj_dokumenta: prijem.broj_dokumenta || "",
       primljeno: prijem.primljeno,
       id_deo: id,
-    });
+    };
+    setPrijemKontekst(kontekst);
+    sacuvajPrijemKontekst("atributivne", kontekst);
     setIdDeo(id);
     setPogonKod("A");
     if (!jeLinija && typeof onPromeniRezim === "function") {
@@ -1194,7 +1216,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
 
   useEffect(() => {
     if (!jeLinija || punPristupTabovima) return;
-    const dozvoljeni = ["unos", "log", "prijemna"];
+    const dozvoljeni = ["unos", "log", "prijemna", "povezi-prijem"];
     if (!dozvoljeni.includes(tab)) setTab("unos");
   }, [jeLinija, tab, punPristupTabovima, korisnik?.uloga]);
 
@@ -1367,6 +1389,21 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                 {tab === "prijemna" ? "←" : "PRIJEM"}
               </button>
             )}
+            {jeLinija && koristiMobLinija && mozeTabAtributivne("povezi-prijem", korisnik.uloga, rezimRada) && (
+              <button
+                type="button"
+                onClick={() => setTab(tab === "povezi-prijem" ? "unos" : "povezi-prijem")}
+                title="Poveži merenja sa prijemom dobavljača"
+                style={{
+                  background: tab === "povezi-prijem" ? `${C.plava}22` : C.hover,
+                  border: `1px solid ${tab === "povezi-prijem" ? C.plava : C.border}`,
+                  borderRadius: 5, color: tab === "povezi-prijem" ? C.plava : C.sivi,
+                  fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
+                }}
+              >
+                {tab === "povezi-prijem" ? "←" : "POVEŽI"}
+              </button>
+            )}
             {mozePrebacivanjeRezimaUTacci(korisnik.uloga) && typeof onPromeniRezim === "function" && (
               <button
                 type="button"
@@ -1459,47 +1496,42 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       )
       )}
 
-      {tab === "unos" && prijemKontekst && (
+      {tab === "unos" && (
+        <PrijemMerenjeKontekst
+          C={C}
+          addToast={addToast}
+          modul="atributivne"
+          idDeo={idDeo}
+          kontekst={prijemKontekst}
+          onKontekst={setPrijemKontekst}
+          onAktiviran={() => setPogonKod("A")}
+          kompakt={ekran.mob || ekran.tablet}
+          rezim="banner"
+          pogonKod={pogonKod}
+        />
+      )}
+
+      {tab === "povezi-prijem" && (
         <div style={{
-          margin: "8px 12px 0",
-          padding: "8px 12px",
-          borderRadius: 8,
-          border: `1px solid ${C.plava}`,
-          background: `${C.plava}14`,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-          alignItems: "center",
-          fontSize: 11,
-          color: C.tekst,
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
         }}>
-          <span style={{ fontWeight: 700, color: C.plava }}>Prijem #{prijemKontekst.id}</span>
-          <span>{prijemKontekst.sifra_dobavljaca || "—"}</span>
-          <span>Lot: {prijemKontekst.broj_lota || "—"}</span>
-          <span>Dok: {prijemKontekst.broj_dokumenta || "—"}</span>
-          <span>Primljeno: {prijemKontekst.primljeno ?? "—"}</span>
-          <span style={{ color: C.sivi }}>Ulazna kontrola · pogon A</span>
-          <button
-            type="button"
-            onClick={() => { setPrijemKontekst(null); setTab("prijemna"); }}
-            style={{
-              marginLeft: "auto", background: C.hover, border: `1px solid ${C.border}`,
-              borderRadius: 5, color: C.tekst, fontSize: 10, padding: "4px 8px", cursor: "pointer",
-            }}
-          >
-            Nazad na PRIJEM
-          </button>
-          <button
-            type="button"
-            onClick={() => setPrijemKontekst(null)}
-            title="Odspoji prijem (unos ostaje, bez FK)"
-            style={{
-              background: "none", border: `1px solid ${C.border}`,
-              borderRadius: 5, color: C.sivi, fontSize: 10, padding: "4px 8px", cursor: "pointer",
-            }}
-          >
-            ✕
-          </button>
+          <PrijemMerenjeKontekst
+            C={C}
+            addToast={addToast}
+            modul="atributivne"
+            idDeo={idDeo}
+            kontekst={prijemKontekst}
+            onKontekst={setPrijemKontekst}
+            onAktiviran={() => setPogonKod("A")}
+            onZatvori={() => setTab("unos")}
+            kompakt={ekran.mob || ekran.tablet}
+            rezim="panel"
+            pogonKod={pogonKod}
+          />
         </div>
       )}
 

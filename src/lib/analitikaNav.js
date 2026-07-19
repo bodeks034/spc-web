@@ -104,6 +104,7 @@ export const ANALITIKA_GRUPE_MER = [
       ["oee", "OEE"],
       ["ciljevi", "CILJEVI"],
       ["nalozi", "NALOZI"],
+      ["prijemna", "PRIJEM"],
     ],
   },
   {

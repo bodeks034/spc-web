@@ -25,13 +25,21 @@ $settings = New-ScheduledTaskSettingsSet `
   -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries `
   -StartWhenAvailable `
+  -Hidden `
   -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+
+# S4U: radi u pozadini bez konzolnog (cmd) prozora.
+$principal = New-ScheduledTaskPrincipal `
+  -UserId "$env:USERDOMAIN\$env:USERNAME" `
+  -LogonType S4U `
+  -RunLevel Limited
 
 Register-ScheduledTask `
   -TaskName $ImeZadatka `
   -Action $action `
   -Trigger $trigger `
   -Settings $settings `
+  -Principal $principal `
   -Description "SPC Web — automatski uvoz radnih naloga iz ERP CSV (erp-drop/incoming)" `
   -Force | Out-Null
 

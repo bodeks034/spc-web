@@ -46,6 +46,7 @@ export const MIGRACIJE_LISTA = [
   { id: "dobavljaci_prijem", naziv: "Dobavljači — prijemna kontrola i KPI", fajl: "69_dobavljaci_prijemna_kontrola.sql" },
   { id: "prijemna_veza_log", naziv: "Prijem ↔ Ulazna kontrola (FK na log)", fajl: "70_prijemna_veza_kontrolni_log.sql" },
   { id: "ocena_dobavljaca", naziv: "Periodična ocena dobavljača (A–D)", fajl: "71_ocena_dobavljaca.sql" },
+  { id: "prijemna_veza_mer", naziv: "Prijem ↔ merljiva Ulazna kontrola", fajl: "72_prijemna_veza_merljiva.sql" },
 ];
 
 const PROBES = [
@@ -82,6 +83,7 @@ const PROBES = [
   { id: "dobavljaci_prijem", table: "prijemna_kontrola_dobavljaca", select: "id,erp_kljuc,sifra_dobavljaca,datum,status,foto_nok,foto_komentar" },
   { id: "prijemna_veza_log", table: "kontrolni_log", select: "id,prijemna_kontrola_id" },
   { id: "ocena_dobavljaca", table: "ocene_dobavljaca", select: "id,sifra_dobavljaca,ukupna_ocena,klasa,status" },
+  { id: "prijemna_veza_mer", table: "merenja_varijabilna", select: "id,prijemna_kontrola_id,inspekcija_id" },
   { id: "sifrarnik_tipovi", table: "tipovi_vozila", select: "kod,naziv" },
   { id: "sifrarnik_barkod", table: "barkod_profili", select: "id_deo,format" },
   { id: "glavni_unos_redovi", table: "glavni_unos_redovi", select: "id,sheet_naziv,id_deo" },
@@ -253,6 +255,7 @@ export async function proveriSemu(supabase) {
     dobavljaci_prijem: byId.dobavljaci_prijem?.ok,
     prijemna_veza_log: byId.prijemna_veza_log?.ok,
     ocena_dobavljaca: byId.ocena_dobavljaca?.ok,
+    prijemna_veza_mer: byId.prijemna_veza_mer?.ok,
     erp_glavni_sheetovi: byId.erp_glavni_sheetovi?.ok,
   };
 
@@ -319,6 +322,7 @@ export async function proveriSemu(supabase) {
       m.id === "dobavljaci_prijem" && byId.dobavljaci_prijem,
       m.id === "prijemna_veza_log" && byId.prijemna_veza_log,
       m.id === "ocena_dobavljaca" && byId.ocena_dobavljaca,
+      m.id === "prijemna_veza_mer" && byId.prijemna_veza_mer,
       m.id === "erp_glavni_sheetovi" && byId.erp_glavni_sheetovi,
     ].filter(Boolean),
   }));

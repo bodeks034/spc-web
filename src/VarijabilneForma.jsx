@@ -109,6 +109,12 @@ import ShopFloorStatusBar from "./components/ShopFloorStatusBar.jsx";
 import KarantinBlokada from "./components/KarantinBlokada.jsx";
 import { proveriAktivanKarantin } from "./lib/karantinProvera.js";
 import { buildMerenjeVarijabilnaRow, snimiJednoMerenjeVarijabilno } from "./lib/merenjaVarijabilnaSnimi.js";
+import { syncPrijemnaIzMerenja } from "./lib/dobavljaciApi.js";
+import PrijemMerenjeKontekst, {
+  sacuvajPrijemKontekst,
+  ucitajPrijemKontekst,
+} from "./components/PrijemMerenjeKontekst.jsx";
+import PrijemnaKontrolaPanel from "./components/atributivne/PrijemnaKontrolaPanel.jsx";
 import CrtezZoomViewer from "./components/CrtezZoomViewer.jsx";
 import CrtezPregledPanel from "./components/CrtezPregledPanel.jsx";
 import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
@@ -205,6 +211,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const meriloStopRef = useRef(null);
   const meriloSimulirajRef = useRef(null);
   const snimaMeriloRef = useRef(false);
+  const prijemKontekstRef = useRef(ucitajPrijemKontekst("merljive"));
   const autoSnimiMeriloRef = useRef(autoSnimiMerilo);
   autoSnimiMeriloRef.current = autoSnimiMerilo;
   const [toasts, setToasts] = useState([]);
@@ -247,6 +254,12 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const onFlushed = useCallback((res) => {
     if (res.syncedJobs > 0) {
       addToast(`✓ Sinhronizovano ${res.syncedJobs} offline paketa (${res.syncedRows} stavki)`, "uspeh");
+      const prijemId = prijemKontekstRef.current?.id;
+      if (prijemId) {
+        syncPrijemnaIzMerenja(prijemId)
+          .then((r) => addToast(`✓ Prijem #${prijemId}: OK ${r.ok} · NOK ${r.nok}`, "uspeh"))
+          .catch((e) => addToast(`Prijem nije osvežen: ${e.message}`, "greska"));
+      }
     }
   }, [addToast]);
 
@@ -258,6 +271,8 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     ["unos", "UNOS"],
     ...(jeLinija && digitalniUnos ? [["moment", "MOMENT"]] : []),
     ["fai", "FAI"],
+    ["prijemna", "PRIJEM"],
+    ...(jeLinija ? [["povezi-prijem", "POVEŽI PRIJEM"]] : []),
     ["karte", "KONTROLNE KARTE"],
     ["stanje", "STANJE"],
     ["smena", "SMENA"],
@@ -344,6 +359,9 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const [datum, setDatum] = useState(danasSr());
   const smena = useAutoSmena(true);
   const [idDeo, setIdDeo] = useState("");
+  const [prijemKontekst, setPrijemKontekst] = useState(prijemKontekstRef.current);
+  prijemKontekstRef.current = prijemKontekst;
+  const merljivaInspekcijaRef = useRef(new Map());
   const [pogonKod, setPogonKod] = useState("");
   const [radniNalog, setRadniNalog] = useState("");
   const [nalogInfo, setNalogInfo] = useState(null);
@@ -357,6 +375,13 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const [grupaAB, setGrupaAB] = useState("");
   const [grupe, setGrupe] = useState([]);
   const koloneBridgeRef = useRef(null);
+  const inspekcijaIdZa = useCallback((grupa, indeks, sesijaId = "") => {
+    const kljuc = `${sesijaId || "bez-sesije"}|${grupa || "serija"}|${Number(indeks) + 1}`;
+    if (!merljivaInspekcijaRef.current.has(kljuc)) {
+      merljivaInspekcijaRef.current.set(kljuc, crypto.randomUUID());
+    }
+    return merljivaInspekcijaRef.current.get(kljuc);
+  }, []);
   const [koloneSnapshot, setKoloneSnapshot] = useState(() => prazneKolone(5));
   const kolone = koloneSnapshot;
   const onMerenjaChange = useCallback((cols) => setKoloneSnapshot(cols), []);
@@ -1704,6 +1729,30 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
   const onGrupaChange = (ab) => prebaciGrupu(ab);
 
+  const onPokreniUlaznuKontrolu = useCallback((prijem) => {
+    const id = String(prijem?.id_deo || "").trim().toUpperCase();
+    if (!id) {
+      addToast("Za Ulaznu kontrolu unesi ID deo na prijemu", "greska");
+      return;
+    }
+    const kontekst = {
+      id: prijem.id,
+      sifra_dobavljaca: prijem.sifra_dobavljaca || "",
+      broj_lota: prijem.broj_lota || "",
+      broj_dokumenta: prijem.broj_dokumenta || "",
+      primljeno: prijem.primljeno,
+      id_deo: id,
+    };
+    setPrijemKontekst(kontekst);
+    sacuvajPrijemKontekst("merljive", kontekst);
+    if (!jeLinija && typeof onPromeniRezim === "function") {
+      onPromeniRezim("linija");
+    }
+    setTab("unos");
+    onIdChange(id, { potvrdi: true, pogonEksplicitni: "A" });
+    addToast(`Ulazna kontrola (A) za prijem #${prijem.id} · ${id}`, "info");
+  }, [addToast, jeLinija, onPromeniRezim, onIdChange]);
+
   useBarcodeScanner(useCallback((raw) => {
     if (tab !== "unos") return;
     obradiBarkodSken(raw);
@@ -1869,6 +1918,11 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         smena,
         radniNalog,
       });
+      const prijemnaId = prijemKontekst?.id
+        && String(pogonKod || "").toUpperCase() === "A"
+        && String(prijemKontekst.id_deo || "").toUpperCase() === String(idDeo || "").toUpperCase()
+        ? prijemKontekst.id
+        : null;
       row = buildMerenjeVarijabilnaRow({
         datum: parsirajDatum(datum),
         smena,
@@ -1885,6 +1939,8 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         masina,
         radnikId: korisnik?.radnikId,
         sesijaId: sesija_id,
+        prijemnaKontrolaId: prijemnaId,
+        inspekcijaId: prijemnaId ? inspekcijaIdZa(grupaAB, merIdx, sesija_id) : null,
       });
 
       if (!online) {
@@ -1896,6 +1952,13 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
       await snimiJednoMerenjeVarijabilno(supabase, row);
       oznaciMerenjeSnimljeno(colIdx, merIdx);
+      if (prijemnaId) {
+        try {
+          await syncPrijemnaIzMerenja(prijemnaId);
+        } catch (e) {
+          addToast(`Merenje je sačuvano, prijem nije osvežen: ${e.message}`, "greska");
+        }
+      }
       addToast(`✓ ${k.naziv}=${raw} u bazi`, "uspeh");
     } catch (e) {
       if (jeMreznaGreska(e) && row) {
@@ -1913,6 +1976,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   }, [
     idDeo, grupaAB, faiRezimAktivan, smena, radniNalog, pogonKod, linija, kontrolor,
     masina, korisnik, datum, online, addMerljiveSerija, addToast, oznaciMerenjeSnimljeno,
+    prijemKontekst, inspekcijaIdZa,
   ]);
 
   const sacuvaj = async () => {
@@ -1951,10 +2015,15 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       smena,
       radniNalog,
     });
+    const prijemnaId = prijemKontekst?.id
+      && String(pogonKod || "").toUpperCase() === "A"
+      && String(prijemKontekst.id_deo || "").toUpperCase() === String(idDeo || "").toUpperCase()
+      ? prijemKontekst.id
+      : null;
     const rows = [];
     for (const k of koloneZaSnim) {
       if (k.naziv === "-") continue;
-      for (const m of k.merenja) {
+      for (const [merIdx, m] of k.merenja.entries()) {
         if (m.snimljenoDb) continue;
         const st = proveriOkNok(m.raw, k.lslDec, k.uslDec, k.jedinica);
         rows.push({
@@ -1978,6 +2047,10 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           foto: st === "NOK" ? (fotoZaSnim[k.naziv] || null) : null,
           komentar: st === "NOK" ? (komentarZaSnim[k.naziv]?.trim() || null) : null,
           sesija_id,
+          ...(prijemnaId ? {
+            prijemna_kontrola_id: prijemnaId,
+            inspekcija_id: inspekcijaIdZa(grupaAB, merIdx, sesija_id),
+          } : {}),
         });
       }
     }
@@ -2094,7 +2167,9 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       }
       const msg = porukaDbGreske(error);
       setPoruka(
-        msg.includes("19_fix_merenja_varijabilna_sequence")
+        msg.includes("prijemna_kontrola_id") || msg.includes("inspekcija_id")
+          ? `${msg}\nPokreni 72_prijemna_veza_merljiva.sql u Supabase.`
+          : msg.includes("19_fix_merenja_varijabilna_sequence")
           ? msg
           : msg.includes("sesija_id")
             ? `${msg}\nPokreni 15_sesija_id.sql u Supabase.`
@@ -2103,6 +2178,18 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
               : msg,
       );
       return;
+    }
+
+    if (prijemnaId) {
+      try {
+        const prijemZbir = await syncPrijemnaIzMerenja(prijemnaId);
+        addToast(
+          `✓ Prijem #${prijemnaId}: kontrolisano ${prijemZbir.kontrolisano} · OK ${prijemZbir.ok} · NOK ${prijemZbir.nok}`,
+          "uspeh",
+        );
+      } catch (e) {
+        addToast(`Prijem nije osvežen: ${e.message}`, "greska");
+      }
     }
 
     const { data: kpiData, error: errKpi } = await snimiKpiUnos(supabase, kpiPayload);
@@ -2770,6 +2857,36 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
                   {tab === "log" ? "←" : "LOG"}
                 </button>
               )}
+              {jeLinija && koristiMobLinija && mozeTabMerljive("prijemna", korisnik?.uloga, rezimRada) && (
+                <button
+                  type="button"
+                  onClick={() => setTab(tab === "prijemna" ? "unos" : "prijemna")}
+                  title="Prijemna kontrola dobavljača"
+                  style={{
+                    background: tab === "prijemna" ? `${C.plava}22` : C.hover,
+                    border: `1px solid ${tab === "prijemna" ? C.plava : C.border}`,
+                    borderRadius: 5, color: tab === "prijemna" ? C.plava : C.sivi,
+                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
+                  }}
+                >
+                  {tab === "prijemna" ? "←" : "PRIJEM"}
+                </button>
+              )}
+              {jeLinija && koristiMobLinija && mozeTabMerljive("povezi-prijem", korisnik?.uloga, rezimRada) && (
+                <button
+                  type="button"
+                  onClick={() => setTab(tab === "povezi-prijem" ? "unos" : "povezi-prijem")}
+                  title="Poveži merenja sa prijemom dobavljača"
+                  style={{
+                    background: tab === "povezi-prijem" ? `${C.plava}22` : C.hover,
+                    border: `1px solid ${tab === "povezi-prijem" ? C.plava : C.border}`,
+                    borderRadius: 5, color: tab === "povezi-prijem" ? C.plava : C.sivi,
+                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
+                  }}
+                >
+                  {tab === "povezi-prijem" ? "←" : "POVEŽI"}
+                </button>
+              )}
             </>
           )}
           trakaIspod={ekran.telefon ? null : (
@@ -2847,6 +2964,45 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         )
         )}
       </div>
+
+      {tab === "unos" && (
+        <PrijemMerenjeKontekst
+          C={C}
+          addToast={addToast}
+          modul="merljive"
+          idDeo={idDeo}
+          kontekst={prijemKontekst}
+          onKontekst={setPrijemKontekst}
+          onAktiviran={() => setPogonKod("A")}
+          kompakt={ekran.mob || ekran.tablet}
+          rezim="banner"
+          pogonKod={pogonKod}
+        />
+      )}
+
+      {tab === "povezi-prijem" && (
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
+        }}>
+          <PrijemMerenjeKontekst
+            C={C}
+            addToast={addToast}
+            modul="merljive"
+            idDeo={idDeo}
+            kontekst={prijemKontekst}
+            onKontekst={setPrijemKontekst}
+            onAktiviran={() => setPogonKod("A")}
+            onZatvori={() => setTab("unos")}
+            kompakt={ekran.mob || ekran.tablet}
+            rezim="panel"
+            pogonKod={pogonKod}
+          />
+        </div>
+      )}
 
       {tab === "pregled" && !jeLinija && (
         <LazyTab C={C} label="Učitavam pregled…">
@@ -3013,6 +3169,18 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
             onOdobreno={() => proveriFai()}
           />
           </LazyTab>
+        </div>
+      )}
+
+      {tab === "prijemna" && (
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
+        }}>
+          <PrijemnaKontrolaPanel C={C} addToast={addToast} onPokreniKontrolu={onPokreniUlaznuKontrolu}/>
         </div>
       )}
 

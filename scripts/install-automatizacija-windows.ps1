@@ -41,7 +41,10 @@ function Get-SpcPrincipal {
   $who = "$env:USERDOMAIN\$env:USERNAME"
   $wantHighest = $IsAdmin -and ($Schedule -in @("daily02", "atlogon"))
   $runLevel = if ($wantHighest) { "Highest" } else { "Limited" }
-  return New-ScheduledTaskPrincipal -UserId $who -LogonType Interactive -RunLevel $runLevel
+  # S4U = "Pokreni bilo da je korisnik prijavljen ili ne" -> radi u pozadinskoj
+  # sesiji, bez konzolnih (cmd) prozora koji iskacu kad se laptop upali i
+  # propusteni taskovi krenu da sustizu (StartWhenAvailable).
+  return New-ScheduledTaskPrincipal -UserId $who -LogonType S4U -RunLevel $runLevel
 }
 
 function Register-SpcTask {
@@ -86,7 +89,7 @@ function Register-SpcTask {
     default { New-ScheduledTaskTrigger -Daily -At "06:30" }
   }
 
-  $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 2 -RestartInterval (New-TimeSpan -Minutes 5)
+  $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -Hidden -RestartCount 2 -RestartInterval (New-TimeSpan -Minutes 5)
   $Principal = Get-SpcPrincipal -Schedule $Schedule
 
   if ($Uninstall) {

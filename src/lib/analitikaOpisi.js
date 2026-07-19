@@ -62,6 +62,7 @@ export const OPISI_ANALITIKA_MER = {
   oee: "OEE i KPI dorade/škarta za merljive serije.",
   ciljevi: "Ciljevi kvaliteta za merljive delove.",
   nalozi: "Radni nalozi za varijabilne delove.",
+  prijemna: "Prijem dobavljača: lot/prijemnica, pa Ulazna kontrola (pogon A) — merljiva merenja pune OK/NOK.",
   excel: "Izvoz merenja i KPI u Excel.",
 };
 

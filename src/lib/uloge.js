@@ -129,14 +129,14 @@ export function efektivniRezimRada(uloga, izabraniRezim = "linija") {
 }
 
 const TAB_LINIJA_ATRIB_OPERATOR = new Set(["unos"]);
-const TAB_LINIJA_ATRIB_KONTROLOR = new Set(["unos", "log", "prijemna"]);
+const TAB_LINIJA_ATRIB_KONTROLOR = new Set(["unos", "log", "prijemna", "povezi-prijem"]);
 const TAB_LINIJA_MERLJIVE_OPERATOR = new Set(["unos", "moment"]);
-const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "moment", "log", "fai"]);
+const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "moment", "log", "fai", "prijemna", "povezi-prijem"]);
 
 /** Operator: samo unos + log. Kontrolor: + karte, smena. Kvalitet/admin: sve. */
 const TAB_MERLJIVE_OPERATOR = new Set(["unos", "log"]);
 const TAB_MERLJIVE_KONTROLOR = new Set([
-  "unos", "log", "karte", "smena", "oee", "heatmap", "msa", "kplan", "fai",
+  "unos", "log", "karte", "smena", "oee", "heatmap", "msa", "kplan", "fai", "prijemna",
 ]);
 const TAB_ATRIB_OPERATOR = new Set(["unos"]);
 const TAB_ATRIB_KONTROLOR = new Set([

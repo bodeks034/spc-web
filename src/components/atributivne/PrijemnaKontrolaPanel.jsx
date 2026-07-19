@@ -7,6 +7,7 @@ import {
   syncPrijemnaIzKontrolnogLoga,
 } from "../../lib/dobavljaciApi.js";
 import FotoNokUnos from "../FotoNokUnos.jsx";
+import { BarkodSkenirajPolje } from "../BarkodKameraSken.jsx";
 
 const danas = () => new Date().toISOString().slice(0, 10);
 const PRAZAN = {
@@ -77,6 +78,37 @@ export default function PrijemnaKontrolaPanel({ C, addToast, onPokreniKontrolu }
   );
   const materijaliZaFormu = materijali.filter((m) =>
     !forma?.sifra_dobavljaca || m.sifra_dobavljaca === forma.sifra_dobavljaca);
+
+  const skenirajDobavljaca = (sirovo) => {
+    const raw = String(sirovo || "").trim();
+    if (!raw) return;
+    let sifra = raw;
+    if (raw.startsWith("{")) {
+      try {
+        const j = JSON.parse(raw);
+        sifra = j.sifra_dobavljaca || j.dobavljac || j.supplier
+          || j.vendor || j.supplier_code || j.vendor_code || "";
+      } catch {
+        sifra = raw;
+      }
+    } else if (raw.includes("|")) {
+      sifra = raw.split("|")[0];
+    }
+    const trazena = String(sifra || "").trim().toUpperCase();
+    const dobavljac = dobavljaci.find(
+      (d) => String(d.sifra_dobavljaca || "").trim().toUpperCase() === trazena,
+    );
+    if (!dobavljac) {
+      addToast?.(`Barkod dobavljača nije pronađen: ${trazena || raw}`, "greska");
+      return;
+    }
+    setForma((p) => ({
+      ...(p || { ...PRAZAN, datum: danas() }),
+      sifra_dobavljaca: dobavljac.sifra_dobavljaca,
+      sifra_materijala: "",
+    }));
+    addToast?.(`✓ Dobavljač: ${dobavljac.naziv_dobavljaca}`, "uspeh");
+  };
 
   const snimi = async () => {
     setSnima(true);
@@ -191,10 +223,29 @@ export default function PrijemnaKontrolaPanel({ C, addToast, onPokreniKontrolu }
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 8, marginBottom: 10 }}>
             <Polje label="DATUM *"><input type="date" value={forma.datum || ""} onChange={(e) => setForma((p) => ({ ...p, datum: e.target.value }))} style={INP} /></Polje>
             <Polje label="DOBAVLJAČ *">
-              <select value={forma.sifra_dobavljaca || ""} onChange={(e) => setForma((p) => ({ ...p, sifra_dobavljaca: e.target.value, sifra_materijala: "" }))} style={INP}>
-                <option value="">— Izaberi —</option>
-                {dobavljaci.map((d) => <option key={d.sifra_dobavljaca} value={d.sifra_dobavljaca}>{d.sifra_dobavljaca} — {d.naziv_dobavljaca}</option>)}
-              </select>
+              <div style={{ display: "flex", gap: 6, minWidth: 0 }}>
+                <select
+                  value={forma.sifra_dobavljaca || ""}
+                  onChange={(e) => setForma((p) => ({ ...p, sifra_dobavljaca: e.target.value, sifra_materijala: "" }))}
+                  style={{ ...INP, flex: 1, minWidth: 0 }}
+                >
+                  <option value="">— Izaberi —</option>
+                  {dobavljaci.map((d) => <option key={d.sifra_dobavljaca} value={d.sifra_dobavljaca}>{d.sifra_dobavljaca} — {d.naziv_dobavljaca}</option>)}
+                </select>
+                <BarkodSkenirajPolje
+                  onSken={skenirajDobavljaca}
+                  C={C}
+                  akcent={C.plava}
+                  stil={{ width: 42, minHeight: 32, borderRadius: 6 }}
+                  velicinaIkone={16}
+                />
+              </div>
+              <span
+                title="Skeniraj šifru dobavljača. Podržani su obična šifra, prvi deo zapisa ŠIFRA|… i JSON polja sifra_dobavljaca / supplier / vendor."
+                style={{ color: C.sivi, fontSize: 8, cursor: "help" }}
+              >
+                📷 Skeniraj barkod dobavljača
+              </span>
             </Polje>
             <Polje label="MATERIJAL">
               <select value={forma.sifra_materijala || ""} onChange={(e) => setForma((p) => ({ ...p, sifra_materijala: e.target.value }))} style={INP}>

@@ -19,6 +19,8 @@ export function buildMerenjeVarijabilnaRow({
   masina,
   radnikId,
   sesijaId,
+  prijemnaKontrolaId = null,
+  inspekcijaId = null,
   foto = null,
   komentar = null,
   clientId = null,
@@ -44,6 +46,10 @@ export function buildMerenjeVarijabilnaRow({
     foto: status === "NOK" ? foto : null,
     komentar: status === "NOK" ? komentar : null,
     sesija_id: sesijaId,
+    ...(prijemnaKontrolaId ? {
+      prijemna_kontrola_id: prijemnaKontrolaId,
+      inspekcija_id: inspekcijaId || null,
+    } : {}),
     client_id: clientId || undefined,
   }]);
   return row;
