@@ -68,6 +68,14 @@ async function main() {
     console.log("\n⚠ Za pun gate postavi E2E_EMAIL i E2E_PASSWORD");
   }
 
+  const imaSifrarnikE2e = !!(process.env.E2E_EMAIL_KVALITET && process.env.E2E_PASSWORD_KVALITET);
+  if (imaSifrarnikE2e) {
+    if (!runStep("E2E šifrarnik status", () => npmRun("e2e:sifrarnik"))) fail += 1;
+  } else {
+    console.log("\n── E2E šifrarnik status ──\n⚠ Preskočeno (nema E2E_EMAIL_KVALITET)");
+    rezultati.push({ naziv: "E2E šifrarnik status", ok: null });
+  }
+
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const reportDir = path.join(ROOT, "logs");
   await fs.mkdir(reportDir, { recursive: true });

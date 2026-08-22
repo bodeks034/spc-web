@@ -771,7 +771,7 @@ Brojevi (delovi, RN, merila, dimenzije) + **duplikati dimenzija**. Klik otvara t
 <!-- /SYNC:ODRZAVANJE_CELL -->
 
 <!-- SYNC:DELOVI_CELL -->
-filter po tipu, filter **Samo DEMO/TEST**, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, **GU (n)** → Glavni unos, status badge (**klik** → sledeći tab), ▦ barkod.
+filter po tipu, filter **Samo DEMO/TEST**, filter **Samo delimični**, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, **GU (n)** → Glavni unos, status badge (**klik** → meni koraka), ▦ barkod.
 <!-- /SYNC:DELOVI_CELL -->
 
 <!-- SYNC:ERP_CSV_ROWS -->

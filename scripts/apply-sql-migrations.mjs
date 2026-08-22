@@ -7,7 +7,7 @@
  *
  * npm run db:migrate              — primeni pilot 54–59 + kvalitet 75–76 + go-live 77–78
  * npm run db:migrate -- --kvalitet — samo 75_ncr_registar_obrazac + 76_osmd_pfmea_cp_brojevi
- * npm run db:migrate -- --go-live  — samo 77_ocisti_operativu + 78_obrisi_deo RPC
+ * npm run db:migrate -- --go-live  — samo 77–79 go-live RPC
  * npm run db:migrate -- --all     — svi .sql fajlovi 01–59 po broju (oprezno na postojećoj bazi)
  * npm run db:migrate -- --file 59_ncr_capa.sql
  * npm run db:migrate -- --dry-run — samo lista
@@ -22,6 +22,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GO_LIVE_BLOK = [
   "77_ocisti_operativu_rpc.sql",
   "78_obrisi_deo_iz_sifrarnika_rpc.sql",
+  "79_obrisi_demo_delove_rpc.sql",
 ];
 
 const PILOT_BLOK = [

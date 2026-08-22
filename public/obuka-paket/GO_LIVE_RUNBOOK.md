@@ -82,7 +82,7 @@ Ako je frontend na Vercel-u, u **Project → Settings → Environment Variables*
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role — **Admin → Očisti operativu** preko `/api/admin-ocisti-operativu` |
 | `ADMIN_API_SECRET` ili `CRON_SECRET` | Opciono: Bearer auth za API bez JWT |
 
-**Pre go-live:** pokreni u Supabase SQL Editoru migracije `77_ocisti_operativu_rpc.sql` i `78_obrisi_deo_iz_sifrarnika_rpc.sql` (bulk brisanje DEMO delova).
+**Pre go-live:** pokreni u Supabase SQL Editoru migracije `77_ocisti_operativu_rpc.sql`, `78_obrisi_deo_iz_sifrarnika_rpc.sql` i `79_obrisi_demo_delove_rpc.sql` (ili `npm run db:migrate:go-live`).
 
 Admin panel poziva `POST /api/admin-ocisti-operativu` sa telom `{ "zadrzi_qms": false, "potvrdi": "OCISTI_OPERATIVU" }` — isto kao `npm run db:ocisti-operativu -- --potvrdi`.
 

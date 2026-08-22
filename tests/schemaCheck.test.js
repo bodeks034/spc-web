@@ -26,5 +26,6 @@ describe("sumirajProveruSeme", () => {
     const ids = MIGRACIJE_LISTA.map((m) => m.id);
     expect(ids).toContain("ocisti_operativu_rpc");
     expect(ids).toContain("obrisi_deo_rpc");
+    expect(ids).toContain("obrisi_demo_delove_rpc");
   });
 });

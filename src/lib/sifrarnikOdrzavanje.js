@@ -268,6 +268,21 @@ export async function obrisiDemoDelove(idDeoLista) {
   if (neDemo.length) {
     throw new Error(`Dozvoljeno samo DEMO/TEST ID. Odbijeno: ${neDemo.slice(0, 5).join(", ")}`);
   }
+
+  const { data: bulk, error: bulkErr } = await supabase.rpc("obrisi_demo_delove_iz_sifrarnika", {
+    p_id_deo_list: ids,
+    p_potvrdi: "OBRISI_DEMO",
+  });
+  if (!bulkErr && bulk?.ok) {
+    return { obrisano: bulk.obrisano ?? ids.length, ids: bulk.ids || ids };
+  }
+  if (!bulkErr && bulk && bulk.ok === false) {
+    throw new Error(bulk.poruka || "Bulk brisanje demo delova odbijeno");
+  }
+  if (bulkErr && !rpcNedostaje(bulkErr)) {
+    throw bulkErr;
+  }
+
   const rez = [];
   for (const id of ids) {
     rez.push(await obrisiDeoIzSifrarnika(id));

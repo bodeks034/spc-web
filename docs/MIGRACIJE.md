@@ -41,6 +41,7 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 76 | `76_osmd_pfmea_cp_brojevi.sql` | 8D zaglavlje: `broj_pfmea`, `broj_control_plan` (+ PFMEA/CP dokument) |
 | 77 | `77_ocisti_operativu_rpc.sql` | RPC Admin — čišćenje operative pre go-live |
 | 78 | `78_obrisi_deo_iz_sifrarnika_rpc.sql` | RPC — brisanje dela + šifrarnik redovi (DEMO bulk) |
+| 79 | `79_obrisi_demo_delove_rpc.sql` | RPC — bulk brisanje DEMO/TEST delova (jedan poziv) |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 
@@ -49,7 +50,7 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 ```bash
 npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–78
 npm run db:migrate -- --kvalitet   # samo 75 + 76
-npm run db:migrate:go-live  # samo 77 + 78 (RPC go-live)
+npm run db:migrate:go-live  # samo 77–79 (RPC go-live)
 npm run db:migrate -- --file 76_osmd_pfmea_cp_brojevi.sql
 npm run db:migrate:auto     # 61 — telemetrija automatizacije
 npm run db:verify           # provera kao Admin → Status šeme (uključujući RPC 77/78)

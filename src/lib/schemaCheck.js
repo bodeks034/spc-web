@@ -51,6 +51,7 @@ export const MIGRACIJE_LISTA = [
   { id: "prijemna_veza_mer", naziv: "Prijem ↔ merljiva Ulazna kontrola", fajl: "72_prijemna_veza_merljiva.sql" },
   { id: "ocisti_operativu_rpc", naziv: "Go-live čišćenje operative (RPC)", fajl: "77_ocisti_operativu_rpc.sql" },
   { id: "obrisi_deo_rpc", naziv: "Brisanje dela iz šifrarnika (RPC)", fajl: "78_obrisi_deo_iz_sifrarnika_rpc.sql" },
+  { id: "obrisi_demo_delove_rpc", naziv: "Bulk brisanje DEMO delova (RPC)", fajl: "79_obrisi_demo_delove_rpc.sql" },
 ];
 
 const PROBES = [
@@ -238,6 +239,7 @@ export async function proveriSemu(supabase) {
   const goLiveRpc = await proveriGoLiveRpc(supabase);
   byId.ocisti_operativu_rpc = goLiveRpc.ocisti_operativu_rpc;
   byId.obrisi_deo_rpc = goLiveRpc.obrisi_deo_rpc;
+  byId.obrisi_demo_delove_rpc = goLiveRpc.obrisi_demo_delove_rpc;
 
   const mapUser = {
     kpi_unos: byId.kpi_unos?.ok,

@@ -28,6 +28,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [tipFilter, setTipFilter] = useState("svi");
   const [filter, setFilter] = useState("");
   const [samoDemo, setSamoDemo] = useState(false);
+  const [samoDelimicni, setSamoDelimicni] = useState(false);
   const [izabrani, setIzabrani] = useState(() => new Set());
   const [forma, setForma] = useState(null);
   const [snima, setSnima] = useState(false);
@@ -100,12 +101,20 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
 
   const prikaz = useMemo(() => lista.filter((d) => {
     if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
+    if (samoDelimicni) {
+      const opts = {
+        guBroj: guBrojevi[d.id_deo] || 0,
+        greskeBroj: greskeBrojevi[d.id_deo] || 0,
+        imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
+      };
+      if (statusDeoUSifrarniku(d, opts) === "kompletan") return false;
+    }
     if (!filter.trim()) return true;
     const q = filter.toLowerCase();
     return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
       (s) => String(s || "").toLowerCase().includes(q),
     );
-  }), [lista, filter, samoDemo]);
+  }), [lista, filter, samoDemo, samoDelimicni, guBrojevi, greskeBrojevi, barkodSet]);
 
   const demoNaPrikazu = useMemo(
     () => prikaz.filter((d) => jeDemoIdDeo(d.id_deo)).map((d) => d.id_deo),
@@ -158,7 +167,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       await ucitaj();
     } catch (e) {
       const hint = /function.*does not exist|obrisi_deo/i.test(e.message)
-        ? " Pokreni 78_obrisi_deo_iz_sifrarnika_rpc.sql ili npm run db:migrate -- --go-live"
+        ? " Pokreni 79_obrisi_demo_delove_rpc.sql ili npm run db:migrate:go-live"
         : "";
       addToast?.(e.message + hint, "greska");
     } finally {
@@ -184,6 +193,10 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.sivi, paddingBottom: 6 }}>
           <input type="checkbox" checked={samoDemo} onChange={(e) => setSamoDemo(e.target.checked)} />
           Samo DEMO/TEST
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.sivi, paddingBottom: 6 }}>
+          <input type="checkbox" checked={samoDelimicni} onChange={(e) => setSamoDelimicni(e.target.checked)} />
+          Samo delimični
         </label>
         <button type="button" onClick={() => setForma({ ...PRAZAN })}
           style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}>
