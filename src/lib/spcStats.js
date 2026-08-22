@@ -6,7 +6,7 @@ import {
   atributivniKomadKey,
 } from "./atributivneAgregacija.js";
 
-import { predloziDodeljenogInzenjera } from "./eskalacijeHelper.js";
+import { predloziDodeljenogInzenjera } from "./eskalacijeDodela.js";
 import { obavestiAdminZahtev } from "./adminZahtevNotifikacije.js";
 import { calcFPY } from "./rtyFpy.js";
 

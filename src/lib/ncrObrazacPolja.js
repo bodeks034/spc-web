@@ -402,3 +402,8 @@ export function prefill8dIzObrazca(forma) {
     ncr_id: forma.id || null,
   };
 }
+
+/** 8D prefill iz NCR reda (bez uvoza ncrCapa — izbegava ciklus sa eskalacijeHelper). */
+export function prefill8dIzNcr(ncr) {
+  return prefill8dIzObrazca(ncrIzBaze(ncr));
+}

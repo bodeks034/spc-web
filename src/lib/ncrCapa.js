@@ -1,11 +1,13 @@
 /** NCR — CRUD, validacija, veza sa alarmima i 8D. */
 
 import { opisSpcAlarma } from "./spcAlarmWorkflow.js";
+import { posleZatvaranjaNcr } from "./eskalacijeHelper.js";
 import {
   ncrIzBaze,
   ncrPayloadZaSnimanje,
   validirajNcrObrazac,
   prefill8dIzObrazca,
+  prefill8dIzNcr,
   NCR_STATUS_EXCEL,
   labelStatusa,
 } from "./ncrObrazacPolja.js";
@@ -39,9 +41,7 @@ export function dozvoljeniNcrStatusi(trenutni) {
   return [...new Set(out)];
 }
 
-export function prefill8dIzNcr(ncr) {
-  return prefill8dIzObrazca(ncrIzBaze(ncr));
-}
+export { prefill8dIzNcr };
 
 export async function generisiBrojNcr(supabase) {
   const god = new Date().getFullYear();
@@ -184,7 +184,6 @@ export async function snimiNcrCapa(supabase, payload, { id = null, kreiraoId = n
       .update(row).eq("id", id).select().single();
     if (error) throw error;
     if (row.status === "closed") {
-      const { posleZatvaranjaNcr } = await import("./eskalacijeHelper.js");
       const { eskalacije, spcAlarmi } = await posleZatvaranjaNcr(supabase, data);
       if (eskalacije.length) data._eskalacijeZatvorene = eskalacije;
       if (spcAlarmi.length) data._spcAlarmiZatvoreni = spcAlarmi;
@@ -219,7 +218,6 @@ export async function azurirajNcrStatus(supabase, id, status, extra = {}) {
     .update(patch).eq("id", id).select().single();
   if (error) throw error;
   if (status === "closed") {
-    const { posleZatvaranjaNcr } = await import("./eskalacijeHelper.js");
     const { eskalacije, spcAlarmi } = await posleZatvaranjaNcr(supabase, data);
     if (eskalacije.length) data._eskalacijeZatvorene = eskalacije;
     if (spcAlarmi.length) data._spcAlarmiZatvoreni = spcAlarmi;

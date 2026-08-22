@@ -8,6 +8,7 @@ import {
   idbSnimiSve,
 } from "./offlineQueueDb.js";
 import { jeDupliClientId } from "./dbGreske.js";
+import { proveriIKreirajAlarmeNokSerije } from "./spcAlarmWorkflow.js";
 
 const STORAGE_KEY = "spc_q_v2";
 const LEGACY_KEY = "spc_q";
@@ -332,7 +333,6 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
     }
     if (meta?.pendingNokAlarm && (meta.rowsZaAlarm?.length || rows.length)) {
       try {
-        const { proveriIKreirajAlarmeNokSerije } = await import("./spcAlarmWorkflow.js");
         await proveriIKreirajAlarmeNokSerije(supabase, {
           rows: meta.rowsZaAlarm?.length ? meta.rowsZaAlarm : rows,
           idDeo: meta.idDeo || rows[0]?.id_deo,
