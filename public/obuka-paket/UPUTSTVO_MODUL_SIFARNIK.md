@@ -725,7 +725,7 @@ Neaktivni RN · istekle kalibracije · duplikati dimenzija · brojevi delova/RN/
 | **+ Novi deo** (čarobnjak) | Glavni unos |
 | Pogon audit A–F | Pogon mapa |
 | Validacija pre objave | Glavni unos |
-| **GU (n)** + status badge + DEMO bulk delete | Delovi |
+| **GU (n)** + status badge (klik) + DEMO bulk delete | Delovi |
 | **+ Šablon (5)** grešaka | Checklist / Greške |
 | Tab **Održavanje** + duplikati dimenzija | Održavanje |
 | Onboarding mod (auto-off posle objave) | Modul 0 hub |
@@ -771,8 +771,30 @@ Brojevi (delovi, RN, merila, dimenzije) + **duplikati dimenzija**. Klik otvara t
 <!-- /SYNC:ODRZAVANJE_CELL -->
 
 <!-- SYNC:DELOVI_CELL -->
-filter po tipu, filter **Samo DEMO/TEST**, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, **GU (n)** → Glavni unos, status badge (tooltip), ▦ barkod.
+filter po tipu, filter **Samo DEMO/TEST**, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, **GU (n)** → Glavni unos, status badge (**klik** → sledeći tab), ▦ barkod.
 <!-- /SYNC:DELOVI_CELL -->
+
+<!-- SYNC:ERP_CSV_ROWS -->
+| linije.csv | linije | ARBPL / work center |
+| masine.csv | masine | Equipment |
+| tipovi_vozila.csv | tipovi_vozila | Product group |
+| delovi.csv / sap_delovi.csv | delovi | MATNR → id_deo |
+| crtezi_dela.csv | crtez_assets | Crteži |
+| greske_katalog.csv | greske_katalog | Greške |
+| kupci.csv | kupci | Kupci |
+| merila.csv | merila | Merila |
+| kalibracije.csv | kalibracije | Kalibracije |
+| karakteristike_merljive.csv | karakteristike_merljive | Dimenzije LSL/USL |
+| radni_nalozi.csv | radni_nalozi | AUFNR — posle delovi! |
+<!-- /SYNC:ERP_CSV_ROWS -->
+
+<!-- SYNC:FAQ_ROWS -->
+| Operater ne vidi deo | `delovi.aktivan`, pogon mapa, licenca |
+| Nema dimenzija posle skena | Nema redova u `karakteristike_merljive` za `id_deo` + `pogon_kod` — **Objavi u šifrarnik** |
+| CSV uvoz RN pada | `id_deo` ne postoji — prvo `delovi.csv` |
+| Excel u ERP tabu? | **Ne** — samo CSV |
+| Log u šifrarniku? | **Ne** — Modul 1 (Zapiši) |
+<!-- /SYNC:FAQ_ROWS -->
 
 <!-- SYNC:ERP_UVOZ_CELL -->
 Masovni **CSV** uvoz (SAP/Pantheon): preset → Upload → Preview → Uvezi. Dimenzije preporučeno kroz **Glavni unos**. Log: erp_uvoz_log. **Samo .csv** — ne .xlsx.

@@ -65,7 +65,7 @@ export default function AdminOcistiOperativuPanel({ C, addToast }) {
       </div>
       <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.5, marginBottom: 10 }}>
         Briše merenja, log, KPI, alarme, NCR… <strong>Šifrarnik ostaje</strong>.
-        Pre pokretanja: <code>npm run backup:db</code>. Na produkciji pun SQL zahteva <code>DATABASE_URL</code> na Vercel-u (fallback: Supabase RPC).
+        Pre pokretanja: <code>npm run backup:db</code>. Zahteva migraciju <code>77_ocisti_operativu_rpc.sql</code> (ili <code>npm run db:migrate:go-live</code>).
       </div>
 
       {loading ? (

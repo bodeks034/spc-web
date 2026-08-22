@@ -123,13 +123,13 @@
   <div class="ok" style="margin-bottom:10px">
     <strong>Preporučeni tok:</strong>
     <!-- AUTO:NOVI_DEO_TOK -->
-+ Novi deo → grupni unos → **Objavi u šifrarnik** → checklist → greške / crtež / barkod
-<!-- /AUTO:NOVI_DEO_TOK -->
+    + Novi deo → grupni unos → **Objavi u šifrarnik** → checklist → greške / crtež / barkod
+    <!-- /AUTO:NOVI_DEO_TOK -->
   </div>
 
   <h3>Tok sa ERP-om</h3>
   <pre class="flow"><!-- AUTO:ERP_TOK_FLOW -->
-ERP izvozi CSV
+    ERP izvozi CSV
     ↓
 Alati → ERP uvoz (delovi, RN, greške…)
     ↓
@@ -138,7 +138,7 @@ Glavni unos → **Objavi u šifrarnik** (dimenzije)
 Crtež, barkod, kontrolna lista
     ↓
 Modul 1 — operateri
-<!-- /AUTO:ERP_TOK_FLOW --></pre>
+    <!-- /AUTO:ERP_TOK_FLOW --></pre>
 
   <footer>SPC Web · Modul 0 Šifrarnik · str. 2</footer>
 </div>
@@ -149,8 +149,8 @@ Modul 1 — operateri
   <table>
     <tr><th>Grupa</th><th>Tabovi</th></tr>
     <tr><td class="grp">Osnovno</td><td><!-- AUTO:GRUPA_OSNovNO -->
-Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Linije · Mašine · Smene · Ciljevi · Kontrolna lista · <strong>Održavanje</strong>
-<!-- /AUTO:GRUPA_OSNovNO --></td></tr>
+    Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Linije · Mašine · Smene · Ciljevi · Kontrolna lista · <strong>Održavanje</strong>
+    <!-- /AUTO:GRUPA_OSNovNO --></td></tr>
     <tr><td class="grp">Atributivne</td><td>Katalog grešaka · Crtež dela · Pogoni po delu</td></tr>
     <tr><td class="grp">Merljive</td><td>Dimenzije · SPC alarm % · SOP po delu · Merila/kalibracija</td></tr>
     <tr><td class="grp">Celo vozilo</td><td>Tipovi vozila · Defekti vozila · Delovi vozila</td></tr>
@@ -165,15 +165,15 @@ Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · L
       <td><strong>Glavni unos</strong></td>
       <td><span class="tab">glavni_unos_redovi</span></td>
       <td><!-- AUTO:GLAVNI_UNOS_CELL -->
-ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument. <strong>Objavi u šifrarnik</strong> — Snima staging + propagacija (ili ponovo propagiraj ako nema izmena). <strong>+ Novi deo</strong> (čarobnjak), grupni unos, final vozilo. Uvezi .xlsx (inženjerski format).
-<!-- /AUTO:GLAVNI_UNOS_CELL --></td>
+    ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument. <strong>Objavi u šifrarnik</strong> — Snima staging + propagacija (ili ponovo propagiraj ako nema izmena). <strong>+ Novi deo</strong> (čarobnjak), grupni unos, final vozilo. Uvezi .xlsx (inženjerski format).
+    <!-- /AUTO:GLAVNI_UNOS_CELL --></td>
     </tr>
     <tr>
       <td><strong>Pogon mapa</strong></td>
       <td><span class="tab">pogon_linija_mapa</span></td>
       <td><!-- AUTO:POGON_MAPA_CELL -->
-Faza linije A–I ↔ linija_id. Operater bira pogon na tabletu. <strong>Audit A–F</strong> na vrhu taba pre go-live (nedostajući / dupli pogoni).
-<!-- /AUTO:POGON_MAPA_CELL --></td>
+    Faza linije A–I ↔ linija_id. Operater bira pogon na tabletu. <strong>Audit A–F</strong> na vrhu taba pre go-live (nedostajući / dupli pogoni).
+    <!-- /AUTO:POGON_MAPA_CELL --></td>
     </tr>
     <tr>
       <td><strong>Linija ↔ deo</strong></td>
@@ -189,8 +189,8 @@ Faza linije A–I ↔ linija_id. Operater bira pogon na tabletu. <strong>Audit A
       <td><strong>Delovi</strong></td>
       <td><span class="tab">delovi</span></td>
       <td><!-- AUTO:DELOVI_CELL -->
-filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, <strong>GU (n)</strong> → Glavni unos, status badge (tooltip), ▦ barkod.
-<!-- /AUTO:DELOVI_CELL --></td>
+    filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, <strong>GU (n)</strong> → Glavni unos, status badge (<strong>klik</strong> → sledeći tab), ▦ barkod.
+    <!-- /AUTO:DELOVI_CELL --></td>
     </tr>
     <tr>
       <td><strong>Radni nalozi</strong></td>
@@ -231,8 +231,8 @@ filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (D
       <td><strong>Održavanje</strong></td>
       <td>—</td>
       <td><!-- AUTO:ODRZAVANJE_CELL -->
-Brojevi (delovi, RN, merila, dimenzije) + <strong>duplikati dimenzija</strong>. Klik otvara tab (GU, pogon, Delovi…). Mesečna provera pre produkcije.
-<!-- /AUTO:ODRZAVANJE_CELL --></td>
+    Brojevi (delovi, RN, merila, dimenzije) + <strong>duplikati dimenzija</strong>. Klik otvara tab (GU, pogon, Delovi…). Mesečna provera pre produkcije.
+    <!-- /AUTO:ODRZAVANJE_CELL --></td>
     </tr>
   </table>
   <footer>SPC Web · Modul 0 Šifrarnik · str. 3</footer>
@@ -324,8 +324,8 @@ Brojevi (delovi, RN, merila, dimenzije) + <strong>duplikati dimenzija</strong>. 
     <tr><th>Tab</th><th>Šta radi</th></tr>
     <tr><td><strong>Barkod</strong></td><td>Profil etikete po delu (QR/Code128) → štampa → sken na liniji otvara deo/RN.</td></tr>
     <tr><td><strong>ERP uvoz ⭐</strong></td><td><!-- AUTO:ERP_UVOZ_CELL -->
-Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview → Uvezi. Dimenzije preporučeno kroz <strong>Glavni unos</strong>. Log: erp_uvoz_log. <strong>Samo .csv</strong> — ne .xlsx.
-<!-- /AUTO:ERP_UVOZ_CELL --></td></tr>
+    Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview → Uvezi. Dimenzije preporučeno kroz <strong>Glavni unos</strong>. Log: erp_uvoz_log. <strong>Samo .csv</strong> — ne .xlsx.
+    <!-- /AUTO:ERP_UVOZ_CELL --></td></tr>
     <tr><td><strong>Backup</strong></td><td>Samo preuzimanje SPC_sifrarnik_backup_{datum}.xlsx — bez uvoza.</td></tr>
   </table>
   <footer>SPC Web · Modul 0 Šifrarnik · str. 5</footer>
@@ -336,6 +336,7 @@ Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview 
   <h2>9. ERP CSV fajlovi (preset SAP)</h2>
   <table>
     <tr><th>CSV fajl</th><th>Supabase tabela</th><th>Napomena</th></tr>
+    <!-- AUTO:ERP_CSV_ROWS -->
     <tr><td>linije.csv</td><td>linije</td><td>ARBPL / work center</td></tr>
     <tr><td>masine.csv</td><td>masine</td><td>Equipment</td></tr>
     <tr><td>tipovi_vozila.csv</td><td>tipovi_vozila</td><td>Product group</td></tr>
@@ -347,6 +348,7 @@ Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview 
     <tr><td>kalibracije.csv</td><td>kalibracije</td><td>Kalibracije</td></tr>
     <tr><td>karakteristike_merljive.csv</td><td>karakteristike_merljive</td><td>Dimenzije LSL/USL</td></tr>
     <tr><td>radni_nalozi.csv</td><td>radni_nalozi</td><td>AUFNR — posle delovi!</td></tr>
+    <!-- /AUTO:ERP_CSV_ROWS -->
   </table>
 
   <div class="warn">
@@ -357,8 +359,8 @@ Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview 
   <h2>10. Redosled — novi deo</h2>
   <h3>Bez ERP-a (preporučeno)</h3>
   <pre class="flow"><!-- AUTO:NOVI_DEO_TOK -->
-+ Novi deo → grupni unos → **Objavi u šifrarnik** → checklist → greške / crtež / barkod
-<!-- /AUTO:NOVI_DEO_TOK --></pre>
+    + Novi deo → grupni unos → **Objavi u šifrarnik** → checklist → greške / crtež / barkod
+    <!-- /AUTO:NOVI_DEO_TOK --></pre>
   <h3>Sa ERP-om</h3>
   <ol style="font-size:9pt">
     <li>ERP uvoz CSV (delovi, greške, RN)</li>
@@ -385,11 +387,13 @@ Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview 
   <h2>12. Česta pitanja</h2>
   <table>
     <tr><th>Problem</th><th>Rešenje</th></tr>
-    <tr><td>Operater ne vidi deo</td><td>delovi.aktivan = true; pogon mapa; licenca</td></tr>
-    <tr><td>Nema dimenzija posle skena</td><td>Nema redova u karakteristike_merljive za id_deo + pogon_kod</td></tr>
-    <tr><td>CSV uvoz RN pada</td><td>id_deo ne postoji — prvo delovi.csv</td></tr>
+    <!-- AUTO:FAQ_ROWS -->
+    <tr><td>Operater ne vidi deo</td><td><code>delovi.aktivan</code>, pogon mapa, licenca</td></tr>
+    <tr><td>Nema dimenzija posle skena</td><td>Nema redova u <code>karakteristike_merljive</code> za <code>id_deo</code> + <code>pogon_kod</code> — <strong>Objavi u šifrarnik</strong></td></tr>
+    <tr><td>CSV uvoz RN pada</td><td><code>id_deo</code> ne postoji — prvo <code>delovi.csv</code></td></tr>
     <tr><td>Excel u ERP tabu?</td><td><strong>Ne</strong> — samo CSV</td></tr>
-    <tr><td>Log u šifrarniku?</td><td><strong>Ne</strong> — log nastaje u Modulu 1 (Zapiši)</td></tr>
+    <tr><td>Log u šifrarniku?</td><td><strong>Ne</strong> — Modul 1 (Zapiši)</td></tr>
+    <!-- /AUTO:FAQ_ROWS -->
   </table>
 
   <div class="ok">

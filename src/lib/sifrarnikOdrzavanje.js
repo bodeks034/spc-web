@@ -1,5 +1,6 @@
 /** Pregled i audit šifrarnika — duplikati, status dela. */
 import { supabase } from "./supabaseClient.js";
+import { fetchGlavniUnosBrojeviPoDeo } from "./glavniUnosApi.js";
 
 export async function fetchDuplikatiKarakteristike({ limit = 5000 } = {}) {
   const { data, error } = await supabase
@@ -88,6 +89,138 @@ export const STATUS_DEO_LABEL = {
   samo_master: { label: "Samo master", boja: "sivi" },
 };
 
+const MAPA_NEDOSTAJE_TAB = {
+  "Glavni unos": (idDeo, opts) => ({
+    tab: "glavni_unos",
+    ctx: { idDeo, otvoriWizard: !(opts.guBroj > 0) },
+  }),
+  "Greške": (idDeo) => ({ tab: "greske", ctx: { idDeo } }),
+  "Crtež": (idDeo) => ({ tab: "delovi_atr", ctx: { idDeo, otvoriCrtezForm: true } }),
+  "Barkod profil": (idDeo) => ({ tab: "barkod", ctx: { idDeo } }),
+};
+
+/** Svi koraci navigacije za status badge (meni ili prvi klik). */
+export function koraciNavigacijeIzStatusDeo(deo, opts = {}) {
+  const idDeo = String(deo?.id_deo || "").trim();
+  if (!idDeo) return [];
+
+  const st = statusDeoUSifrarniku(deo, opts);
+  if (st === "kompletan") {
+    return [{ label: "Glavni unos", tab: "glavni_unos", ctx: { idDeo } }];
+  }
+
+  return nedostajeZaDeo(deo, opts)
+    .filter((n) => MAPA_NEDOSTAJE_TAB[n])
+    .map((n) => {
+      const { tab, ctx } = MAPA_NEDOSTAJE_TAB[n](idDeo, opts);
+      return { label: n, tab, ctx: { ...ctx, idDeo } };
+    });
+}
+
+/** Prvi nedostajući korak za status badge — klik vodi u odgovarajući tab. */
+export function navigacijaIzStatusDeo(deo, opts = {}) {
+  const koraci = koraciNavigacijeIzStatusDeo(deo, opts);
+  const prvi = koraci[0];
+  if (!prvi) return null;
+  return { tab: prvi.tab, ctx: prvi.ctx };
+}
+
+export async function fetchMerenjaBrojeviPoDeo(idDeoLista) {
+  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+  if (!ids.length) return {};
+
+  const { data, error } = await supabase
+    .from("merenja_varijabilna")
+    .select("id_deo")
+    .in("id_deo", ids)
+    .limit(50000);
+  if (error) {
+    if (/does not exist|relation/i.test(error.message)) return {};
+    throw error;
+  }
+
+  const map = {};
+  for (const r of data || []) {
+    const id = String(r.id_deo || "").trim().toUpperCase();
+    if (!id) continue;
+    map[id] = (map[id] || 0) + 1;
+  }
+  return map;
+}
+
+export async function fetchKontrolniLogBrojeviPoDeo(idDeoLista) {
+  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+  if (!ids.length) return {};
+
+  const { data, error } = await supabase
+    .from("kontrolni_log")
+    .select("id_deo")
+    .in("id_deo", ids)
+    .limit(50000);
+  if (error) {
+    if (/does not exist|relation/i.test(error.message)) return {};
+    throw error;
+  }
+
+  const map = {};
+  for (const r of data || []) {
+    const id = String(r.id_deo || "").trim().toUpperCase();
+    if (!id) continue;
+    map[id] = (map[id] || 0) + 1;
+  }
+  return map;
+}
+
+/** Merenja + atributivni log po delu (upozorenje pre brisanja šifrarnika). */
+export async function fetchOperativniBrojeviPoDeo(idDeoLista) {
+  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+  if (!ids.length) return {};
+
+  const [merenja, log] = await Promise.all([
+    fetchMerenjaBrojeviPoDeo(ids),
+    fetchKontrolniLogBrojeviPoDeo(ids),
+  ]);
+
+  const map = {};
+  for (const id of ids) {
+    const u = String(id).toUpperCase();
+    const m = merenja[u] || 0;
+    const l = log[u] || 0;
+    if (m || l) map[u] = { merenja: m, log: l, ukupno: m + l };
+  }
+  return map;
+}
+
+/** Delovi sa statusom ≠ kompletan (pregled u Održavanju). */
+export async function fetchDelimicniDeloviPreview({ limit = 12 } = {}) {
+  const { data: delovi, error } = await supabase
+    .from("delovi")
+    .select("id_deo,naziv_dela,slika_naziv,aktivan")
+    .eq("aktivan", true)
+    .limit(400);
+  if (error) throw error;
+
+  const [gu, gr, bk] = await Promise.all([
+    fetchGlavniUnosBrojeviPoDeo(),
+    fetchGreskeBrojeviPoDeo(),
+    fetchBarkodProfiliSet(),
+  ]);
+
+  const rez = [];
+  for (const d of delovi || []) {
+    const opts = {
+      guBroj: gu[d.id_deo] || 0,
+      greskeBroj: gr[d.id_deo] || 0,
+      imaBarkod: bk.has(String(d.id_deo || "").toUpperCase()),
+    };
+    const st = statusDeoUSifrarniku(d, opts);
+    if (st === "kompletan") continue;
+    rez.push({ deo: d, opts, status: st, koraci: koraciNavigacijeIzStatusDeo(d, opts) });
+    if (rez.length >= limit) break;
+  }
+  return rez.sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
+}
+
 const DEMO_ID_RE = /^(DEMO|TEST|SAMPLE|XXX)[-_]/i;
 
 export function jeDemoIdDeo(idDeo) {
@@ -99,10 +232,21 @@ async function obrisiPoIdDeo(tabela, idDeo) {
   if (error && !/does not exist|relation/i.test(error.message)) throw error;
 }
 
+function rpcNedostaje(error) {
+  return error && /function.*does not exist|could not find/i.test(error.message);
+}
+
 /** Briše deo i povezane šifrarnik redove (ne merenja — operativa ostaje). */
 export async function obrisiDeoIzSifrarnika(idDeo) {
   const id = String(idDeo || "").trim().toUpperCase();
   if (!id) throw new Error("ID dela je obavezan");
+
+  const { data: rpcData, error: rpcErr } = await supabase.rpc("obrisi_deo_iz_sifrarnika", {
+    p_id_deo: id,
+    p_potvrdi: "OBRISI_DEO",
+  });
+  if (!rpcErr && rpcData?.ok) return { idDeo: id, rpc: true };
+  if (rpcErr && !rpcNedostaje(rpcErr)) throw rpcErr;
 
   await obrisiPoIdDeo("glavni_unos_redovi", id);
   await obrisiPoIdDeo("greske_katalog", id);

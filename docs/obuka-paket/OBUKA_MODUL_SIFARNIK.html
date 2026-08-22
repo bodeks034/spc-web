@@ -334,17 +334,9 @@ Masovni CSV uvoz (SAP/Pantheon). Preview → Uvezi. Samo .csv.
   <h2>9. ERP CSV fajlovi (preset SAP)</h2>
   <table>
     <tr><th>CSV fajl</th><th>Supabase tabela</th><th>Napomena</th></tr>
+    <!-- AUTO:ERP_CSV_ROWS -->
     <tr><td>linije.csv</td><td>linije</td><td>ARBPL / work center</td></tr>
-    <tr><td>masine.csv</td><td>masine</td><td>Equipment</td></tr>
-    <tr><td>tipovi_vozila.csv</td><td>tipovi_vozila</td><td>Product group</td></tr>
-    <tr><td>delovi.csv / sap_delovi.csv</td><td>delovi</td><td>MATNR → id_deo</td></tr>
-    <tr><td>crtezi_dela.csv</td><td>crtez_assets</td><td>Crteži</td></tr>
-    <tr><td>greske_katalog.csv</td><td>greske_katalog</td><td>Greške</td></tr>
-    <tr><td>kupci.csv</td><td>kupci</td><td>Kupci</td></tr>
-    <tr><td>merila.csv</td><td>merila</td><td>Merila</td></tr>
-    <tr><td>kalibracije.csv</td><td>kalibracije</td><td>Kalibracije</td></tr>
-    <tr><td>karakteristike_merljive.csv</td><td>karakteristike_merljive</td><td>Dimenzije LSL/USL</td></tr>
-    <tr><td>radni_nalozi.csv</td><td>radni_nalozi</td><td>AUFNR — posle delovi!</td></tr>
+    <!-- /AUTO:ERP_CSV_ROWS -->
   </table>
 
   <div class="warn">
@@ -383,11 +375,9 @@ Masovni CSV uvoz (SAP/Pantheon). Preview → Uvezi. Samo .csv.
   <h2>12. Česta pitanja</h2>
   <table>
     <tr><th>Problem</th><th>Rešenje</th></tr>
+    <!-- AUTO:FAQ_ROWS -->
     <tr><td>Operater ne vidi deo</td><td>delovi.aktivan = true; pogon mapa; licenca</td></tr>
-    <tr><td>Nema dimenzija posle skena</td><td>Nema redova u karakteristike_merljive za id_deo + pogon_kod</td></tr>
-    <tr><td>CSV uvoz RN pada</td><td>id_deo ne postoji — prvo delovi.csv</td></tr>
-    <tr><td>Excel u ERP tabu?</td><td><strong>Ne</strong> — samo CSV</td></tr>
-    <tr><td>Log u šifrarniku?</td><td><strong>Ne</strong> — log nastaje u Modulu 1 (Zapiši)</td></tr>
+    <!-- /AUTO:FAQ_ROWS -->
   </table>
 
   <div class="ok">

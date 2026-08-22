@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
-import { fetchDuplikatiKarakteristike } from "../../lib/sifrarnikOdrzavanje.js";
+import { fetchDuplikatiKarakteristike, fetchDelimicniDeloviPreview, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 
 async function countTable(table, filter = {}) {
@@ -16,20 +16,23 @@ async function countTable(table, filter = {}) {
 export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [podaci, setPodaci] = useState(null);
   const [duplikati, setDuplikati] = useState([]);
+  const [delimicni, setDelimicni] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
     try {
-      const [delovi, rnAktivni, merila, karakteristike, dups] = await Promise.all([
+      const [delovi, rnAktivni, merila, karakteristike, dups, delim] = await Promise.all([
         countTable("delovi"),
         countTable("radni_nalozi", { status: "aktivan" }),
         countTable("merila"),
         countTable("karakteristike_merljive"),
         fetchDuplikatiKarakteristike(),
+        fetchDelimicniDeloviPreview({ limit: 12 }),
       ]);
       setPodaci({ delovi, rnAktivni, merila, karakteristike });
       setDuplikati(dups.slice(0, 15));
+      setDelimicni(delim);
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -115,6 +118,66 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       {!loading && !duplikati.length && podaci && (
         <div style={{ color: C.zelena, fontSize: 10, marginBottom: 12 }}>
           ✓ Nema duplih kombinacija pogon + pozicija (u učitanom uzorku)
+        </div>
+      )}
+
+      {!loading && delimicni.length > 0 && (
+        <div style={{
+          marginBottom: 14,
+          padding: 10,
+          borderRadius: 8,
+          border: `1px solid ${C.plava}44`,
+          background: `${C.plava}10`,
+        }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+            <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700 }}>
+              Delimični delovi ({delimicni.length}+)
+            </div>
+            <button type="button" onClick={() => onNavigate?.("delovi")}
+              style={{ ...btnStyle(C, C.hover, { fontSize: 9, padding: "2px 6px" }) }}>
+              Svi delovi →
+            </button>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", fontSize: 9, lineHeight: 1.6 }}>
+            {delimicni.map(({ deo, status, koraci }) => {
+              const stMeta = STATUS_DEO_LABEL[status];
+              const prvi = koraci[0];
+              return (
+                <li key={deo.id_deo} style={{ marginBottom: 4 }}>
+                  <button
+                    type="button"
+                    disabled={!prvi}
+                    onClick={() => prvi && onNavigate?.(prvi.tab, prvi.ctx)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: prvi ? "pointer" : "default",
+                      color: C.plava,
+                      fontWeight: 700,
+                      fontSize: 9,
+                    }}
+                  >
+                    {deo.id_deo}
+                  </button>
+                  <span style={{ color: C.sivi }}> · </span>
+                  <span style={{ color: stMeta?.boja === "zelena" ? C.zelena : C.narandzasta || "#f59e0b" }}>
+                    {stMeta?.label || status}
+                  </span>
+                  {prvi && (
+                    <span style={{ color: C.sivi }}> → {prvi.label}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {!loading && delimicni.length === 0 && podaci && (
+        <div style={{ color: C.zelena, fontSize: 10, marginBottom: 12 }}>
+          ✓ Svi aktivni delovi u uzorku su kompletni
         </div>
       )}
 

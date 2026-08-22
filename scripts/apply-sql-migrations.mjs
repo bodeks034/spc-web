@@ -5,8 +5,9 @@
  * Zahteva DATABASE_URL ili SUPABASE_DB_URL u .env.local, npr.:
  *   postgresql://postgres.[ref]:[PASS]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
  *
- * npm run db:migrate              — primeni pilot 54–59 + kvalitet 75–76
+ * npm run db:migrate              — primeni pilot 54–59 + kvalitet 75–76 + go-live 77–78
  * npm run db:migrate -- --kvalitet — samo 75_ncr_registar_obrazac + 76_osmd_pfmea_cp_brojevi
+ * npm run db:migrate -- --go-live  — samo 77_ocisti_operativu + 78_obrisi_deo RPC
  * npm run db:migrate -- --all     — svi .sql fajlovi 01–59 po broju (oprezno na postojećoj bazi)
  * npm run db:migrate -- --file 59_ncr_capa.sql
  * npm run db:migrate -- --dry-run — samo lista
@@ -18,6 +19,11 @@ import { loadEnvZaSkripte } from "../src/lib/loadEnvFile.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+const GO_LIVE_BLOK = [
+  "77_ocisti_operativu_rpc.sql",
+  "78_obrisi_deo_iz_sifrarnika_rpc.sql",
+];
+
 const PILOT_BLOK = [
   "54_crtez_assets_moment.sql",
   "55_moment_pilot_tockovi.sql",
@@ -27,6 +33,7 @@ const PILOT_BLOK = [
   "59_ncr_capa.sql",
   "75_ncr_registar_obrazac.sql",
   "76_osmd_pfmea_cp_brojevi.sql",
+  ...GO_LIVE_BLOK,
 ];
 
 const KVALITET_BLOK = [
@@ -50,6 +57,7 @@ function sortSqlFiles(files) {
 
 function resolveFiles(args) {
   if (args.includes("--legacy-fix")) return LEGACY_FIX;
+  if (args.includes("--go-live")) return GO_LIVE_BLOK;
   if (args.includes("--auto")) return AUTO_BLOK;
   if (args.includes("--kvalitet")) return KVALITET_BLOK;
   if (args.includes("--all")) {

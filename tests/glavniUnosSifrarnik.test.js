@@ -7,7 +7,7 @@ import {
   filtrirajSheetovePoTipu,
 } from "../src/lib/glavniUnosSheetTip.js";
 import { SABLON_GRESKE_OPSTI, SABLON_GRESKE_VOZILO } from "../src/lib/greskaSablon.js";
-import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo } from "../src/lib/sifrarnikOdrzavanje.js";
+import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo, navigacijaIzStatusDeo, koraciNavigacijeIzStatusDeo } from "../src/lib/sifrarnikOdrzavanje.js";
 import { podrazumevaniBarkodProfil } from "../src/lib/barkodEtiketa.js";
 
 describe("validirajRedovePrePropagacije", () => {
@@ -102,6 +102,36 @@ describe("jeDemoIdDeo", () => {
   it("prepoznaje DEMO prefiks", () => {
     expect(jeDemoIdDeo("DEMO-NM-001")).toBe(true);
     expect(jeDemoIdDeo("HAM-NM-001")).toBe(false);
+  });
+});
+
+describe("koraciNavigacijeIzStatusDeo", () => {
+  it("vraća više koraka kada nedostaje više stavki", () => {
+    const koraci = koraciNavigacijeIzStatusDeo(
+      { id_deo: "DEMO-X" },
+      { guBroj: 0, greskeBroj: 0, imaBarkod: false },
+    );
+    expect(koraci.length).toBeGreaterThan(1);
+    expect(koraci.some((k) => k.tab === "glavni_unos")).toBe(true);
+  });
+});
+
+describe("navigacijaIzStatusDeo", () => {
+  it("vodi na greske kada nedostaju", () => {
+    const nav = navigacijaIzStatusDeo(
+      { id_deo: "DEMO-X" },
+      { guBroj: 2, greskeBroj: 0, imaBarkod: false },
+    );
+    expect(nav?.tab).toBe("greske");
+    expect(nav?.ctx?.idDeo).toBe("DEMO-X");
+  });
+
+  it("kompletan vodi na glavni unos", () => {
+    const nav = navigacijaIzStatusDeo(
+      { id_deo: "HAM-1", slika_naziv: "a.png" },
+      { guBroj: 1, greskeBroj: 2, imaBarkod: true },
+    );
+    expect(nav?.tab).toBe("glavni_unos");
   });
 });
 

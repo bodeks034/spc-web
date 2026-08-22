@@ -9,6 +9,8 @@ import {
   tooltipStatusDeo,
   jeDemoIdDeo,
   obrisiDemoDelove,
+  koraciNavigacijeIzStatusDeo,
+  fetchOperativniBrojeviPoDeo,
 } from "../../lib/sifrarnikOdrzavanje.js";
 
 const PRAZAN = {
@@ -17,7 +19,7 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
-export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos }) {
+export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guBrojevi, setGuBrojevi] = useState({});
@@ -30,6 +32,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [forma, setForma] = useState(null);
   const [snima, setSnima] = useState(false);
   const [brise, setBrise] = useState(false);
+  const [statusMenuId, setStatusMenuId] = useState(null);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -124,6 +127,22 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     if (!window.confirm(`Obrisati ${ids.length} demo del(a) i povezane šifrarnik redove?\n\n${ids.slice(0, 8).join(", ")}${ids.length > 8 ? "…" : ""}`)) {
       return;
     }
+    let operativUpozorenje = "";
+    try {
+      const operativa = await fetchOperativniBrojeviPoDeo(ids);
+      const saOperativom = ids.filter((id) => operativa[String(id).toUpperCase()]?.ukupno > 0);
+      if (saOperativom.length) {
+        const ukupno = saOperativom.reduce((s, id) => s + (operativa[String(id).toUpperCase()]?.ukupno || 0), 0);
+        const detalji = saOperativom.slice(0, 4).map((id) => {
+          const o = operativa[String(id).toUpperCase()];
+          return `${id} (${o.merenja} mer. / ${o.log} log)`;
+        }).join(", ");
+        operativUpozorenje = `\n\nUpozorenje: ${saOperativom.length} del(a) ima ${ukupno} operativnih unosa (ostaju u bazi):\n${detalji}${saOperativom.length > 4 ? "…" : ""}`;
+        if (!window.confirm(`Nastaviti brisanje?${operativUpozorenje}`)) return;
+      }
+    } catch (e) {
+      addToast?.(`Operativa nije proverena: ${e.message}`, "greska");
+    }
     setBrise(true);
     try {
       const rez = await obrisiDemoDelove(ids);
@@ -131,7 +150,10 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       setIzabrani(new Set());
       await ucitaj();
     } catch (e) {
-      addToast?.(e.message, "greska");
+      const hint = /function.*does not exist|obrisi_deo/i.test(e.message)
+        ? " Pokreni 78_obrisi_deo_iz_sifrarnika_rpc.sql ili npm run db:migrate -- --go-live"
+        : "";
+      addToast?.(e.message + hint, "greska");
     } finally {
       setBrise(false);
     }
@@ -252,6 +274,16 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
             const st = statusDeoUSifrarniku(d, opts);
             const stMeta = STATUS_DEO_LABEL[st];
             const demo = jeDemoIdDeo(d.id_deo);
+            const koraci = onNavigacijaStatus ? koraciNavigacijeIzStatusDeo(d, opts) : [];
+            const klikStatus = () => {
+              if (!koraci.length) return;
+              if (koraci.length === 1) {
+                setStatusMenuId(null);
+                onNavigacijaStatus?.(koraci[0].tab, koraci[0].ctx);
+                return;
+              }
+              setStatusMenuId((prev) => (prev === d.id_deo ? null : d.id_deo));
+            };
             return (
             <div key={d.id_deo} style={{
               display: "grid", gridTemplateColumns: "28px 100px 1fr 72px 80px 70px 80px 56px 70px",
@@ -270,15 +302,72 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
               </span>
               <span style={{ fontWeight: 700, color: C.plava }}>{d.id_deo}</span>
               <span>{d.naziv_dela}</span>
-              <span style={{
+              <div style={{ position: "relative" }}>
+              <span
+                role={koraci.length ? "button" : undefined}
+                tabIndex={koraci.length ? 0 : undefined}
+                onClick={koraci.length ? klikStatus : undefined}
+                onKeyDown={koraci.length ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    klikStatus();
+                  }
+                } : undefined}
+                style={{
                 fontSize: 9,
                 fontWeight: 700,
                 color: bojaStatus(stMeta.boja),
+                cursor: koraci.length ? "pointer" : "default",
+                textDecoration: koraci.length ? "underline dotted" : "none",
               }}
-              title={tooltipStatusDeo(d, opts)}
+              title={koraci.length
+                ? `${tooltipStatusDeo(d, opts)} — klik${koraci.length > 1 ? " (meni koraka)" : `: ${koraci[0].label}`}`
+                : tooltipStatusDeo(d, opts)}
               >
                 {stMeta.label}
               </span>
+              {statusMenuId === d.id_deo && koraci.length > 1 && (
+                <div style={{
+                  position: "absolute",
+                  zIndex: 20,
+                  top: "100%",
+                  left: 0,
+                  marginTop: 4,
+                  minWidth: 120,
+                  background: C.panel,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  boxShadow: "0 4px 12px rgba(0,0,0,.25)",
+                  padding: 4,
+                }}
+                >
+                  {koraci.map((k) => (
+                    <button
+                      key={k.label}
+                      type="button"
+                      onClick={() => {
+                        setStatusMenuId(null);
+                        onNavigacijaStatus?.(k.tab, k.ctx);
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        background: "none",
+                        border: "none",
+                        color: C.plava,
+                        fontSize: 9,
+                        fontWeight: 600,
+                        padding: "4px 6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {k.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              </div>
               <span style={{ color: C.sivi, fontSize: 10 }}>{d.tip_kontrole || "deo"}</span>
               <span style={{ color: C.sivi, fontSize: 10 }}>{d.sifra_vozila || "—"}</span>
               <span style={{ color: C.sivi }}>{d.kom_za_kontrolu ?? "—"}</span>

@@ -541,6 +541,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
             addToast={addToast}
             onStampaj={otvoriBarkod}
             onOtvoriGlavniUnos={(idDeo, opts = {}) => idiNaTab("glavni_unos", { idDeo, ...opts })}
+            onNavigacijaStatus={(tab, ctx) => idiNaTab(tab, ctx)}
           />
         )}
 

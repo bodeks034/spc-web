@@ -49,6 +49,8 @@ export const MIGRACIJE_LISTA = [
   { id: "prijemna_veza_log", naziv: "Prijem ↔ Ulazna kontrola (FK na log)", fajl: "70_prijemna_veza_kontrolni_log.sql" },
   { id: "ocena_dobavljaca", naziv: "Periodična ocena dobavljača (A–D)", fajl: "71_ocena_dobavljaca.sql" },
   { id: "prijemna_veza_mer", naziv: "Prijem ↔ merljiva Ulazna kontrola", fajl: "72_prijemna_veza_merljiva.sql" },
+  { id: "ocisti_operativu_rpc", naziv: "Go-live čišćenje operative (RPC)", fajl: "77_ocisti_operativu_rpc.sql" },
+  { id: "obrisi_deo_rpc", naziv: "Brisanje dela iz šifrarnika (RPC)", fajl: "78_obrisi_deo_iz_sifrarnika_rpc.sql" },
 ];
 
 const PROBES = [
@@ -204,6 +206,28 @@ export async function proveriGreskeKatalogUpsert(supabase) {
   }
 }
 
+/** Provera da RPC funkcija postoji (pogrešna potvrda ≠ nedostaje funkcija). */
+export async function proveriRpcPostoji(supabase, fnName, args) {
+  const { error } = await supabase.rpc(fnName, args);
+  if (!error) return { ok: true, poruka: "OK" };
+  if (/function.*does not exist|could not find the function/i.test(error.message || "")) {
+    return { ok: false, poruka: `Nedostaje RPC ${fnName}` };
+  }
+  return { ok: true, poruka: "OK" };
+}
+
+export async function proveriGoLiveRpc(supabase) {
+  const ocisti = await proveriRpcPostoji(supabase, "ocisti_operativu_pre_go_live", {
+    p_zadrzi_qms: false,
+    p_potvrdi: "__SCHEMA_PROBE__",
+  });
+  const obrisi = await proveriRpcPostoji(supabase, "obrisi_deo_iz_sifrarnika", {
+    p_id_deo: "__PROBE__",
+    p_potvrdi: "__SCHEMA_PROBE__",
+  });
+  return { ocisti_operativu_rpc: ocisti, obrisi_deo_rpc: obrisi };
+}
+
 export async function proveriSemu(supabase) {
   const byId = {};
   for (const p of PROBES) {
@@ -211,6 +235,9 @@ export async function proveriSemu(supabase) {
   }
   byId.erp_uvoz_constraints = await proveriErpUvozConstraints(supabase);
   byId.greske_katalog_erp = await proveriGreskeKatalogUpsert(supabase);
+  const goLiveRpc = await proveriGoLiveRpc(supabase);
+  byId.ocisti_operativu_rpc = goLiveRpc.ocisti_operativu_rpc;
+  byId.obrisi_deo_rpc = goLiveRpc.obrisi_deo_rpc;
 
   const mapUser = {
     kpi_unos: byId.kpi_unos?.ok,
@@ -264,6 +291,8 @@ export async function proveriSemu(supabase) {
     ocena_dobavljaca: byId.ocena_dobavljaca?.ok,
     prijemna_veza_mer: byId.prijemna_veza_mer?.ok,
     erp_glavni_sheetovi: byId.erp_glavni_sheetovi?.ok,
+    ocisti_operativu_rpc: byId.ocisti_operativu_rpc?.ok,
+    obrisi_deo_rpc: byId.obrisi_deo_rpc?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({

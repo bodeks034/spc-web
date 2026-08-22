@@ -10,7 +10,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MD = path.join(ROOT, "docs", "obuka-paket", "UPUTSTVO_MODUL_SIFARNIK.md");
 const HTML = path.join(ROOT, "public", "obuka-paket", "OBUKA_MODUL_SIFARNIK.html");
 
-const MARKERS = [
+const INLINE_MARKERS = [
   "GRUPA_OSNovNO",
   "ERP_TOK_FLOW",
   "NOVI_DEO_TOK",
@@ -20,6 +20,8 @@ const MARKERS = [
   "DELOVI_CELL",
   "ERP_UVOZ_CELL",
 ];
+
+const TABLE_MARKERS = ["ERP_CSV_ROWS", "FAQ_ROWS"];
 
 function readSyncBlock(md, id) {
   const re = new RegExp(`<!-- SYNC:${id} -->\\s*([\\s\\S]*?)\\s*<!-- /SYNC:${id} -->`, "m");
@@ -33,6 +35,18 @@ function mdInlineToHtml(text) {
     .replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
+function mdTableRowsToHtml(md) {
+  return md
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("|") && !/^\|[-\s|:]+\|$/.test(l))
+    .map((line) => {
+      const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+      return `<tr>${cells.map((c) => `<td>${mdInlineToHtml(c)}</td>`).join("")}</tr>`;
+    })
+    .join("\n    ");
+}
+
 function replaceBlock(html, marker, inner) {
   const start = `<!-- AUTO:${marker} -->`;
   const end = `<!-- /AUTO:${marker} -->`;
@@ -41,7 +55,7 @@ function replaceBlock(html, marker, inner) {
     console.warn(`patch-obuka: marker AUTO:${marker} nije u HTML — preskačem`);
     return html;
   }
-  return html.replace(re, `${start}\n${inner}\n${end}`);
+  return html.replace(re, `${start}\n    ${inner}\n    ${end}`);
 }
 
 async function main() {
@@ -62,7 +76,8 @@ async function main() {
 
   let out = html;
   let n = 0;
-  for (const id of MARKERS) {
+
+  for (const id of INLINE_MARKERS) {
     const raw = readSyncBlock(md, id);
     if (!raw) {
       console.warn(`patch-obuka: nema SYNC:${id} u MD`);
@@ -71,6 +86,18 @@ async function main() {
     const inner = id.endsWith("_FLOW") || id.endsWith("_TOK")
       ? raw
       : mdInlineToHtml(raw);
+    const next = replaceBlock(out, id, inner);
+    if (next !== out) n += 1;
+    out = next;
+  }
+
+  for (const id of TABLE_MARKERS) {
+    const raw = readSyncBlock(md, id);
+    if (!raw) {
+      console.warn(`patch-obuka: nema SYNC:${id} u MD`);
+      continue;
+    }
+    const inner = mdTableRowsToHtml(raw);
     const next = replaceBlock(out, id, inner);
     if (next !== out) n += 1;
     out = next;

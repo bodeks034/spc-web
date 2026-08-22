@@ -70,6 +70,22 @@ npm run build
 
 HTTPS obavezno (kamera, Web Serial).
 
+### Vercel (cloud frontend + Admin API)
+
+Ako je frontend na Vercel-u, u **Project → Settings → Environment Variables** postavi:
+
+| Promenljiva | Svrha |
+|-------------|--------|
+| `VITE_SUPABASE_URL` | Supabase projekat (frontend) |
+| `VITE_SUPABASE_ANON_KEY` | Javni ključ (frontend) |
+| `SUPABASE_URL` | Isti URL — serverless API rute |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role — **Admin → Očisti operativu** preko `/api/admin-ocisti-operativu` |
+| `ADMIN_API_SECRET` ili `CRON_SECRET` | Opciono: Bearer auth za API bez JWT |
+
+**Pre go-live:** pokreni u Supabase SQL Editoru migracije `77_ocisti_operativu_rpc.sql` i `78_obrisi_deo_iz_sifrarnika_rpc.sql` (bulk brisanje DEMO delova).
+
+Admin panel poziva `POST /api/admin-ocisti-operativu` sa telom `{ "zadrzi_qms": false, "potvrdi": "OCISTI_OPERATIVU" }` — isto kao `npm run db:ocisti-operativu -- --potvrdi`.
+
 ---
 
 ## 4. Test nalozi
