@@ -42,6 +42,11 @@ async function main() {
   }
 
   console.log(`sync-uputstvo: ${n} fajlova → public/obuka-paket/`);
+
+  const { spawnSync } = await import("node:child_process");
+  const patch = path.join(ROOT, "scripts", "patch-obuka-sifrarnik-html.mjs");
+  const pr = spawnSync(process.execPath, [patch], { cwd: ROOT, stdio: "inherit" });
+  if (pr.status !== 0) process.exit(pr.status || 1);
 }
 
 main().catch((e) => {

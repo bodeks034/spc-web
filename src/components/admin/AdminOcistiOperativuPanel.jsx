@@ -40,9 +40,11 @@ export default function AdminOcistiOperativuPanel({ C, addToast }) {
     } catch (e) {
       const hint = /function.*does not exist|ocisti_operativu/i.test(e.message)
         ? " Pokreni migraciju 77_ocisti_operativu_rpc.sql u Supabase."
-        : /Samo admin/i.test(e.message)
-          ? ""
-          : " Alternativa: npm run db:ocisti-operativu -- --potvrdi";
+        : /DATABASE_URL|SUPABASE_DB_URL|Unauthorized/i.test(e.message)
+          ? " Na Vercel-u postavi DATABASE_URL + SUPABASE_SERVICE_ROLE_KEY za pun SQL API."
+          : /Samo admin/i.test(e.message)
+            ? ""
+            : " Alternativa: npm run db:ocisti-operativu -- --potvrdi";
       addToast?.(e.message + hint, "greska");
     } finally {
       setCisti(false);
@@ -63,7 +65,7 @@ export default function AdminOcistiOperativuPanel({ C, addToast }) {
       </div>
       <div style={{ color: C.sivi, fontSize: 10, lineHeight: 1.5, marginBottom: 10 }}>
         Briše merenja, log, KPI, alarme, NCR… <strong>Šifrarnik ostaje</strong>.
-        Pre pokretanja: <code>npm run backup:db</code>. Posle: obriši Storage mirror i Ctrl+F5 na tabletima.
+        Pre pokretanja: <code>npm run backup:db</code>. Na produkciji pun SQL zahteva <code>DATABASE_URL</code> na Vercel-u (fallback: Supabase RPC).
       </div>
 
       {loading ? (

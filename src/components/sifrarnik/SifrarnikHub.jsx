@@ -52,8 +52,12 @@ import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
 import { fetchDeloviListaZaRn } from "../../lib/sifrarnikApi.js";
 import { supabase } from "../../lib/supabaseClient.js";
 import { useEkran } from "../../layout/useEkran.js";
+import {
+  ONBOARDING_EVENT,
+  onboardingIskljucen,
+  zavrsiSifrarnikOnboarding,
+} from "../../lib/sifrarnikOnboarding.js";
 
-const ONBOARDING_KEY = "spc_sifrarnik_onboarding_off";
 const ONBOARDING_TABOVI = new Set(["glavni_unos", "pogon_mapa", "odrzavanje", "liste"]);
 
 
@@ -241,7 +245,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   useEffect(() => {
 
-    if (localStorage.getItem(ONBOARDING_KEY)) return;
+    if (onboardingIskljucen()) return;
 
     (async () => {
 
@@ -269,6 +273,18 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   useEffect(() => {
 
+    const handler = () => setOnboarding(false);
+
+    window.addEventListener(ONBOARDING_EVENT, handler);
+
+    return () => window.removeEventListener(ONBOARDING_EVENT, handler);
+
+  }, []);
+
+
+
+  useEffect(() => {
+
     if (!onboarding) return;
 
     if (!ONBOARDING_TABOVI.has(podtab)) setPodtab("glavni_unos");
@@ -279,7 +295,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   const iskljuciOnboarding = () => {
 
-    localStorage.setItem(ONBOARDING_KEY, "1");
+    zavrsiSifrarnikOnboarding();
 
     setOnboarding(false);
 

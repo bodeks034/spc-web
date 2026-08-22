@@ -7,7 +7,7 @@ import {
   filtrirajSheetovePoTipu,
 } from "../src/lib/glavniUnosSheetTip.js";
 import { SABLON_GRESKE_OPSTI, SABLON_GRESKE_VOZILO } from "../src/lib/greskaSablon.js";
-import { statusDeoUSifrarniku } from "../src/lib/sifrarnikOdrzavanje.js";
+import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo } from "../src/lib/sifrarnikOdrzavanje.js";
 import { podrazumevaniBarkodProfil } from "../src/lib/barkodEtiketa.js";
 
 describe("validirajRedovePrePropagacije", () => {
@@ -87,6 +87,21 @@ describe("statusDeoUSifrarniku", () => {
       { id_deo: "X", slika_naziv: "a.png" },
       { guBroj: 2, greskeBroj: 3, imaBarkod: false },
     )).toBe("kompletan");
+  });
+});
+
+describe("nedostajeZaDeo", () => {
+  it("navodi crtez i greske", () => {
+    const ned = nedostajeZaDeo({ id_deo: "X" }, { guBroj: 1, greskeBroj: 0, imaBarkod: false });
+    expect(ned).toContain("Greške");
+    expect(ned).toContain("Crtež");
+  });
+});
+
+describe("jeDemoIdDeo", () => {
+  it("prepoznaje DEMO prefiks", () => {
+    expect(jeDemoIdDeo("DEMO-NM-001")).toBe(true);
+    expect(jeDemoIdDeo("HAM-NM-001")).toBe(false);
   });
 });
 

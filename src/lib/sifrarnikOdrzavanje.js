@@ -63,8 +63,70 @@ export function statusDeoUSifrarniku(deo, { guBroj = 0, greskeBroj = 0, imaBarko
   return "samo_master";
 }
 
+/** Lista stavki koje nedostaju za kompletan šifrarnik (za tooltip). */
+export function nedostajeZaDeo(deo, { guBroj = 0, greskeBroj = 0, imaBarkod = false } = {}) {
+  const ned = [];
+  if (!(guBroj > 0)) ned.push("Glavni unos");
+  if (!(greskeBroj > 0)) ned.push("Greške");
+  if (!String(deo?.slika_naziv || "").trim()) ned.push("Crtež");
+  const st = statusDeoUSifrarniku(deo, { guBroj, greskeBroj, imaBarkod });
+  if (st !== "kompletan" && !imaBarkod && guBroj > 0) ned.push("Barkod profil");
+  return ned;
+}
+
+export function tooltipStatusDeo(deo, opts) {
+  const st = statusDeoUSifrarniku(deo, opts);
+  if (st === "kompletan") return "Kompletan: GU + greške + crtež + (GU ili barkod)";
+  const ned = nedostajeZaDeo(deo, opts);
+  if (ned.length) return `Nedostaje: ${ned.join(", ")}`;
+  return STATUS_DEO_LABEL[st]?.label || st;
+}
+
 export const STATUS_DEO_LABEL = {
   kompletan: { label: "Kompletan", boja: "zelena" },
   delimicno: { label: "Delimično", boja: "narandzasta" },
   samo_master: { label: "Samo master", boja: "sivi" },
 };
+
+const DEMO_ID_RE = /^(DEMO|TEST|SAMPLE|XXX)[-_]/i;
+
+export function jeDemoIdDeo(idDeo) {
+  return DEMO_ID_RE.test(String(idDeo || "").trim());
+}
+
+async function obrisiPoIdDeo(tabela, idDeo) {
+  const { error } = await supabase.from(tabela).delete().eq("id_deo", idDeo);
+  if (error && !/does not exist|relation/i.test(error.message)) throw error;
+}
+
+/** Briše deo i povezane šifrarnik redove (ne merenja — operativa ostaje). */
+export async function obrisiDeoIzSifrarnika(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) throw new Error("ID dela je obavezan");
+
+  await obrisiPoIdDeo("glavni_unos_redovi", id);
+  await obrisiPoIdDeo("greske_katalog", id);
+  await obrisiPoIdDeo("karakteristike_merljive", id);
+  await obrisiPoIdDeo("sop_deo_varijabilni", id);
+  await obrisiPoIdDeo("delovi_atributivni_pogon", id);
+  await obrisiPoIdDeo("barkod_profili", id);
+  await obrisiPoIdDeo("radni_nalozi", id);
+  await obrisiPoIdDeo("ciljevi", id);
+  const { error } = await supabase.from("delovi").delete().eq("id_deo", id);
+  if (error) throw error;
+  return { idDeo: id };
+}
+
+/** Bulk brisanje — samo DEMO/TEST/SAMPLE/XXX prefiks. */
+export async function obrisiDemoDelove(idDeoLista) {
+  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+  const neDemo = ids.filter((id) => !jeDemoIdDeo(id));
+  if (neDemo.length) {
+    throw new Error(`Dozvoljeno samo DEMO/TEST ID. Odbijeno: ${neDemo.slice(0, 5).join(", ")}`);
+  }
+  const rez = [];
+  for (const id of ids) {
+    rez.push(await obrisiDeoIzSifrarnika(id));
+  }
+  return { obrisano: rez.length, ids: rez.map((r) => r.idDeo) };
+}

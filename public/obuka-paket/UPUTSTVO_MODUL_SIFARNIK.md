@@ -239,7 +239,7 @@ Fiksno u kodu: **Klasa** (Critical/Major/Minor), **Tip** (Merljiva/Atributivna).
 | aktivan | Da/ne — neaktivan se ne nudi na liniji |
 | napomena | Slobodan tekst |
 
-**Akcije:** filter po tipu, + Deo, Sačuvaj, ✎ izmena, **GU (n)** → Glavni unos sa filterom na taj ID (ako nema redova u GU, otvara se čarobnjak), ▦ barkod.
+**Akcije:** filter po tipu, filter **Samo DEMO/TEST**, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, Sačuvaj, ✎ izmena, **GU (n)** → Glavni unos sa filterom na taj ID (ako nema redova u GU, otvara se čarobnjak), status badge (tooltip: nedostaje GU/greške/crtež), ▦ barkod.
 
 ---
 
@@ -763,7 +763,10 @@ Sledeće stavke iz ranijeg plana **implementirane su u Modulu 0**:
 | 6 | Link Delovi → GU | **GU (n)** na redu dela |
 | 7 | Šablon grešaka (5) | Checklist + Katalog grešaka |
 | 8 | Tab **Održavanje** | Brojevi + prečice ka tabovima |
-| 9 | Go-live čišćenje baze | `npm run db:ocisti-operativu` (vidi skripte u `scripts/`) |
+| 9 | Go-live čišćenje baze | `npm run db:ocisti-operativu` + Admin panel |
+| 10 | Onboarding mod | Sakriva tabove dok nema 5+ dimenzija |
+| 11 | Status dela | Delovi → Kompletan / Delimično / Samo master |
+| 12 | Duplikati dimenzija | Tab Održavanje |
 
 **Preporučeni tok za novi deo:**
 
@@ -787,7 +790,11 @@ Operativno i dalje važi: mesečno proveri neaktivne RN, istekle kalibracije mer
 | **6** | Checklist → Crtež upload forma | ✓ implementirano |
 | **7** | Barkod profil po tipu dela | ✓ implementirano |
 | **8** | Onboarding mod (sakrivanje tabova) | ✓ do 5 dimenzija |
-| **9** | Status badge na Delovima | ✓ Kompletan / Delimično |
+| **9** | Status badge na Delovima | ✓ Kompletan / Delimično + tooltip |
+| **10** | Onboarding auto-off posle objave | ✓ implementirano |
+| **11** | Bulk brisanje DEMO delova | ✓ Delovi tab |
+| **12** | OBUKA HTML sync iz MD | ✓ `patch-obuka-sifrarnik-html.mjs` |
+| **13** | Admin API pun SQL cleanup | ✓ `/api/admin-ocisti-operativu` |
 
 ---
 

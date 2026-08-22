@@ -19,6 +19,7 @@ import NoviDeoWizard from "./NoviDeoWizard.jsx";
 import { inpStyle, btnStyle } from "./sifrarnikPanelStyle.js";
 import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js";
 import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
+import { zavrsiSifrarnikOnboarding } from "../../lib/sifrarnikOnboarding.js";
 import { useSifrarnikOpcije } from "./useSifrarnikOpcije.js";
 import {
   stampAuditPolja,
@@ -320,6 +321,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
           + (derivedCount ? `, ${derivedCount} zavisnih` : ""),
           "uspeh",
         );
+        zavrsiSifrarnikOnboarding();
         return res;
       }
       addToast?.(`✓ ${aktivniSheet}: ${saved.length} redova`, "uspeh");
@@ -353,6 +355,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         + (derivedCount ? `, ${derivedCount} zavisnih unosa` : ""),
         "uspeh",
       );
+      zavrsiSifrarnikOnboarding();
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {

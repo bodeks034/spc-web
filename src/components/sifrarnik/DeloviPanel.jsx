@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { fetchDelovi, upsertDeo } from "../../lib/sifrarnikApi.js";
 import { fetchGlavniUnosBrojeviPoDeo } from "../../lib/glavniUnosApi.js";
 import {
@@ -6,6 +6,9 @@ import {
   fetchBarkodProfiliSet,
   statusDeoUSifrarniku,
   STATUS_DEO_LABEL,
+  tooltipStatusDeo,
+  jeDemoIdDeo,
+  obrisiDemoDelove,
 } from "../../lib/sifrarnikOdrzavanje.js";
 
 const PRAZAN = {
@@ -22,8 +25,11 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [barkodSet, setBarkodSet] = useState(new Set());
   const [tipFilter, setTipFilter] = useState("svi");
   const [filter, setFilter] = useState("");
+  const [samoDemo, setSamoDemo] = useState(false);
+  const [izabrani, setIzabrani] = useState(() => new Set());
   const [forma, setForma] = useState(null);
   const [snima, setSnima] = useState(false);
+  const [brise, setBrise] = useState(false);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -82,13 +88,54 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     color: C.tekst, fontSize: 11, padding: "7px 10px", fontFamily: "inherit",
   };
 
-  const prikaz = lista.filter((d) => {
+  const prikaz = useMemo(() => lista.filter((d) => {
+    if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
     if (!filter.trim()) return true;
     const q = filter.toLowerCase();
     return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
       (s) => String(s || "").toLowerCase().includes(q),
     );
-  });
+  }), [lista, filter, samoDemo]);
+
+  const demoNaPrikazu = useMemo(
+    () => prikaz.filter((d) => jeDemoIdDeo(d.id_deo)).map((d) => d.id_deo),
+    [prikaz],
+  );
+
+  const toggleIzbor = (idDeo) => {
+    setIzabrani((prev) => {
+      const next = new Set(prev);
+      if (next.has(idDeo)) next.delete(idDeo);
+      else next.add(idDeo);
+      return next;
+    });
+  };
+
+  const izaberiSveDemo = () => {
+    setIzabrani(new Set(demoNaPrikazu));
+  };
+
+  const obrisiIzabrane = async () => {
+    const ids = [...izabrani];
+    if (!ids.length) {
+      addToast?.("Izaberi DEMO delove za brisanje", "greska");
+      return;
+    }
+    if (!window.confirm(`Obrisati ${ids.length} demo del(a) i povezane šifrarnik redove?\n\n${ids.slice(0, 8).join(", ")}${ids.length > 8 ? "…" : ""}`)) {
+      return;
+    }
+    setBrise(true);
+    try {
+      const rez = await obrisiDemoDelove(ids);
+      addToast?.(`✓ Obrisano ${rez.obrisano} demo delova`, "uspeh");
+      setIzabrani(new Set());
+      await ucitaj();
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setBrise(false);
+    }
+  };
 
   return (
     <div>
@@ -105,11 +152,29 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
           <span style={{ color: C.sivi, fontSize: 9 }}>PRETRAGA</span>
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="ID, naziv…" style={INP} />
         </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.sivi, paddingBottom: 6 }}>
+          <input type="checkbox" checked={samoDemo} onChange={(e) => setSamoDemo(e.target.checked)} />
+          Samo DEMO/TEST
+        </label>
         <button type="button" onClick={() => setForma({ ...PRAZAN })}
           style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}>
           + Deo
         </button>
       </div>
+
+      {demoNaPrikazu.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+          <button type="button" onClick={izaberiSveDemo}
+            style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6, color: C.tekst, fontSize: 10, padding: "6px 10px", cursor: "pointer" }}>
+            Izaberi sve DEMO ({demoNaPrikazu.length})
+          </button>
+          <button type="button" disabled={brise || !izabrani.size} onClick={obrisiIzabrane}
+            style={{ background: `${C.crvena || "#dc2626"}22`, border: `1px solid ${C.crvena || "#dc2626"}55`, borderRadius: 6, color: C.crvena || "#dc2626", fontSize: 10, fontWeight: 700, padding: "6px 10px", cursor: "pointer", opacity: brise || !izabrani.size ? 0.5 : 1 }}>
+            {brise ? "…" : `Obriši izabrane (${izabrani.size})`}
+          </button>
+          <span style={{ color: C.sivi, fontSize: 9 }}>Samo ID sa prefiksom DEMO, TEST, SAMPLE, XXX</span>
+        </div>
+      )}
 
       {forma && (
         <div style={{ background: C.panel, border: `1px solid ${C.plava}44`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
@@ -170,26 +235,39 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
-            display: "grid", gridTemplateColumns: "100px 1fr 72px 80px 70px 80px 56px 70px",
+            display: "grid", gridTemplateColumns: "28px 100px 1fr 72px 80px 70px 80px 56px 70px",
             background: C.hover, padding: "8px 10px", fontSize: 9, color: C.sivi, gap: 8,
           }}>
+            <span />
             <span>ID</span><span>NAZIV</span><span>STATUS</span><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span><span />
           </div>
           {!prikaz.length ? (
             <div style={{ padding: 20, textAlign: "center", color: C.border, fontSize: 11 }}>Nema delova</div>
           ) : prikaz.map((d, i) => {
-            const st = statusDeoUSifrarniku(d, {
+            const opts = {
               guBroj: guBrojevi[d.id_deo] || 0,
               greskeBroj: greskeBrojevi[d.id_deo] || 0,
               imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
-            });
+            };
+            const st = statusDeoUSifrarniku(d, opts);
             const stMeta = STATUS_DEO_LABEL[st];
+            const demo = jeDemoIdDeo(d.id_deo);
             return (
             <div key={d.id_deo} style={{
-              display: "grid", gridTemplateColumns: "100px 1fr 72px 80px 70px 80px 56px 70px",
+              display: "grid", gridTemplateColumns: "28px 100px 1fr 72px 80px 70px 80px 56px 70px",
               padding: "8px 10px", borderTop: i ? `1px solid ${C.border}` : "none", fontSize: 11, gap: 8, alignItems: "center",
               opacity: d.aktivan === false ? 0.55 : 1,
             }}>
+              <span>
+                {demo && (
+                  <input
+                    type="checkbox"
+                    checked={izabrani.has(d.id_deo)}
+                    onChange={() => toggleIzbor(d.id_deo)}
+                    title="Izaberi za brisanje"
+                  />
+                )}
+              </span>
               <span style={{ fontWeight: 700, color: C.plava }}>{d.id_deo}</span>
               <span>{d.naziv_dela}</span>
               <span style={{
@@ -197,7 +275,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
                 fontWeight: 700,
                 color: bojaStatus(stMeta.boja),
               }}
-              title={st === "kompletan" ? "GU + greške + crtež/barkod" : st === "delimicno" ? "Nedostaje deo checkliste" : "Samo u delovi — propagiraj iz GU"}
+              title={tooltipStatusDeo(d, opts)}
               >
                 {stMeta.label}
               </span>
