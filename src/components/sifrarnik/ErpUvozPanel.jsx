@@ -21,6 +21,7 @@ import {
 } from "../../lib/erpUvozApi.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
+import { fetchDeloviBezGlavnogUnosa } from "../../lib/sifrarnikOdrzavanje.js";
 
 const CARD = (C) => ({
   background: C.panel,
@@ -30,7 +31,7 @@ const CARD = (C) => ({
   marginBottom: 12,
 });
 
-export default function ErpUvozPanel({ C, addToast }) {
+export default function ErpUvozPanel({ C, addToast, onNavigate }) {
   const [preset, setPreset] = useState("sap");
   const [mod, setMod] = useState("upload");
   const [fajlovi, setFajlovi] = useState([]);
@@ -41,6 +42,7 @@ export default function ErpUvozPanel({ C, addToast }) {
   const [apiUrl, setApiUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [apiStatus, setApiStatus] = useState(null);
+  const [guUpozorenje, setGuUpozorenje] = useState(null);
 
   const config = useMemo(() => {
     try {
@@ -70,6 +72,23 @@ export default function ErpUvozPanel({ C, addToast }) {
     setApiKey(p.apiKey);
     ucitajLog();
   }, [ucitajLog]);
+
+  const proveriDeloviBezGu = useCallback(async (res) => {
+    const imaDelovi = (res?.rezultati || []).some(
+      (r) => r.entitet === "delovi" && !r.greska && (r.upsertovano > 0 || r.validnih > 0),
+    );
+    if (!imaDelovi) {
+      setGuUpozorenje(null);
+      return;
+    }
+    try {
+      const bezGu = await fetchDeloviBezGlavnogUnosa();
+      if (bezGu.broj > 0) setGuUpozorenje(bezGu);
+      else setGuUpozorenje(null);
+    } catch {
+      setGuUpozorenje(null);
+    }
+  }, []);
 
   const onFajlovi = async (e) => {
     const list = [...(e.target.files || [])];
@@ -105,6 +124,7 @@ export default function ErpUvozPanel({ C, addToast }) {
           "uspeh",
         );
         if (!dryRun) ucitajLog();
+        if (!dryRun && res.ok) await proveriDeloviBezGu(res);
       } else {
         addToast?.(res.rezultati.find((r) => r.greska)?.greska || "Greška pri uvozu", "greska");
       }
@@ -144,6 +164,7 @@ export default function ErpUvozPanel({ C, addToast }) {
           "uspeh",
         );
         ucitajLog();
+        if (!dryRun && res.ok) await proveriDeloviBezGu(res);
       } else {
         addToast?.(res.rezultati?.find((r) => r.greska)?.greska || "Server uvoz nije uspeo", "greska");
       }
@@ -173,6 +194,46 @@ export default function ErpUvozPanel({ C, addToast }) {
         <strong>RN, delovi master, kupci</strong>. Dimenzije (LSL/USL) unosi isključivo kroz{" "}
         <strong>Glavni unos → Objavi u šifrarnik</strong> — jedan izvor granica.
       </div>
+
+      {guUpozorenje && guUpozorenje.broj > 0 && (
+        <div
+          data-testid="erp-gu-banner"
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            borderRadius: 8,
+            border: `1px solid ${C.narandzasta || "#f59e0b"}55`,
+            background: `${C.narandzasta || "#f59e0b"}12`,
+            fontSize: 10,
+            lineHeight: 1.5,
+          }}
+        >
+          <strong style={{ color: C.tekst }}>Sledeći korak:</strong>{" "}
+          {guUpozorenje.broj} del(a) ima samo ERP master, bez dimenzija u Glavnom unosu.
+          {guUpozorenje.primer.length > 0 && (
+            <span style={{ color: C.sivi }}> ({guUpozorenje.primer.join(", ")}{guUpozorenje.broj > guUpozorenje.primer.length ? "…" : ""})</span>
+          )}
+          {" "}
+          {onNavigate && (
+            <button
+              type="button"
+              data-testid="erp-gu-cta"
+              onClick={() => onNavigate("glavni_unos", { otvoriWizard: true })}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: C.plava,
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: 10,
+              }}
+            >
+              Otvori Glavni unos →
+            </button>
+          )}
+        </div>
+      )}
 
       <div style={CARD(C)}>
         <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 10, fontSize: 12 }}>

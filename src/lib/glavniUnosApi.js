@@ -37,6 +37,7 @@ export {
 import * as XLSX from "xlsx";
 import { uploadSlikaSifrarnik } from "./sifrarnikSlikeApi.js";
 import { sinhronizujKupce } from "./radniNaloziUvoz.js";
+import { upsertDeo } from "./sifrarnikApi.js";
 
 function greskaNedostaje(error) {
   const m = (error?.message || "").toLowerCase();
@@ -144,6 +145,53 @@ export async function kreirajGlavniUnosSheet({ naziv, sifraVozila = null } = {})
     throw error;
   }
   return data;
+}
+
+/** Kopira GU redove (i opciono master) sa izvora na novi ID dela. */
+export async function klonirajDeoUGlavniUnos(izvorId, ciljId, { kopirajMaster = true } = {}) {
+  const izvor = normalizujIdDeo(izvorId);
+  const cilj = normalizujIdDeo(ciljId);
+  if (!izvor || !cilj) throw new Error("Izvor i cilj ID su obavezni");
+  if (izvor === cilj) throw new Error("Izvor i cilj moraju biti različiti");
+
+  const izvorRedovi = await fetchGlavniUnosRedoviZaDeo(izvor);
+  if (!izvorRedovi.length) {
+    throw new Error(`Izvor ${izvor} nema redova u Glavnom unosu`);
+  }
+
+  const ciljRedovi = await fetchGlavniUnosRedoviZaDeo(cilj);
+  if (ciljRedovi.length) {
+    throw new Error(`Cilj ${cilj} već ima ${ciljRedovi.length} red(ova) u GU`);
+  }
+
+  if (kopirajMaster) {
+    const { data: srcDeo, error: deoErr } = await supabase
+      .from("delovi")
+      .select("*")
+      .eq("id_deo", izvor)
+      .maybeSingle();
+    if (deoErr) throw deoErr;
+    if (srcDeo) {
+      const naziv = String(srcDeo.naziv_dela || cilj).trim();
+      await upsertDeo({
+        ...srcDeo,
+        id_deo: cilj,
+        naziv_dela: naziv.includes("(kopija)") ? naziv : `${naziv} (kopija)`,
+      });
+    }
+  }
+
+  const payload = izvorRedovi.map((r, i) => ocistiRedZaInsertGlavniUnos({
+    ...r,
+    id_deo: cilj,
+  }, {
+    sheetNaziv: r.sheet_naziv,
+    redosled: r.redosled ?? i,
+  }));
+
+  const { data, error } = await supabase.from("glavni_unos_redovi").insert(payload).select("*");
+  if (error) throw error;
+  return { izvor, cilj, redova: (data || []).length };
 }
 
 /** Svi redovi glavnog unosa za jedan deo — direktan upit (ne zavisi od limita po sheet-u). */

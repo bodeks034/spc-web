@@ -36,6 +36,7 @@ import AdminKalibracijaPanel from "../AdminKalibracijaPanel.jsx";
 import AdminPrekidiPanel from "../AdminPrekidiPanel.jsx";
 import AdminSpcAlarmiPanel from "../AdminSpcAlarmiPanel.jsx";
 import GoLiveChecklistPanel from "../GoLiveChecklistPanel.jsx";
+import AdminGoLiveStatusPanel from "./AdminGoLiveStatusPanel.jsx";
 import AdminOcistiOperativuPanel from "./AdminOcistiOperativuPanel.jsx";
 import ZdravljeSistemaKartica from "../ZdravljeSistemaKartica.jsx";
 import { Modal } from "../ui/SpcUi.jsx";
@@ -525,6 +526,10 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
         </div>
 
         <ZdravljeSistemaKartica C={C} korisnik={korisnik} />
+        <AdminGoLiveStatusPanel
+          C={C}
+          addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
+        />
         <GoLiveChecklistPanel
           C={C}
           addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}

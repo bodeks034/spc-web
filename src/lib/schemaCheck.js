@@ -226,7 +226,11 @@ export async function proveriGoLiveRpc(supabase) {
     p_id_deo: "__PROBE__",
     p_potvrdi: "__SCHEMA_PROBE__",
   });
-  return { ocisti_operativu_rpc: ocisti, obrisi_deo_rpc: obrisi };
+  const obrisiDemo = await proveriRpcPostoji(supabase, "obrisi_demo_delove_iz_sifrarnika", {
+    p_id_deo_list: ["__PROBE__"],
+    p_potvrdi: "__SCHEMA_PROBE__",
+  });
+  return { ocisti_operativu_rpc: ocisti, obrisi_deo_rpc: obrisi, obrisi_demo_delove_rpc: obrisiDemo };
 }
 
 export async function proveriSemu(supabase) {

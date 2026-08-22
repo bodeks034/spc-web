@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
-import { fetchDuplikatiKarakteristike, fetchDelimicniDeloviPreview, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
+import { fetchDuplikatiKarakteristike, fetchDelimicniDeloviPreview, fetchKompletnostStatistika, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 
 async function countTable(table, filter = {}) {
@@ -17,22 +17,25 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [podaci, setPodaci] = useState(null);
   const [duplikati, setDuplikati] = useState([]);
   const [delimicni, setDelimicni] = useState([]);
+  const [komplet, setKomplet] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
     try {
-      const [delovi, rnAktivni, merila, karakteristike, dups, delim] = await Promise.all([
+      const [delovi, rnAktivni, merila, karakteristike, dups, delim, kompletStat] = await Promise.all([
         countTable("delovi"),
         countTable("radni_nalozi", { status: "aktivan" }),
         countTable("merila"),
         countTable("karakteristike_merljive"),
         fetchDuplikatiKarakteristike(),
         fetchDelimicniDeloviPreview({ limit: 12 }),
+        fetchKompletnostStatistika(),
       ]);
       setPodaci({ delovi, rnAktivni, merila, karakteristike });
       setDuplikati(dups.slice(0, 15));
       setDelimicni(delim);
+      setKomplet(kompletStat);
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -85,6 +88,31 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
               <div style={{ color: C.tekst, fontSize: 18, fontWeight: 700 }}>{n}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {komplet && !loading && (
+        <div
+          data-testid="odrzavanje-kompletnost"
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            borderRadius: 8,
+            border: `1px solid ${komplet.procenat >= 80 ? C.zelena : C.narandzasta || "#f59e0b"}44`,
+            background: `${komplet.procenat >= 80 ? C.zelena : C.narandzasta || "#f59e0b"}10`,
+          }}
+        >
+          <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+            Kompletnost šifrarnika: {komplet.kompletno}/{komplet.ukupno} ({komplet.procenat}%)
+          </div>
+          <div style={{ color: C.sivi, fontSize: 9, lineHeight: 1.5 }}>
+            Delimično: {komplet.delimicno} · Samo master: {komplet.samoMaster}
+            {" · "}
+            <button type="button" onClick={() => onNavigate?.("delovi")}
+              style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontWeight: 700, fontSize: 9 }}>
+              Pregled delova →
+            </button>
+          </div>
         </div>
       )}
 

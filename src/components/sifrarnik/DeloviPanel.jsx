@@ -284,7 +284,36 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
             <span>ID</span><span>NAZIV</span><span>STATUS</span><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span><span />
           </div>
           {!prikaz.length ? (
-            <div style={{ padding: 20, textAlign: "center", color: C.border, fontSize: 11 }}>Nema delova</div>
+            <div style={{ padding: 24, textAlign: "center" }} data-testid="delovi-empty">
+              {!loading && lista.length === 0 && !filter.trim() && tipFilter === "svi" ? (
+                <>
+                  <div style={{ color: C.sivi, fontSize: 11, marginBottom: 12, lineHeight: 1.5 }}>
+                    Još nema delova u šifrarniku. Kreiraj prvi deo kroz Glavni unos.
+                  </div>
+                  {onOtvoriGlavniUnos && (
+                    <button
+                      type="button"
+                      data-testid="delovi-cta-gu"
+                      onClick={() => onOtvoriGlavniUnos(null, { otvoriWizard: true })}
+                      style={{
+                        background: C.zelena,
+                        border: "none",
+                        borderRadius: 6,
+                        color: C.onAkcent,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "10px 16px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      + Novi deo u Glavnom unosu
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: C.border, fontSize: 11 }}>Nema delova za prikaz</div>
+              )}
+            </div>
           ) : prikaz.map((d, i) => {
             const opts = {
               guBroj: guBrojevi[d.id_deo] || 0,

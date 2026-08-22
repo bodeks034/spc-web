@@ -7,7 +7,7 @@ import {
   filtrirajSheetovePoTipu,
 } from "../src/lib/glavniUnosSheetTip.js";
 import { SABLON_GRESKE_OPSTI, SABLON_GRESKE_VOZILO } from "../src/lib/greskaSablon.js";
-import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo, navigacijaIzStatusDeo, koraciNavigacijeIzStatusDeo } from "../src/lib/sifrarnikOdrzavanje.js";
+import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo, navigacijaIzStatusDeo, koraciNavigacijeIzStatusDeo, izracunajKompletnostDelova, pickPrviDelimicniDeo } from "../src/lib/sifrarnikOdrzavanje.js";
 import { podrazumevaniBarkodProfil } from "../src/lib/barkodEtiketa.js";
 
 describe("validirajRedovePrePropagacije", () => {
@@ -113,6 +113,37 @@ describe("koraciNavigacijeIzStatusDeo", () => {
     );
     expect(koraci.length).toBeGreaterThan(1);
     expect(koraci.some((k) => k.tab === "glavni_unos")).toBe(true);
+  });
+});
+
+describe("izracunajKompletnostDelova", () => {
+  it("računa procenat kompletnih", () => {
+    const delovi = [
+      { id_deo: "A", slika_naziv: "a.png" },
+      { id_deo: "B" },
+    ];
+    const gu = { A: 2, B: 0 };
+    const gr = { A: 1, B: 0 };
+    const stat = izracunajKompletnostDelova(delovi, gu, gr, new Set());
+    expect(stat.ukupno).toBe(2);
+    expect(stat.kompletno).toBe(1);
+    expect(stat.procenat).toBe(50);
+  });
+});
+
+describe("pickPrviDelimicniDeo", () => {
+  it("vraća prvi po id_deo koji nije kompletan", () => {
+    const prviDelimicni = pickPrviDelimicniDeo(
+      [
+        { id_deo: "Z-1" },
+        { id_deo: "A-1", slika_naziv: "x.png" },
+      ],
+      { "Z-1": 0, "A-1": 1 },
+      { "A-1": 2 },
+      new Set(),
+    );
+    expect(prviDelimicni?.deo.id_deo).toBe("Z-1");
+    expect(prviDelimicni?.status).not.toBe("kompletan");
   });
 });
 

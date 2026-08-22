@@ -45,6 +45,7 @@ import BarkodStampaPanel from "./BarkodStampaPanel.jsx";
 import SifrarnikIzvozPanel from "./SifrarnikIzvozPanel.jsx";
 import SifrarnikOdrzavanjePanel from "./SifrarnikOdrzavanjePanel.jsx";
 import ErpUvozPanel from "./ErpUvozPanel.jsx";
+import SifrarnikNastaviBanner from "./SifrarnikNastaviBanner.jsx";
 import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
@@ -415,6 +416,8 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       )}
 
+      <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={onboarding} />
+
       <div style={{ marginBottom: 12, flexShrink: 0 }}>
 
         <div style={{ color: C.tekst, fontSize: 15, fontWeight: 700, letterSpacing: 0.5 }}>
@@ -625,7 +628,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
         )}
 
-        {podtab === "erp" && <ErpUvozPanel C={C} addToast={addToast} />}
+        {podtab === "erp" && <ErpUvozPanel C={C} addToast={addToast} onNavigate={idiNaTab} />}
 
         {podtab === "backup" && <SifrarnikIzvozPanel C={C} addToast={addToast} />}
 

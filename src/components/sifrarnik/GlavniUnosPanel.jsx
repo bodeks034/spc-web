@@ -10,6 +10,7 @@ import {
   ucitajWorkbookIzFajla,
   parsirajWorkbookZaUvoz,
   upsertPogonLinijaMapa,
+  klonirajDeoUGlavniUnos,
 } from "../../lib/glavniUnosApi.js";
 import { GLAVNI_UNOS_COL_BROJ_MERENJA, GLAVNI_UNOS_BROJ_MERENJA_DEFAULT } from "../../lib/glavniUnosCore.js";
 import { FormGrid } from "./LinijePanel.jsx";
@@ -200,6 +201,10 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const [checklistCtx, setChecklistCtx] = useState(null);
   const [wizardOtvoren, setWizardOtvoren] = useState(false);
   const [sablonUcitava, setSablonUcitava] = useState(false);
+  const [klonIzvor, setKlonIzvor] = useState("");
+  const [klonCilj, setKlonCilj] = useState("");
+  const [klonOtvoren, setKlonOtvoren] = useState(false);
+  const [klonira, setKlonira] = useState(false);
   const fileRef = useRef(null);
   const INP = inpStyle(C);
 
@@ -246,9 +251,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   }, [aktivniSheet]);
 
   useEffect(() => {
-    if (!navSignal?.idDeo) return;
-    setFilter(navSignal.idDeo);
-    setChecklistCtx(null);
+    if (!navSignal?.ts) return;
+    if (navSignal.idDeo) {
+      setFilter(navSignal.idDeo);
+      setChecklistCtx(null);
+    }
     if (navSignal.otvoriWizard) setWizardOtvoren(true);
   }, [navSignal?.ts, navSignal?.idDeo, navSignal?.otvoriWizard]);
 
@@ -547,6 +554,25 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
     return C.sivi;
   };
 
+  const pokreniKloniranje = async () => {
+    if (!klonIzvor.trim() || !klonCilj.trim()) {
+      addToast?.("Unesi izvor i cilj ID dela", "greska");
+      return;
+    }
+    setKlonira(true);
+    try {
+      const rez = await klonirajDeoUGlavniUnos(klonIzvor, klonCilj);
+      addToast?.(`✓ Klonirano ${rez.redova} red(ova): ${rez.izvor} → ${rez.cilj}`, "uspeh");
+      setFilter(rez.cilj);
+      setKlonCilj("");
+      await ucitajRedove(aktivniSheet);
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setKlonira(false);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, lineHeight: 1.5 }}>
@@ -601,7 +627,54 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         >
           + Novi deo
         </button>
+        <button
+          type="button"
+          data-testid="gu-kloniraj-toggle"
+          onClick={() => setKlonOtvoren((v) => !v)}
+          style={btnStyle(C, C.hover, { fontSize: 9 })}
+          title="Kopiraj dimenzije sa postojećeg dela"
+        >
+          {klonOtvoren ? "▾ Kloniraj deo" : "▸ Kloniraj deo"}
+        </button>
       </div>
+
+      {klonOtvoren && (
+        <div
+          data-testid="gu-kloniraj-forma"
+          style={{
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: `1px solid ${C.border}`,
+            background: C.panel,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "flex-end",
+          }}
+        >
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ color: C.sivi, fontSize: 9 }}>IZVOR ID</span>
+            <input value={klonIzvor} onChange={(e) => setKlonIzvor(e.target.value.toUpperCase())} style={{ ...INP, width: 120 }} placeholder="HAM-NM-001" />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ color: C.sivi, fontSize: 9 }}>NOVI ID</span>
+            <input value={klonCilj} onChange={(e) => setKlonCilj(e.target.value.toUpperCase())} style={{ ...INP, width: 120 }} placeholder="HAM-NM-002" />
+          </label>
+          <button
+            type="button"
+            data-testid="gu-kloniraj-submit"
+            disabled={klonira}
+            onClick={pokreniKloniranje}
+            style={btnStyle(C, C.plava, { fontSize: 10, opacity: klonira ? 0.6 : 1 })}
+          >
+            {klonira ? "…" : "Kloniraj dimenzije"}
+          </button>
+          <span style={{ color: C.sivi, fontSize: 9, flex: "1 1 180px", lineHeight: 1.4 }}>
+            Kopira GU redove i master zapis. Posle kloniranja prilagodi RN/kupca i objavi u šifrarnik.
+          </span>
+        </div>
+      )}
 
       {wizardOtvoren && (
         <NoviDeoWizard
