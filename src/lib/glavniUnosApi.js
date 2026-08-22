@@ -468,6 +468,32 @@ export async function popraviIdDeoFormatUBazi() {
 
 export { dbRedToExcelRaw, excelRawToDbPayload };
 
+/** Broj redova u glavnom unosu po id_deo (normalizovan). */
+export async function fetchGlavniUnosBrojeviPoDeo() {
+  const { data, error } = await supabase.from("glavni_unos_redovi").select("id_deo").limit(GLAVNI_UNOS_FETCH_LIMIT);
+  if (error) {
+    if (greskaNedostaje(error)) return {};
+    throw error;
+  }
+  const map = {};
+  for (const r of data || []) {
+    const id = normalizujIdDeo(r.id_deo);
+    if (!id) continue;
+    map[id] = (map[id] || 0) + 1;
+  }
+  return map;
+}
+
+export async function fetchGlavniUnosBrojZaDeo(idDeo) {
+  const id = normalizujIdDeo(idDeo);
+  if (!id) return 0;
+  const { count, error } = await supabase.from("glavni_unos_redovi")
+    .select("*", { count: "exact", head: true })
+    .eq("id_deo", id);
+  if (error) throw error;
+  return count || 0;
+}
+
 export async function uploadSlikaGlavnogUnosa(file, idDeo) {
   return uploadSlikaSifrarnik(file, { modul: "merljive", id: idDeo });
 }

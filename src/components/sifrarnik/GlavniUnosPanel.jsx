@@ -14,7 +14,11 @@ import {
 import { GLAVNI_UNOS_COL_BROJ_MERENJA, GLAVNI_UNOS_BROJ_MERENJA_DEFAULT } from "../../lib/glavniUnosCore.js";
 import { FormGrid } from "./LinijePanel.jsx";
 import GlavniUnosGrupnaForma from "./GlavniUnosGrupnaForma.jsx";
+import GlavniUnosChecklistPanel from "./GlavniUnosChecklistPanel.jsx";
+import NoviDeoWizard from "./NoviDeoWizard.jsx";
 import { inpStyle, btnStyle } from "./sifrarnikPanelStyle.js";
+import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js";
+import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { useSifrarnikOpcije } from "./useSifrarnikOpcije.js";
 import {
   stampAuditPolja,
@@ -33,6 +37,10 @@ import {
   novaDimenzijaRed,
   primeniSablonNaRed,
 } from "../../lib/glavniUnosRedSablon.js";
+import {
+  GLAVNI_UNOS_SHEET_TIP,
+  analizaSheeta,
+} from "../../lib/glavniUnosSheetTip.js";
 
 const DEFAULT_SHEETS = ["vozilo1", "vozilo2", "vozilo3", "vozilo6"];
 
@@ -166,7 +174,14 @@ function normalizujRedZaSnimanje(r, sheetNaziv, redosled) {
   };
 }
 
-export default function GlavniUnosPanel({ C, addToast, korisnik }) {
+function idDeoPoslePropagacije(redovi, filter) {
+  if (jePunIdDeo(filter)) return normalizujIdDeo(filter);
+  const ids = [...new Set((redovi || []).map((r) => normalizujIdDeo(r.id_deo)).filter(Boolean))];
+  if (ids.length === 1) return ids[0];
+  return ids[ids.length - 1] || null;
+}
+
+export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, navSignal }) {
   const { opcije: bazaOpcije } = useSifrarnikOpcije(addToast);
   const [sheetovi, setSheetovi] = useState(DEFAULT_SHEETS);
   const [sheetKonfiguracije, setSheetKonfiguracije] = useState([]);
@@ -177,9 +192,13 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
   const [propagira, setPropagira] = useState(false);
   const [formaIdx, setFormaIdx] = useState(null);
   const [grupnaOtvorena, setGrupnaOtvorena] = useState(false);
+  const [grupnaFinalVozilo, setGrupnaFinalVozilo] = useState(false);
   const [grupniSablon, setGrupniSablon] = useState(null);
   const [filter, setFilter] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [checklistCtx, setChecklistCtx] = useState(null);
+  const [wizardOtvoren, setWizardOtvoren] = useState(false);
+  const [sablonUcitava, setSablonUcitava] = useState(false);
   const fileRef = useRef(null);
   const INP = inpStyle(C);
 
@@ -210,6 +229,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
       setDirty(false);
       setFormaIdx(null);
       setGrupnaOtvorena(false);
+      setGrupnaFinalVozilo(false);
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -220,34 +240,53 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
   useEffect(() => { ucitajSheetove(); }, [ucitajSheetove]);
   useEffect(() => { ucitajRedove(aktivniSheet); }, [aktivniSheet, ucitajRedove]);
 
-  const dodajSheet = async () => {
-    const predlog = `vozilo${sheetovi.length + 1}`;
-    const ime = window.prompt(
-      "Naziv novog sheeta ili postojećeg kojem menjaš ERP vezu (npr. vozilo4):",
-      predlog,
-    );
-    if (!ime?.trim()) return;
-    const sifraVozila = window.prompt(
-      "ERP šifra vozila za automatsko raspoređivanje (npr. NTV, MRAP, TV4X4):",
-      "",
-    );
-    if (sifraVozila == null) return;
-    try {
-      const novi = await kreirajGlavniUnosSheet({
-        naziv: ime,
-        sifraVozila,
-      });
-      await ucitajSheetove();
-      setAktivniSheet(novi.naziv);
-      setRedovi([]);
-      setDirty(false);
-      addToast?.(
-        `✓ Sheet ${novi.naziv} sačuvan`
-        + (novi.sifra_vozila ? ` · ERP vozilo ${novi.sifra_vozila}` : ""),
-        "uspeh",
+  useEffect(() => {
+    setChecklistCtx(null);
+  }, [aktivniSheet]);
+
+  useEffect(() => {
+    if (!navSignal?.idDeo) return;
+    setFilter(navSignal.idDeo);
+    setChecklistCtx(null);
+    if (navSignal.otvoriWizard) setWizardOtvoren(true);
+  }, [navSignal?.ts, navSignal?.idDeo, navSignal?.otvoriWizard]);
+
+  const potvrdiPrePropagacije = () => {
+    const { greske, upozorenja } = validirajRedovePrePropagacije(redovi);
+    if (greske.length) {
+      const extra = greske.length > 4 ? ` (+${greske.length - 4} još)` : "";
+      addToast?.(`${greske.slice(0, 4).join(" ")}${extra}`, "greska");
+      return false;
+    }
+    if (upozorenja.length) {
+      const ok = window.confirm(
+        `Upozorenja pre objave:\n\n${upozorenja.slice(0, 10).join("\n")}\n\nNastaviti?`,
       );
+      if (!ok) return false;
+    }
+    return true;
+  };
+
+  const prikaziChecklistPoslePropagacije = () => {
+    const konfig = sheetKonfiguracije.find((r) => r.naziv === aktivniSheet);
+    const analiza = analizaSheeta(redovi, { ...konfig, naziv: aktivniSheet });
+    setChecklistCtx({
+      analiza,
+      idDeo: idDeoPoslePropagacije(redovi, filter),
+    });
+  };
+
+  const dodajSablonIzCheckliste = async (idDeo) => {
+    setSablonUcitava(true);
+    try {
+      const vozilo = checklistCtx?.analiza?.tip === GLAVNI_UNOS_SHEET_TIP.FINAL;
+      const n = await dodajSablonGresaka(idDeo, { vozilo });
+      addToast?.(`✓ Dodato ${n} grešaka u katalog`, "uspeh");
+      onNavigate?.("greske", { idDeo, vozilo });
     } catch (e) {
       addToast?.(e.message, "greska");
+    } finally {
+      setSablonUcitava(false);
     }
   };
 
@@ -259,6 +298,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
   });
 
   const sacuvajSheet = async ({ propagirajPosle = true } = {}) => {
+    if (propagirajPosle && !potvrdiPrePropagacije()) return;
     setSnima(true);
     try {
       const payload = redovi.map((r, i) => normalizujRedZaSnimanje(
@@ -272,9 +312,12 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
       if (propagirajPosle) {
         const res = await propagirajGlavniUnos();
         const derivedCount = (res.derived || []).reduce((s, r) => s + (r.count || 0), 0);
+        const konfig = sheetKonfiguracije.find((r) => r.naziv === aktivniSheet);
+        const analiza = analizaSheeta(redovi, { ...konfig, naziv: aktivniSheet });
+        prikaziChecklistPoslePropagacije();
         addToast?.(
-          `✓ Sačuvano i propagirano: ${res.karakteristike} dimenzija`
-          + (derivedCount ? `, ${derivedCount} zavisnih (delovi, SOP, RN, pogoni)` : ""),
+          `✓ Objavljeno · ${analiza.kratko}: ${res.karakteristike} dimenzija`
+          + (derivedCount ? `, ${derivedCount} zavisnih` : ""),
           "uspeh",
         );
         return res;
@@ -299,10 +342,12 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
   };
 
   const samoPropagiraj = async () => {
+    if (!potvrdiPrePropagacije()) return;
     setPropagira(true);
     try {
       const res = await propagirajGlavniUnos();
       const derivedCount = (res.derived || []).reduce((s, r) => s + (r.count || 0), 0);
+      prikaziChecklistPoslePropagacije();
       addToast?.(
         `✓ Propagirano: ${res.karakteristike} dimenzija, ${res.redova} redova`
         + (derivedCount ? `, ${derivedCount} zavisnih unosa` : ""),
@@ -315,6 +360,14 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
     }
   };
 
+  const objaviUSifrarnik = async () => {
+    if (dirty) {
+      await sacuvajSheet({ propagirajPosle: true });
+      return;
+    }
+    await samoPropagiraj();
+  };
+
   const propagirajFilterDeo = async () => {
     const id = normalizujIdDeo(filter);
     if (!jePunIdDeo(id)) {
@@ -322,7 +375,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
       return;
     }
     if (dirty) {
-      addToast?.("Prvo sačuvaj sheet („Sačuvaj i propagiraj“)", "greska");
+      addToast?.("Prvo objavi sheet („Objavi u šifrarnik“)", "greska");
       return;
     }
     setPropagira(true);
@@ -341,9 +394,17 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
     }
   };
 
-  const otvoriGrupniUnos = (sablon = null) => {
+  const otvoriGrupniUnos = (sablon = null, { finalVozilo = false } = {}) => {
     setFormaIdx(null);
-    setGrupniSablon(sablon);
+    setGrupniSablon(finalVozilo
+      ? {
+        ...PRAZAN_RED,
+        linija: "Završna",
+        operacija: "Finalna kontrola",
+        ...sablon,
+      }
+      : sablon);
+    setGrupnaFinalVozilo(finalVozilo);
     setGrupnaOtvorena(true);
   };
 
@@ -354,10 +415,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
     setRedovi((prev) => [...prev, ...stamped]);
     setDirty(true);
     setGrupnaOtvorena(false);
+    setGrupnaFinalVozilo(false);
     setGrupniSablon(null);
     const id = normalizujIdDeo(noviRedovi[0]?.id_deo);
     addToast?.(
-      `✓ Dodato ${stamped.length} dimenzija za ${id} — klikni „Sačuvaj i propagiraj“ kada završiš.`,
+      `✓ Dodato ${stamped.length} dimenzija za ${id} — klikni „Objavi u šifrarnik“ kada završiš.`,
       "uspeh",
     );
   };
@@ -464,6 +526,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
       } else {
         setFormaIdx(null);
       setGrupnaOtvorena(false);
+      setGrupnaFinalVozilo(false);
       }
       return novi;
     });
@@ -472,23 +535,41 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
 
   const idForma = forma ? normalizujIdDeo(forma.id_deo) : "";
   const brojDimZaId = idForma ? brojDimenzijaZaDeo(redovi, idForma) : 0;
+  const aktivniKonfig = sheetKonfiguracije.find((r) => r.naziv === aktivniSheet);
+  const analizaAktivnog = analizaSheeta(redovi, { ...aktivniKonfig, naziv: aktivniSheet });
+
+  const bedzBoja = (tip) => {
+    if (tip === GLAVNI_UNOS_SHEET_TIP.FINAL) return C.narandzasta || "#f59e0b";
+    if (tip === GLAVNI_UNOS_SHEET_TIP.PROJEKAT) return C.plava;
+    return C.sivi;
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, lineHeight: 1.5 }}>
-        <strong style={{ color: C.tekst }}>Osnovni unos</strong> — inženjer popunjava samo ovde.
-        Pri čuvanju se automatski propagira u{" "}
-        <strong style={{ color: C.tekst }}>Merljive</strong> (dimenzije + SOP + broj merenja),{" "}
-        <strong style={{ color: C.tekst }}>Naloge</strong> (RN + kupac),{" "}
-        <strong style={{ color: C.tekst }}>Atributivne</strong> i{" "}
-        <strong style={{ color: C.tekst }}>Celo vozilo</strong> (MRAP/NTV komplet).
-        {" "}Za novi deo: <strong style={{ color: C.tekst }}>+ Grupni unos</strong> — zaglavlje jednom, 5–10 dimenzija u tabeli, jedan save.
-        Za doradu jednog reda: <strong style={{ color: C.tekst }}>✎</strong> ili <strong style={{ color: C.tekst }}>+dim</strong> za još jednu dimenziju.
-        Reakcioni plan za SPC alarme: <strong style={{ color: C.tekst }}>Merljive → SPC Karte → Reakcioni plan</strong>.
+        <strong style={{ color: C.tekst }}>Glavni unos</strong> — unos dimenzija i zaglavlja; objava puni Merljive, RN i Delovi.
+        {" "}
+        <button
+          type="button"
+          onClick={() => setWizardOtvoren(true)}
+          style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontWeight: 700, fontSize: 10 }}
+        >
+          + Novi deo (čarobnjak)
+        </button>
+        <div style={{ marginTop: 4, fontSize: 9 }}>
+          Aktivni sheet:{" "}
+          <strong style={{ color: bedzBoja(analizaAktivnog.tip) }}>{analizaAktivnog.kratko}</strong>
+          {" — "}{analizaAktivnog.opis}
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {sheetovi.map((s) => (
+        {sheetovi.map((s) => {
+          const konfig = sheetKonfiguracije.find((r) => r.naziv === s);
+          const bedz = s === aktivniSheet
+            ? analizaAktivnog
+            : analizaSheeta([], { ...konfig, naziv: s });
+          return (
           <button
             key={s}
             type="button"
@@ -500,21 +581,58 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
               fontSize: 10, fontWeight: aktivniSheet === s ? 700 : 400,
               color: aktivniSheet === s ? C.plava : C.sivi,
             }}
+            title={bedz.opis}
           >
             {s}
-            {sheetKonfiguracije.find((r) => r.naziv === s)?.sifra_vozila
-              ? ` · ${sheetKonfiguracije.find((r) => r.naziv === s).sifra_vozila}`
-              : ""}
+            <span style={{ color: bedzBoja(bedz.tip), fontWeight: 600 }}>
+              {" · "}{bedz.kratko}
+            </span>
           </button>
-        ))}
+          );
+        })}
         <button
           type="button"
-          onClick={dodajSheet}
-          style={{ ...inpStyle(C), cursor: "pointer", fontSize: 9 }}
+          onClick={() => setWizardOtvoren(true)}
+          style={btnStyle(C, C.zelena, { fontSize: 9 })}
+          title="Tip → sheet → grupni unos"
         >
-          + / Veži sheet
+          + Novi deo
         </button>
       </div>
+
+      {wizardOtvoren && (
+        <NoviDeoWizard
+          C={C}
+          sheetovi={sheetovi}
+          onCancel={() => setWizardOtvoren(false)}
+          onKreirajSheet={async (opts) => {
+            const novi = await kreirajGlavniUnosSheet(opts);
+            await ucitajSheetove();
+            setAktivniSheet(novi.naziv);
+            setRedovi([]);
+            setDirty(false);
+            addToast?.(`✓ Sheet ${novi.naziv}`, "uspeh");
+          }}
+          onIzaberiSheet={(naziv) => {
+            if (dirty && !window.confirm("Nesačuvane izmene — preći na drugi sheet?")) return;
+            setAktivniSheet(naziv);
+          }}
+          onGrupniUnos={() => otvoriGrupniUnos()}
+          onFinalVozilo={() => otvoriGrupniUnos(null, { finalVozilo: true })}
+        />
+      )}
+
+      {checklistCtx && (
+        <GlavniUnosChecklistPanel
+          C={C}
+          analiza={checklistCtx.analiza}
+          idDeo={checklistCtx.idDeo}
+          onNavigate={onNavigate}
+          onDismiss={() => setChecklistCtx(null)}
+          onDodajSablonGresaka={dodajSablonIzCheckliste}
+          sablonUcitava={sablonUcitava}
+        />
+      )}
 
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
         <input
@@ -543,10 +661,20 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
           type="button"
           onClick={() => otvoriGrupniUnos()}
           style={btnStyle(C, C.zelena)}
-          title="Zaglavlje jednom + tabela dimenzija — preporučeno za novi deo"
+          title="Zaglavlje jednom + više dimenzija (deo ili deo projekta)"
         >
           + Grupni unos
         </button>
+        {analizaAktivnog.tip === GLAVNI_UNOS_SHEET_TIP.FINAL && (
+          <button
+            type="button"
+            onClick={() => otvoriGrupniUnos(null, { finalVozilo: true })}
+            style={btnStyle(C, C.narandzasta || "#f59e0b")}
+            title="Finalna kontrola celog vozila"
+          >
+            + Final vozilo
+          </button>
+        )}
         {jePunIdDeo(filter) && (
           <button
             type="button"
@@ -559,21 +687,14 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
         )}
         <button
           type="button"
-          onClick={() => sacuvajSheet()}
-          disabled={snima || !dirty}
-          style={btnStyle(C, C.plava, { disabled: snima || !dirty })}
-          title={dirty ? "Sačuvaj izmene u bazu i propagiraj u Merljive/Naloge" : "Nema nesačuvanih izmena — koristi „Propagiraj“ ako je sheet već sačuvan"}
+          onClick={objaviUSifrarnik}
+          disabled={snima || propagira || (!dirty && !redovi.length)}
+          style={btnStyle(C, C.plava, { disabled: snima || propagira || (!dirty && !redovi.length) })}
+          title={dirty
+            ? "Sačuvaj izmene i propagiraj u Merljive/Naloge"
+            : "Ponovo propagiraj sačuvan sheet (bez izmene redova)"}
         >
-          {snima ? "Čuvam…" : "Sačuvaj i propagiraj"}
-        </button>
-        <button
-          type="button"
-          onClick={samoPropagiraj}
-          disabled={propagira || dirty}
-          style={btnStyle(C, C.hover, { disabled: propagira || dirty })}
-          title={dirty ? "Prvo sačuvaj izmene („Sačuvaj i propagiraj“)" : "Ponovo propagiraj sačuvan sheet bez izmene redova"}
-        >
-          {propagira ? "…" : "Propagiraj"}
+          {snima || propagira ? "Objavljujem…" : "Objavi u šifrarnik"}
         </button>
         <button type="button" onClick={() => fileRef.current?.click()} disabled={snima} style={btnStyle(C, C.narandzasta || "#f59e0b", { disabled: snima })}>
           Uvezi .xlsx
@@ -590,9 +711,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik }) {
           redovi={redovi}
           prazanRed={PRAZAN_RED}
           initialSablon={grupniSablon}
+          finalVozilo={grupnaFinalVozilo}
           filterId={jePunIdDeo(filter) ? normalizujIdDeo(filter) : ""}
           onCancel={() => {
             setGrupnaOtvorena(false);
+            setGrupnaFinalVozilo(false);
             setGrupniSablon(null);
           }}
           onSave={sacuvajGrupniUnos}

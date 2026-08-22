@@ -75,6 +75,7 @@ export default function GlavniUnosGrupnaForma({
   redovi,
   prazanRed,
   initialSablon = null,
+  finalVozilo = false,
   filterId = "",
   onCancel,
   onSave,
@@ -88,7 +89,23 @@ export default function GlavniUnosGrupnaForma({
     redovi,
     filterId,
   }));
-  const [dimenzije, setDimenzije] = useState(() => pocetneGrupneDimenzije(5));
+  const [dimenzije, setDimenzije] = useState(() => {
+    if (finalVozilo) {
+      return [{
+        karakteristika: "Finalna vizuelna kontrola celog vozila",
+        tip: "Atributivna",
+        klasa: "Critical",
+        nominal: "",
+        usl: "",
+        lsl: "",
+        jedinica: "mm",
+        instrument: "Vizuelno",
+        spc_broj_merenja: "",
+        fac_broj: "",
+      }];
+    }
+    return pocetneGrupneDimenzije(5);
+  });
 
   const popunjene = useMemo(
     () => dimenzije.filter((d) => String(d.karakteristika || "").trim()).length,
@@ -292,7 +309,7 @@ export default function GlavniUnosGrupnaForma({
   return (
     <div style={{
       background: C.panel,
-      border: `2px solid ${C.zelena || "#22c55e"}66`,
+      border: `2px solid ${finalVozilo ? `${C.narandzasta || "#f59e0b"}66` : `${C.zelena || "#22c55e"}66`}`,
       borderRadius: 8,
       padding: 12,
       marginBottom: 12,
@@ -300,11 +317,24 @@ export default function GlavniUnosGrupnaForma({
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ color: C.tekst, fontSize: 12, fontWeight: 700 }}>Grupni unos dela</div>
+          <div style={{ color: C.tekst, fontSize: 12, fontWeight: 700 }}>
+            {finalVozilo ? "Grupni unos — celo vozilo" : "Grupni unos — komponenta (deo)"}
+          </div>
           <div style={{ color: C.sivi, fontSize: 10, marginTop: 4, lineHeight: 1.45, maxWidth: 560 }}>
-            Popuni zaglavlje jednom, zatim sve dimenzije u tabeli ispod.
-            Za slične mere: <strong style={{ color: C.tekst }}>=pred</strong> kopira nom/USL/LSL sa reda iznad; <strong style={{ color: C.tekst }}>dup</strong> ubacuje kopiju ispod.
-            Jedan klik <strong style={{ color: C.tekst }}>Sačuvaj sve dimenzije</strong> dodaje {popunjene || "N"} redova u listu.
+            {finalVozilo ? (
+              <>
+                ID npr. <strong style={{ color: C.tekst }}>HAM-001</strong> · linija Završna.
+                Jedan red finalne kontrole → propagacija postavlja{" "}
+                <strong style={{ color: C.tekst }}>tip_kontrole=vozilo</strong>.
+                Posle save: dijagram i defekti po zonama u Modul 0 → Celo vozilo.
+              </>
+            ) : (
+              <>
+                Popuni zaglavlje jednom, zatim dimenzije u tabeli.
+                Deo projekta vozila i opšti deo — oba koriste isti obrazac (
+                <code style={{ color: C.tekst }}>tip_kontrole=deo</code>).
+              </>
+            )}
           </div>
         </div>
         {idPrikaz && (

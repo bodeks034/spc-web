@@ -71,6 +71,8 @@
     "db:migrate": "node scripts/apply-sql-migrations.mjs",
     "db:migrate:kvalitet": "node scripts/apply-sql-migrations.mjs --kvalitet",
     "db:migrate:auto": "node scripts/apply-sql-migrations.mjs --auto",
+    "db:ocisti-operativu": "node scripts/ocisti-operativu-pre-go-live.mjs",
+    "db:ocisti-operativu:qms": "node scripts/ocisti-operativu-pre-go-live.mjs --zadrzi-qms",
     "db:migrate:legacy": "node scripts/db-migrate-legacy-cloud.mjs",
     "licenca:par": "node scripts/generisi-par-licence.mjs",
     "licenca:generisi": "node scripts/generisi-licencu.mjs --enable --do 2027-12-31 --tenant spc-pilot --deployment cloud --out deploy/license.cloud.json",

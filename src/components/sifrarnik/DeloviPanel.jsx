@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchDelovi, upsertDeo } from "../../lib/sifrarnikApi.js";
+import { fetchGlavniUnosBrojeviPoDeo } from "../../lib/glavniUnosApi.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
@@ -7,9 +8,10 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
-export default function DeloviPanel({ C, addToast, onStampaj }) {
+export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [guBrojevi, setGuBrojevi] = useState({});
   const [tipFilter, setTipFilter] = useState("svi");
   const [filter, setFilter] = useState("");
   const [forma, setForma] = useState(null);
@@ -28,6 +30,12 @@ export default function DeloviPanel({ C, addToast, onStampaj }) {
   }, [addToast, tipFilter]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    fetchGlavniUnosBrojeviPoDeo()
+      .then(setGuBrojevi)
+      .catch((e) => addToast?.(e.message, "greska"));
+  }, [addToast, lista.length]);
 
   const snimi = async () => {
     if (!forma?.id_deo?.trim()) {
@@ -160,6 +168,16 @@ export default function DeloviPanel({ C, addToast, onStampaj }) {
               <span style={{ color: C.sivi }}>{d.kom_za_kontrolu ?? "—"}</span>
               <span style={{ color: d.aktivan !== false ? C.zelena : C.crvena, fontSize: 10 }}>{d.aktivan !== false ? "DA" : "NE"}</span>
               <div style={{ display: "flex", gap: 4 }}>
+                {onOtvoriGlavniUnos && (
+                  <button
+                    type="button"
+                    onClick={() => onOtvoriGlavniUnos?.(d.id_deo, { otvoriWizard: !guBrojevi[d.id_deo] })}
+                    title="Otvori u Glavnom unosu"
+                    style={{ background: `${C.plava}18`, border: `1px solid ${C.plava}44`, borderRadius: 4, fontSize: 9, padding: "2px 5px", cursor: "pointer", color: C.plava }}
+                  >
+                    GU{guBrojevi[d.id_deo] != null ? ` (${guBrojevi[d.id_deo]})` : ""}
+                  </button>
+                )}
                 <button type="button" onClick={() => setForma({ ...d, _postojeci: true })}
                   style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 9, padding: "2px 5px", cursor: "pointer" }}>✎</button>
                 {onStampaj && (

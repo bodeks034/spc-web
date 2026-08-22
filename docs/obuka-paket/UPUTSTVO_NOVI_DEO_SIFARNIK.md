@@ -21,20 +21,29 @@ Za **celo vozilo** (`tip_kontrole = vozilo`) koristi: [`UPUTSTVO_NOVO_VOZILO_SIF
 
 ---
 
-## Tri puta unosa (izaberi jedan)
+## Tri puta unosa (preporučeni redosled)
 
 | Put | Kad | Gde |
 |-----|-----|-----|
-| **A — Ručno u UI** | Jedan–par delova, brza korekcija | Osnovno → Delovi → **+ Deo** |
-| **B — Glavni unos** | Više dimenzija / pogona odjednom | `glavni unos.xlsx` → Propagiraj / sync |
-| **C — ERP CSV** | SAP/Pantheon dnevni uvoz | Alati → ERP uvoz (`delovi.csv`…) |
+| **B — Glavni unos** *(preporučeno)* | Novi deo sa dimenzijama / više pogona | Modul 0 → **Glavni unos** → **+ Grupni unos (deo)** → Sačuvaj i propagiraj |
+| **A — Ručno u UI** | Brza korekcija jednog polja | Delovi, Karakteristike, RN tab po tab |
+| **C — ERP CSV** | Masovni master iz SAP/Pantheon | Alati → ERP uvoz |
 
-Ovo uputstvo detaljno pokriva **put A** i šta dopuniti posle **B/C**.  
-Detalji za B: [`UPUTSTVO_GLAVNI_UNOS.md`](./UPUTSTVO_GLAVNI_UNOS.md). ERP: [`UPUTSTVO_ERP_KONFIGURACIJA.md`](./UPUTSTVO_ERP_KONFIGURACIJA.md).
+Detalji za B: [`UPUTSTVO_GLAVNI_UNOS.md`](./UPUTSTVO_GLAVNI_UNOS.md) (komponente **i** celo vozilo).  
+ERP: [`UPUTSTVO_ERP_KONFIGURACIJA.md`](./UPUTSTVO_ERP_KONFIGURACIJA.md).
 
 ---
 
-## Brzi redosled (ručni put)
+## Brzi redosled (preporučeno — Glavni unos)
+
+1. **Osnovno → Glavni unos** → odgovarajući sheet → **+ Grupni unos (deo)**
+2. Zaglavlje + dimenzije → **Sačuvaj i propagiraj**
+3. **Atributivne → Katalog grešaka** + **Crtež dela**
+4. **Alati → Barkod** → test skena na **Modul 1**
+
+*(Ručni put A ispod — samo ako ne koristiš Glavni unos.)*
+
+## Brzi redosled (ručni put A)
 
 1. **Osnovno → Delovi** → **+ Deo** (`tip_kontrole = deo`)
 2. **Atributivne → Katalog grešaka** → greške za taj ID (i pogon)
@@ -218,12 +227,14 @@ Vidi: [`UPUTSTVO_PRAVLJENJE_BARKODOVA.md`](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md).
 
 ---
 
-## Put B — kratko (Glavni unos)
+## Put B — Glavni unos (preporučeno)
 
-1. U `glavni unos.xlsx` na `voziloN` tabu popuni redove sa `id_deo`, naziv, Linija, Tip (Merljiva/Atributivna), granice, `Kom_za_kontrolu_n`…  
-2. Propagiraj u UI **ili** `npm run sync:glavni-unos:import`.  
-3. Dopuni **Katalog grešaka** i **Crtež** ako sync nije uneo.  
-4. Test skena.
+1. Modul 0 → **Glavni unos** → sheet (**+ Novi sheet**: opšti deo = tip 1, deo projekta = tip 2 + ERP).
+2. **+ Grupni unos (deo)** — zaglavlje jednom + tabela dimenzija.
+3. **Sačuvaj i propagiraj** — pročitaj checklist u poruci (greške, crtež…).
+4. Dopuni **Katalog grešaka** i **Crtež**; **Barkod** → test skena.
+
+Masovni uvoz: **Uvezi .xlsx** ili `npm run sync:glavni-unos:import` — vidi [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).
 
 ---
 

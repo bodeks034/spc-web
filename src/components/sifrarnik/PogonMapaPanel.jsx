@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { fetchPogonLinijaMapa, upsertPogonLinijaMapa, obrisiPogonLinijaMapa } from "../../lib/glavniUnosApi.js";
+import { auditPogonMapa } from "../../lib/pogonMapaAudit.js";
 import { CrudShell, FormGrid, TableHead, TableRow, RowActions } from "./LinijePanel.jsx";
 import { usePogonOznake } from "./usePogonOznake.js";
 
@@ -24,6 +25,8 @@ export default function PogonMapaPanel({ C, addToast }) {
   }, [addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  const audit = useMemo(() => auditPogonMapa(lista), [lista]);
 
   const snimi = async () => {
     if (!forma?.linija_faza?.trim()) {
@@ -59,6 +62,30 @@ export default function PogonMapaPanel({ C, addToast }) {
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, lineHeight: 1.5 }}>
         Mapiranje linija/faza ↔ pogon slovo (A–I). U listama se prikazuje kao <em>A — Ulazna kontrola</em>.
       </div>
+
+      {!loading && (
+        <div style={{
+          marginBottom: 12,
+          padding: 10,
+          borderRadius: 8,
+          border: `1px solid ${audit.ok ? (C.zelena || "#22c55e") : (C.narandzasta || "#f59e0b")}55`,
+          background: audit.ok ? `${C.zelena || "#22c55e"}10` : `${C.narandzasta || "#f59e0b"}10`,
+          fontSize: 10,
+          lineHeight: 1.5,
+        }}
+        >
+          <strong style={{ color: C.tekst }}>
+            Audit A–F: {audit.ok ? "OK" : "Proveri pre go-live"}
+          </strong>
+          <div style={{ color: C.sivi, marginTop: 4 }}>
+            Mapirano: {audit.mapiraniPogoni.join(", ") || "—"} · {audit.brojRedova} redova
+          </div>
+          {!audit.ok && audit.upozorenja.map((u) => (
+            <div key={u} style={{ color: C.narandzasta || "#f59e0b", marginTop: 4 }}>{u}</div>
+          ))}
+        </div>
+      )}
+
       <CrudShell C={C} loading={loading} count={lista.length} tabela="pogon_linija_mapa"
         onAdd={() => setForma({ ...PRAZAN })} addLabel="+ Linija / pogon">
         {forma && (

@@ -1,5 +1,10 @@
 -- ============================================================
--- Brisanje SVIH unosa merenja / kontrola iz baze
+-- Brisanje SAMO merenja / loga / KPI / FAI (uža skripta)
+--
+-- Za go-live na firminskom serveru koristi kompletnu skriptu:
+--   scripts/ocisti-operativu-pre-go-live.sql
+--   npm run db:ocisti-operativu -- --potvrdi
+--
 -- Pokreni u Supabase → SQL Editor (service / postgres uloga)
 --
 -- NE briše: delovi, karakteristike_merljive, radnici, radni_nalozi,

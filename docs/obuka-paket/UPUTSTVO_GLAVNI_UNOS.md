@@ -1,89 +1,166 @@
-# Glavni unos → SPC šifrarnik (automatski)
+# Glavni unos → SPC šifrarnik
 
-Inženjer unosi **sve u jedan fajl**; skripta razdvaja u merljive i atributivne Excel tabove.
+Inženjer unosi **dimenzije i zaglavlje dela** na jednom mestu; aplikacija propagira u merljive tabele, delove, radne naloge i SOP.
 
-## Fajlovi
+**Primarni način:** Modul 0 → **Osnovno → Glavni unos** (u aplikaciji).  
+**Masovni / arhiva:** Excel `glavni unos.xlsx` + `npm run sync:glavni-unos` (opciono).
 
-| Fajl | Ko popunjava |
-|------|----------------|
-| `excel rad izmenjen/glavni unos.xlsx` | **Inženjer** — tabovi `vozilo1`, `vozilo2`, `vozilo3`… |
-| `excel rad izmenjen/sifrarnik-paket/SPC_merljive.xlsx` | **Automatski** — `karakteristike_merljive`, `sop_deo_varijabilni` |
-| `excel rad izmenjen/sifrarnik-paket/SPC_atributivne.xlsx` | **Automatski** — `delovi`, `radni_nalozi` |
-| `excel rad izmenjen/sifrarnik-paket/csv/` | **Automatski** — isti sadržaj kao Excel (za pregled / diff) |
+Detalji za **novi deo (komponenta):** [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md)  
+Detalji za **celo vozilo:** [UPUTSTVO_NOVO_VOZILO_SIFARNIK.md](./UPUTSTVO_NOVO_VOZILO_SIFARNIK.md)
 
-Pomoćni tabovi u glavnom unosu (ne diraš svaki dan):
+---
 
-- **`pogon_kod`** — **izvor istine** za mapiranje kolone `Linija` → pogon A–H (Ulazna kontrola = A, Preseraj = B, …). Sync automatski puni `pogon_kod` u karakteristikama, SOP-u, delovima i radnim nalozima.
-- `Pomocni` — linije, operacije, radnici  
+## Dva tipa delova (oba u istom modulu)
 
-## Pokretanje
+| Tip | Primer ID | `tip_kontrole` posle propagacije | Kako unosiš |
+|-----|-----------|----------------------------------|-------------|
+| **Komponenta / opšti deo** | `5501-A`, `HAM-NM-001` | **`deo`** | **+ Grupni unos (deo)** |
+| **Deo projekta vozila** | `RTB-001` na HAM projektu | **`deo`** (+ ERP veza `HAM`) | Sheet tip **2** + grupni unos |
+| **Celo vozilo (final)** | `HAM-001`, `MRAP-001` | **`vozilo`** | **+ Final vozilo** ili red „Finalna vizuelna kontrola celog vozila“ |
 
-```cmd
-cd C:\mix\spc-web
+**Važno:** deo koji pripada vozilu (nosač, lim…) **nije** celo vozilo — i dalje je `tip_kontrole = deo`.  
+Samo finalna kontrola celog komada postaje `vozilo` (dijagram + zone).
 
-REM Provera
-npm run sync:glavni-unos:dry
+---
 
-REM Upiši Excel šifrarnik
-npm run sync:glavni-unos
+## Organizacija sheet tabova (preporuka)
 
-REM Excel + uvoz u Supabase (iz sifrarnik-paket, ne iz docs CSV)
-npm run sync:glavni-unos:import
-```
+Jedan sheet = **jedna grupa** delova, ne „svaki red = vozilo“.
 
-## Šta skripta radi
+| Sheet (primer) | Tip pri kreiranju (+ Novi sheet) | ERP vozilo | Sadržaj |
+|----------------|----------------------------------|------------|---------|
+| `opsti_1` | **1 — Opšti delovi** | — | Zavrtnji, lim, dobavljač — nije vezano za vozilo |
+| `ham_delovi` | **2 — Komponente projekta** | `HAM` | Delovi HAM projekta |
+| `ham_final` | **3 — Final / celo vozilo** | `HAM` | Samo `HAM-001` finalna kontrola |
+| `ntv_delovi` | **2** | `NTV` | Drugi projekat |
 
-1. Čita sve **`vozilo*`** tabove iz `glavni unos.xlsx` (gde ima `id_deo`).
-2. Mapira kolone (Karakteristika, USL, LSL, Linija, Instrument, Tip…).
-3. **`SPC_merljive.xlsx`**
-   - `karakteristike_merljive` — sve dimenzije (`pogon_kod` iz taba `pogon_kod` + kolona `Linija`)
-   - `sop_deo_varijabilni` — auto po **id_deo + pogon**
-4. **`SPC_atributivne.xlsx`**
-   - `delovi` — master + **jedan red po pogonu** (kolona `pogon kod`) za merljive i atributivne
-   - `radni_nalozi` — iz kolone `Radni_nalog` ili auto `RN-2026-{ID}-{POGON}`
-5. **`sifrarnik-paket/csv/pogon_kod.csv`** — izveštaj mapiranja iz taba `pogon_kod`
-6. Delovi **van** glavnog unosa (MRAP, vozila…) **ostaju** u šifrarniku.
+Stari nazivi `vozilo1`, `vozilo2` mogu ostati — aplikacija na tabu prikazuje bedž (**Opšti delovi**, **HAM · komponente**, **HAM · celo vozilo**).
 
-## Kolone u voziloN tabu (glavni unos)
+Pomoćni podaci (ne unosiš svaki dan):
 
-| Kolona | Ide u |
-|--------|--------|
+- **Pogon mapa** (Modul 0) — Linija → pogon A–H  
+- U Excel-u: tab **`pogon_kod`** (ako koristiš sync sa diska)
+
+---
+
+## Rad u aplikaciji (korak po korak)
+
+### A) Nova komponenta (preporučeno)
+
+1. Izaberi ili kreiraj sheet (**+ Novi sheet** → tip **1** ili **2**).
+2. Klik **+ Grupni unos (deo)**.
+3. Popuni **zaglavlje jednom:** ID deo, naziv, linija, RN, kom za kontrolu…
+4. U tabeli dimenzija unesi sve mere (Tip Merljiva / Atributivna, LSL/USL…).
+5. **Sačuvaj i propagiraj** — piše checklist šta još treba ručno.
+6. Dopuni u Modulu 0:
+   - **Atributivne → Katalog grešaka**
+   - **Atributivne → Crtež dela**
+7. **Alati → Barkod** → test skena na Modul 1.
+
+### B) Novo celo vozilo
+
+1. Sheet tip **3** (npr. `ham_final`) + ERP `HAM`.
+2. Klik **+ Final vozilo** — predložena linija Završna i jedan red finalne kontrole.
+3. ID npr. `HAM-001`, **Sačuvaj i propagiraj**.
+4. Modul 0 → **Celo vozilo:**
+   - Tip vozila + dijagram (`public/vozilo/dijagrami/`)
+   - Defekti po zonama
+5. Test atributivnog unosa (dijagram + zone).
+
+### C) Dorada jednog dela
+
+- Filter po punom **ID deo** → **+ Dimenzije za {ID}** ili ✎ na redu.
+- **Propagiraj {ID}** — samo taj deo (posle save).
+
+---
+
+## Šta propagacija radi automatski
+
+| Cilj | Tabela |
+|------|--------|
+| Dimenzije merljive | `karakteristike_merljive` |
+| SOP merljive | `sop_deo_varijabilni` |
+| Master deo | `delovi` (+ `tip_kontrole` iz sadržaja redova) |
+| Pogon po delu | `delovi_atributivni_pogon` |
+| Kupac | `kupci` |
+| Radni nalog | `radni_nalozi` |
+
+**Ne propagira (uvek ručno):** katalog grešaka, crtež dela, dijagram vozila, defekti po zonama, barkod etiketa.
+
+---
+
+## Kolone (po redu dimenzije)
+
+| Kolona / polje | Ide u |
+|----------------|--------|
 | `id_deo` | sve tabele |
-| `Naziv dela`, `Slika`, `Radni_nalog` | delovi, SOP, RN |
-| `Linija`, `Operacija` | **Linija** → `pogon_kod` (tab `pogon_kod` u glavnom unosu); operacija → serija |
+| `Naziv dela`, `Slika`, `Radni_nalog`, `Kupac` | delovi, SOP, RN, kupci |
+| `Linija`, `Operacija` | **Linija** → `pogon_kod`; operacija → serija merenja |
 | `Karakteristika` | pozicija / naziv mere |
 | `Nominal`, `USL`, `LSL`, `Jedinica` | merljive granice |
 | `Instrument`, `Tip` | merljiva vs atributivna |
-| `Operacija` + `Linija` | **automatski → sifra_merenja 1, 2, 3…** |
-| `Ukupno_kom` | **ukupan broj komada** na RN (npr. **100**) |
-| `Kom_za_kontrolu_n` | **koliko komada prekontrolisati** od ukupnog (npr. **50 od 100**) — AQL lot, atributivni cilj; **nije** SPC broj merenja |
-| `Klasa` (kol. **N**) | **Critical / Major / Minor** — AQL klasa defekta **po dimenziji**; određuje prag SPC alarma na liniji |
-| `Tip` (kol. **S**) | **Merljiva** → SPC; **Atributivna** → OK/NOK modul |
-| `Nivo_kontrole FAC` (kol. **V**) | FAI / nivo kontrole |
-| `FAC broj` (kol. **W**) | broj FAI merenja po dimenziji |
-| `SPC broj merenja po dimenziji` (kol. **X**, 1–10) | **Merljiva:** koliko puta meriš istu dimenziju u fazi (npr. **5×**). **Prazno + Tip=Merljiva → auto 5.** **Atributivna → ostavi prazno.** Ručni unos u X uvek važi. |
-| `Klasa` | AQL klasa greške (Critical / Major / Minor) |
+| `Ukupno_kom` | ukupan broj komada na RN |
+| `Kom_za_kontrolu_n` | veličina uzorka (AQL) — **nije** SPC broj merenja |
+| `Klasa` | Critical / Major / Minor — prag SPC alarma |
+| `Tip` | **Merljiva** → SPC; **Atributivna** → OK/NOK |
+| `Nivo_kontrole FAC`, `FAC broj` | FAI |
+| `SPC broj merenja po dimenziji` | koliko puta meriš istu dimenziju (Merljiva; prazno → **5**) |
 
-### Prag SPC alarma na liniji (NOK u seriji)
+### Prag SPC alarma (NOK u seriji)
 
-| Klasa u koloni **Klasa** | Alarm kad NOK u seriji |
-|--------------------------|-------------------------|
-| **Critical** | ≥ **20%** (npr. 1/5) |
-| **Major** | ≥ **30%** (npr. 2/5) |
-| **Minor** | ≥ **40%** (npr. 2/5) |
-| *(prazno)* | ≥ **20%** (isto kao Critical) |
+| Klasa | Alarm |
+|-------|-------|
+| **Critical** | ≥ 20% |
+| **Major** | ≥ 30% |
+| **Minor** | ≥ 40% |
+| *(prazno)* | ≥ 20% (kao Critical) |
 
-Klasa se unosi **po redu dimenzije** u glavnom unosu → sync u `karakteristike_merljive.klasa` → linija koristi pri snimanju serije.
+---
 
-## Novi deo
+## Excel + npm (opciono — masovni uvoz / backup)
 
-1. Kopiraj prazan tab (`vozilo6` / `vozilo7` kao šablon) → `vozilo4`…
-2. Popuni redove u glavnom unosu.
-3. `npm run sync:glavni-unos:import`
-4. Proveri unos na liniji.
+| Fajl | Ko popunjava |
+|------|----------------|
+| `excel rad izmenjen/glavni unos.xlsx` | Inženjer — tabovi `vozilo*` ili isti sadržaj kao u app |
+| `excel rad izmenjen/sifrarnik-paket/SPC_merljive.xlsx` | Automatski posle sync |
+| `excel rad izmenjen/sifrarnik-paket/SPC_atributivne.xlsx` | Automatski posle sync |
 
-## Napomena
+```cmd
+cd C:\mix\spc-web
+npm run sync:glavni-unos:dry
+npm run sync:glavni-unos
+npm run sync:glavni-unos:import
+```
 
-- **`Tip = Atributivna`** → instrument Vizuelno/Dokumentacija (atributivni modul).
-- **`Tip = Merljiva`** → SPC granice u merljivom modulu.
-- Greške, merila, linije (master) i dalje u **SPC_atributivne** ručno ili iz postojećeg šifrarnika.
+Ili u aplikaciji: **Uvezi .xlsx** na tabu Glavni unos.
+
+Delovi **van** trenutnog sheeta **ostaju** u šifrarniku — sync ih ne briše.
+
+---
+
+## Checklist posle propagacije
+
+| Tip | Još uradi u Modulu 0 |
+|-----|----------------------|
+| **Deo (komponenta)** | Katalog grešaka · Crtež · Barkod · test Modul 1 |
+| **Celo vozilo** | Tip vozila + dijagram · Defekti po zonama · test dijagrama |
+
+---
+
+## Napomene
+
+- **`Tip = Atributivna`** → obično instrument Vizuelno (atributivni modul).
+- **`Tip = Merljiva`** → SPC granice na liniji.
+- Finalni red: karakteristika **„Finalna vizuelna kontrola celog vozila“** → `tip_kontrole = vozilo`.
+- Greške, merila, linije (master) — tabovi u Modulu 0 ili ERP CSV.
+
+---
+
+## Povezana uputstva
+
+| Dokument | Tema |
+|----------|------|
+| [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) | Svi tabovi Modula 0 |
+| [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md) | Novi deo — komponenta |
+| [UPUTSTVO_NOVO_VOZILO_SIFARNIK.md](./UPUTSTVO_NOVO_VOZILO_SIFARNIK.md) | Novo celo vozilo |
+| [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KONFIGURACIJA.md) | ERP CSV (paralelno sa glavnim unosom) |

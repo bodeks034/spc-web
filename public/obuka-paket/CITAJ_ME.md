@@ -23,6 +23,7 @@ U aplikaciji: **početni ekran → 📘 Uputstvo → Obuka paket**.
 | Modul 0 — Šifrarnik (markdown) | `UPUTSTVO_MODUL_SIFARNIK.md` |
 | **Novo vozilo u Šifrarniku** | `UPUTSTVO_NOVO_VOZILO_SIFARNIK.md` |
 | **Novi deo u Šifrarniku** | `UPUTSTVO_NOVI_DEO_SIFARNIK.md` |
+| **Glavni unos (deo + vozilo)** | `UPUTSTVO_GLAVNI_UNOS.md` |
 | Indeks — korišćenje aplikacije | `UPUTSTVO_KORISCENJE_APLIKACIJE.md` |
 
 ## Specijalistički (po potrebi)

@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchGreskeKatalog, upsertGreskaKatalog, deleteGreskaKatalog } from "../../lib/sifrarnikApi.js";
+import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { PogonPolje, PogonTekst } from "./SifrarnikPolje.jsx";
 import { usePogonOznake } from "./usePogonOznake.js";
+import { btnStyle } from "./sifrarnikPanelStyle.js";
 
 const PRAZAN = { kategorija: "", podkategorija: "", defekt: "", opis: "", id_deo: "", pogon_kod: "" };
 
-export default function GreskeKatalogPanel({ C, addToast }) {
+export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniNavTs, voziloSablon }) {
   const { format: formatPogon, opcije: pogonOpcije } = usePogonOznake(addToast);
   const [redovi, setRedovi] = useState([]);
   const [loading, setLoading] = useState(true);
   const [forma, setForma] = useState(null);
   const [snima, setSnima] = useState(false);
+  const [sablonUcitava, setSablonUcitava] = useState(false);
   const [filter, setFilter] = useState("");
   const [idDeoFilter, setIdDeoFilter] = useState("");
   const [pogonFilter, setPogonFilter] = useState("");
@@ -30,6 +33,30 @@ export default function GreskeKatalogPanel({ C, addToast }) {
   }, [addToast, idDeoFilter, pogonFilter]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (!pocetniIdDeo) return;
+    setIdDeoFilter(String(pocetniIdDeo).toUpperCase());
+  }, [pocetniNavTs, pocetniIdDeo]);
+
+  const dodajSablon = async () => {
+    const id = idDeoFilter.trim();
+    if (!id) {
+      addToast?.("Unesi ID dela u filter pa dodaj šablon", "greska");
+      return;
+    }
+    if (!window.confirm(`Dodati 5 tipičnih grešaka za ${id}?`)) return;
+    setSablonUcitava(true);
+    try {
+      const n = await dodajSablonGresaka(id, { vozilo: !!voziloSablon, pogonKod: pogonFilter || "A" });
+      addToast?.(`✓ Dodato ${n} stavki`, "uspeh");
+      await ucitaj();
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setSablonUcitava(false);
+    }
+  };
 
   const snimi = async () => {
     if (!forma?.kategorija?.trim()) {
@@ -97,6 +124,15 @@ export default function GreskeKatalogPanel({ C, addToast }) {
         <button type="button" onClick={() => setForma({ ...PRAZAN })}
           style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}>
           + Greška
+        </button>
+        <button
+          type="button"
+          disabled={sablonUcitava}
+          onClick={dodajSablon}
+          style={btnStyle(C, C.hover, { disabled: sablonUcitava })}
+          title="5 tipičnih grešaka za ID iz filtera"
+        >
+          {sablonUcitava ? "…" : "+ Šablon (5)"}
         </button>
       </div>
 

@@ -43,6 +43,7 @@ import MomentKljucHub from "./MomentKljucHub.jsx";
 import BarkodStampaPanel from "./BarkodStampaPanel.jsx";
 
 import SifrarnikIzvozPanel from "./SifrarnikIzvozPanel.jsx";
+import SifrarnikOdrzavanjePanel from "./SifrarnikOdrzavanjePanel.jsx";
 import ErpUvozPanel from "./ErpUvozPanel.jsx";
 import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
@@ -88,6 +89,8 @@ const GRUPE = [
       ["ciljevi", "Ciljevi"],
 
       ["kontrolna", "Kontrolna lista"],
+
+      ["odrzavanje", "Održavanje"],
 
     ],
 
@@ -207,7 +210,21 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   const [izabraniDeo, setIzabraniDeo] = useState(null);
 
+  const [navCtx, setNavCtx] = useState(null);
+
   const [deloviZaRn, setDeloviZaRn] = useState([]);
+
+
+
+  const idiNaTab = useCallback((tab, ctx = {}) => {
+
+    setNavCtx({ ...ctx, ts: Date.now() });
+
+    if (ctx.idDeo) setIzabraniDeo({ id_deo: ctx.idDeo });
+
+    setPodtab(tab);
+
+  }, []);
 
 
 
@@ -381,14 +398,34 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       <div style={{ flex: 1, minHeight: 0, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
 
-        {podtab === "glavni_unos" && <GlavniUnosPanel C={C} addToast={addToast} korisnik={korisnik} />}
+        {podtab === "glavni_unos" && (
+          <GlavniUnosPanel
+            C={C}
+            addToast={addToast}
+            korisnik={korisnik}
+            onNavigate={idiNaTab}
+            navSignal={navCtx}
+          />
+        )}
 
         {podtab === "pogon_mapa" && <PogonMapaPanel C={C} addToast={addToast} />}
+
         {podtab === "linija_deo" && <LinijaDeoMapaPanel C={C} addToast={addToast} />}
 
         {podtab === "liste" && <ListeVrednostiPanel C={C} addToast={addToast} />}
 
-        {podtab === "delovi" && <DeloviPanel C={C} addToast={addToast} onStampaj={otvoriBarkod} />}
+        {podtab === "delovi" && (
+          <DeloviPanel
+            C={C}
+            addToast={addToast}
+            onStampaj={otvoriBarkod}
+            onOtvoriGlavniUnos={(idDeo, opts = {}) => idiNaTab("glavni_unos", { idDeo, ...opts })}
+          />
+        )}
+
+        {podtab === "odrzavanje" && (
+          <SifrarnikOdrzavanjePanel C={C} addToast={addToast} onNavigate={idiNaTab} />
+        )}
 
         {podtab === "rn" && <RadniNaloziPanel C={C} addToast={addToast} sviDelovi={deloviZaRn} />}
 
@@ -406,7 +443,15 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
         {podtab === "kontrolna" && <KontrolnaListaPanel C={C} addToast={addToast} />}
 
-        {podtab === "greske" && <GreskeKatalogPanel C={C} addToast={addToast} />}
+        {podtab === "greske" && (
+          <GreskeKatalogPanel
+            C={C}
+            addToast={addToast}
+            pocetniIdDeo={navCtx?.idDeo}
+            pocetniNavTs={navCtx?.ts}
+            voziloSablon={navCtx?.vozilo}
+          />
+        )}
 
         {podtab === "delovi_atr" && <DeloviCrtezPanel C={C} addToast={addToast} />}
 
@@ -444,7 +489,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
         {podtab === "barkod" && (
 
-          <BarkodStampaPanel C={C} addToast={addToast} pocetniDeo={izabraniDeo} />
+          <BarkodStampaPanel C={C} addToast={addToast} pocetniDeo={izabraniDeo || (navCtx?.idDeo ? { id_deo: navCtx.idDeo } : null)} />
 
         )}
 

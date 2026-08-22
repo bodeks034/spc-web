@@ -69,16 +69,16 @@ Tab **Glavni unos** ima **Uvezi .xlsx** — to je **poseban format** `glavni uno
 ### Preporučeni tok za fabriku sa ERP-om
 
 ```
-ERP (SAP/Pantheon) izvozi CSV
+ERP CSV (delovi, RN…) — po potrebi
         ↓
-Alati → ERP uvoz (Preview → Uvezi)
+Glavni unos — novi delovi / dimenzije (app ili Excel)
         ↓
-Ručno dopuna u tabovima (dimenzije, greške, crteži…)
+Ručna dopuna: greške, crteži, vozilo (dijagram)
         ↓
-Glavni unos (opciono) za nove delove / dimenzije
-        ↓
-Modul 1 — operateri rade unos
+Modul 1 — operateri
 ```
+
+Za **komponente i vozilo** u istom modulu: vidi [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).
 
 Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KONFIGURACIJA.md), [UPUTSTVO_SAP_ERP_DROP.md](./UPUTSTVO_SAP_ERP_DROP.md).
 
@@ -101,11 +101,28 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 
 ### 6.1 Glavni unos
 
-**Svrha:** Glavni inženjerski unos — jedan deo, više dimenzija (merljivih i atributivnih), zaglavlje (RN, kupac, linija…).
+**Svrha:** Jedan izvor za **komponente** (`tip_kontrole=deo`) i **celo vozilo** (`tip_kontrole=vozilo`) — dimenzije, zaglavlje, RN.
 
-**Gde se čuva (staging):** tabela `glavni_unos_redovi` (po sheet-ovima: vozilo1, vozilo2…).
+**Gde se čuva (staging):** `glavni_unos_redovi` po sheet-ovima (`opsti_1`, `ham_delovi`, `ham_final`… ili legacy `vozilo1`…).
 
-**Propagacija (dugme Sačuvaj i propagiraj / Propagiraj)** automatski puni:
+**Tip sheeta** (pri **+ Novi sheet**):
+
+| Tip | Bedž na tabu | ERP vozilo |
+|-----|--------------|------------|
+| 1 Opšti delovi | Opšti delovi | — |
+| 2 Komponente projekta | npr. HAM · komponente | HAM, NTV… |
+| 3 Final vozilo | npr. HAM · celo vozilo | HAM, NTV… |
+
+**Unos u aplikaciji:**
+
+| Dugme | Za šta |
+|-------|--------|
+| **+ Grupni unos (deo)** | Komponenta / opšti deo — više dimenzija odjednom |
+| **+ Final vozilo** | Celo vozilo — jedan red finalne kontrole |
+| **Sačuvaj i propagiraj** | Staging → produkcione tabele + checklist u poruci |
+| **Uvezi .xlsx** | Masovni uvoz (inženjerski format, ne ERP CSV) |
+
+**Propagacija** automatski puni:
 
 | Cilj | Tabela |
 |------|--------|
@@ -116,7 +133,11 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 | Kupac | `kupci` |
 | Radni nalog | `radni_nalozi` |
 
-**Šta unosite po redu dimenzije:**
+**Posle propagacije ručno:** katalog grešaka, crtež dela; za vozilo — dijagram + defekti po zonama (grupa Celo vozilo).
+
+Puna dokumentacija: [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).
+
+**Polja po redu dimenzije** (sažeto):
 
 | Polje | Značenje |
 |-------|----------|
@@ -136,10 +157,11 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 
 **Akcije:**
 
-- **+ Grupni unos** — više redova odjednom
-- **+ Dimenzije za {ID}** — novi redovi po šablonu dela
-- **Sačuvaj i propagiraj** — snima staging + šalje u produkcione tabele
-- **Uvezi .xlsx** — uvoz iz `glavni unos.xlsx` (inženjerski format, **ne ERP CSV**)
+- **+ Grupni unos (deo)** / **+ Final vozilo** — preporučeni unos
+- **+ Dimenzije za {ID}** — novi redovi po šablonu dela (filter)
+- **Sačuvaj i propagiraj** — snima staging + propagacija
+- **Propagiraj** — ponovo, bez izmene redova
+- **Uvezi .xlsx** — masovni uvoz
 
 **Kako radi:** Unos → staging → propagacija. Modul 1 posle toga vidi dimenzije i granice pri skeniranju dela.
 
@@ -699,7 +721,7 @@ Korak-po-korak sa checklistom i čestim greškama: **`UPUTSTVO_NOVI_DEO_SIFARNIK
 | [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KONFIGURACIJA.md) | ERP CSV config, cron, API |
 | [UPUTSTVO_SAP_ERP_DROP.md](./UPUTSTVO_SAP_ERP_DROP.md) | Folder erp-drop/incoming |
 | [UPUTSTVO_ERP_RADNI_NALOZI.md](./UPUTSTVO_ERP_RADNI_NALOZI.md) | Mapiranje RN kolona |
-| [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md) | Glavni unos.xlsx propagacija |
+| [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md) | Glavni unos — komponente + celo vozilo (app i Excel) |
 | [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md) | Novi deo (komponenta) u šifrarniku |
 | [UPUTSTVO_NOVO_VOZILO_SIFARNIK.md](./UPUTSTVO_NOVO_VOZILO_SIFARNIK.md) | Novo celo vozilo u šifrarniku |
 | [UPUTSTVO_SIFARNIK_I_EXCEL.md](./UPUTSTVO_SIFARNIK_I_EXCEL.md) | Legacy master Excel (CLI) |
@@ -708,4 +730,25 @@ Korak-po-korak sa checklistom i čestim greškama: **`UPUTSTVO_NOVI_DEO_SIFARNIK
 
 ---
 
-*Verzija: jul 2026 · Modul 0 — Šifrarnik · SPC Web*
+## 16. Preporučeni sledeći koraci u šifrarniku
+
+Prioritet za firmu koja koristi **i komponente i vozilo**:
+
+| Prioritet | Šta | Zašto |
+|-----------|-----|--------|
+| **1** | Checklist posle Glavnog unosa (greške + crtež) | Propagacija ne pokriva NOK listu ni sliku — bez toga linija „radi“, ali NOK je prazan |
+| **2** | Jedan **Pogon mapa** audit pre go-live | Pogrešan A–H → pogrešne dimenzije na tabletu |
+| **3** | **Barkod** profil + probni sken za svaki novi `id_deo` | Prva tačka kvara na liniji |
+| **4** | Odvojeni sheet-ovi: `opsti_*`, `{erp}_delovi`, `{erp}_final` | Manje mešanja vozilo / opšti deo |
+| **5** | ERP CSV samo za **RN i master**; dimenzije kroz Glavni unos | Jedan izvor za granice, manje duplikata |
+| **6** | Demo delovi obriši ručno pre nove firme | Modul 0 → Delovi + Glavni unos filter |
+| **7** | Validacija pre propagacije (ID, LSL/USL, dupli RN) | Manje grešaka u bazi |
+| **8** | Wizard „Novi deo“ (4 koraka u UI) | Zamena za ručno skakanje tabovima |
+| **9** | Link **Delovi (pregled)** → redovi u Glavnom unosu | Brza provera odakle je deo došao |
+| **10** | Šablon grešaka (3–5 defekata po tipu dela) | Ubrzava korak posle propagacije |
+
+**Operativno održavanje:** mesečno proveri neaktivne RN, istekle kalibracije merila, i duplikate u `karakteristike_merljive` (isti pogon + pozicija).
+
+---
+
+*Verzija: avg 2026 · Modul 0 — Šifrarnik · SPC Web*
