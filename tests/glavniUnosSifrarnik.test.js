@@ -173,6 +173,25 @@ describe("delimicniDeloviUCsv", () => {
   });
 });
 
+describe("nastaviChecklistIzDelimicnih", () => {
+  it("računa redni broj u queue-u", async () => {
+    const { nastaviChecklistIzDelimicnih } = await import("../src/lib/sifrarnikOdrzavanje.js");
+    const delimicni = [
+      { deo: { id_deo: "A-1" }, status: "delimicno", koraci: [], nedostaje: [] },
+      { deo: { id_deo: "B-1" }, status: "samo_master", koraci: [], nedostaje: [] },
+      { deo: { id_deo: "C-1" }, status: "delimicno", koraci: [], nedostaje: [] },
+    ];
+    const prvi = nastaviChecklistIzDelimicnih(delimicni);
+    expect(prvi?.deo.id_deo).toBe("A-1");
+    expect(prvi?.redniBroj).toBe(1);
+    expect(prvi?.ukupnoDelimicnih).toBe(3);
+
+    const sledeci = nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo: "A-1" });
+    expect(sledeci?.deo.id_deo).toBe("B-1");
+    expect(sledeci?.redniBroj).toBe(2);
+  });
+});
+
 describe("sifrarnikStatusEvent", () => {
   it("emituje custom event", async () => {
     const { SIFRARNIK_STATUS_EVENT, obavestiPromenuStatusaSifrarnika } = await import("../src/lib/sifrarnikStatusEvent.js");

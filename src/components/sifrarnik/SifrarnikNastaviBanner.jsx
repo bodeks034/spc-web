@@ -36,7 +36,7 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
 
   if (skriveno || sakriveno || loading || !stavka) return null;
 
-  const { deo, status, koraci, nedostaje } = stavka;
+  const { deo, status, koraci, nedostaje, redniBroj, ukupnoDelimicnih } = stavka;
   const stMeta = STATUS_DEO_LABEL[status];
   const prvi = koraci[0];
 
@@ -61,7 +61,21 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
       }}
     >
       <div>
-        <strong>Nastavi checklist:</strong>{" "}
+        <strong>Nastavi checklist</strong>
+        {ukupnoDelimicnih > 0 && (
+          <span
+            data-testid="sifrarnik-nastavi-queue"
+            style={{
+              marginLeft: 6,
+              color: C.sivi,
+              fontWeight: 700,
+              fontSize: 9,
+            }}
+          >
+            ({redniBroj}/{ukupnoDelimicnih})
+          </span>
+        )}
+        {": "}
         <span style={{ color: C.plava, fontWeight: 700 }}>{deo.id_deo}</span>
         {deo.naziv_dela && (
           <span style={{ color: C.sivi }}> — {deo.naziv_dela}</span>

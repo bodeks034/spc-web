@@ -302,20 +302,30 @@ export function jeSpremanZaBatchObjavu(deo, { guBroj = 0, greskeBroj = 0 } = {})
 }
 
 export async function fetchNastaviChecklist({ preskociIdDeo = null } = {}) {
-  const { data: delovi, error } = await supabase
-    .from("delovi")
-    .select("id_deo,naziv_dela,slika_naziv,aktivan")
-    .eq("aktivan", true)
-    .limit(500);
-  if (error) throw error;
+  const delimicni = await fetchDelimicniDeloviSvi();
+  return nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo });
+}
 
-  const [gu, gr, bk] = await Promise.all([
-    fetchGlavniUnosBrojeviPoDeo(),
-    fetchGreskeBrojeviPoDeo(),
-    fetchBarkodProfiliSet(),
-  ]);
+/** Pura logika — prvi delimični + redni broj u queue-u. */
+export function nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo = null } = {}) {
+  if (!delimicni?.length) return null;
 
-  return pickPrviDelimicniDeo(delovi || [], gu, gr, bk, { preskociIdDeo });
+  const preskoci = String(preskociIdDeo || "").trim().toUpperCase();
+  const stavka = preskoci
+    ? delimicni.find(({ deo }) => String(deo?.id_deo || "").trim().toUpperCase() !== preskoci)
+    : delimicni[0];
+  if (!stavka) return null;
+
+  const id = String(stavka.deo?.id_deo || "").trim().toUpperCase();
+  const redniBroj = delimicni.findIndex(
+    ({ deo }) => String(deo?.id_deo || "").trim().toUpperCase() === id,
+  ) + 1;
+
+  return {
+    ...stavka,
+    redniBroj,
+    ukupnoDelimicnih: delimicni.length,
+  };
 }
 
 export async function fetchDelimicniDeloviSvi() {
