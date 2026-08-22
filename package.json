@@ -68,6 +68,7 @@
     "deploy:docker:build": "node scripts/docker-build-check.mjs",
     "db:verify": "node scripts/verify-schema.mjs",
     "db:verify:pilot": "node scripts/verify-schema.mjs --pilot",
+    "db:verify:go-live": "node scripts/verify-schema.mjs --go-live",
     "db:migrate": "node scripts/apply-sql-migrations.mjs",
     "db:migrate:kvalitet": "node scripts/apply-sql-migrations.mjs --kvalitet",
     "db:migrate:auto": "node scripts/apply-sql-migrations.mjs --auto",

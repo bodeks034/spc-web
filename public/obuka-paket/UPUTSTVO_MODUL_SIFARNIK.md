@@ -767,11 +767,11 @@ Faza linije A–I ↔ linija_id. Operater bira pogon na tabletu. **Audit A–F**
 <!-- /SYNC:POGON_MAPA_CELL -->
 
 <!-- SYNC:ODRZAVANJE_CELL -->
-Brojevi (delovi, RN, merila, dimenzije) + **duplikati dimenzija**. Klik otvara tab (GU, pogon, Delovi…). Mesečna provera pre produkcije.
+Brojevi + **kompletnost %** + CSV delimičnih + **Objavi sve spremne** (GU+greške+crtež). Duplikati dimenzija. Mesečna provera pre produkcije.
 <!-- /SYNC:ODRZAVANJE_CELL -->
 
 <!-- SYNC:DELOVI_CELL -->
-filter po tipu, filter **Samo DEMO/TEST**, filter **Samo delimični**, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, **GU (n)** → Glavni unos, status badge (**klik** → meni koraka), ▦ barkod.
+filter po tipu, **Samo delimični**, bulk DEMO brisanje, status badge (klik → meni), empty state **+ Novi deo u GU**, **Globalna pretraga ID** u hub-u.
 <!-- /SYNC:DELOVI_CELL -->
 
 <!-- SYNC:ERP_CSV_ROWS -->
@@ -797,8 +797,12 @@ filter po tipu, filter **Samo DEMO/TEST**, filter **Samo delimični**, bulk bris
 <!-- /SYNC:FAQ_ROWS -->
 
 <!-- SYNC:ERP_UVOZ_CELL -->
-Masovni **CSV** uvoz (SAP/Pantheon): preset → Upload → Preview → Uvezi. Dimenzije preporučeno kroz **Glavni unos**. Log: erp_uvoz_log. **Samo .csv** — ne .xlsx.
+Masovni **CSV** uvoz (SAP/Pantheon): preset → Upload → Preview → **dry-run upozorenje delovi bez GU** → Uvezi → banner sledeći korak GU. Dimenzije kroz **Glavni unos**.
 <!-- /SYNC:ERP_UVOZ_CELL -->
+
+<!-- SYNC:HUB_BANNERI_CELL -->
+**Nastavi checklist** (sledeći delimični deo, Ne sada), **Go-live SQL** banner (RPC 77–79), **Globalna pretraga ID dela**. Admin: automatski GO-LIVE STATUS panel.
+<!-- /SYNC:HUB_BANNERI_CELL -->
 
 ---
 

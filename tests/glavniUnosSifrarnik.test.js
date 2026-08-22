@@ -145,6 +145,32 @@ describe("pickPrviDelimicniDeo", () => {
     expect(prviDelimicni?.deo.id_deo).toBe("Z-1");
     expect(prviDelimicni?.status).not.toBe("kompletan");
   });
+
+  it("preskače id posle završenog koraka", () => {
+    const prvi = pickPrviDelimicniDeo(
+      [{ id_deo: "A-1" }, { id_deo: "B-1" }],
+      {},
+      {},
+      new Set(),
+      { preskociIdDeo: "A-1" },
+    );
+    expect(prvi?.deo.id_deo).toBe("B-1");
+  });
+});
+
+describe("delimicniDeloviUCsv", () => {
+  it("generiše CSV sa headerom", async () => {
+    const { delimicniDeloviUCsv, jeSpremanZaBatchObjavu } = await import("../src/lib/sifrarnikOdrzavanje.js");
+    const csv = delimicniDeloviUCsv([{
+      deo: { id_deo: "X", naziv_dela: "Test" },
+      status: "delimicno",
+      nedostaje: ["Greške"],
+    }]);
+    expect(csv).toContain("id_deo,naziv,status,nedostaje");
+    expect(csv).toContain("X");
+    expect(jeSpremanZaBatchObjavu({ slika_naziv: "a.png" }, { guBroj: 1, greskeBroj: 2 })).toBe(true);
+    expect(jeSpremanZaBatchObjavu({ slika_naziv: "" }, { guBroj: 1, greskeBroj: 2 })).toBe(false);
+  });
 });
 
 describe("sifrarnikStatusEvent", () => {

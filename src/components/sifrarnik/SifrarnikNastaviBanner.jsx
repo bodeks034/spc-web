@@ -1,19 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchNastaviChecklist, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
 import { SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
+import { bannerDismissed, dismissNastaviBanner } from "../../lib/sifrarnikBanner.js";
 
 /** Banner na vrhu Modula 0 — prvi delimični deo i sledeći korak checkliste. */
 export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false }) {
   const [stavka, setStavka] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sakriveno, setSakriveno] = useState(() => bannerDismissed());
+  const preskociRef = useRef(null);
 
   const osvezi = useCallback(async () => {
     setLoading(true);
     try {
-      setStavka(await fetchNastaviChecklist());
+      setStavka(await fetchNastaviChecklist({ preskociIdDeo: preskociRef.current }));
     } catch {
       setStavka(null);
     } finally {
+      preskociRef.current = null;
       setLoading(false);
     }
   }, []);
@@ -21,12 +25,16 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
   useEffect(() => { osvezi(); }, [osvezi]);
 
   useEffect(() => {
-    const handler = () => { osvezi(); };
+    const handler = (e) => {
+      const id = e.detail?.idDeo ? String(e.detail.idDeo).trim().toUpperCase() : null;
+      if (id) preskociRef.current = id;
+      osvezi();
+    };
     window.addEventListener(SIFRARNIK_STATUS_EVENT, handler);
     return () => window.removeEventListener(SIFRARNIK_STATUS_EVENT, handler);
   }, [osvezi]);
 
-  if (skriveno || loading || !stavka) return null;
+  if (skriveno || sakriveno || loading || !stavka) return null;
 
   const { deo, status, koraci, nedostaje } = stavka;
   const stMeta = STATUS_DEO_LABEL[status];
@@ -86,6 +94,23 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
             {prvi.label} →
           </button>
         )}
+        <button
+          type="button"
+          data-testid="sifrarnik-nastavi-dismiss"
+          onClick={() => { dismissNastaviBanner(); setSakriveno(true); }}
+          title="Sakrij do kraja sesije"
+          style={{
+            background: C.hover,
+            border: `1px solid ${C.border}`,
+            borderRadius: 6,
+            color: C.sivi,
+            fontSize: 10,
+            padding: "6px 10px",
+            cursor: "pointer",
+          }}
+        >
+          Ne sada
+        </button>
         <button
           type="button"
           onClick={osvezi}

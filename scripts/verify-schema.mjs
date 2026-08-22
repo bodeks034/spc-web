@@ -19,8 +19,15 @@ const PILOT_IDS = new Set([
   "ncr_capa",
 ]);
 
+const GO_LIVE_IDS = new Set([
+  "ocisti_operativu_rpc",
+  "obrisi_deo_rpc",
+  "obrisi_demo_delove_rpc",
+]);
+
 async function main() {
   const pilot = process.argv.includes("--pilot");
+  const goLive = process.argv.includes("--go-live");
   await loadEnvZaSkripte(ROOT);
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -32,10 +39,12 @@ async function main() {
   }
 
   const supabase = createClient(url, key);
-  console.log(`Provera šeme${pilot ? " (pilot 54–59)" : ""} → ${url}\n`);
+  console.log(`Provera šeme${pilot ? " (pilot 54–59)" : goLive ? " (go-live RPC 77–79)" : ""} → ${url}\n`);
 
   const rez = await proveriSemu(supabase);
-  const lista = pilot ? rez.filter((r) => PILOT_IDS.has(r.id)) : rez;
+  let lista = rez;
+  if (pilot) lista = rez.filter((r) => PILOT_IDS.has(r.id));
+  if (goLive) lista = rez.filter((r) => GO_LIVE_IDS.has(r.id));
   let ok = 0;
   let fail = 0;
   for (const r of lista) {
@@ -52,8 +61,14 @@ async function main() {
 
   console.log(`\nRezultat: ${ok}/${lista.length} migracija OK`);
   if (fail > 0) {
-    console.error("\n✗ Nedostaju migracije — pokreni: npm run db:migrate");
-    console.error("  ili ručno u Supabase SQL Editoru (redosled u docs/MIGRACIJE.md)");
+    if (goLive) {
+      console.error("\n✗ Nedostaju go-live RPC migracije (77–79)");
+      console.error("  Pokreni: npm run db:migrate:go-live");
+      console.error("  ili ručno: 77_ocisti_operativu_rpc.sql, 78_obrisi_deo_iz_sifrarnika_rpc.sql, 79_obrisi_demo_delove_rpc.sql");
+    } else {
+      console.error("\n✗ Nedostaju migracije — pokreni: npm run db:migrate");
+      console.error("  ili ručno u Supabase SQL Editoru (redosled u docs/MIGRACIJE.md)");
+    }
     process.exit(1);
   }
   console.log("\n✓ Šema OK");

@@ -111,6 +111,7 @@ if (firma) {
   console.log("✓ dist/index.html postoji");
 
   opcionoDb("Provera šeme (puna)", () => nodeR(path.join(ROOT, "scripts/verify-schema.mjs")));
+  opcionoDb("Go-live RPC (77–79)", () => nodeR(path.join(ROOT, "scripts/verify-schema.mjs"), ["--go-live"]));
   // Docker build je spor/težak za CI — obavezan samo u strict modu.
   opcionoDb("Docker build check", () => nodeR(path.join(ROOT, "scripts/docker-build-check.mjs")), strict);
 
@@ -119,6 +120,17 @@ if (firma) {
   } else {
     console.warn("\n⚠ Preskačem pun E2E — postavi E2E_EMAIL i E2E_PASSWORD za firmu gate");
     if (strict) process.exit(1);
+  }
+
+  if (process.env.E2E_EMAIL_KVALITET && process.env.E2E_PASSWORD_KVALITET) {
+    console.log("\n── E2E šifrarnik status ──");
+    const rSir = npmR(["run", "e2e:sifrarnik"]);
+    if (rSir.status !== 0) {
+      console.warn("⚠ E2E šifrarnik nije prošao");
+      if (strict) process.exit(rSir.status || 1);
+    }
+  } else {
+    console.warn("\n⚠ Preskačem E2E šifrarnik — postavi E2E_EMAIL_KVALITET / E2E_PASSWORD_KVALITET");
   }
 
   if (process.env.RESEND_API_KEY && (process.env.SMTP_TO || process.env.E2E_EMAIL)) {

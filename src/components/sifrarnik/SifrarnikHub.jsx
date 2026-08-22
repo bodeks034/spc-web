@@ -46,6 +46,8 @@ import SifrarnikIzvozPanel from "./SifrarnikIzvozPanel.jsx";
 import SifrarnikOdrzavanjePanel from "./SifrarnikOdrzavanjePanel.jsx";
 import ErpUvozPanel from "./ErpUvozPanel.jsx";
 import SifrarnikNastaviBanner from "./SifrarnikNastaviBanner.jsx";
+import SifrarnikMigracijeBanner from "./SifrarnikMigracijeBanner.jsx";
+import SifrarnikGlobalPretraga from "./SifrarnikGlobalPretraga.jsx";
 import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
@@ -416,7 +418,11 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       )}
 
+      <SifrarnikMigracijeBanner C={C} />
+
       <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={onboarding} />
+
+      <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} />
 
       <div style={{ marginBottom: 12, flexShrink: 0 }}>
 

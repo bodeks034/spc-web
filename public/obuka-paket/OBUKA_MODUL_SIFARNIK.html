@@ -189,7 +189,7 @@ Modul 1 — operateri
       <td><strong>Delovi</strong></td>
       <td><span class="tab">delovi</span></td>
       <td><!-- AUTO:DELOVI_CELL -->
-    filter po tipu, filter <strong>Samo DEMO/TEST</strong>, filter <strong>Samo delimični</strong>, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, <strong>GU (n)</strong> → Glavni unos, status badge (<strong>klik</strong> → meni koraka), ▦ barkod.
+    filter po tipu, <strong>Samo delimični</strong>, bulk DEMO brisanje, status badge (klik → meni), empty state <strong>+ Novi deo u GU</strong>, <strong>Globalna pretraga ID</strong> u hub-u.
     <!-- /AUTO:DELOVI_CELL --></td>
     </tr>
     <tr>
@@ -231,7 +231,7 @@ Modul 1 — operateri
       <td><strong>Održavanje</strong></td>
       <td>—</td>
       <td><!-- AUTO:ODRZAVANJE_CELL -->
-    Brojevi (delovi, RN, merila, dimenzije) + <strong>duplikati dimenzija</strong>. Klik otvara tab (GU, pogon, Delovi…). Mesečna provera pre produkcije.
+    Brojevi + <strong>kompletnost %</strong> + CSV delimičnih + <strong>Objavi sve spremne</strong> (GU+greške+crtež). Duplikati dimenzija. Mesečna provera pre produkcije.
     <!-- /AUTO:ODRZAVANJE_CELL --></td>
     </tr>
   </table>
@@ -324,7 +324,7 @@ Modul 1 — operateri
     <tr><th>Tab</th><th>Šta radi</th></tr>
     <tr><td><strong>Barkod</strong></td><td>Profil etikete po delu (QR/Code128) → štampa → sken na liniji otvara deo/RN.</td></tr>
     <tr><td><strong>ERP uvoz ⭐</strong></td><td><!-- AUTO:ERP_UVOZ_CELL -->
-    Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview → Uvezi. Dimenzije preporučeno kroz <strong>Glavni unos</strong>. Log: erp_uvoz_log. <strong>Samo .csv</strong> — ne .xlsx.
+    Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview → <strong>dry-run upozorenje delovi bez GU</strong> → Uvezi → banner sledeći korak GU. Dimenzije kroz <strong>Glavni unos</strong>.
     <!-- /AUTO:ERP_UVOZ_CELL --></td></tr>
     <tr><td><strong>Backup</strong></td><td>Samo preuzimanje SPC_sifrarnik_backup_{datum}.xlsx — bez uvoza.</td></tr>
   </table>

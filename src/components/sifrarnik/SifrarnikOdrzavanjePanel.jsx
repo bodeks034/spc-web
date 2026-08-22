@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
-import { fetchDuplikatiKarakteristike, fetchDelimicniDeloviPreview, fetchKompletnostStatistika, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
+import { fetchDuplikatiKarakteristike, fetchDelimicniDeloviPreview, fetchKompletnostStatistika, fetchDelimicniDeloviSvi, preuzmiDelimicniCsv, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
+import { fetchDeloviSpremniZaObjavu, objaviSpremneDelove } from "../../lib/sifrarnikBatchObjava.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 
 async function countTable(table, filter = {}) {
@@ -19,6 +21,9 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [delimicni, setDelimicni] = useState([]);
   const [komplet, setKomplet] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [spremniBroj, setSpremniBroj] = useState(0);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -36,6 +41,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       setDuplikati(dups.slice(0, 15));
       setDelimicni(delim);
       setKomplet(kompletStat);
+      setSpremniBroj((await fetchDeloviSpremniZaObjavu()).length);
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -44,6 +50,44 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   }, [addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  const izveziCsv = async () => {
+    setCsvBusy(true);
+    try {
+      const svi = await fetchDelimicniDeloviSvi();
+      if (!svi.length) {
+        addToast?.("Nema delimičnih delova za izvoz", "info");
+        return;
+      }
+      preuzmiDelimicniCsv(svi);
+      addToast?.(`✓ CSV: ${svi.length} delova`, "uspeh");
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
+  const objaviSpremne = async () => {
+    if (!spremniBroj) {
+      addToast?.("Nema delova sa GU + greškama + crtežom", "info");
+      return;
+    }
+    if (!window.confirm(`Propagirati ${spremniBroj} del(a) u dimenzije/SOP?\n\nSamo delovi sa GU + greškama + crtežom.`)) {
+      return;
+    }
+    setBatchBusy(true);
+    try {
+      const rez = await objaviSpremneDelove();
+      obavestiPromenuStatusaSifrarnika({ izvor: "odrzavanje", akcija: "batch_objavi" });
+      addToast?.(`✓ Objavljeno ${rez.uspeh}/${rez.rezultati.length} delova`, rez.neuspelo ? "info" : "uspeh");
+      await ucitaj();
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setBatchBusy(false);
+    }
+  };
 
   const stavke = [
     { tab: "rn", label: "Radni nalozi", hint: "Proveri zastarele aktivne RN" },
@@ -111,6 +155,27 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
             <button type="button" onClick={() => onNavigate?.("delovi")}
               style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontWeight: 700, fontSize: 9 }}>
               Pregled delova →
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <button
+              type="button"
+              data-testid="odrzavanje-csv-export"
+              disabled={csvBusy}
+              onClick={izveziCsv}
+              style={btnStyle(C, C.hover, { fontSize: 9 })}
+            >
+              {csvBusy ? "…" : "Izvezi CSV delimičnih"}
+            </button>
+            <button
+              type="button"
+              data-testid="odrzavanje-batch-objavi"
+              disabled={batchBusy || !spremniBroj}
+              onClick={objaviSpremne}
+              style={btnStyle(C, C.zelena, { fontSize: 9, opacity: batchBusy || !spremniBroj ? 0.55 : 1 })}
+              title="GU + greške + crtež → propagacija u dimenzije"
+            >
+              {batchBusy ? "Objavljujem…" : `Objavi sve spremne (${spremniBroj})`}
             </button>
           </div>
         </div>

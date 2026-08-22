@@ -23,6 +23,7 @@ import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
 import { fetchDeloviBezGlavnogUnosa } from "../../lib/sifrarnikOdrzavanje.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
+import { proceniDeloviBezGuPosleErp, idDeoIzErpPreviewStavke } from "../../lib/erpGuProcena.js";
 
 const CARD = (C) => ({
   background: C.panel,
@@ -44,6 +45,7 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
   const [apiKey, setApiKey] = useState("");
   const [apiStatus, setApiStatus] = useState(null);
   const [guUpozorenje, setGuUpozorenje] = useState(null);
+  const [erpDryRunGu, setErpDryRunGu] = useState(null);
 
   const config = useMemo(() => {
     try {
@@ -92,6 +94,21 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
     }
   }, []);
 
+  const proceniGuIzPreview = useCallback(async (pv) => {
+    const stavkaDelovi = (pv?.stavke || []).find((s) => s.entitet === "delovi");
+    if (!stavkaDelovi) {
+      setErpDryRunGu(null);
+      return;
+    }
+    const ids = idDeoIzErpPreviewStavke(stavkaDelovi);
+    try {
+      const procena = await proceniDeloviBezGuPosleErp(ids);
+      setErpDryRunGu(procena.broj > 0 ? procena : null);
+    } catch {
+      setErpDryRunGu(null);
+    }
+  }, []);
+
   const onFajlovi = async (e) => {
     const list = [...(e.target.files || [])];
     e.target.value = "";
@@ -101,6 +118,7 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
     try {
       const pv = await previewErpUpload(config, list);
       setPreview(pv);
+      await proceniGuIzPreview(pv);
     } catch (err) {
       addToast?.(err.message, "greska");
       setPreview(null);
@@ -126,6 +144,16 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
           "uspeh",
         );
         if (!dryRun) ucitajLog();
+        if (dryRun && res.ok) {
+          const stavkaDelovi = (res.rezultati || []).find((r) => r.entitet === "delovi");
+          if (stavkaDelovi) {
+            const ids = (stavkaDelovi.redovi || []).map((r) => r.id_deo).filter(Boolean);
+            try {
+              const procena = await proceniDeloviBezGuPosleErp(ids);
+              setErpDryRunGu(procena.broj > 0 ? procena : null);
+            } catch { /* ignore */ }
+          }
+        }
         if (!dryRun && res.ok) await proveriDeloviBezGu(res);
       } else {
         addToast?.(res.rezultati.find((r) => r.greska)?.greska || "Greška pri uvozu", "greska");
@@ -196,6 +224,27 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
         <strong>RN, delovi master, kupci</strong>. Dimenzije (LSL/USL) unosi isključivo kroz{" "}
         <strong>Glavni unos → Objavi u šifrarnik</strong> — jedan izvor granica.
       </div>
+
+      {erpDryRunGu && erpDryRunGu.broj > 0 && (
+        <div
+          data-testid="erp-dryrun-gu-banner"
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            borderRadius: 8,
+            border: `1px solid ${C.plava}55`,
+            background: `${C.plava}10`,
+            fontSize: 10,
+            lineHeight: 1.5,
+          }}
+        >
+          <strong style={{ color: C.tekst }}>Preview / dry-run:</strong>{" "}
+          {erpDryRunGu.broj} del(a) bi ostalo bez dimenzija u Glavnom unosu posle ovog uvoza.
+          {erpDryRunGu.primer?.length > 0 && (
+            <span style={{ color: C.sivi }}> ({erpDryRunGu.primer.join(", ")}{erpDryRunGu.broj > erpDryRunGu.primer.length ? "…" : ""})</span>
+          )}
+        </div>
+      )}
 
       {guUpozorenje && guUpozorenje.broj > 0 && (
         <div

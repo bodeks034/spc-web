@@ -22,7 +22,9 @@ Izveštaj: `logs/go-live-*.txt`
 ```powershell
 npm run db:migrate
 npm run db:migrate:auto
+npm run db:migrate:go-live
 npm run db:verify
+npm run db:verify:go-live
 ```
 
 Admin → **Status šeme** — sve zeleno (uključujući `61_auto_telemetrija`).

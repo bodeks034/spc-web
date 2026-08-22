@@ -234,14 +234,16 @@ export async function fetchKompletnostStatistika() {
 }
 
 /** Prvi aktivni deo koji nije kompletan — za „Nastavi checklist“ banner. */
-export function pickPrviDelimicniDeo(delovi, gu, gr, barkodSet) {
+export function pickPrviDelimicniDeo(delovi, gu, gr, barkodSet, { preskociIdDeo = null } = {}) {
   const bk = barkodSet instanceof Set ? barkodSet : new Set(barkodSet || []);
+  const preskoci = String(preskociIdDeo || "").trim().toUpperCase();
   const sorted = [...(delovi || [])].sort((a, b) =>
     String(a.id_deo || "").localeCompare(String(b.id_deo || "")),
   );
 
   for (const d of sorted) {
     const id = String(d?.id_deo || "").trim().toUpperCase();
+    if (preskoci && id === preskoci) continue;
     const opts = {
       guBroj: gu[id] || gu[d?.id_deo] || 0,
       greskeBroj: gr[id] || gr[d?.id_deo] || 0,
@@ -260,7 +262,46 @@ export function pickPrviDelimicniDeo(delovi, gu, gr, barkodSet) {
   return null;
 }
 
-export async function fetchNastaviChecklist() {
+export async function fetchAktivniDeloviSaStatusom() {
+  const { data: delovi, error } = await supabase
+    .from("delovi")
+    .select("id_deo,naziv_dela,slika_naziv,aktivan")
+    .eq("aktivan", true)
+    .limit(2000);
+  if (error) throw error;
+
+  const [gu, gr, bk] = await Promise.all([
+    fetchGlavniUnosBrojeviPoDeo(),
+    fetchGreskeBrojeviPoDeo(),
+    fetchBarkodProfiliSet(),
+  ]);
+
+  return (delovi || []).map((d) => {
+    const id = String(d?.id_deo || "").trim().toUpperCase();
+    const opts = {
+      guBroj: gu[id] || gu[d?.id_deo] || 0,
+      greskeBroj: gr[id] || gr[d?.id_deo] || 0,
+      imaBarkod: bk.has(id),
+    };
+    const status = statusDeoUSifrarniku(d, opts);
+    return {
+      deo: d,
+      status,
+      opts,
+      nedostaje: nedostajeZaDeo(d, opts),
+      koraci: koraciNavigacijeIzStatusDeo(d, opts),
+    };
+  });
+}
+
+/** GU + greške + crtež — spreman za batch propagaciju. */
+export function jeSpremanZaBatchObjavu(deo, { guBroj = 0, greskeBroj = 0 } = {}) {
+  return (guBroj > 0)
+    && (greskeBroj > 0)
+    && !!String(deo?.slika_naziv || "").trim();
+}
+
+export async function fetchNastaviChecklist({ preskociIdDeo = null } = {}) {
   const { data: delovi, error } = await supabase
     .from("delovi")
     .select("id_deo,naziv_dela,slika_naziv,aktivan")
@@ -274,7 +315,78 @@ export async function fetchNastaviChecklist() {
     fetchBarkodProfiliSet(),
   ]);
 
-  return pickPrviDelimicniDeo(delovi || [], gu, gr, bk);
+  return pickPrviDelimicniDeo(delovi || [], gu, gr, bk, { preskociIdDeo });
+}
+
+export async function fetchDelimicniDeloviSvi() {
+  const stavke = await fetchAktivniDeloviSaStatusom();
+  return stavke
+    .filter(({ status }) => status !== "kompletan")
+    .sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
+}
+
+function csvEscape(val) {
+  const s = String(val ?? "");
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/** CSV izveštaj delimičnih delova (preuzimanje u browseru). */
+export function delimicniDeloviUCsv(stavke) {
+  const header = ["id_deo", "naziv", "status", "nedostaje"].join(",");
+  const redovi = (stavke || []).map(({ deo, status, nedostaje }) => [
+    csvEscape(deo?.id_deo),
+    csvEscape(deo?.naziv_dela),
+    csvEscape(STATUS_DEO_LABEL[status]?.label || status),
+    csvEscape((nedostaje || []).join("; ")),
+  ].join(","));
+  return `\uFEFF${[header, ...redovi].join("\n")}`;
+}
+
+export function preuzmiDelimicniCsv(stavke, { imeFajla } = {}) {
+  const csv = delimicniDeloviUCsv(stavke);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = imeFajla || `sifrarnik_delimicni_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** Globalna pretraga — navigacija za ID dela. */
+export async function navigacijaZaIdDeo(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return null;
+
+  const { data: deo, error } = await supabase
+    .from("delovi")
+    .select("id_deo,naziv_dela,slika_naziv,aktivan")
+    .eq("id_deo", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!deo) return { pronadjen: false, idDeo: id };
+
+  const [gu, gr, bk] = await Promise.all([
+    fetchGlavniUnosBrojeviPoDeo(),
+    fetchGreskeBrojeviPoDeo(),
+    fetchBarkodProfiliSet(),
+  ]);
+  const opts = {
+    guBroj: gu[id] || 0,
+    greskeBroj: gr[id] || 0,
+    imaBarkod: bk.has(id),
+  };
+  const status = statusDeoUSifrarniku(deo, opts);
+  const nav = navigacijaIzStatusDeo(deo, opts);
+  return {
+    pronadjen: true,
+    deo,
+    status,
+    opts,
+    nav,
+    koraci: koraciNavigacijeIzStatusDeo(deo, opts),
+    nedostaje: nedostajeZaDeo(deo, opts),
+  };
 }
 
 /** Aktivni delovi bez redova u Glavnom unosu (posle ERP uvoza). */
