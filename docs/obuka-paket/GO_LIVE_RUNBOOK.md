@@ -27,6 +27,19 @@ npm run db:verify
 
 Admin → **Status šeme** — sve zeleno (uključujući `61_auto_telemetrija`).
 
+### Nova firma (zadrži šifrarnik, obriši operativu)
+
+Ako na istoj bazi prelaziš sa demo/test podataka na praznu operativu:
+
+```powershell
+npm run db:ocisti-operativu:dry
+npm run db:ocisti-operativu -- --potvrdi
+```
+
+Varijanta koja zadržava 8D/PFMEA dokumente: `npm run db:ocisti-operativu:qms -- --potvrdi`
+
+Skripte: `scripts/ocisti-operativu-pre-go-live.sql`, `scripts/ocisti-operativu-zadrzi-qms.sql`
+
 ---
 
 ## 2. Automatizacija

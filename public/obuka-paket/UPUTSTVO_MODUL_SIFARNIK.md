@@ -88,7 +88,7 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 
 | Grupa | Tabovi |
 |-------|--------|
-| **Osnovno** | Glavni unos, Pogon mapa, Linija↔deo, Liste, Delovi, RN, Kupci, Dobavljači, Linije, Mašine, Smene, Ciljevi, Kontrolna lista |
+| **Osnovno** | Glavni unos, Pogon mapa, Linija↔deo, Liste, Delovi, RN, Kupci, Dobavljači, Linije, Mašine, Smene, Ciljevi, Kontrolna lista, **Održavanje** |
 | **Atributivne** | Katalog grešaka, Crtež dela, Pogoni po delu |
 | **Merljive** | Dimenzije, SPC alarm %, SOP po delu, Merila/kalibracija |
 | **Celo vozilo** | Tipovi vozila, Defekti vozila, Delovi vozila |
@@ -105,7 +105,7 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 
 **Gde se čuva (staging):** `glavni_unos_redovi` po sheet-ovima (`opsti_1`, `ham_delovi`, `ham_final`… ili legacy `vozilo1`…).
 
-**Tip sheeta** (pri **+ Novi sheet**):
+**Tip sheeta** (pri **+ Novi deo** — čarobnjak, korak 2):
 
 | Tip | Bedž na tabu | ERP vozilo |
 |-----|--------------|------------|
@@ -113,14 +113,23 @@ Detaljnija ERP dokumentacija: [UPUTSTVO_ERP_KONFIGURACIJA.md](./UPUTSTVO_ERP_KON
 | 2 Komponente projekta | npr. HAM · komponente | HAM, NTV… |
 | 3 Final vozilo | npr. HAM · celo vozilo | HAM, NTV… |
 
+**Primarni tok (preporučeno):**
+
+1. **+ Novi deo** — čarobnjak: tip → sheet → automatski otvara grupni/final unos  
+2. Popuni zaglavlje + dimenzije  
+3. **Objavi u šifrarnik** — validacija, propagacija, **checklist panel** sa linkovima ka tabovima  
+
 **Unos u aplikaciji:**
 
 | Dugme | Za šta |
 |-------|--------|
-| **+ Grupni unos (deo)** | Komponenta / opšti deo — više dimenzija odjednom |
-| **+ Final vozilo** | Celo vozilo — jedan red finalne kontrole |
-| **Sačuvaj i propagiraj** | Staging → produkcione tabele + checklist u poruci |
+| **+ Novi deo** | Čarobnjak — novi sheet + otvaranje unosa (preporučeno za novi deo) |
+| **+ Grupni unos** | Komponenta / opšti deo — više dimenzija odjednom |
+| **+ Final vozilo** | Samo na sheetu tipa 3 — celo vozilo, jedan red finalne kontrole |
+| **Objavi u šifrarnik** | Snima staging + propagacija (ili ponovo propagira ako nema izmena) |
 | **Uvezi .xlsx** | Masovni uvoz (inženjerski format, ne ERP CSV) |
+
+Posle objave prikazuje se **checklist** (klik na stavku otvara tab; opcija **+ Šablon grešaka**). Validacija pre objave blokira npr. merljive bez LSL/USL.
 
 **Propagacija** automatski puni:
 
@@ -157,10 +166,10 @@ Puna dokumentacija: [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).
 
 **Akcije:**
 
-- **+ Grupni unos (deo)** / **+ Final vozilo** — preporučeni unos
+- **+ Novi deo** — čarobnjak (preporučeno za prvi unos)
+- **+ Grupni unos** / **+ Final vozilo** — direktan unos na aktivnom sheetu
 - **+ Dimenzije za {ID}** — novi redovi po šablonu dela (filter)
-- **Sačuvaj i propagiraj** — snima staging + propagacija
-- **Propagiraj** — ponovo, bez izmene redova
+- **Objavi u šifrarnik** — snima staging + propagacija (jedno dugme)
 - **Uvezi .xlsx** — masovni uvoz
 
 **Kako radi:** Unos → staging → propagacija. Modul 1 posle toga vidi dimenzije i granice pri skeniranju dela.
@@ -182,6 +191,8 @@ Puna dokumentacija: [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).
 **Zašto je bitno:** Na tabletu operater bira pogon; filter dimenzija i RN zavisi od ove mape.
 
 **Akcije:** + Linija/pogon, Sačuvaj, brisanje (×).
+
+**Audit A–F:** na vrhu taba prikazuje se da li su mapirani pogoni A–F pre go-live (nedostajući / dupli).
 
 ---
 
@@ -228,7 +239,7 @@ Fiksno u kodu: **Klasa** (Critical/Major/Minor), **Tip** (Merljiva/Atributivna).
 | aktivan | Da/ne — neaktivan se ne nudi na liniji |
 | napomena | Slobodan tekst |
 
-**Akcije:** filter po tipu, + Deo, Sačuvaj, ✎ izmena, ▦ barkod (prebacuje na tab Barkod).
+**Akcije:** filter po tipu, + Deo, Sačuvaj, ✎ izmena, **GU (n)** → Glavni unos sa filterom na taj ID (ako nema redova u GU, otvara se čarobnjak), ▦ barkod.
 
 ---
 
@@ -358,6 +369,14 @@ Na liniji: bez potvrde liste operater ne ulazi u unos (osim admin).
 
 ---
 
+### 6.13 Održavanje
+
+**Svrha:** Mesečna / pre go-live provera — brojevi (delovi, aktivni RN, merila, dimenzije) i prečice ka tabovima.
+
+**Akcije:** klik na stavku otvara odgovarajući tab (RN, merila, dimenzije, delovi, pogon mapa, Glavni unos).
+
+---
+
 ## 7. Grupa ATRIBUTIVNE
 
 ### 7.1 Katalog grešaka
@@ -378,7 +397,7 @@ ERP CSV: `greske_katalog.csv`.
 
 Na liniji: operater bira kategoriju → podkategoriju → defekt.
 
----
+**Brzi unos:** dugme **+ Šablon (5)** — tipične greške za ID iz filtera (opšti deo ili vozilo). Isti šablon dostupan i u checklist panelu posle Glavnog unosa.
 
 ### 7.2 Crtež dela
 
@@ -730,24 +749,43 @@ Korak-po-korak sa checklistom i čestim greškama: **`UPUTSTVO_NOVI_DEO_SIFARNIK
 
 ---
 
-## 16. Preporučeni sledeći koraci u šifrarniku
+## 16. Šifrarnik — urađeno u aplikaciji (avg 2026)
 
-Prioritet za firmu koja koristi **i komponente i vozilo**:
+Sledeće stavke iz ranijeg plana **implementirane su u Modulu 0**:
 
-| Prioritet | Šta | Zašto |
-|-----------|-----|--------|
-| **1** | Checklist posle Glavnog unosa (greške + crtež) | Propagacija ne pokriva NOK listu ni sliku — bez toga linija „radi“, ali NOK je prazan |
-| **2** | Jedan **Pogon mapa** audit pre go-live | Pogrešan A–H → pogrešne dimenzije na tabletu |
-| **3** | **Barkod** profil + probni sken za svaki novi `id_deo` | Prva tačka kvara na liniji |
-| **4** | Odvojeni sheet-ovi: `opsti_*`, `{erp}_delovi`, `{erp}_final` | Manje mešanja vozilo / opšti deo |
-| **5** | ERP CSV samo za **RN i master**; dimenzije kroz Glavni unos | Jedan izvor za granice, manje duplikata |
-| **6** | Demo delovi obriši ručno pre nove firme | Modul 0 → Delovi + Glavni unos filter |
-| **7** | Validacija pre propagacije (ID, LSL/USL, dupli RN) | Manje grešaka u bazi |
-| **8** | Wizard „Novi deo“ (4 koraka u UI) | Zamena za ručno skakanje tabovima |
-| **9** | Link **Delovi (pregled)** → redovi u Glavnom unosu | Brza provera odakle je deo došao |
-| **10** | Šablon grešaka (3–5 defekata po tipu dela) | Ubrzava korak posle propagacije |
+| # | Funkcija | Gde u aplikaciji |
+|---|----------|------------------|
+| 1 | Checklist posle objave | Glavni unos — zeleni panel sa linkovima |
+| 2 | Pogon mapa audit A–F | Pogon mapa — banner na vrhu |
+| 3 | Validacija pre objave | Blokira greške; upozorenja traže potvrdu |
+| 4 | Čarobnjak **+ Novi deo** | Tip → sheet → automatski grupni/final unos |
+| 5 | **Objavi u šifrarnik** | Jedno dugme (snimi + propagiraj ili samo propagiraj) |
+| 6 | Link Delovi → GU | **GU (n)** na redu dela |
+| 7 | Šablon grešaka (5) | Checklist + Katalog grešaka |
+| 8 | Tab **Održavanje** | Brojevi + prečice ka tabovima |
+| 9 | Go-live čišćenje baze | `npm run db:ocisti-operativu` (vidi skripte u `scripts/`) |
 
-**Operativno održavanje:** mesečno proveri neaktivne RN, istekle kalibracije merila, i duplikate u `karakteristike_merljive` (isti pogon + pozicija).
+**Preporučeni tok za novi deo:**
+
+```
++ Novi deo → grupni unos → Objavi u šifrarnik → checklist → greške / crtež / barkod
+```
+
+Operativno i dalje važi: mesečno proveri neaktivne RN, istekle kalibracije merila, duplikate dimenzija (isti pogon + pozicija).
+
+---
+
+## 17. Preporučeni sledeći koraci (opciono)
+
+| Prioritet | Predlog | Korist |
+|-----------|---------|--------|
+| **1** | Odvojeni sheet-ovi `opsti_*`, `{erp}_delovi`, `{erp}_final` | Manje mešanja vozilo / opšti deo |
+| **2** | ERP CSV samo RN + master; dimenzije kroz Glavni unos | Jedan izvor granica |
+| **3** | U Održavanju: lista duplih `karakteristike_merljive` | Brži audit pre go-live |
+| **4** | Čarobnjak: filtrirati sheetove po ERP šifri vozila | Manje grešaka pri izboru sheeta |
+| **5** | Demo podaci: dugme „Očisti operativu“ u Admin (sa potvrdom) | Bez SQL Editora za inženjera |
+| **6** | Checklist → Crtež dela sa automatskim otvaranjem upload forme | Jedan klik manje |
+| **7** | Profil barkoda po tipu dela (deo vs vozilo) | Manje ručnog biranja na štampi |
 
 ---
 

@@ -27,7 +27,7 @@ Samo finalna kontrola celog komada postaje `vozilo` (dijagram + zone).
 
 Jedan sheet = **jedna grupa** delova, ne „svaki red = vozilo“.
 
-| Sheet (primer) | Tip pri kreiranju (+ Novi sheet) | ERP vozilo | Sadržaj |
+| Sheet (primer) | Tip pri kreiranju (**+ Novi deo**) | ERP vozilo | Sadržaj |
 |----------------|----------------------------------|------------|---------|
 | `opsti_1` | **1 — Opšti delovi** | — | Zavrtnji, lim, dobavljač — nije vezano za vozilo |
 | `ham_delovi` | **2 — Komponente projekta** | `HAM` | Delovi HAM projekta |
@@ -47,25 +47,25 @@ Pomoćni podaci (ne unosiš svaki dan):
 
 ### A) Nova komponenta (preporučeno)
 
-1. Izaberi ili kreiraj sheet (**+ Novi sheet** → tip **1** ili **2**).
-2. Klik **+ Grupni unos (deo)**.
-3. Popuni **zaglavlje jednom:** ID deo, naziv, linija, RN, kom za kontrolu…
-4. U tabeli dimenzija unesi sve mere (Tip Merljiva / Atributivna, LSL/USL…).
-5. **Sačuvaj i propagiraj** — piše checklist šta još treba ručno.
-6. Dopuni u Modulu 0:
-   - **Atributivne → Katalog grešaka**
+1. Klik **+ Novi deo** — čarobnjak: tip **1** ili **2** → izaberi/kreiraj sheet (automatski se otvara grupni unos).
+2. Popuni **zaglavlje jednom:** ID deo, naziv, linija, RN, kom za kontrolu…
+3. U tabeli dimenzija unesi sve mere (Tip Merljiva / Atributivna, LSL/USL…).
+4. **Objavi u šifrarnik** — validacija, propagacija, **checklist panel** sa linkovima.
+5. Dopuni checklist (ili ručno):
+   - **Atributivne → Katalog grešaka** (+ Šablon 5)
    - **Atributivne → Crtež dela**
-7. **Alati → Barkod** → test skena na Modul 1.
+6. **Alati → Barkod** → test skena na Modul 1.
+
+*(Alternativa bez čarobnjaka: izaberi sheet → **+ Grupni unos**.)*
 
 ### B) Novo celo vozilo
 
-1. Sheet tip **3** (npr. `ham_final`) + ERP `HAM`.
-2. Klik **+ Final vozilo** — predložena linija Završna i jedan red finalne kontrole.
-3. ID npr. `HAM-001`, **Sačuvaj i propagiraj**.
-4. Modul 0 → **Celo vozilo:**
+1. **+ Novi deo** — tip **3** (npr. `ham_final`) + ERP `HAM` → automatski **Final vozilo** unos.
+2. ID npr. `HAM-001`, **Objavi u šifrarnik**.
+3. Modul 0 → **Celo vozilo:**
    - Tip vozila + dijagram (`public/vozilo/dijagrami/`)
    - Defekti po zonama
-5. Test atributivnog unosa (dijagram + zone).
+4. Test atributivnog unosa (dijagram + zone).
 
 ### C) Dorada jednog dela
 
@@ -140,10 +140,14 @@ Delovi **van** trenutnog sheeta **ostaju** u šifrarniku — sync ih ne briše.
 
 ## Checklist posle propagacije
 
+U aplikaciji se prikazuje **zeleni panel** sa klikabilnim stavkama (ne samo tekst u toast poruci).
+
 | Tip | Još uradi u Modulu 0 |
 |-----|----------------------|
-| **Deo (komponenta)** | Katalog grešaka · Crtež · Barkod · test Modul 1 |
-| **Celo vozilo** | Tip vozila + dijagram · Defekti po zonama · test dijagrama |
+| **Deo (komponenta)** | Delovi (pregled) · Katalog grešaka · Crtež · Pogon mapa · Barkod · test Modul 1 |
+| **Celo vozilo** | Tip vozila + dijagram · Defekti po zonama · Barkod · test dijagrama |
+
+Dugme **+ Šablon grešaka (5 tipičnih)** u checklist panelu otvara katalog sa unapred popunjenim ID-om.
 
 ---
 

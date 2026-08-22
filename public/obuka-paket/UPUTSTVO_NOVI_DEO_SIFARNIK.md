@@ -25,7 +25,7 @@ Za **celo vozilo** (`tip_kontrole = vozilo`) koristi: [`UPUTSTVO_NOVO_VOZILO_SIF
 
 | Put | Kad | Gde |
 |-----|-----|-----|
-| **B — Glavni unos** *(preporučeno)* | Novi deo sa dimenzijama / više pogona | Modul 0 → **Glavni unos** → **+ Grupni unos (deo)** → Sačuvaj i propagiraj |
+| **B — Glavni unos** *(preporučeno)* | Novi deo sa dimenzijama / više pogona | Modul 0 → **Glavni unos** → **+ Novi deo** → **Objavi u šifrarnik** → checklist |
 | **A — Ručno u UI** | Brza korekcija jednog polja | Delovi, Karakteristike, RN tab po tab |
 | **C — ERP CSV** | Masovni master iz SAP/Pantheon | Alati → ERP uvoz |
 
@@ -36,9 +36,9 @@ ERP: [`UPUTSTVO_ERP_KONFIGURACIJA.md`](./UPUTSTVO_ERP_KONFIGURACIJA.md).
 
 ## Brzi redosled (preporučeno — Glavni unos)
 
-1. **Osnovno → Glavni unos** → odgovarajući sheet → **+ Grupni unos (deo)**
-2. Zaglavlje + dimenzije → **Sačuvaj i propagiraj**
-3. **Atributivne → Katalog grešaka** + **Crtež dela**
+1. **Osnovno → Glavni unos** → **+ Novi deo** (ili **GU** iz Delovi ako deo već postoji u masteru)
+2. Zaglavlje + dimenzije → **Objavi u šifrarnik** → prati checklist panel
+3. **Atributivne → Katalog grešaka** (+ Šablon 5) + **Crtež dela**
 4. **Alati → Barkod** → test skena na **Modul 1**
 
 *(Ručni put A ispod — samo ako ne koristiš Glavni unos.)*
@@ -231,7 +231,7 @@ Vidi: [`UPUTSTVO_PRAVLJENJE_BARKODOVA.md`](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md).
 
 1. Modul 0 → **Glavni unos** → sheet (**+ Novi sheet**: opšti deo = tip 1, deo projekta = tip 2 + ERP).
 2. **+ Grupni unos (deo)** — zaglavlje jednom + tabela dimenzija.
-3. **Sačuvaj i propagiraj** — pročitaj checklist u poruci (greške, crtež…).
+3. **Objavi u šifrarnik** — checklist panel sa linkovima (greške, crtež…).
 4. Dopuni **Katalog grešaka** i **Crtež**; **Barkod** → test skena.
 
 Masovni uvoz: **Uvezi .xlsx** ili `npm run sync:glavni-unos:import` — vidi [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).

@@ -89,7 +89,7 @@ Ako HAM nema sheet:
 Za merljive karakteristike dovoljno je:
 
 1. uneti sve dimenzije u **Osnovno → Glavni unos** (na sheetu `… · HAM`);
-2. kliknuti **Sačuvaj i propagiraj**.
+2. kliknuti **Objavi u šifrarnik**.
 
 Aplikacija tada sama:
 
@@ -237,7 +237,7 @@ Pre čuvanja proveri u tabeli:
 - LSL < nominala < USL;
 - K6 koristi jedinicu stepen.
 
-Klikni **Sačuvaj i propagiraj**.
+Klikni **Objavi u šifrarnik**.
 
 Aplikacija treba da:
 
@@ -314,7 +314,7 @@ Ne pravi namerno NOK u produkcionim podacima. Za proveru alarma koristi test okr
 - [ ] Raspored je A:1, B:4, E:1.
 - [ ] LSL < nominala < USL za svih šest karakteristika.
 - [ ] Instrumenti postoje i kalibracija važi.
-- [ ] Sačuvaj i propagiraj je uspešan.
+- [ ] Objavi u šifrarnik je uspešan.
 - [ ] Modul 1 prikazuje samo karakteristike izabrane linije.
 
 ---
@@ -323,7 +323,7 @@ Ne pravi namerno NOK u produkcionim podacima. Za proveru alarma koristi test okr
 
 ### Deo je na HAM sheetu, ali u masteru nema HAM
 
-Posle **Sačuvaj i propagiraj** šifra sa sheeta (`HAM`) treba da uđe u master.
+Posle **Objavi u šifrarnik** šifra sa sheeta (`HAM`) treba da uđe u master.
 Ako i dalje fali: proveri da je sheet vezan sa ERP šifrom `HAM`, ponovo propagiraj,
 ili otvori **Delovi → ✎** i dopuni polje.
 
