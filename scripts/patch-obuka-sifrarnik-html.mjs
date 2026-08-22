@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sinhronizuje ključne HTML ćelije u OBUKA_MODUL_SIFARNIK.html iz UPUTSTVO_MODUL_SIFARNIK.md.
+ * Sinhronizuje OBUKA_MODUL_SIFARNIK.html iz SYNC blokova u UPUTSTVO_MODUL_SIFARNIK.md (§X).
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -10,41 +10,38 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MD = path.join(ROOT, "docs", "obuka-paket", "UPUTSTVO_MODUL_SIFARNIK.md");
 const HTML = path.join(ROOT, "public", "obuka-paket", "OBUKA_MODUL_SIFARNIK.html");
 
+const MARKERS = [
+  "GRUPA_OSNovNO",
+  "ERP_TOK_FLOW",
+  "NOVI_DEO_TOK",
+  "GLAVNI_UNOS_CELL",
+  "POGON_MAPA_CELL",
+  "ODRZAVANJE_CELL",
+  "DELOVI_CELL",
+  "ERP_UVOZ_CELL",
+];
+
+function readSyncBlock(md, id) {
+  const re = new RegExp(`<!-- SYNC:${id} -->\\s*([\\s\\S]*?)\\s*<!-- /SYNC:${id} -->`, "m");
+  const m = md.match(re);
+  return m ? m[1].trim() : null;
+}
+
+function mdInlineToHtml(text) {
+  return String(text)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
 function replaceBlock(html, marker, inner) {
   const start = `<!-- AUTO:${marker} -->`;
   const end = `<!-- /AUTO:${marker} -->`;
-  const re = new RegExp(`${start}[\\s\\S]*?${end}`, "m");
+  const re = new RegExp(`${start}[\\s\\S]*?${end}`, "gm");
   if (!re.test(html)) {
-    console.warn(`patch-obuka: marker ${marker} nije pronađen — preskačem`);
+    console.warn(`patch-obuka: marker AUTO:${marker} nije u HTML — preskačem`);
     return html;
   }
   return html.replace(re, `${start}\n${inner}\n${end}`);
-}
-
-function izvuciObjaviOpis(md) {
-  const m = md.match(/\|\s*\*\*Objavi u šifrarnik\*\*\s*\|\s*([^|]+)\|/);
-  return m ? m[1].trim() : "Snima staging + propagacija (ili ponovo propagiraj ako nema izmena)";
-}
-
-function buildGlavniUnosCell(md) {
-  const objavi = izvuciObjaviOpis(md);
-  return [
-    "ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument.",
-    `<strong>Objavi u šifrarnik</strong> — ${objavi}.`,
-    "<strong>+ Novi deo</strong> (čarobnjak), grupni unos, final vozilo.",
-    "Uvezi .xlsx (inženjerski format).",
-  ].join(" ");
-}
-
-function buildDeloviCell(md) {
-  const m = md.match(/\*\*Akcije:\*\* filter po tipu[\s\S]*?▦ barkod\./);
-  if (!m) {
-    return "id_deo, naziv, tip (deo/vozilo), kom za kontrolu, aktivan. Status badge. GU (n) → Glavni unos. Bulk brisanje DEMO ID.";
-  }
-  return m[0]
-    .replace(/\*\*Akcije:\*\*\s*/, "")
-    .replace(/\*\*GU \(n\)\*\*/g, "<strong>GU (n)</strong>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 }
 
 async function main() {
@@ -64,12 +61,24 @@ async function main() {
   }
 
   let out = html;
-  out = replaceBlock(out, "GLAVNI_UNOS_CELL", buildGlavniUnosCell(md));
-  out = replaceBlock(out, "DELOVI_CELL", buildDeloviCell(md));
+  let n = 0;
+  for (const id of MARKERS) {
+    const raw = readSyncBlock(md, id);
+    if (!raw) {
+      console.warn(`patch-obuka: nema SYNC:${id} u MD`);
+      continue;
+    }
+    const inner = id.endsWith("_FLOW") || id.endsWith("_TOK")
+      ? raw
+      : mdInlineToHtml(raw);
+    const next = replaceBlock(out, id, inner);
+    if (next !== out) n += 1;
+    out = next;
+  }
 
   if (out !== html) {
     await fs.writeFile(HTML, out, "utf8");
-    console.log("patch-obuka: OBUKA_MODUL_SIFARNIK.html ažuriran");
+    console.log(`patch-obuka: ažurirano ${n} blokova u OBUKA_MODUL_SIFARNIK.html`);
   } else {
     console.log("patch-obuka: nema izmena");
   }

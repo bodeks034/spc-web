@@ -86,14 +86,12 @@
 
   <h2>Sadržaj</h2>
   <ol style="font-size:9.5pt">
-    <li>Excel i CSV — šta važi (važno)</li>
+    <li>Brzi start — tok novog dela</li>
+    <li>Excel i CSV — šta važi</li>
     <li>Pregled 6 grupa tabova</li>
-    <li>Osnovno — tab po tab</li>
-    <li>Atributivne i Merljive</li>
-    <li>Celo vozilo, Moment ključ, Alati</li>
-    <li>ERP CSV fajlovi</li>
-    <li>Redosled puštanja novog dela</li>
-    <li>Česta pitanja</li>
+    <li>Osnovno — tab po tab (GU, Pogon, Održavanje…)</li>
+    <li>Atributivne, Merljive, Vozilo, Moment, Alati</li>
+    <li>ERP CSV · Go-live · FAQ</li>
   </ol>
   <footer>SPC Web · Modul 0 Šifrarnik · str. 1</footer>
 </div>
@@ -122,14 +120,25 @@
     <li>Ceo master Excel kroz UI</li>
   </ul>
 
+  <div class="ok" style="margin-bottom:10px">
+    <strong>Preporučeni tok:</strong>
+    <!-- AUTO:NOVI_DEO_TOK -->
++ Novi deo → grupni unos → **Objavi u šifrarnik** → checklist → greške / crtež / barkod
+<!-- /AUTO:NOVI_DEO_TOK -->
+  </div>
+
   <h3>Tok sa ERP-om</h3>
-  <pre class="flow">ERP izvozi CSV
+  <pre class="flow"><!-- AUTO:ERP_TOK_FLOW -->
+ERP izvozi CSV
     ↓
-Alati → ERP uvoz (Preview → Uvezi)
+Alati → ERP uvoz (delovi, RN, greške…)
     ↓
-Ručna dopuna (crteži, barkod, kontrolna lista…)
+Glavni unos → **Objavi u šifrarnik** (dimenzije)
     ↓
-Modul 1 — operateri rade unos</pre>
+Crtež, barkod, kontrolna lista
+    ↓
+Modul 1 — operateri
+<!-- /AUTO:ERP_TOK_FLOW --></pre>
 
   <footer>SPC Web · Modul 0 Šifrarnik · str. 2</footer>
 </div>
@@ -139,7 +148,9 @@ Modul 1 — operateri rade unos</pre>
   <h2>2. Pregled grupa i tabova (25)</h2>
   <table>
     <tr><th>Grupa</th><th>Tabovi</th></tr>
-    <tr><td class="grp">Osnovno</td><td>Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Linije · Mašine · Smene · Ciljevi · Kontrolna lista</td></tr>
+    <tr><td class="grp">Osnovno</td><td><!-- AUTO:GRUPA_OSNovNO -->
+Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Linije · Mašine · Smene · Ciljevi · Kontrolna lista · <strong>Održavanje</strong>
+<!-- /AUTO:GRUPA_OSNovNO --></td></tr>
     <tr><td class="grp">Atributivne</td><td>Katalog grešaka · Crtež dela · Pogoni po delu</td></tr>
     <tr><td class="grp">Merljive</td><td>Dimenzije · SPC alarm % · SOP po delu · Merila/kalibracija</td></tr>
     <tr><td class="grp">Celo vozilo</td><td>Tipovi vozila · Defekti vozila · Delovi vozila</td></tr>
@@ -154,13 +165,15 @@ Modul 1 — operateri rade unos</pre>
       <td><strong>Glavni unos</strong></td>
       <td><span class="tab">glavni_unos_redovi</span></td>
       <td><!-- AUTO:GLAVNI_UNOS_CELL -->
-ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument. <strong>Objavi u šifrarnik</strong> — Snima staging + propagacija (ili ponovo propagira ako nema izmena). <strong>+ Novi deo</strong> (čarobnjak), grupni unos, final vozilo. Uvezi .xlsx (inženjerski format).
+ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument. <strong>Objavi u šifrarnik</strong> — Snima staging + propagacija (ili ponovo propagiraj ako nema izmena). <strong>+ Novi deo</strong> (čarobnjak), grupni unos, final vozilo. Uvezi .xlsx (inženjerski format).
 <!-- /AUTO:GLAVNI_UNOS_CELL --></td>
     </tr>
     <tr>
       <td><strong>Pogon mapa</strong></td>
       <td><span class="tab">pogon_linija_mapa</span></td>
-      <td>Faza linije A–I ↔ linija_id. Operater na tabletu bira pogon.</td>
+      <td><!-- AUTO:POGON_MAPA_CELL -->
+Faza linije A–I ↔ linija_id. Operater bira pogon na tabletu. <strong>Audit A–F</strong> na vrhu taba pre go-live (nedostajući / dupli pogoni).
+<!-- /AUTO:POGON_MAPA_CELL --></td>
     </tr>
     <tr>
       <td><strong>Linija ↔ deo</strong></td>
@@ -176,7 +189,7 @@ ID deo, RN, kupac, dimenzije (nominal/LSL/USL), klasa, instrument. <strong>Objav
       <td><strong>Delovi</strong></td>
       <td><span class="tab">delovi</span></td>
       <td><!-- AUTO:DELOVI_CELL -->
-filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, Sačuvaj, ✎ izmena, <strong>GU (n)</strong> → Glavni unos sa filterom na taj ID (ako nema redova u GU, otvara se čarobnjak), status badge (tooltip: nedostaje GU/greške/crtež), ▦ barkod.
+filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (DEMO/TEST/SAMPLE/XXX), + Deo, <strong>GU (n)</strong> → Glavni unos, status badge (tooltip), ▦ barkod.
 <!-- /AUTO:DELOVI_CELL --></td>
     </tr>
     <tr>
@@ -213,6 +226,13 @@ filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (D
       <td><strong>Kontrolna lista</strong></td>
       <td><span class="tab">kontrolna_lista_stavke</span></td>
       <td>Stavke pre smene — poka-yoke na Modulu 1.</td>
+    </tr>
+    <tr>
+      <td><strong>Održavanje</strong></td>
+      <td>—</td>
+      <td><!-- AUTO:ODRZAVANJE_CELL -->
+Brojevi (delovi, RN, merila, dimenzije) + <strong>duplikati dimenzija</strong>. Klik otvara tab (GU, pogon, Delovi…). Mesečna provera pre produkcije.
+<!-- /AUTO:ODRZAVANJE_CELL --></td>
     </tr>
   </table>
   <footer>SPC Web · Modul 0 Šifrarnik · str. 3</footer>
@@ -303,7 +323,9 @@ filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (D
   <table>
     <tr><th>Tab</th><th>Šta radi</th></tr>
     <tr><td><strong>Barkod</strong></td><td>Profil etikete po delu (QR/Code128) → štampa → sken na liniji otvara deo/RN.</td></tr>
-    <tr><td><strong>ERP uvoz ⭐</strong></td><td>Masovni CSV uvoz (SAP/Pantheon). Preview → Uvezi. Log u erp_uvoz_log.</td></tr>
+    <tr><td><strong>ERP uvoz ⭐</strong></td><td><!-- AUTO:ERP_UVOZ_CELL -->
+Masovni <strong>CSV</strong> uvoz (SAP/Pantheon): preset → Upload → Preview → Uvezi. Dimenzije preporučeno kroz <strong>Glavni unos</strong>. Log: erp_uvoz_log. <strong>Samo .csv</strong> — ne .xlsx.
+<!-- /AUTO:ERP_UVOZ_CELL --></td></tr>
     <tr><td><strong>Backup</strong></td><td>Samo preuzimanje SPC_sifrarnik_backup_{datum}.xlsx — bez uvoza.</td></tr>
   </table>
   <footer>SPC Web · Modul 0 Šifrarnik · str. 5</footer>
@@ -333,20 +355,15 @@ filter po tipu, filter <strong>Samo DEMO/TEST</strong>, bulk brisanje demo ID (D
   </div>
 
   <h2>10. Redosled — novi deo</h2>
+  <h3>Bez ERP-a (preporučeno)</h3>
+  <pre class="flow"><!-- AUTO:NOVI_DEO_TOK -->
++ Novi deo → grupni unos → **Objavi u šifrarnik** → checklist → greške / crtež / barkod
+<!-- /AUTO:NOVI_DEO_TOK --></pre>
   <h3>Sa ERP-om</h3>
   <ol style="font-size:9pt">
-    <li>ERP uvoz CSV (delovi, dimenzije, greške, RN)</li>
-    <li>Pogon mapa + Linija↔deo (provera)</li>
-    <li>Crtež dela, Barkod</li>
-    <li>Kontrolna lista</li>
-    <li>Test Modul 1</li>
-  </ol>
-  <h3>Bez ERP-a</h3>
-  <ol style="font-size:9pt">
-    <li>Linije, Mašine, Kupci</li>
-    <li>Glavni unos → Propagiraj</li>
-    <li>Katalog grešaka, Pogon mapa</li>
-    <li>RN, Barkod, Kontrolna lista</li>
+    <li>ERP uvoz CSV (delovi, greške, RN)</li>
+    <li>Glavni unos → Objavi u šifrarnik</li>
+    <li>Pogon mapa, Crtež, Barkod</li>
     <li>Test Modul 1</li>
   </ol>
 
