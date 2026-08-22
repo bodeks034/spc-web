@@ -60,6 +60,7 @@ import {
   onboardingIskljucen,
   zavrsiSifrarnikOnboarding,
 } from "../../lib/sifrarnikOnboarding.js";
+import { SIFRARNIK_NAV_EVENT, ucitajPendingSifrarnikNav } from "../../lib/sifrarnikNavEvent.js";
 
 const ONBOARDING_TABOVI = new Set(["glavni_unos", "pogon_mapa", "odrzavanje", "liste"]);
 
@@ -243,6 +244,22 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
     setPodtab(tab);
 
   }, []);
+
+
+
+  useEffect(() => {
+    const pending = ucitajPendingSifrarnikNav();
+    if (pending?.tab) idiNaTab(pending.tab, pending.ctx || {});
+  }, [idiNaTab]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const { tab, ctx } = e.detail || {};
+      if (tab) idiNaTab(tab, ctx || {});
+    };
+    window.addEventListener(SIFRARNIK_NAV_EVENT, handler);
+    return () => window.removeEventListener(SIFRARNIK_NAV_EVENT, handler);
+  }, [idiNaTab]);
 
 
 
@@ -553,6 +570,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
             onStampaj={otvoriBarkod}
             onOtvoriGlavniUnos={(idDeo, opts = {}) => idiNaTab("glavni_unos", { idDeo, ...opts })}
             onNavigacijaStatus={(tab, ctx) => idiNaTab(tab, ctx)}
+            navSignal={navCtx}
           />
         )}
 

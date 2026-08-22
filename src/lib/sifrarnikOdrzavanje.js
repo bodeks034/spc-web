@@ -89,6 +89,30 @@ export const STATUS_DEO_LABEL = {
   samo_master: { label: "Samo master", boja: "sivi" },
 };
 
+/** Filter po nedostajućem koraku (Delovi pregled). */
+export const NEDOSTAJE_FILTER_OPCIJE = [
+  { id: "", label: "Svi delovi" },
+  { id: "gu", label: "Nedostaje GU" },
+  { id: "greske", label: "Nedostaje greške" },
+  { id: "crtez", label: "Nedostaje crtež" },
+  { id: "barkod", label: "Nedostaje barkod" },
+];
+
+export const NEDOSTAJE_FILTER_MAP = {
+  gu: "Glavni unos",
+  greske: "Greške",
+  crtez: "Crtež",
+  barkod: "Barkod profil",
+};
+
+export function deoOdgovaraNedostajeFilter(deo, opts, filterKey) {
+  const key = String(filterKey || "").trim();
+  if (!key) return true;
+  const label = NEDOSTAJE_FILTER_MAP[key];
+  if (!label) return true;
+  return nedostajeZaDeo(deo, opts).includes(label);
+}
+
 const MAPA_NEDOSTAJE_TAB = {
   "Glavni unos": (idDeo, opts) => ({
     tab: "glavni_unos",

@@ -13,6 +13,21 @@ npm run deploy:go-live
 
 Proverava: licenca, unit testovi, auto smoke, build, šemu, deploy check (+ E2E ako ima kredencijale).
 
+### GitHub Actions (`deploy-check`)
+
+U **Settings → Secrets and variables → Actions** postavi (opciono, ali preporučeno pre go-live):
+
+| Secret | Svrha |
+|--------|--------|
+| `SUPABASE_URL` | `db:verify` i `db:verify:go-live` u CI (firma gate) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Isto — server-side provera RPC 77–79 |
+| `SUPABASE_ANON_KEY` | Build + pilot provera šeme na PR |
+| `DATABASE_URL` | `npm run db:migrate:go-live` lokalno/CI (ne koristi verify-schema) |
+| `E2E_EMAIL` / `E2E_PASSWORD` | Pun E2E u firma gate-u |
+| `E2E_EMAIL_KVALITET` / `E2E_PASSWORD_KVALITET` | E2E šifrarnik smoke |
+
+Bez ovih secrets CI i dalje prolazi sa placeholder Supabase URL-om; postavi `DEPLOY_STRICT=1` (automatski kad postoji `E2E_EMAIL`) da DB koraci budu obavezni.
+
 Izveštaj: `logs/go-live-*.txt`
 
 ---

@@ -31,7 +31,10 @@ export default function SchemaStatusPanel({ C }) {
   const sveOk = stavke.length > 0 && stavke.every(s => s.ok);
 
   return (
-    <div style={{
+    <div
+      id="admin-schema-status"
+      data-testid="admin-schema-status"
+      style={{
       background: C.panel, border: `1px solid ${sveOk ? C.zelena : C.zuta}40`,
       borderRadius: 12, padding: 20,
     }}>

@@ -177,7 +177,7 @@ function AdminExcelPanel({ C, addToast }) {
   );
 }
 
-function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
+function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOtvoriSifrarnik }) {
   const [radnici,setRadnici]   = useState([]);
   const [loading,setLoading]   = useState(true);
   const [modal,setModal]       = useState(null);
@@ -187,6 +187,10 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
   const [lozinkaRadnik,setLozinkaRadnik] = useState(null);
   const [idleMin, setIdleMin] = useState(() => idleMinuta());
   const ekran = useEkran();
+
+  const skrolujDoAdmin = (elementId) => {
+    document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   useEffect(()=>{
     supabase.from("radnici").select("id,ime,uloga,user_id,email,aktivan,pin_hash").order("ime")
@@ -529,6 +533,8 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false }) {
         <AdminGoLiveStatusPanel
           C={C}
           addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
+          onOtvoriSifrarnik={onOtvoriSifrarnik}
+          onSkrolujDo={skrolujDoAdmin}
         />
         <GoLiveChecklistPanel
           C={C}

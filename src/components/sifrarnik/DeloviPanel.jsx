@@ -11,6 +11,8 @@ import {
   obrisiDemoDelove,
   koraciNavigacijeIzStatusDeo,
   fetchOperativniBrojeviPoDeo,
+  NEDOSTAJE_FILTER_OPCIJE,
+  deoOdgovaraNedostajeFilter,
 } from "../../lib/sifrarnikOdrzavanje.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
@@ -20,7 +22,7 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
-export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus }) {
+export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guBrojevi, setGuBrojevi] = useState({});
@@ -30,6 +32,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [filter, setFilter] = useState("");
   const [samoDemo, setSamoDemo] = useState(false);
   const [samoDelimicni, setSamoDelimicni] = useState(false);
+  const [nedostajeFilter, setNedostajeFilter] = useState("");
   const [izabrani, setIzabrani] = useState(() => new Set());
   const [forma, setForma] = useState(null);
   const [snima, setSnima] = useState(false);
@@ -49,6 +52,13 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   }, [addToast, tipFilter]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (!navSignal?.ts) return;
+    if (navSignal.nedostajeFilter != null) setNedostajeFilter(String(navSignal.nedostajeFilter));
+    if (navSignal.samoDemo != null) setSamoDemo(!!navSignal.samoDemo);
+    if (navSignal.samoDelimicni != null) setSamoDelimicni(!!navSignal.samoDelimicni);
+  }, [navSignal?.ts, navSignal?.nedostajeFilter, navSignal?.samoDemo, navSignal?.samoDelimicni]);
 
   useEffect(() => {
     if (!statusMenuId) return undefined;
@@ -101,21 +111,20 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   };
 
   const prikaz = useMemo(() => lista.filter((d) => {
+    const opts = {
+      guBroj: guBrojevi[d.id_deo] || 0,
+      greskeBroj: greskeBrojevi[d.id_deo] || 0,
+      imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
+    };
     if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
-    if (samoDelimicni) {
-      const opts = {
-        guBroj: guBrojevi[d.id_deo] || 0,
-        greskeBroj: greskeBrojevi[d.id_deo] || 0,
-        imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
-      };
-      if (statusDeoUSifrarniku(d, opts) === "kompletan") return false;
-    }
+    if (samoDelimicni && statusDeoUSifrarniku(d, opts) === "kompletan") return false;
+    if (!deoOdgovaraNedostajeFilter(d, opts, nedostajeFilter)) return false;
     if (!filter.trim()) return true;
     const q = filter.toLowerCase();
     return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
       (s) => String(s || "").toLowerCase().includes(q),
     );
-  }), [lista, filter, samoDemo, samoDelimicni, guBrojevi, greskeBrojevi, barkodSet]);
+  }), [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, guBrojevi, greskeBrojevi, barkodSet]);
 
   const demoNaPrikazu = useMemo(
     () => prikaz.filter((d) => jeDemoIdDeo(d.id_deo)).map((d) => d.id_deo),
@@ -191,6 +200,19 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
         <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 140 }}>
           <span style={{ color: C.sivi, fontSize: 9 }}>PRETRAGA</span>
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="ID, naziv…" style={INP} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ color: C.sivi, fontSize: 9 }}>NEDOSTAJE</span>
+          <select
+            data-testid="delovi-nedostaje-filter"
+            value={nedostajeFilter}
+            onChange={(e) => setNedostajeFilter(e.target.value)}
+            style={{ ...INP, cursor: "pointer", minWidth: 140 }}
+          >
+            {NEDOSTAJE_FILTER_OPCIJE.map((o) => (
+              <option key={o.id || "svi"} value={o.id}>{o.label}</option>
+            ))}
+          </select>
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: C.sivi, paddingBottom: 6 }}>
           <input type="checkbox" checked={samoDemo} onChange={(e) => setSamoDemo(e.target.checked)} />

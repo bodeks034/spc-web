@@ -8,6 +8,7 @@ import {
 import { normalizujPrefill8d, sacuvajNavigacijuNcr } from "./lib/eskalacijeHelper.js";
 import { sacuvajSpoljnuNavigacijuTab } from "./lib/workflowAkcije.js";
 import { modulZaRouting } from "./lib/deoModul.js";
+import { sacuvajSifrarnikNav } from "./lib/sifrarnikNavEvent.js";
 import {
   podrazumevaniRezim,
   mozePrebacivanjeRezima,
@@ -391,6 +392,10 @@ export default function App() {
             licenca={licenca}
             onNazad={() => setModul(null)}
             C={C}
+            onOtvoriSifrarnik={(tab, ctx) => {
+              sacuvajSifrarnikNav(tab, ctx);
+              setModul("sifrarnik");
+            }}
           />
         </Suspense>
       </>,

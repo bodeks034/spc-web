@@ -7,7 +7,7 @@ import {
   filtrirajSheetovePoTipu,
 } from "../src/lib/glavniUnosSheetTip.js";
 import { SABLON_GRESKE_OPSTI, SABLON_GRESKE_VOZILO } from "../src/lib/greskaSablon.js";
-import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo, navigacijaIzStatusDeo, koraciNavigacijeIzStatusDeo, izracunajKompletnostDelova, pickPrviDelimicniDeo } from "../src/lib/sifrarnikOdrzavanje.js";
+import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo, navigacijaIzStatusDeo, koraciNavigacijeIzStatusDeo, izracunajKompletnostDelova, pickPrviDelimicniDeo, deoOdgovaraNedostajeFilter } from "../src/lib/sifrarnikOdrzavanje.js";
 import { podrazumevaniBarkodProfil } from "../src/lib/barkodEtiketa.js";
 
 describe("validirajRedovePrePropagacije", () => {
@@ -95,6 +95,16 @@ describe("nedostajeZaDeo", () => {
     const ned = nedostajeZaDeo({ id_deo: "X" }, { guBroj: 1, greskeBroj: 0, imaBarkod: false });
     expect(ned).toContain("Greške");
     expect(ned).toContain("Crtež");
+  });
+});
+
+describe("deoOdgovaraNedostajeFilter", () => {
+  it("filtrira po nedostajućem koraku", () => {
+    const deo = { id_deo: "X" };
+    const opts = { guBroj: 0, greskeBroj: 1, imaBarkod: true };
+    expect(deoOdgovaraNedostajeFilter(deo, opts, "gu")).toBe(true);
+    expect(deoOdgovaraNedostajeFilter(deo, opts, "greske")).toBe(false);
+    expect(deoOdgovaraNedostajeFilter(deo, opts, "")).toBe(true);
   });
 });
 
