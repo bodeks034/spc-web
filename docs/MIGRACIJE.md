@@ -39,17 +39,20 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 59 | `59_ncr_capa.sql` | NCR modul |
 | 75 | `75_ncr_registar_obrazac.sql` | NCR Registar + Obrazac v2 (kolone registra, JSONB obrazac, statusi) |
 | 76 | `76_osmd_pfmea_cp_brojevi.sql` | 8D zaglavlje: `broj_pfmea`, `broj_control_plan` (+ PFMEA/CP dokument) |
+| 77 | `77_ocisti_operativu_rpc.sql` | RPC Admin — čišćenje operative pre go-live |
+| 78 | `78_obrisi_deo_iz_sifrarnika_rpc.sql` | RPC — brisanje dela + šifrarnik redovi (DEMO bulk) |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 
 **Automatski (ako imaš DATABASE_URL):**
 
 ```bash
-npm run db:migrate          # pilot 54–59 + NCR/8D 75–76
+npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–78
 npm run db:migrate -- --kvalitet   # samo 75 + 76
+npm run db:migrate:go-live  # samo 77 + 78 (RPC go-live)
 npm run db:migrate -- --file 76_osmd_pfmea_cp_brojevi.sql
 npm run db:migrate:auto     # 61 — telemetrija automatizacije
-npm run db:verify           # provera kao Admin → Status šeme
+npm run db:verify           # provera kao Admin → Status šeme (uključujući RPC 77/78)
 ```
 
 **Ručno:** Supabase SQL Editor — redom **75 → 76** (posle 59 i 46/51 za 8D/PFMEA).

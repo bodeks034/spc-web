@@ -85,6 +85,7 @@
     "deploy:resend": "node scripts/deploy-resend.mjs",
     "check:smtp": "node scripts/check-send-email.mjs",
     "e2e:smoke": "playwright test e2e/login.spec.js",
+    "e2e:sifrarnik": "playwright test e2e/sifrarnik-status.spec.js",
     "e2e:workflow": "playwright test e2e/workflow-alarm.spec.js",
     "e2e:ncr-spc": "playwright test e2e/ncr-spc-close.spec.js",
     "e2e:full-tok": "playwright test e2e/full-tok.spec.js",

@@ -80,7 +80,7 @@ async function main() {
     `Ukupno FAIL: ${fail}`,
     "",
     "RUČNI KORACI:",
-    "  1. npm run db:migrate && npm run db:migrate:auto",
+    "  1. npm run db:migrate && npm run db:migrate:auto && npm run db:migrate:go-live",
     "  2. npm run auto:install:admin",
     "  3. Admin → Status šeme + ISO audit panel test",
     "  4. Test login (operater + kvalitet)",

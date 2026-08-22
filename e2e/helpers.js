@@ -44,6 +44,14 @@ export async function otvoriAdmin(page) {
   await expect(page.getByTestId("admin-spc-alarmi")).toBeVisible({ timeout: 20000 });
 }
 
+export async function otvoriSifrarnik(page, podtab = "delovi") {
+  await page.getByTestId("modul-sifrarnik").click();
+  await expect(page.getByTestId("sifrarnik-hub")).toBeVisible({ timeout: 20000 });
+  if (podtab) {
+    await page.getByTestId(`sifrarnik-tab-${podtab}`).click();
+  }
+}
+
 export async function nazadNaPocetni(page) {
   const nazad = page.getByRole("button", { name: "← Nazad" });
   if (await nazad.isVisible().catch(() => false)) {

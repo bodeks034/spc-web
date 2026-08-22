@@ -351,7 +351,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   return (
 
-    <div style={{
+    <div data-testid="sifrarnik-hub" style={{
 
       flex: 1, display: "flex", flexDirection: "column", minHeight: 0,
 
@@ -488,6 +488,8 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
             key={id}
 
             type="button"
+
+            data-testid={`sifrarnik-tab-${id}`}
 
             onClick={() => setPodtab(id)}
 

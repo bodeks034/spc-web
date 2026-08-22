@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sumirajProveruSeme } from "../src/lib/schemaCheck.js";
+import { sumirajProveruSeme, MIGRACIJE_LISTA } from "../src/lib/schemaCheck.js";
 
 describe("sumirajProveruSeme", () => {
   it("ok kad su sve migracije primenjene", () => {
@@ -20,5 +20,11 @@ describe("sumirajProveruSeme", () => {
     expect(s.ok).toBe(false);
     expect(s.nedostaje).toHaveLength(1);
     expect(s.nedostaje[0].id).toBe("ncr_capa");
+  });
+
+  it("uključuje go-live RPC migracije", () => {
+    const ids = MIGRACIJE_LISTA.map((m) => m.id);
+    expect(ids).toContain("ocisti_operativu_rpc");
+    expect(ids).toContain("obrisi_deo_rpc");
   });
 });

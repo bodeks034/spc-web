@@ -49,6 +49,13 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   useEffect(() => { ucitaj(); }, [ucitaj]);
 
   useEffect(() => {
+    if (!statusMenuId) return undefined;
+    const zatvori = () => setStatusMenuId(null);
+    document.addEventListener("click", zatvori);
+    return () => document.removeEventListener("click", zatvori);
+  }, [statusMenuId]);
+
+  useEffect(() => {
     Promise.all([
       fetchGlavniUnosBrojeviPoDeo(),
       fetchGreskeBrojeviPoDeo(),
@@ -160,7 +167,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   };
 
   return (
-    <div>
+    <div data-testid="delovi-panel">
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 12, flexWrap: "wrap" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span style={{ color: C.sivi, fontSize: 9 }}>TIP</span>
@@ -275,7 +282,8 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
             const stMeta = STATUS_DEO_LABEL[st];
             const demo = jeDemoIdDeo(d.id_deo);
             const koraci = onNavigacijaStatus ? koraciNavigacijeIzStatusDeo(d, opts) : [];
-            const klikStatus = () => {
+            const klikStatus = (e) => {
+              e.stopPropagation();
               if (!koraci.length) return;
               if (koraci.length === 1) {
                 setStatusMenuId(null);
@@ -304,13 +312,14 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
               <span>{d.naziv_dela}</span>
               <div style={{ position: "relative" }}>
               <span
+                data-testid={`delovi-status-${d.id_deo}`}
                 role={koraci.length ? "button" : undefined}
                 tabIndex={koraci.length ? 0 : undefined}
                 onClick={koraci.length ? klikStatus : undefined}
                 onKeyDown={koraci.length ? (e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    klikStatus();
+                    klikStatus(e);
                   }
                 } : undefined}
                 style={{
@@ -327,7 +336,10 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
                 {stMeta.label}
               </span>
               {statusMenuId === d.id_deo && koraci.length > 1 && (
-                <div style={{
+                <div
+                  data-testid={`delovi-status-menu-${d.id_deo}`}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
                   position: "absolute",
                   zIndex: 20,
                   top: "100%",
@@ -345,7 +357,9 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
                     <button
                       key={k.label}
                       type="button"
-                      onClick={() => {
+                      data-testid={`delovi-status-nav-${k.tab}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setStatusMenuId(null);
                         onNavigacijaStatus?.(k.tab, k.ctx);
                       }}
