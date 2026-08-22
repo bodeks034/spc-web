@@ -121,7 +121,7 @@ Izlaz: `audit-export/YYYY-MM-DD_YYYY-MM-DD/`
 4. Trasabilitet + ISO PDF
 5. Admin status (šef/kvalitet)
 
-Materijal: `docs/obuka-paket/UPUTSTVO_OBUKA_INZENJER_MODUL2.md`
+Materijal: `docs/obuka-paket/OBUKA_INZENJER_MODUL2.html`
 
 ---
 

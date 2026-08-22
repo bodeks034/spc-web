@@ -278,4 +278,4 @@ Za fleksibilne etikete iz ERP-a:
 | `docs/barkodi/` | Generisane slike i štampa |
 | `docs/delovi.csv` | Lista validnih ID-jeva |
 
-Za nova šifarnička pitanja vidi [UPUTSTVO_SIFARNIK_I_EXCEL.md](./UPUTSTVO_SIFARNIK_I_EXCEL.md).
+Za šifrarnik vidi [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) i [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md).

@@ -310,7 +310,7 @@ Unos
 | `UPUTSTVO_GLAVNI_UNOS.md` | Excel propagacija dimenzija |
 | `UPUTSTVO_PRAVLJENJE_BARKODOVA.md` | Etikete |
 | `UPUTSTVO_ERP_KONFIGURACIJA.md` | CSV uvoz |
-| `UPUTSTVO_SIFARNIK_I_EXCEL.md` | Legacy Excel paket |
+| [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) | Kompletan Modul 0 |
 
 ---
 

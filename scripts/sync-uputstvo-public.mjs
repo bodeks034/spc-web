@@ -11,8 +11,53 @@ const ROOT = path.resolve(__dirname, "..");
 const SRC = path.join(ROOT, "docs", "obuka-paket");
 const DEST = path.join(ROOT, "public", "obuka-paket");
 
+async function copyTree(srcDir, destDir, synced) {
+  await fs.mkdir(destDir, { recursive: true });
+  let n = 0;
+  const entries = await fs.readdir(srcDir, { withFileTypes: true });
+  for (const ent of entries) {
+    const srcPath = path.join(srcDir, ent.name);
+    const destPath = path.join(destDir, ent.name);
+    if (ent.isDirectory()) {
+      const sub = await copyTree(srcPath, destPath, synced);
+      n += sub;
+    } else if (ent.isFile()) {
+      await fs.copyFile(srcPath, destPath);
+      synced.add(path.relative(DEST, destPath).split(path.sep).join("/"));
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pruneTree(dir, synced, base = dir) {
+  let uklonjeno = 0;
+  let entries;
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const ent of entries) {
+    const full = path.join(dir, ent.name);
+    const rel = path.relative(base, full).split(path.sep).join("/");
+    if (ent.isDirectory()) {
+      uklonjeno += await pruneTree(full, synced, base);
+      try {
+        const left = await fs.readdir(full);
+        if (!left.length) await fs.rmdir(full);
+      } catch {
+        /* ignore */
+      }
+    } else if (!synced.has(rel)) {
+      await fs.rm(full, { force: true });
+      uklonjeno += 1;
+    }
+  }
+  return uklonjeno;
+}
+
 async function main() {
-  await fs.mkdir(DEST, { recursive: true });
   let entries;
   try {
     entries = await fs.readdir(SRC);
@@ -23,15 +68,14 @@ async function main() {
     }
     throw e;
   }
-
-  let n = 0;
-  for (const name of entries) {
-    const srcPath = path.join(SRC, name);
-    const st = await fs.stat(srcPath);
-    if (!st.isFile()) continue;
-    await fs.copyFile(srcPath, path.join(DEST, name));
-    n += 1;
+  if (!entries.length) {
+    console.error("sync-uputstvo: docs/obuka-paket/ je prazan");
+    process.exit(1);
   }
+
+  const synced = new Set();
+  const n = await copyTree(SRC, DEST, synced);
+  const uklonjeno = await pruneTree(DEST, synced);
 
   // Stari public/uputstvo više nije u upotrebi
   const legacy = path.join(ROOT, "public", "uputstvo");
@@ -41,7 +85,7 @@ async function main() {
     /* ignore */
   }
 
-  console.log(`sync-uputstvo: ${n} fajlova → public/obuka-paket/`);
+  console.log(`sync-uputstvo: ${n} fajlova → public/obuka-paket/${uklonjeno ? `, uklonjeno ${uklonjeno} zastarelih` : ""}`);
 
   const { spawnSync } = await import("node:child_process");
   const patch = path.join(ROOT, "scripts", "patch-obuka-sifrarnik-html.mjs");

@@ -138,7 +138,7 @@ export const UPUTSTVO_DOKUMENTI = [
     id: "sifrarnik-modul",
     kategorija: "koriscenje",
     naslov: "Modul 0 — Šifrarnik",
-    opis: "Svih 25 tabova, ERP CSV uvoz, Glavni unos, propagacija",
+    opis: "Svih 25 tabova, ERP CSV, Glavni unos, Objavi u šifrarnik",
     fajl: "/obuka-paket/UPUTSTVO_MODUL_SIFARNIK.md",
     tip: "markdown",
     uloge: KANCELARIJA,

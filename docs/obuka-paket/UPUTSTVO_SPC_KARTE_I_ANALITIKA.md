@@ -316,5 +316,5 @@ Foto NOK            →      Trasabilitet + 8D dokaz
 ---
 
 *Operateri: [OBUKA_OPERATER_MODUL1.html](./OBUKA_OPERATER_MODUL1.html)*  
-*Inženjer pregled: [UPUTSTVO_OBUKA_INZENJER_MODUL2.md](./UPUTSTVO_OBUKA_INZENJER_MODUL2.md)*  
+*Inženjer pregled: [OBUKA_INZENJER_MODUL2.html](./OBUKA_INZENJER_MODUL2.html)*  
 *Pregled sistema: [UPUTSTVO_KORISCENJE_APLIKACIJE.md](./UPUTSTVO_KORISCENJE_APLIKACIJE.md)*

@@ -144,7 +144,7 @@ Bez ovoga zone rade, ali **dropdown grešaka** bude prazan ili pogrešan.
 | Zajedničke zone | `KAROS-001` | Isti katalog za sva vozila |
 | Po modelu | `HAM-KAROS-001` | Katalog samo za HAM |
 
-Kategorije moraju da se poklope sa očekivanim nazivima (npr. `EKSTERIJER (Karoserija i Limarija)`, `ENTERIJER (Kabina)`…) — vidi `src/lib/voziloZoneConfig.js` i `UPUTSTVO_SIFARNIK_I_EXCEL.md`.
+Kategorije moraju da se poklope sa očekivanim nazivima (npr. `EKSTERIJER (Karoserija i Limarija)`, `ENTERIJER (Kabina)`…) — vidi `src/lib/voziloZoneConfig.js` i § IV.4 u [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md).
 
 ### Excel put (masovno)
 
@@ -246,7 +246,7 @@ Unos
 | `public/vozilo/dijagrami/CITAJ_ME.md` | Format siluete, viewBox, zamena fajla |
 | `UPUTSTVO_MODUL_SIFARNIK.md` §9 | Tipovi / Defekti / Delovi vozila |
 | `UPUTSTVO_NOVI_DEO_SIFARNIK.md` | Novi **deo** (komponenta), ne vozilo |
-| `UPUTSTVO_SIFARNIK_I_EXCEL.md` | Excel katalog 9 komponenti / zone |
+| [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) | Grupa Celo vozilo (§ IV.4) |
 | `UPUTSTVO_PRAVLJENJE_BARKODOVA.md` | Etikete za ID dela |
 
 ---

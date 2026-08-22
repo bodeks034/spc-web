@@ -11,10 +11,9 @@ npm run import:erp-dnevni
 Samo ako i dalje radiš **ručni Excel šifrarnik**:
 
 1. SAP izvozi CSV ovde → `sap-drop/incoming/`
-2. `npm run sap:csv-excel` — popuni `excel-rad/SPC_master_atributivne.xlsx`
-3. Ručni uvoz iz Excela u aplikaciji
+2. `npm run sap:csv-excel` — popuni `excel-rad/SPC_master_atributivne.xlsx` (legacy)
 
-Vidi `docs/obuka-paket/UPUTSTVO_SAP_CSV_EXCEL.md`.
+Za produkciju koristi **`erp-drop/incoming/`** — vidi [UPUTSTVO_SAP_ERP_DROP.md](../docs/obuka-paket/UPUTSTVO_SAP_ERP_DROP.md).
 
 ## Preporuka za go-live
 
