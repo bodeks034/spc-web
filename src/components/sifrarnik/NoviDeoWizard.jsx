@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  GLAVNI_UNOS_SHEET_TIP,
-  predlogNazivaSheeta,
-} from "../../lib/glavniUnosSheetTip.js";
+import { GLAVNI_UNOS_SHEET_TIP, filtrirajSheetovePoTipu, predlogNazivaSheeta } from "../../lib/glavniUnosSheetTip.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 
 const TIPOVI = [
@@ -14,6 +11,7 @@ const TIPOVI = [
 export default function NoviDeoWizard({
   C,
   sheetovi,
+  sheetKonfiguracije = [],
   onCancel,
   onKreirajSheet,
   onIzaberiSheet,
@@ -28,6 +26,7 @@ export default function NoviDeoWizard({
   const INP = inpStyle(C);
 
   const predlog = predlogNazivaSheeta(tip, erp, sheetovi);
+  const prikazSheetovi = filtrirajSheetovePoTipu(sheetovi, sheetKonfiguracije, tip, erp);
 
   const nastaviTip = () => {
     setSheetIme(predlog);
@@ -116,10 +115,15 @@ export default function NoviDeoWizard({
       {korak === 2 && (
         <>
           <div style={{ color: C.sivi, fontSize: 10, marginBottom: 8 }}>
-            Izaberi postojeći sheet ili kreiraj novi:
+            Izaberi postojeći sheet{erp ? ` (${erp})` : ""} ili kreiraj novi:
+            {erp && prikazSheetovi.length < sheetovi.length && (
+              <span style={{ display: "block", fontSize: 9, marginTop: 2 }}>
+                Prikazano {prikazSheetovi.length} od {sheetovi.length} (filtrirano po tipu/ERP)
+              </span>
+            )}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-            {sheetovi.map((s) => (
+            {prikazSheetovi.map((s) => (
               <button key={s} type="button" onClick={() => kreirajIliIzaberi(s)}
                 style={btnStyle(C, sheetIme === s ? C.plava : C.hover, { fontSize: 9 })}>
                 {s}

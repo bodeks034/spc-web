@@ -53,6 +53,15 @@ export function dimenzijaPoId(id, customSirinaMm = 90) {
   return { ...preset, ...parametriEtikete(sirina) };
 }
 
+/** Podrazumevani profil etikete po tip_kontrole dela. */
+export function podrazumevaniBarkodProfil(deo) {
+  const vozilo = (deo?.tip_kontrole || "deo") === "vozilo";
+  if (vozilo) {
+    return { format: "id", tipKoda: "qr", dimenzijaId: "100mm", customSirinaMm: "100" };
+  }
+  return { format: "id_rn", tipKoda: "oba", dimenzijaId: "58mm", customSirinaMm: "58" };
+}
+
 function dISO() {
   return new Date().toISOString().split("T")[0];
 }

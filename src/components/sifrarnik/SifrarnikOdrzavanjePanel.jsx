@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
+import { fetchDuplikatiKarakteristike } from "../../lib/sifrarnikOdrzavanje.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 
 async function countTable(table, filter = {}) {
@@ -14,18 +15,21 @@ async function countTable(table, filter = {}) {
 
 export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [podaci, setPodaci] = useState(null);
+  const [duplikati, setDuplikati] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
     try {
-      const [delovi, rnAktivni, merila, karakteristike] = await Promise.all([
+      const [delovi, rnAktivni, merila, karakteristike, dups] = await Promise.all([
         countTable("delovi"),
         countTable("radni_nalozi", { status: "aktivan" }),
         countTable("merila"),
         countTable("karakteristike_merljive"),
+        fetchDuplikatiKarakteristike(),
       ]);
       setPodaci({ delovi, rnAktivni, merila, karakteristike });
+      setDuplikati(dups.slice(0, 15));
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -39,7 +43,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
     { tab: "rn", label: "Radni nalozi", hint: "Proveri zastarele aktivne RN" },
     { tab: "merila", label: "Merila / kalibracija", hint: "Kalibracije pred istek" },
     { tab: "karakteristike", label: "Dimenzije (pregled)", hint: "Duplikati pogon + pozicija" },
-    { tab: "delovi", label: "Delovi (pregled)", hint: "Neaktivni / demo delovi" },
+    { tab: "delovi", label: "Delovi (pregled)", hint: "Status kompletnosti po delu" },
     { tab: "pogon_mapa", label: "Pogon mapa", hint: "Audit A–F pre go-live" },
     { tab: "glavni_unos", label: "Glavni unos", hint: "Novi delovi i propagacija" },
   ];
@@ -47,7 +51,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   return (
     <div>
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 12, lineHeight: 1.5 }}>
-        Mesečna provera šifrarnika — brzi pregled i prečice ka tabovima.
+        Mesečna provera šifrarnika — brojevi, duplikati dimenzija i prečice ka tabovima.
       </div>
 
       {loading ? (
@@ -78,6 +82,39 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
               <div style={{ color: C.tekst, fontSize: 18, fontWeight: 700 }}>{n}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {duplikati.length > 0 && (
+        <div style={{
+          marginBottom: 14,
+          padding: 10,
+          borderRadius: 8,
+          border: `1px solid ${C.narandzasta || "#f59e0b"}55`,
+          background: `${C.narandzasta || "#f59e0b"}10`,
+        }}
+        >
+          <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
+            Dupli pogon + pozicija ({duplikati.length}{duplikati.length >= 15 ? "+" : ""})
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 9, color: C.sivi, lineHeight: 1.5 }}>
+            {duplikati.map((d) => (
+              <li key={`${d.idDeo}-${d.pogon}-${d.pozicija}`}>
+                <strong style={{ color: C.plava }}>{d.idDeo}</strong>
+                {" · "}{d.pogon}/{d.pozicija} — {d.broj}×
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => onNavigate?.("karakteristike")}
+            style={{ ...btnStyle(C, C.hover, { marginTop: 8, fontSize: 9 }) }}>
+            Otvori dimenzije →
+          </button>
+        </div>
+      )}
+
+      {!loading && !duplikati.length && podaci && (
+        <div style={{ color: C.zelena, fontSize: 10, marginBottom: 12 }}>
+          ✓ Nema duplih kombinacija pogon + pozicija (u učitanom uzorku)
         </div>
       )}
 

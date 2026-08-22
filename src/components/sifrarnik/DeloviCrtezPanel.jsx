@@ -8,7 +8,9 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, tip_kontrole: "deo",
 };
 
-export default function DeloviCrtezPanel({ C, addToast }) {
+export default function DeloviCrtezPanel({
+  C, addToast, pocetniIdDeo, pocetniNavTs, otvoriFormu,
+}) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [forma, setForma] = useState(null);
@@ -29,6 +31,17 @@ export default function DeloviCrtezPanel({ C, addToast }) {
   }, [addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (!pocetniIdDeo) return;
+    setFilter(String(pocetniIdDeo).toUpperCase());
+    if (!otvoriFormu) return;
+    const id = String(pocetniIdDeo).toUpperCase();
+    const postojeci = lista.find((d) => d.id_deo === id);
+    setForma(postojeci
+      ? { ...postojeci, _postojeci: true }
+      : { ...PRAZAN, id_deo: id });
+  }, [pocetniNavTs, pocetniIdDeo, otvoriFormu, lista]);
 
   const snimi = async () => {
     if (!forma?.id_deo?.trim()) {
@@ -80,6 +93,15 @@ export default function DeloviCrtezPanel({ C, addToast }) {
         placeholder="Pretraga ID, naziv, slika…"
         style={{ ...INP, marginBottom: 10, width: "100%", maxWidth: 320 }}
       />
+      {forma && otvoriFormu && pocetniIdDeo && (
+        <div style={{
+          color: C.plava, fontSize: 10, marginBottom: 8, padding: 8,
+          background: `${C.plava}12`, borderRadius: 6,
+        }}
+        >
+          Upload crteža za <strong>{pocetniIdDeo}</strong> — iz checkliste posle objave.
+        </div>
+      )}
       {forma && (
         <FormGrid
           C={C}

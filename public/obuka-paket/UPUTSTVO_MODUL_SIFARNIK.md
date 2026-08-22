@@ -777,15 +777,17 @@ Operativno i dalje važi: mesečno proveri neaktivne RN, istekle kalibracije mer
 
 ## 17. Preporučeni sledeći koraci (opciono)
 
-| Prioritet | Predlog | Korist |
+| Prioritet | Predlog | Status |
 |-----------|---------|--------|
-| **1** | Odvojeni sheet-ovi `opsti_*`, `{erp}_delovi`, `{erp}_final` | Manje mešanja vozilo / opšti deo |
-| **2** | ERP CSV samo RN + master; dimenzije kroz Glavni unos | Jedan izvor granica |
-| **3** | U Održavanju: lista duplih `karakteristike_merljive` | Brži audit pre go-live |
-| **4** | Čarobnjak: filtrirati sheetove po ERP šifri vozila | Manje grešaka pri izboru sheeta |
-| **5** | Demo podaci: dugme „Očisti operativu“ u Admin (sa potvrdom) | Bez SQL Editora za inženjera |
-| **6** | Checklist → Crtež dela sa automatskim otvaranjem upload forme | Jedan klik manje |
-| **7** | Profil barkoda po tipu dela (deo vs vozilo) | Manje ručnog biranja na štampi |
+| **1** | Sheet-ovi `opsti_*`, `{erp}_delovi`, `{erp}_final` | ✓ predlog u čarobnjaku |
+| **2** | ERP samo RN/master; dimenzije kroz Glavni unos | ✓ banner u ERP uvoz |
+| **3** | Duplikati dimenzija u Održavanju | ✓ implementirano |
+| **4** | Čarobnjak filtrira sheetove po ERP | ✓ implementirano |
+| **5** | Admin „Očisti operativu“ | ✓ Admin panel (+ migracija 77) |
+| **6** | Checklist → Crtež upload forma | ✓ implementirano |
+| **7** | Barkod profil po tipu dela | ✓ implementirano |
+| **8** | Onboarding mod (sakrivanje tabova) | ✓ do 5 dimenzija |
+| **9** | Status badge na Delovima | ✓ Kompletan / Delimično |
 
 ---
 

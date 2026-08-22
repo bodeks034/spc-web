@@ -164,6 +164,15 @@ export default function ErpUvozPanel({ C, addToast }) {
         Direktan uvoz iz SAP / Pantheon CSV u Supabase — bez Excela. Konfiguracija:{" "}
         <code style={{ color: C.tekst }}>config/erp/</code>
       </p>
+      <div style={{
+        marginBottom: 14, padding: 10, borderRadius: 8,
+        border: `1px solid ${C.plava}44`, background: `${C.plava}10`, fontSize: 10,
+      }}
+      >
+        <strong style={{ color: C.tekst }}>Preporuka:</strong> ERP uvoz samo za{" "}
+        <strong>RN, delovi master, kupci</strong>. Dimenzije (LSL/USL) unosi isključivo kroz{" "}
+        <strong>Glavni unos → Objavi u šifrarnik</strong> — jedan izvor granica.
+      </div>
 
       <div style={CARD(C)}>
         <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 10, fontSize: 12 }}>

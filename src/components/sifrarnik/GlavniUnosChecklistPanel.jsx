@@ -45,6 +45,8 @@ export default function GlavniUnosChecklistPanel({
                 idDeo,
                 izCheckliste: true,
                 vozilo: analiza?.tip === GLAVNI_UNOS_SHEET_TIP.FINAL,
+                otvoriCrtezForm: s.id === "crtez",
+                otvoriBarkod: s.id === "barkod",
               })}
               style={{
                 background: "none",

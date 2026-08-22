@@ -604,6 +604,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         <NoviDeoWizard
           C={C}
           sheetovi={sheetovi}
+          sheetKonfiguracije={sheetKonfiguracije}
           onCancel={() => setWizardOtvoren(false)}
           onKreirajSheet={async (opts) => {
             const novi = await kreirajGlavniUnosSheet(opts);

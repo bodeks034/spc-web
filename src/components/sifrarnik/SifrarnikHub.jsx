@@ -50,7 +50,11 @@ import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
 
 import { fetchDeloviListaZaRn } from "../../lib/sifrarnikApi.js";
+import { supabase } from "../../lib/supabaseClient.js";
 import { useEkran } from "../../layout/useEkran.js";
+
+const ONBOARDING_KEY = "spc_sifrarnik_onboarding_off";
+const ONBOARDING_TABOVI = new Set(["glavni_unos", "pogon_mapa", "odrzavanje", "liste"]);
 
 
 
@@ -212,6 +216,8 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   const [navCtx, setNavCtx] = useState(null);
 
+  const [onboarding, setOnboarding] = useState(false);
+
   const [deloviZaRn, setDeloviZaRn] = useState([]);
 
 
@@ -220,11 +226,64 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
     setNavCtx({ ...ctx, ts: Date.now() });
 
-    if (ctx.idDeo) setIzabraniDeo({ id_deo: ctx.idDeo });
+    if (ctx.idDeo) {
+      setIzabraniDeo({
+        id_deo: ctx.idDeo,
+        tip_kontrole: ctx.vozilo ? "vozilo" : "deo",
+      });
+    }
 
     setPodtab(tab);
 
   }, []);
+
+
+
+  useEffect(() => {
+
+    if (localStorage.getItem(ONBOARDING_KEY)) return;
+
+    (async () => {
+
+      try {
+
+        const { count } = await supabase
+
+          .from("karakteristike_merljive")
+
+          .select("*", { count: "exact", head: true });
+
+        setOnboarding((count || 0) < 5);
+
+      } catch {
+
+        setOnboarding(false);
+
+      }
+
+    })();
+
+  }, []);
+
+
+
+  useEffect(() => {
+
+    if (!onboarding) return;
+
+    if (!ONBOARDING_TABOVI.has(podtab)) setPodtab("glavni_unos");
+
+  }, [onboarding, podtab]);
+
+
+
+  const iskljuciOnboarding = () => {
+
+    localStorage.setItem(ONBOARDING_KEY, "1");
+
+    setOnboarding(false);
+
+  };
 
 
 
@@ -260,6 +319,18 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
   const aktivnaGrupa = GRUPE.find((g) => g.tabovi.some(([id]) => id === podtab)) || GRUPE[0];
 
+  const prikazGrupe = onboarding
+
+    ? GRUPE.map((g) => ({
+
+      ...g,
+
+      tabovi: g.tabovi.filter(([id]) => ONBOARDING_TABOVI.has(id)),
+
+    })).filter((g) => g.tabovi.length)
+
+    : GRUPE;
+
 
 
   return (
@@ -294,6 +365,40 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       )}
 
+      {onboarding && (
+
+        <div style={{
+
+          marginBottom: 10, padding: "10px 12px", borderRadius: 8, flexShrink: 0,
+
+          border: `1px solid ${C.plava}55`, background: `${C.plava}12`,
+
+          color: C.tekst, fontSize: 10, lineHeight: 1.45,
+
+        }}>
+
+          <strong>Prvi korak:</strong> Modul 0 → <strong>Glavni unos</strong> →{" "}
+
+          <strong>+ Novi deo</strong> → popuni → <strong>Objavi u šifrarnik</strong>.
+
+          {" "}
+
+          Ostali tabovi su sakriveni dok ne objaviš prvih dimenzija.
+
+          {" "}
+
+          <button type="button" onClick={iskljuciOnboarding}
+
+            style={{ background: "none", border: "none", color: C.plava, cursor: "pointer", fontWeight: 700, padding: 0 }}>
+
+            Prikaži sve tabove
+
+          </button>
+
+        </div>
+
+      )}
+
       <div style={{ marginBottom: 12, flexShrink: 0 }}>
 
         <div style={{ color: C.tekst, fontSize: 15, fontWeight: 700, letterSpacing: 0.5 }}>
@@ -314,7 +419,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       <div style={{ display: "flex", gap: 12, marginBottom: 8, flexShrink: 0, flexWrap: "wrap" }}>
 
-        {GRUPE.map((g) => (
+        {prikazGrupe.map((g) => (
 
           <button
 
@@ -360,7 +465,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       }}>
 
-        {(GRUPE.find((g) => g.id === aktivnaGrupa.id)?.tabovi || SVI_TABOVI).map(([id, naziv]) => (
+        {(prikazGrupe.find((g) => g.id === aktivnaGrupa.id)?.tabovi || prikazGrupe[0]?.tabovi || []).map(([id, naziv]) => (
 
           <button
 
@@ -453,7 +558,15 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
           />
         )}
 
-        {podtab === "delovi_atr" && <DeloviCrtezPanel C={C} addToast={addToast} />}
+        {podtab === "delovi_atr" && (
+          <DeloviCrtezPanel
+            C={C}
+            addToast={addToast}
+            pocetniIdDeo={navCtx?.idDeo}
+            pocetniNavTs={navCtx?.ts}
+            otvoriFormu={navCtx?.otvoriCrtezForm}
+          />
+        )}
 
         {podtab === "pogon_atr" && <PogonAtributivniPanel C={C} addToast={addToast} />}
 

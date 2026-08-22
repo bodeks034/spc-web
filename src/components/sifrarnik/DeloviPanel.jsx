@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchDelovi, upsertDeo } from "../../lib/sifrarnikApi.js";
 import { fetchGlavniUnosBrojeviPoDeo } from "../../lib/glavniUnosApi.js";
+import {
+  fetchGreskeBrojeviPoDeo,
+  fetchBarkodProfiliSet,
+  statusDeoUSifrarniku,
+  STATUS_DEO_LABEL,
+} from "../../lib/sifrarnikOdrzavanje.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
@@ -12,6 +18,8 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guBrojevi, setGuBrojevi] = useState({});
+  const [greskeBrojevi, setGreskeBrojevi] = useState({});
+  const [barkodSet, setBarkodSet] = useState(new Set());
   const [tipFilter, setTipFilter] = useState("svi");
   const [filter, setFilter] = useState("");
   const [forma, setForma] = useState(null);
@@ -32,10 +40,24 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   useEffect(() => { ucitaj(); }, [ucitaj]);
 
   useEffect(() => {
-    fetchGlavniUnosBrojeviPoDeo()
-      .then(setGuBrojevi)
+    Promise.all([
+      fetchGlavniUnosBrojeviPoDeo(),
+      fetchGreskeBrojeviPoDeo(),
+      fetchBarkodProfiliSet(),
+    ])
+      .then(([gu, gr, bk]) => {
+        setGuBrojevi(gu);
+        setGreskeBrojevi(gr);
+        setBarkodSet(bk);
+      })
       .catch((e) => addToast?.(e.message, "greska"));
   }, [addToast, lista.length]);
+
+  const bojaStatus = (key) => {
+    if (key === "zelena") return C.zelena;
+    if (key === "narandzasta") return C.narandzasta || "#f59e0b";
+    return C.sivi;
+  };
 
   const snimi = async () => {
     if (!forma?.id_deo?.trim()) {
@@ -148,21 +170,37 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
-            display: "grid", gridTemplateColumns: "100px 1fr 80px 70px 80px 56px 70px",
+            display: "grid", gridTemplateColumns: "100px 1fr 72px 80px 70px 80px 56px 70px",
             background: C.hover, padding: "8px 10px", fontSize: 9, color: C.sivi, gap: 8,
           }}>
-            <span>ID</span><span>NAZIV</span><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span><span />
+            <span>ID</span><span>NAZIV</span><span>STATUS</span><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span><span />
           </div>
           {!prikaz.length ? (
             <div style={{ padding: 20, textAlign: "center", color: C.border, fontSize: 11 }}>Nema delova</div>
-          ) : prikaz.map((d, i) => (
+          ) : prikaz.map((d, i) => {
+            const st = statusDeoUSifrarniku(d, {
+              guBroj: guBrojevi[d.id_deo] || 0,
+              greskeBroj: greskeBrojevi[d.id_deo] || 0,
+              imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
+            });
+            const stMeta = STATUS_DEO_LABEL[st];
+            return (
             <div key={d.id_deo} style={{
-              display: "grid", gridTemplateColumns: "100px 1fr 80px 70px 80px 56px 70px",
+              display: "grid", gridTemplateColumns: "100px 1fr 72px 80px 70px 80px 56px 70px",
               padding: "8px 10px", borderTop: i ? `1px solid ${C.border}` : "none", fontSize: 11, gap: 8, alignItems: "center",
               opacity: d.aktivan === false ? 0.55 : 1,
             }}>
               <span style={{ fontWeight: 700, color: C.plava }}>{d.id_deo}</span>
               <span>{d.naziv_dela}</span>
+              <span style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: bojaStatus(stMeta.boja),
+              }}
+              title={st === "kompletan" ? "GU + greške + crtež/barkod" : st === "delimicno" ? "Nedostaje deo checkliste" : "Samo u delovi — propagiraj iz GU"}
+              >
+                {stMeta.label}
+              </span>
               <span style={{ color: C.sivi, fontSize: 10 }}>{d.tip_kontrole || "deo"}</span>
               <span style={{ color: C.sivi, fontSize: 10 }}>{d.sifra_vozila || "—"}</span>
               <span style={{ color: C.sivi }}>{d.kom_za_kontrolu ?? "—"}</span>
@@ -186,7 +224,8 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <div style={{ color: C.sivi, fontSize: 9, marginTop: 8 }}>{prikaz.length} / {lista.length} · tabela delovi</div>

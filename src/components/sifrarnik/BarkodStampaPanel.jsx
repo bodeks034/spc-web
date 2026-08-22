@@ -5,6 +5,7 @@ import {
 import {
   BARKOD_FORMATI, TIPOVI_KODA, ETIKETA_DIMENZIJE, dimenzijaPoId,
   buildSadrzajBarkoda, generisiEtiketaSlike, etiketaHtmlBlok, stampajEtikete,
+  podrazumevaniBarkodProfil,
 } from "../../lib/barkodEtiketa.js";
 import { useEkran } from "../../layout/useEkran.js";
 
@@ -44,6 +45,11 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
     if (pocetniDeo?.id_deo) {
       setDeo(pocetniDeo);
       setIdDeo(pocetniDeo.id_deo);
+      const p = podrazumevaniBarkodProfil(pocetniDeo);
+      setFormat(p.format);
+      setTipKoda(p.tipKoda);
+      setDimenzijaId(p.dimenzijaId);
+      setCustomSirinaMm(p.customSirinaMm);
     }
   }, [pocetniDeo]);
 
@@ -85,7 +91,15 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
 
   const izaberiDeo = (val) => {
     setIdDeo(val);
-    setDeo(delovi.find((d) => d.id_deo === val) || null);
+    const d = delovi.find((x) => x.id_deo === val) || null;
+    setDeo(d);
+    if (d) {
+      const p = podrazumevaniBarkodProfil(d);
+      setFormat(p.format);
+      setTipKoda(p.tipKoda);
+      setDimenzijaId(p.dimenzijaId);
+      setCustomSirinaMm(p.customSirinaMm);
+    }
   };
 
   const sacuvajProfil = async () => {

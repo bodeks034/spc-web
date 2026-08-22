@@ -60,6 +60,27 @@ export function predlogNazivaSheeta(tipSheeta, sifraVozila, postojeciSheetovi = 
   return `opsti_${n}`;
 }
 
+/** Sheetovi koji odgovaraju tipu / ERP u čarobnjaku. */
+export function filtrirajSheetovePoTipu(sheetovi, konfiguracije, tipSheeta, sifraVozila = "") {
+  const erp = String(sifraVozila || "").trim().toUpperCase();
+  return (sheetovi || []).filter((naziv) => {
+    const konfig = (konfiguracije || []).find((r) => r.naziv === naziv);
+    const analiza = analizaSheeta([], { ...konfig, naziv });
+    if (tipSheeta === GLAVNI_UNOS_SHEET_TIP.OPSTI) {
+      return analiza.tip === GLAVNI_UNOS_SHEET_TIP.OPSTI;
+    }
+    if (tipSheeta === GLAVNI_UNOS_SHEET_TIP.FINAL) {
+      return analiza.tip === GLAVNI_UNOS_SHEET_TIP.FINAL
+        && (!erp || analiza.sifra_vozila === erp);
+    }
+    if (tipSheeta === GLAVNI_UNOS_SHEET_TIP.PROJEKAT) {
+      return analiza.tip === GLAVNI_UNOS_SHEET_TIP.PROJEKAT
+        && (!erp || analiza.sifra_vozila === erp);
+    }
+    return true;
+  });
+}
+
 /** Poruka posle propagacije — šta još ručno. */
 export function checklistPoslePropagacije(analiza) {
   const zajednicko = [
