@@ -1,0 +1,14 @@
+﻿id_deo,pogon_kod,pozicija,sifra_merenja,sifra_karakteristike,sifra_operacije,sifra_merila,naziv_mere,nominala,lsl,usl,jedinica,merni_instrument,kriticna_karakteristika,klasa,revizija,napomena
+RTB-001,B,CC-01,CC-01,CC-01,OP-PRES,CMM-01,Razmak montaznih otvora,620,619.8,620.2,mm,CMM,da,CTQ,0,Crtez + CTQ
+RTB-001,B,CC-02,CC-02,CC-02,OP-PRES,GNG-14,Precnik otvora,14,14,14.18,mm,GO/NO GO cep + CMM,da,CTQ,0,Crtez + CTQ
+RTB-001,B,CC-03,CC-03,CC-03,OP-PRES,VIS-01,Visina savijanja,45,44.7,45.3,mm,Digitalni visinomer,da,CTQ,0,Crtez + CTQ
+RTB-001,B,CC-04,CC-04,CC-04,OP-PRES,UGL-01,Ugao savijanja,90.0,89.5,90.5,stepen,Digitalni uglomer,da,CTQ,0,Crtez + CTQ
+RTB-001,B,CC-05,CC-05,CC-05,OP-PRES,SAT-01,Ravnost,0,,0.8,mm,Granitna ploca + merni sat,da,CTQ,0,Crtez + CTQ
+RTB-001,B,CC-06,CC-06,CC-06,OP-PRES,MIK-01,Debljina lima,4,3.85,4.15,mm,Digitalni mikrometar,da,CTQ,0,Crtez + CTQ
+RTB-001,A,A-DEBLJ,A-DEBLJ,A-DEBLJ,OP-ULAZ,MIK-01,Debljina lima (ulazna),4,3.85,4.15,mm,Mikrometar,da,SPC,0,Ulazna kontrola
+RTB-001,A,A-TVRD,A-TVRD,A-TVRD,OP-ULAZ,TVR-01,Tvrdoca,170,160,180,HB,Tvrdomer,ne,SPC,0,Ulazna kontrola
+RTB-001,B,B-RAD,B-RAD,B-RAD,OP-PRES,SAB-R6,Radijus savijanja,6,5.5,6.5,mm,Sablon radijusa,ne,SPC,0,Preseraj
+RTB-001,C,C-POZ,C-POZ,C-POZ,OP-KARO,CMM-01,Pozicija nosaca,0,-0.5,0.5,mm,CMM,da,SPC,0,Karoserija
+RTB-001,C,C-PAR,C-PAR,C-PAR,OP-KARO,CMM-01,Paralelnost,0,,0.5,mm,CMM,da,SPC,0,Karoserija
+RTB-001,C,C-ZAZ,C-ZAZ,C-ZAZ,OP-KARO,ZAZ-01,Zazor prema rezervoaru,10,9.5,10.5,mm,Merac zazora,da,SPC,0,Karoserija
+RTB-001,F,F-PREM,F-PREM,F-PREM,OP-ZAVR,PRE-01,Debljina premaza,80,60,100,um,Merac premaza,da,SPC,0,Zavrsna kontrola

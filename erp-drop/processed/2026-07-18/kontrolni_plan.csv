@@ -1,0 +1,8 @@
+SifraDela,Revizija,SifraOperacije,SifraKarakteristike,NazivKarakteristike,VelicinaUzorka,Ucestalost,ReakcioniPlan,OdgovornoLice
+RTB-001,0,OP-PRES,CC-01,Razmak montaznih otvora,5,svaka smena,Zaustavi proces i izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-02,Precnik otvora,5,svaka smena,GO/NO GO + CMM potvrda; izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-03,Visina savijanja,5,svaka smena,Podesi alat i ponovi merenje,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-04,Ugao savijanja,5,svaka smena,Podesi savijanje; izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-05,Ravnost,3,svaka smena,Ispravi ravnost / izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-ULAZ,CC-06,Debljina lima,5,svaki LOT materijala,Odbij ulazni lim; obavesti nabavku,Kontrolor Ulazna
+RTB-001,0,OP-ZAVR,F-PREM,Debljina premaza,5,svaka smena,Vrati na plastifikaciju,Kontrolor Zavrsna

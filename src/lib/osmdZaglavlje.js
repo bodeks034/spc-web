@@ -14,7 +14,9 @@ export const BEZBEDNOST_OPCIJE = [
 ];
 
 export const ZAGLAVLJE_8D_POLJA = [
-  { key: "broj_8d", label: "Broj 8D izveštaja", ph: "npr. 2026-REK-042", type: "text" },
+  { key: "broj_8d", label: "Broj 8D izveštaja", ph: "npr. 8D-NM-001", type: "text", readOnly: true },
+  { key: "broj_pfmea", label: "Broj PFMEA", ph: "npr. PFMEA-NM-001", type: "text", readOnly: true },
+  { key: "broj_control_plan", label: "Broj Control Plan", ph: "npr. CP-NM-001", type: "text", readOnly: true },
   { key: "broj_reklamacije", label: "Broj reklamacije kupca", ph: "npr. NCR-99381", type: "text" },
   { key: "kupac_ime_id", label: "Ime / ID kupca", ph: "npr. AutoKomponente d.o.o. (Kupac ID: 4402)", type: "text" },
   { key: "kupac_lokacija", label: "Lokacija kupca", ph: "Fabrika / grad / adresa…", type: "text" },
@@ -86,16 +88,17 @@ function vrednostPolja(key, izv) {
 }
 
 /** HTML tabela zaglavlja za PDF / štampu. */
-export function formatZaglavljeHtml(izv, { statusHtml = "" } = {}) {
+export function formatZaglavljeHtml(izv, { statusHtml = "", prazanSablon = false } = {}) {
+  const praznaCelija = '<span class="prazno-linija">&nbsp;</span>';
   const redovi = ZAGLAVLJE_8D_POLJA.map((p) => {
-    const v = vrednostPolja(p.key, izv);
-    return `<tr><th>${esc(p.label)}</th><td>${v ? esc(v) : '<span class="empty">—</span>'}</td></tr>`;
+    const v = prazanSablon ? "" : vrednostPolja(p.key, izv);
+    return `<tr><th>${esc(p.label)}</th><td>${prazanSablon ? praznaCelija : (v ? esc(v) : '<span class="empty">—</span>')}</td></tr>`;
   }).join("");
 
-  const defekt = String(izv?.defekt_nedostatak ?? "").trim();
+  const defekt = prazanSablon ? "" : String(izv?.defekt_nedostatak ?? "").trim();
   const defektRed = defekt
     ? `<tr><th>${esc("Defekt / nedostatak")}</th><td>${esc(defekt)}</td></tr>`
-    : "";
+    : (prazanSablon ? `<tr><th>${esc("Defekt / nedostatak")}</th><td>${praznaCelija}</td></tr>` : "");
 
   const interni = [];
   if (izv?.id_deo) interni.push(["Interni ID dela (SPC)", izv.id_deo]);

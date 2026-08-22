@@ -320,12 +320,20 @@ export async function dodajPfmeaCpUSadrzajPdf(pdf, doc, { naslovPaketa, novaStra
   return pdf;
 }
 
-export async function exportPfmeaCpPdf(doc, { preuzmi = true, imeFajla } = {}) {
+export async function exportPfmeaCpPdf(doc, { preuzmi = true, imeFajla, syncFolder = true, onFolderSync } = {}) {
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   await dodajPfmeaCpUSadrzajPdf(pdf, doc, { naslovPaketa: "PFMEA / Control Plan", novaStrana: false });
 
   const fname = (imeFajla || doc.naziv || "PFMEA_ControlPlan").replace(/[^\w\s\-./čćšđžČĆŠĐŽ]+/g, "_").slice(0, 80);
-  if (preuzmi) pdf.save(fname.endsWith(".pdf") ? fname : `${fname}.pdf`);
+  const filename = fname.endsWith(".pdf") ? fname : `${fname}.pdf`;
+
+  if (preuzmi || syncFolder) {
+    const { syncPdfUKvalitetFolder } = await import("./kvalitetFolderIzvoz.js");
+    const { putanjaPfmeaPdf } = await import("./kvalitetFolderStruktura.js");
+    const pogon = doc.pogon || doc.proces || doc.naziv || "Nepoznat";
+    const folderDir = putanjaPfmeaPdf(pogon, filename).replace(/\/[^/]+$/, "");
+    await syncPdfUKvalitetFolder(pdf, filename, folderDir, { syncFolder, preuzmi, onFolderSync });
+  }
   return pdf;
 }
 

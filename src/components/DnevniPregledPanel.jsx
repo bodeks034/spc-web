@@ -32,10 +32,10 @@ export default function DnevniPregledPanel({
     else onOtvoriModul?.(modul === "atributivne" ? "atributivne" : "varijabilne");
   };
 
-  const kpi = (label, v, boja = C.tekst, onClick = null, title = null) => (
+  const metrika = (label, v, boja = C.tekst, onClick = null, title = null, testId = null) => (
     <button
       type="button"
-      data-testid={`dnevni-kpi-${label.toLowerCase().replace(/\s+/g, "-")}`}
+      data-testid={testId || `dnevni-metrika-${label.toLowerCase().replace(/\s+/g, "-")}`}
       title={title || undefined}
       onClick={onClick || undefined}
       disabled={!onClick}
@@ -72,7 +72,7 @@ export default function DnevniPregledPanel({
         <div>
           <div style={{ color: C.tekst, fontSize: 12, fontWeight: 700 }}>PREDAJA SMENE · DANAS</div>
           <div style={{ color: C.sivi, fontSize: 9, marginTop: 2 }}>
-            Smena, pogoni, PDF · KPI i alarmi (klik otvara modul)
+            Smena, pogoni, PDF · kvalitet i alarmi (klik otvara modul)
           </div>
         </div>
         <button
@@ -96,40 +96,57 @@ export default function DnevniPregledPanel({
         kompaktan
       />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-        {kpi(
+      <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8, marginTop: 10, marginBottom: 4 }}>
+        KVALITET · KPI
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {metrika(
           "FPY danas",
           pod?.fpy != null ? `${pod.fpy}%` : "—",
           bojaFpyKpi(pod?.fpy, C),
           onOtvoriTab || onOtvoriModul ? () => otvoriTab("pregled", "atributivne") : null,
+          null,
+          "dnevni-kpi-fpy-danas",
         )}
-        {kpi(
-          "OEE",
-          pod?.oee != null ? `${pod.oee}%` : "—",
-          C.tekst,
-          onOtvoriTab || onOtvoriModul ? () => otvoriTab("oee", "varijabilne") : null,
+        {metrika(
+          "RTY",
+          pod?.rty != null ? `${pod.rty}%` : "—",
+          C.narandzasta || C.tekst,
+          onOtvoriTab || onOtvoriModul ? () => otvoriTab("pregled", "atributivne") : null,
+          null,
+          "dnevni-kpi-rty",
         )}
-        {kpi(
+        {metrika(
           "Škart KPI",
           pod?.skart ?? 0,
           (pod?.skart || 0) > 0 ? C.crvena : C.tekst,
           imaKpi && onKpiDorada
             ? () => onKpiDorada({ modul: "merljive", datum: pod?.danas })
             : imaKpi && (onOtvoriTab || onOtvoriModul)
-              ? () => otvoriTab("oee", "varijabilne")
+              ? () => otvoriTab("pregled", "varijabilne")
               : null,
+          null,
+          "dnevni-kpi-skart-kpi",
         )}
-        {kpi(
+        {metrika(
           "Dorada KPI",
           pod?.dorada ?? 0,
           (pod?.dorada || 0) > 0 ? C.narandzasta || C.zuta : C.tekst,
           imaKpi && onKpiDorada
             ? () => onKpiDorada({ modul: "merljive", datum: pod?.danas })
             : imaKpi && (onOtvoriTab || onOtvoriModul)
-              ? () => otvoriTab("oee", "varijabilne")
+              ? () => otvoriTab("pregled", "varijabilne")
               : null,
+          null,
+          "dnevni-kpi-dorada-kpi",
         )}
-        {kpi(
+      </div>
+
+      <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8, marginTop: 10, marginBottom: 4 }}>
+        ALARMI · MERILA
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {metrika(
           "SPC alarmi",
           pod?.spcAlarmi?.length ?? 0,
           (pod?.spcAlarmi?.length || 0) > 0 ? C.crvena : C.zelena,
@@ -137,7 +154,7 @@ export default function DnevniPregledPanel({
             ? () => otvoriTab("odobrenja", "atributivne")
             : null,
         )}
-        {kpi(
+        {metrika(
           "NCR otvoreni",
           pod?.ncrOtvoreni?.length ?? 0,
           (pod?.ncrOtvoreni?.length || 0) > 0 ? C.narandzasta || C.zuta : C.tekst,
@@ -146,7 +163,7 @@ export default function DnevniPregledPanel({
             : null,
           NCR_CAPA_TOOLTIP,
         )}
-        {kpi(
+        {metrika(
           "Eskalacije",
           pod?.eskOtvorene ?? 0,
           (pod?.eskOtvorene || 0) > 0 ? C.crvena : C.tekst,
@@ -154,19 +171,13 @@ export default function DnevniPregledPanel({
             ? () => otvoriTab("eskalacije", "atributivne")
             : null,
         )}
-        {kpi(
+        {metrika(
           "Kal / MSA",
           imaKal ? `${pod.merilaIstekla || 0} / ${pod.kalUpozorenja || 0}` : "OK",
           imaKal ? C.zuta : C.zelena,
           imaKal && (onOtvoriTab || onOtvoriModul)
             ? () => otvoriTab("msa", "varijabilne")
             : null,
-        )}
-        {kpi(
-          "Moment % OK",
-          pod?.momentPctOk != null ? `${pod.momentPctOk}%` : "—",
-          undefined,
-          onOtvoriModul ? () => onOtvoriModul("varijabilne") : null,
         )}
       </div>
 
@@ -256,7 +267,7 @@ export default function DnevniPregledPanel({
       </div>
 
       <div style={{ marginTop: 8, fontSize: 9, color: C.sivi }}>
-        Klik na KPI otvara odgovarajući modul/tab · osvežava se na zahtev.
+        Klik otvara odgovarajući modul/tab · osvežava se na zahtev.
         {korisnik?.uloga && ` · ${korisnik.uloga}`}
       </div>
     </div>

@@ -202,8 +202,10 @@ async function kreirajPdf(lista, opts = {}) {
 }
 
 export async function preuzmiFaiPdf(lista, opts = {}) {
-  const { pdf, filename } = await kreirajPdf(lista, opts);
-  pdf.save(filename);
+  const { syncFolder = true, onFolderSync, ...rest } = opts;
+  const { pdf, filename } = await kreirajPdf(lista, rest);
+  const { syncOperativaPdf } = await import("./kvalitetFolderIzvoz.js");
+  await syncOperativaPdf(pdf, filename, "fai", { syncFolder, onFolderSync });
   return filename;
 }
 

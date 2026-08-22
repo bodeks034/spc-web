@@ -23,10 +23,16 @@ describe("uputstvoKatalog", () => {
     expect(d.some((x) => x.id === "inzenjer-modul2")).toBe(false);
   });
 
-  it("kontrolor vidi isto što i operator", () => {
-    const op = dokumentiZaUlogu("operator").map((x) => x.id);
+  it("kontrolor vidi obuku Modul 1 i NCR radno uputstvo", () => {
     const ko = dokumentiZaUlogu("kontrolor").map((x) => x.id);
-    expect(ko).toEqual(op);
+    expect(ko).toContain("operater-modul1");
+    expect(ko).toContain("ncr-8d-pfmea-cp");
+    expect(ko).toContain("ncr-8d-pfmea-cp-html");
+  });
+
+  it("kontrolor vidi NCR/8D radno uputstvo", () => {
+    const d = dokumentiZaUlogu("kontrolor");
+    expect(d.some((x) => x.id === "ncr-8d-pfmea-cp")).toBe(true);
   });
 
   it("kvalitet vidi inzenjer modul2 kao HTML", () => {

@@ -196,7 +196,7 @@ export function sagrupisiLanacProizvodnje({ merenja = [], kpi = [], log = [], mo
       operacija: "KPI unos",
       alat: "—",
       operater: k.kontrolor || "—",
-      detalj: `OEE ${k.oee_pct ?? "—"}% · škart ${k.skart_kom || 0}`,
+      detalj: `škart ${k.skart_kom || 0} · dorada ${k.dorada_kom || 0}`,
       sesija: k.sesija_id || null,
       vin: k.serija || null,
     });
@@ -509,7 +509,10 @@ export async function preuzmiTrasabilitetPdfPoLotu(podaci, lot) {
       fokusKomad: komad,
     },
   );
-  pdf.save(`ISO_trasabilitet_${safeLotIme(lotQ)}_${podaci.idDeo}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  const filename = `ISO_trasabilitet_${safeLotIme(lotQ)}_${podaci.idDeo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  const { syncOperativaPdf } = await import("./kvalitetFolderIzvoz.js");
+  await syncOperativaPdf(pdf, filename, "trasabilitet", { syncFolder: true });
+  return filename;
 }
 
 export async function generisiTrasabilitetPdfBufferPoLotu(podaci, lot) {
@@ -698,5 +701,11 @@ export async function preuzmiTrasabilitetPdf(podaci, C) {
   }
 
   dodajPdfBrendPodnozje(pdf);
-  pdf.save(`TRI-CORE_trasabilitet_${podaci.idDeo}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  const filename = `TRI-CORE_trasabilitet_${podaci.idDeo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  const { syncOperativaPdf } = await import("./kvalitetFolderIzvoz.js");
+  await syncOperativaPdf(pdf, filename, "trasabilitet", {
+    syncFolder: C?.syncFolder !== false,
+    onFolderSync: C?.onFolderSync,
+  });
+  return filename;
 }

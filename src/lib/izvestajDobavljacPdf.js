@@ -96,7 +96,7 @@ function pdfFotoNokGalerija(pdf, y, kontrole = []) {
   return y + 2;
 }
 
-export async function preuzmiIzvestajDobavljacPdf(podaci) {
+export async function kreirajIzvestajDobavljacPdf(podaci) {
   const jspdfMod = await import("jspdf");
   const jsPDF = jspdfMod.jsPDF ?? jspdfMod.default;
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -166,7 +166,15 @@ export async function preuzmiIzvestajDobavljacPdf(podaci) {
 
   dodajPdfBrendPodnozje(pdf);
   const filename = `TRI-CORE_Izvestaj_dobavljac_${safeIme(d.sifra_dobavljaca)}_${new Date().toISOString().slice(0, 10)}.pdf`;
-  pdf.save(filename);
+  return { pdf, filename };
+}
+
+export async function preuzmiIzvestajDobavljacPdf(podaci, options = {}) {
+  const { syncFolder = true, onFolderSync } = options;
+  const { pdf, filename } = await kreirajIzvestajDobavljacPdf(podaci);
+  const { syncPdfUKvalitetFolder } = await import("./kvalitetFolderIzvoz.js");
+  const { FOLDER_DOBAVLJAC } = await import("./kvalitetFolderStruktura.js");
+  await syncPdfUKvalitetFolder(pdf, filename, FOLDER_DOBAVLJAC, { syncFolder, onFolderSync });
   return filename;
 }
 

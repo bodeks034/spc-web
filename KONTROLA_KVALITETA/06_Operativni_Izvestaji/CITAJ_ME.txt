@@ -1,0 +1,3 @@
+06_Operativni_Izvestaji
+
+Operativni PDF arhiv (Smena, Trasabilitet, OEE, FAI, Eskalacije, NCR PDF).

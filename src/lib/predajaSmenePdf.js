@@ -91,7 +91,6 @@ function pdfModulStatBlok(pdf, y, naslov, pod) {
     const k = pod.skartKpi;
     let kpiLn = `Škart KPI: ${k.skart || 0} · Dorada: ${k.dorada || 0}`;
     if (k.planirano) kpiLn += ` · Plan: ${k.planirano}`;
-    if (k.oee != null) kpiLn += ` · OEE: ${k.oee}%`;
     y = pdfRed(pdf, y, kpiLn, { indent: 4 });
   }
   if (pod.topNok?.length) {
@@ -364,7 +363,7 @@ async function fetchPredajaPodataka(supabase, { datum, smena, modul, linija = nu
 
   try {
     const { data: kpi } = await supabase.from("kpi_unos")
-      .select("ukupno_kom,skart_kom,dorada_kom,oee,planirano_kom")
+      .select("ukupno_kom,skart_kom,dorada_kom,planirano_kom")
       .eq("datum", datum).eq("smena", sm).eq("modul", modul);
     if (kpi?.length) {
       const agg = kpi.reduce((acc, r) => {
@@ -372,15 +371,8 @@ async function fetchPredajaPodataka(supabase, { datum, smena, modul, linija = nu
         acc.skart = (acc.skart || 0) + (r.skart_kom || 0);
         acc.dorada = (acc.dorada || 0) + (r.dorada_kom || 0);
         acc.planirano = (acc.planirano || 0) + (r.planirano_kom || 0);
-        if (r.oee != null) {
-          acc.oeeSum = (acc.oeeSum || 0) + Number(r.oee);
-          acc.oeeN = (acc.oeeN || 0) + 1;
-        }
         return acc;
       }, {});
-      if (agg.oeeN > 0) {
-        agg.oee = +((agg.oeeSum / agg.oeeN).toFixed(1));
-      }
       out.skartKpi = agg;
     }
   } catch { /* */ }
@@ -611,7 +603,8 @@ export async function generisiPredajaSmenePdf(supabase, {
       );
       return;
     }
-    built.pdf.save(built.filename);
+    const { syncOperativaPdf } = await import("./kvalitetFolderIzvoz.js");
+    await syncOperativaPdf(built.pdf, built.filename, "smena", { syncFolder: true });
     addToast?.("✓ PDF predaja smene", "uspeh");
   } catch (e) {
     console.error("generisiPredajaSmenePdf", e);
@@ -671,7 +664,8 @@ export async function generisiPredajaSmenePdfPogon(supabase, {
       );
       return;
     }
-    built.pdf.save(built.filename);
+    const { syncOperativaPdf } = await import("./kvalitetFolderIzvoz.js");
+    await syncOperativaPdf(built.pdf, built.filename, "smena", { syncFolder: true });
     addToast?.("✓ PDF predaja smene — ceo pogon", "uspeh");
   } catch (e) {
     console.error("generisiPredajaSmenePdfPogon", e);

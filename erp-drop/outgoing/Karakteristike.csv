@@ -1,0 +1,47 @@
+﻿SifraKarakteristike,SifraDela,Revizija,SifraOperacije,NazivKarakteristike,TipKarakteristike,Nominal,LSL,USL,JedinicaMere,SifraMerila,KriticnaKarakteristika
+B,5501-A,0,,3,Merljiva,3.15,3.15,2.85,mm,Pomicno merilo,ne
+A,5501-A,0,,12,Merljiva,12.3,12.3,11.7,mm,Dubinsko pomicno merilo,ne
+1,5501-A,0,,3,Merljiva,3.15,3.15,2.85,mm,Pomicno merilo,ne
+D1,5502-A,0,,Prečnik 1,Merljiva,10,9.8,10.2,mm,Šubler,ne
+D2,5502-A,0,,Dužina,Merljiva,25,24.9,25.1,mm,Šubler,ne
+7,5502-A,0,,Čistoća dela,Atributivna,,,,-,Operater,ne
+1,5502-A,0,,Čistoća dela,Atributivna,,,,-,Operater,ne
+3,5502-A,0,,Desni žljeb dužina,Merljiva,124,123.8,124.2,mm,Šubler,ne
+6,5502-A,0,,Faza 1.5x45°,Merljiva,1.5,1.3,1.7,mm,Šubler,ne
+5,5502-A,0,,Koncentričnost Ø47 prema A-B,Merljiva,0,,0.02,mm,Komparator,ne
+2,5502-A,0,,Levi žljeb dužina,Merljiva,58,57.8,58.2,mm,Šubler,ne
+4,5502-A,0,,Paralelnost A-B,Merljiva,0,,0.05,mm,Komparator,ne
+B,5503-A,0,,2.5,Merljiva,2.6,2.6,2.4,mm,Pomicno merilo,ne
+1,5503-A,0,,2.5,Merljiva,2.6,2.6,2.4,mm,Pomicno merilo,ne
+A,5503-A,0,,8,Merljiva,8.2,8.2,7.8,mm,Dubinsko pomicno merilo,ne
+1,DEM0-NM-001,0,,Visina savijanja,Merljiva,1100000,993000,1103000,stepen,Pomično merilo,ne
+1,DEMO-001,0,,Oštećenje površine,Atributivna,,,,mm,Vizuelno,ne
+2,DEMO-001,0,,Pozicija rupe X,Merljiva,45,44.8,45.2,mm,Koordinatni merni sistem,ne
+1,DEMO-5502,0,,Oštećenje površine,Atributivna,,,,mm,Vizuelno,ne
+1,DEMO-NM-001,0,,Pravougaonost,Merljiva,900000,440000,444444,stepen,Uglomer,ne
+1,DEMO-NM-002,0,,Visina savijanja,Merljiva,900000,893000,903000,stepen,Uglomer,ne
+1,HAM-001,0,,Finalna vizuelna kontrola celog vozila,Atributivna,,,,mm,Vizuelno,ne
+1,HAM-NM-001,0,,K3 Debljina materijala,Merljiva,4,3.9,4.1,mm,Mikrometar 0-25mm,ne
+1,MRAP-001,0,,Finalna vizuelna kontrola celog vozila,Atributivna,,,,mm,Vizuelno,ne
+1,NM-001,0,,Debljina lima,Merljiva,10,9.8,10.2,mm,Mikrometar,ne
+2,NM-001,0,,Ø17 rupe (4 kom),Merljiva,17,16.8,17.2,mm,Mikrometar,ne
+3,NM-001,0,,Paralelnost stranica,Merljiva,0,0,0.2,mm,Komparator,ne
+1,NT-001,0,,Debljina lima,Merljiva,10,9.8,10.2,mm,Mikrometar,ne
+2,NT-001,0,,Površinska oštećenja,Atributivna,,,,mm,Vizuelno,ne
+3,NT-001,0,,teorijska,Merljiva,,-0.3,0.3,mm,Mikrometar,ne
+4,NT-001,0,,Simetricnost,Merljiva,0,-0.2,0.2,mm,Komparator,ne
+A-DEBLJ,RTB-001,0,OP-ULAZ,Debljina lima (ulazna),Merljiva,4,3.85,4.15,mm,MIK-01,da
+A-TVRD,RTB-001,0,OP-ULAZ,Tvrdoca,Merljiva,170,160,180,HB,TVR-01,ne
+1,RTB-001,0,,Debljina lima (ulazna),Merljiva,4,3.85,4.15,mm,Mikrometar,ne
+B-RAD,RTB-001,0,OP-PRES,Radijus savijanja,Merljiva,6,5.5,6.5,mm,SAB-R6,ne
+CC-01,RTB-001,0,OP-PRES,Razmak montaznih otvora,Merljiva,620,619.8,620.2,mm,CMM-01,da
+CC-02,RTB-001,0,OP-PRES,Precnik otvora,Merljiva,14,14,14.18,mm,GNG-14,da
+CC-03,RTB-001,0,OP-PRES,Visina savijanja,Merljiva,45,44.7,45.3,mm,VIS-01,da
+CC-04,RTB-001,0,OP-PRES,Ugao savijanja,Merljiva,90,89.5,90.5,stepen,UGL-01,da
+CC-05,RTB-001,0,OP-PRES,Ravnost,Merljiva,0,,0.8,mm,SAT-01,da
+CC-06,RTB-001,0,OP-PRES,Debljina lima,Merljiva,4,3.85,4.15,mm,MIK-01,da
+2,RTB-001,0,,Debljina lima,Merljiva,4,3.85,4.15,mm,Digitalni mikrometar,ne
+C-PAR,RTB-001,0,OP-KARO,Paralelnost,Merljiva,0,,0.5,mm,CMM-01,da
+C-POZ,RTB-001,0,OP-KARO,Pozicija nosaca,Merljiva,0,-0.5,0.5,mm,CMM-01,da
+C-ZAZ,RTB-001,0,OP-KARO,Zazor prema rezervoaru,Merljiva,10,9.5,10.5,mm,ZAZ-01,da
+F-PREM,RTB-001,0,OP-ZAVR,Debljina premaza,Merljiva,80,60,100,um,PRE-01,da

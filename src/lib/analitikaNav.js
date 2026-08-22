@@ -13,7 +13,7 @@ export function jeTabBlokiranAnalitika(tab) {
 /** Zajednički tabovi grupe Kvalitet (Modul 2). */
 export const KVALITET_TABOVI = [
   ["odobrenja", "ODOBRENJA"],
-  ["ncr", "NCR / CAPA"],
+  ["ncr", "NCR"],
   ["8d", "8D"],
   ["pfmea-cp", "PFMEA / CP"],
   ["eskalacije", "ESKALACIJE"],
@@ -52,7 +52,6 @@ export const ANALITIKA_GRUPE_ATRIB = [
     naziv: "Operativa",
     tabovi: [
       ["smena", "SMENA"],
-      ["oee", "OEE"],
       ["ciljevi", "CILJEVI"],
       ["nalozi", "NALOZI"],
       ["prijemna", "PRIJEM"],
@@ -101,7 +100,6 @@ export const ANALITIKA_GRUPE_MER = [
     naziv: "Operativa",
     tabovi: [
       ["smena", "SMENA"],
-      ["oee", "OEE"],
       ["ciljevi", "CILJEVI"],
       ["nalozi", "NALOZI"],
       ["prijemna", "PRIJEM"],
@@ -158,7 +156,6 @@ export function bojaAnalitikaTaba(id, C) {
   if (t === "admin" || t === "fai" || t === "smena" || t === "odobrenja") return C.zuta;
   if (t === "kplan" || t === "trasabilitet") return C.plava;
   if (t === "heatmap" || t === "stabilnost") return "#f472b6";
-  if (t === "oee") return C.narandzasta;
   if (t === "kupac") return "#22d3ee";
   if (t === "dobavljac") return "#34d399";
   if (t === "excel") return C.plava;

@@ -1,0 +1,11 @@
+﻿SifraDela,Revizija,SifraOperacije,SifraKarakteristike,VelicinaUzorka,Ucestalost,ReakcioniPlan,OdgovornoLice
+MRAP-001,A,,"Boja karoserije — ogrebotine, mehurići, ljuštenje (VSK atributivna)",,100% svako vozilo na izlazu lakirnice + PI-01 prijemna inspekcija,Stop lakirnice; proveri čistoću pov.; pozovi KK,KK Inspektor (izlaz lakirnice) + Logistika (transport) + KK  (prijemna insp.)
+RTB-001,0,OP-PRES,CC-01,5,svaka smena,Zaustavi proces i izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-02,5,svaka smena,GO/NO GO + CMM potvrda; izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-03,5,svaka smena,Podesi alat i ponovi merenje,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-04,5,svaka smena,Podesi savijanje; izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-PRES,CC-05,3,svaka smena,Ispravi ravnost / izoluj LOT,Kontrolor Preseraj
+RTB-001,0,OP-ULAZ,CC-06,5,svaki LOT materijala,Odbij ulazni lim; obavesti nabavku,Kontrolor Ulazna
+RTB-001,0,OP-ZAVR,F-PREM,5,svaka smena,Vrati na plastifikaciju,Kontrolor Zavrsna
+NM-001,A,,Debljina lima ispod donje granice tolerancije,,,,
+NM-001,A,,Debljina lima ispod donje granice tolerancije,,,,

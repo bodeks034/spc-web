@@ -6,6 +6,7 @@ export const AUTO_PRAVILO_KLJUCEVI = {
   nok3: "auto_pravilo_nok3",
   spc_ncr: "auto_pravilo_spc_ncr",
   ncr_zatvori: "auto_pravilo_ncr_zatvori",
+  ncr_linija: "auto_pravilo_ncr_linija",
   ncr_8d_draft: "auto_pravilo_ncr_8d_draft",
   podsetnici: "auto_pravilo_podsetnici",
   digest: "auto_pravilo_digest",

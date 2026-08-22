@@ -191,7 +191,7 @@ export async function proveriProaktivneDogadjaje(supabase, {
 
     .select("id,broj_ncr,id_deo,rok,prioritet")
 
-    .in("status", ["otvoren", "analiza", "akcija", "verifikacija"])
+    .in("status", ["open", "containment", "disposition", "osmd_progress", "verification", "otvoren", "analiza", "akcija", "verifikacija"])
 
     .not("rok", "is", null)
 
@@ -225,7 +225,7 @@ export async function proveriProaktivneDogadjaje(supabase, {
 
     .select("id,broj_ncr,id_deo,rok,prioritet")
 
-    .in("status", ["otvoren", "analiza", "akcija", "verifikacija"])
+    .in("status", ["open", "containment", "disposition", "osmd_progress", "verification", "otvoren", "analiza", "akcija", "verifikacija"])
 
     .eq("rok", sutra)
 
@@ -303,7 +303,7 @@ export async function proveriProaktivneDogadjaje(supabase, {
   const { data: ncrBez8d } = await supabase
     .from("ncr_capa")
     .select("id,broj_ncr,id_deo,status,created_at")
-    .in("status", ["otvoren", "analiza"])
+    .in("status", ["open", "containment", "disposition", "otvoren", "analiza"])
     .is("osmd_id", null)
     .lt("created_at", cutoff24h)
     .limit(10);
@@ -313,7 +313,7 @@ export async function proveriProaktivneDogadjaje(supabase, {
       id: `ncr_bez_8d_${n.id}`,
       naslov: `NCR bez 8D — ${n.broj_ncr}`,
       opis: `Deo ${n.id_deo} · status ${n.status} · otvoren 24h+ bez pokrenute 8D analize`,
-      nivo: n.status === "analiza" ? "srednji" : "visok",
+      nivo: ["analiza", "containment", "disposition"].includes(n.status) ? "srednji" : "visok",
     });
   }
 
@@ -360,7 +360,7 @@ export async function obradiNcr8dDrafte(supabase) {
   const { data: lista } = await supabase
     .from("ncr_capa")
     .select("*")
-    .in("status", ["otvoren", "analiza"])
+    .in("status", ["open", "containment", "disposition", "otvoren", "analiza"])
     .is("osmd_id", null)
     .lt("created_at", cutoff24h)
     .limit(10);

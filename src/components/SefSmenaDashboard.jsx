@@ -65,7 +65,7 @@ function KpiKartica({ C, label, vrednost, jedinica = "", boja, onClick, testId, 
 
 
 
-/** Dashboard za šefa smene — današnji KPI, alarmi, TOP NOK. */
+/** Dashboard za šefa smene — kvalitet KPI, alarmi, TOP NOK. */
 
 export default function SefSmenaDashboard({
 
@@ -308,27 +308,21 @@ export default function SefSmenaDashboard({
 
 
 
+      <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8, marginBottom: 6 }}>
+        KVALITET · KPI
+      </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
 
         <KpiKartica C={C} label="FPY" vrednost={podaci.fpy} jedinica="%" boja={bojaFpy} testId="sef-kpi-fpy" />
 
-        <KpiKartica C={C} label="OEE" vrednost={podaci.oee} jedinica="%" boja={C.plava} testId="sef-kpi-oee" />
+        <KpiKartica C={C} label="RTY" vrednost={podaci.rty} jedinica="%" boja={C.narandzasta || C.plava} testId="sef-kpi-rty" />
 
-        <KpiKartica
+      </div>
 
-          C={C}
-
-          label="Moment OK"
-
-          vrednost={podaci.momentPctOk}
-
-          jedinica={podaci.momentPctOk != null ? "%" : ""}
-
-          boja={podaci.momentPctOk >= 95 ? C.zelena : C.narandzasta || C.zuta}
-
-          testId="sef-kpi-moment"
-
-        />
+      <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8, marginBottom: 6 }}>
+        ALARMI · MERILA
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
 
         <KpiKartica
 

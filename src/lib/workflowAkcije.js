@@ -203,13 +203,6 @@ export function akcijaZaOperativniAlarm(alarm, kontekst = {}) {
       payload: priloziKontekstDeo({ merilaPodtab: "kalibracija" }, ctx),
     };
   }
-  if (id === "oee_nizak") {
-    return {
-      akcija: WORKFLOW_TIP.KPI_DORADA,
-      label: "KPI / OEE",
-      payload: priloziKontekstDeo({ modul: "merljive" }, ctx),
-    };
-  }
   if (id.startsWith("deo_nok_")) {
     const deoId = id.replace("deo_nok_", "").toUpperCase();
     const modulDeo = String(alarm.opis || "").toLowerCase().includes("merljive")

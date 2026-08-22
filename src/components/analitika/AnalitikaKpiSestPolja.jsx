@@ -4,26 +4,28 @@ import { AnalitikaMetrika } from "./AnalitikaMetrika.jsx";
 export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }) {
   if (!podaci) return null;
 
+  const skart = podaci.kpi?.skart ?? 0;
+  const dorada = podaci.kpi?.dorada ?? 0;
+
   const kartice = [
     { id: "atr", label: "FPY ATR", value: `${podaci.attr.fpy ?? podaci.attr.rty}%`, boja: C.plava, sub: `DPMO ${podaci.attr.dpmo.toLocaleString()}` },
     { id: "mer", label: "FPY MER", value: `${podaci.merljive.fpy ?? podaci.merljive.rty}%`, boja: C.zelena, sub: `${podaci.merljive.merenja} mer.` },
     { id: "rty", label: "RTY", value: podaci.rtyPogon != null ? `${podaci.rtyPogon}%` : "—", boja: C.narandzasta, sub: podaci.fazeKvaliteta?.length > 1 ? "pogon" : "ukupno" },
-    { id: "oee", label: "OEE", value: podaci.oee.prosek != null ? `${podaci.oee.prosek}%` : "—", boja: podaci.oee.prosek >= 65 ? C.zelena : podaci.oee.prosek >= 40 ? C.zuta : C.crvena, sub: podaci.oee.rty != null ? `RTY ${podaci.oee.rty}%` : (podaci.oee.imaKpi ? `${podaci.oee.kpiBroj} KPI` : "—") },
+    { id: "skart", label: "ŠKART", value: String(skart), boja: skart > 0 ? C.crvena : C.tekst, sub: dorada > 0 ? `Dor. ${dorada}` : (podaci.kpi?.imaKpi ? `${podaci.kpi.kpiBroj} KPI` : "—") },
     { id: "esk", label: "ESK", value: podaci.eskalacije.otvorene, boja: C.zuta, sub: podaci.eskalacije.auto > 0 ? `${podaci.eskalacije.auto} auto` : "otv." },
     { id: "merila", label: "MERILA", value: podaci.merila.upozorenja, boja: podaci.merila.istekla ? C.crvena : podaci.merila.uskoro ? C.zuta : C.zelena, sub: podaci.merila.istekla ? `${podaci.merila.istekla} ist.` : `${podaci.merila.ukupno} akt.` },
   ];
 
   const redosled = modul === "atributivne"
-    ? ["atr", "rty", "oee", "mer", "esk", "merila"]
+    ? ["atr", "rty", "skart", "mer", "esk", "merila"]
     : modul === "merljive"
-      ? ["mer", "rty", "oee", "atr", "esk", "merila"]
+      ? ["mer", "rty", "skart", "atr", "esk", "merila"]
       : kartice.map((k) => k.id);
 
   const navMap = {
     atr: { tab: "karte" },
     mer: { tab: "karte" },
     rty: { tab: "karte", spcTip: "rty" },
-    oee: { tab: "oee" },
     esk: { tab: "eskalacije" },
     merila: { tab: modul === "merljive" ? "msa" : "kalibracija" },
   };
@@ -32,13 +34,13 @@ export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }
     atr: "SPC karte — atributivno",
     mer: "SPC karte — merljivo",
     rty: "FPY / RTY trend",
-    oee: "OEE i KPI",
+    skart: "Škart i dorada iz KPI unosa",
     esk: "Eskalacije",
     merila: modul === "merljive" ? "MSA / merila" : "Kalibracija merila",
   };
 
   const nav = onNavigacija
-    ? (id) => () => onNavigacija(navMap[id])
+    ? (id) => () => (navMap[id] ? onNavigacija(navMap[id]) : undefined)
     : () => undefined;
 
   return (

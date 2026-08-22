@@ -22,12 +22,12 @@ test.describe("Admin ERP diff", () => {
 });
 
 test.describe("Dnevni pregled deep-link", () => {
-  test("kvalitet vidi panel i klik na OEE", async ({ page }) => {
+  test("kvalitet vidi panel i klik na RTY", async ({ page }) => {
     test.skip(!imaKvalitetKredencijale(), "Nema E2E kvalitet kredencijala");
     await prijaviSe(page, "kvalitet");
     await expect(page.getByTestId("dnevni-pregled-panel")).toBeVisible({ timeout: 20000 });
-    await page.getByTestId("dnevni-kpi-oee").click();
-    await expect(page.getByTestId("tab-oee")).toBeVisible({ timeout: 20000 });
+    await page.getByTestId("dnevni-kpi-rty").click();
+    await expect(page.getByTestId("tab-pregled")).toBeVisible({ timeout: 20000 });
   });
 });
 

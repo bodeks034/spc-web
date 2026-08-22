@@ -114,12 +114,11 @@ export default function AnalitikaMiniKpi({ C, modul, onNavigacija, kompakt }) {
             title="FPY / RTY trend"
           />
           <Chip
-            label="OEE"
-            value={podaci.oee.prosek != null ? `${podaci.oee.prosek}%` : "—"}
-            boja={podaci.oee.prosek >= 65 ? C.zelena : podaci.oee.prosek >= 40 ? C.zuta : C.crvena}
+            label="ŠKART"
+            value={String(podaci.kpi?.skart ?? 0)}
+            boja={(podaci.kpi?.skart || 0) > 0 ? C.crvena : C.tekst}
             C={C}
-            onClick={nav({ tab: "oee" })}
-            title="OEE tab"
+            title="Škart iz KPI unosa"
           />
           {podaci.alarmi?.length > 0 && (
             <Chip

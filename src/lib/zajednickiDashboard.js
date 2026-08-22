@@ -8,7 +8,7 @@ import {
   trendKvalitetaDashboardAttr,
   trendKvalitetaDashboardMer,
 } from "./kpiUnos.js";
-import { izracunajOeeKpi, izracunajOeePogon } from "./oeeKpi.js";
+import { izracunajKpiSerije, izracunajKpiPogon } from "./kpiKvalitet.js";
 import { fazeKvalitetaPogona, najslabijaFaza } from "./rtyFpy.js";
 import { evaluirajAlarme } from "./operativniAlarmi.js";
 import { planiranoKomIzReda, ucitajAktivniRadniNalog } from "./radniNalog.js";
@@ -142,28 +142,25 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   const trendMer = trendKvalitetaDashboardMer(merData, kpiMerRows);
 
   const kpiAgg = agregirajKpiUnos(kpiRows);
-  let oeeProsek = null;
-  let oeePogon = null;
+  let kpiAgregat = null;
   if (kpiAgg?.ukupno_kom > 0) {
     const planKom = Math.max(
       kpiAgg.planirano_kom || 0,
       ...(kpiRows.map(r => Number(r.planirano_kom) || 0)),
       ...(nalogRes.data || []).map(n => Number(n.kolicina) || 0),
     );
-    oeePogon = izracunajOeePogon({
+    kpiAgregat = izracunajKpiPogon({
       ...kpiAgg,
       planirano_kom: planKom,
       attr: attrKval,
       merljive: merKval,
     });
-    oeeProsek = oeePogon.oee;
   } else if (rtyPogon != null) {
-    oeePogon = izracunajOeePogon({
+    kpiAgregat = izracunajKpiPogon({
       attr: attrKval,
       merljive: merKval,
       ukupno_kom: (attrKval.ukupno || 0) + (merKval.ukupno || 0),
     });
-    oeeProsek = oeePogon.oee;
   }
 
   const paretoMer = {};
@@ -224,7 +221,6 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   const { alarmi } = evaluirajAlarme({
     attr: { ukN: attrKval.ukupno, ukNOK: attrKval.neusaglaseno, ukOK: attrKval.ispravnoIzPrve },
     merljive: { merenja: merKval.ukupno, nok: merKval.neusaglaseno, ok: merKval.ispravnoIzPrve, danasNok: merDanasNok },
-    oee: { prosek: oeeProsek, kpiBroj: kpiRows.length },
     eskalacije,
     merila,
     msaStudije: msaRes.error ? [] : (msaRes.data || []),
@@ -260,7 +256,6 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     eskalacije: {
       otvorene: eskOtvorene.length,
     },
-    oee: { prosek: oeeProsek, rty: rtyPogon },
     period,
     idDeo: deoFilter || null,
   });
@@ -289,12 +284,11 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     rtyPogon,
     fazeKvaliteta,
     najslabijaFaza: najslabija,
-    oee: {
-      prosek: oeeProsek,
+    kpi: {
       kpiBroj: kpiRows.length,
       skart: kpiAgg?.skart ?? 0,
       dorada: kpiAgg?.dorada ?? 0,
-      kpi: oeePogon || kpiAgg?.kpi,
+      agregat: kpiAgregat || kpiAgg?.kpi,
       imaKpi: (kpiAgg?.ukupno_kom || 0) > 0,
       rty: rtyPogon,
       faze: fazeKvaliteta,

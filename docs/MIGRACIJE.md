@@ -36,19 +36,23 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 56 | `56_moment_komplet_napomena.sql` | Napomena — kompletan uvoz preko UI |
 | 57 | `57_moment_unapredjenje.sql` | Tool master, error kodovi, torque_id |
 | 58 | `58_moment_pfmea_link.sql` | Veza moment korak ↔ PFMEA |
-| 59 | `59_ncr_capa.sql` | NCR / CAPA modul |
+| 59 | `59_ncr_capa.sql` | NCR modul |
+| 75 | `75_ncr_registar_obrazac.sql` | NCR Registar + Obrazac v2 (kolone registra, JSONB obrazac, statusi) |
+| 76 | `76_osmd_pfmea_cp_brojevi.sql` | 8D zaglavlje: `broj_pfmea`, `broj_control_plan` (+ PFMEA/CP dokument) |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 
 **Automatski (ako imaš DATABASE_URL):**
 
 ```bash
-npm run db:migrate          # samo 54–59
+npm run db:migrate          # pilot 54–59 + NCR/8D 75–76
+npm run db:migrate -- --kvalitet   # samo 75 + 76
+npm run db:migrate -- --file 76_osmd_pfmea_cp_brojevi.sql
 npm run db:migrate:auto     # 61 — telemetrija automatizacije
 npm run db:verify           # provera kao Admin → Status šeme
 ```
 
-**Ručno:** Supabase SQL Editor — redom 54 → 59.
+**Ručno:** Supabase SQL Editor — redom **75 → 76** (posle 59 i 46/51 za 8D/PFMEA).
 
 ## Provera u aplikaciji
 

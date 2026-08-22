@@ -190,6 +190,8 @@ const PRINT_CSS = `
     word-break: break-word;
   }
   .section-body.empty { color: #64748b; font-style: italic; }
+  .prazno-linija { min-height: 22px; border-bottom: 1px dotted #94a3b8; margin-bottom: 6px; }
+  .prazno-linija:last-child { margin-bottom: 0; }
   .section-body .empty { color: #64748b; font-style: italic; }
   ul.lista { margin: 0; padding: 0 0 0 18px; list-style: disc; }
   ul.lista li { margin: 4px 0; line-height: 1.45; }
@@ -311,24 +313,31 @@ const PRINT_CSS = `
 export function buildOsmdPrintHtml(izv, {
   naslov,
   podnaslov,
+  prazanSablon = false,
 } = {}) {
   const datum = datumZaPdf(izv);
   const status = String(izv?.status || "u_izradi");
   const statusKlasa = status === "zavrsen" ? "zavrsen" : status === "pregled" ? "pregled" : "";
-  const statusHtml = `<span class="status ${statusKlasa}">${escapeHtml(statusNaziv8d(status))}</span>`;
-  const zaglavljeHtml = formatZaglavljeHtml(izv, { statusHtml });
+  const statusHtml = prazanSablon ? "" : `<span class="status ${statusKlasa}">${escapeHtml(statusNaziv8d(status))}</span>`;
+  const zaglavljeHtml = formatZaglavljeHtml(izv, { statusHtml, prazanSablon });
   const naslovHtml = naslov || deriveNaslov8d(izv);
-  const podnaslovHtml = podnaslov || derivePodnaslov8d(izv);
-  const prilogeHtml = formatPrilogeHtml(izv);
-  const idFooter = String(izv?.broj_8d || izv?.id_deo || "8D").trim();
+  const podnaslovHtml = prazanSablon
+    ? (podnaslov || "Prazan obrazac za popunjavanje · metoda 8 disciplina")
+    : (podnaslov || derivePodnaslov8d(izv));
+  const prilogeHtml = prazanSablon ? "" : formatPrilogeHtml(izv);
+  const idFooter = prazanSablon ? "PRAZAN" : String(izv?.broj_8d || izv?.id_deo || "8D").trim();
   const razvoj = getBrending().razvojNaziv?.trim();
   const kicker = razvoj ? `TRI-CORE QC · Developed by ${razvoj}` : "TRI-CORE QC";
   const logoSrc = getPdfLogoDataUrl();
 
+  const prazneLinije = (n = 3) => Array.from({ length: n }, () => '<div class="prazno-linija">&nbsp;</div>').join("");
+
   const sekcije = POLJA_8D.map((p, i) => {
     const sadrzaj = String(izv?.[p.key] ?? "").trim();
-    const prazno = !sadrzaj;
-    const bodyHtml = prazno ? '<span class="empty">—</span>' : formatSectionBody(p.key, sadrzaj);
+    const prazno = prazanSablon || !sadrzaj;
+    const bodyHtml = prazanSablon
+      ? prazneLinije(p.rows >= 4 ? 4 : 3)
+      : (prazno ? '<span class="empty">—</span>' : formatSectionBody(p.key, sadrzaj));
     return `
       <article class="section">
         <div class="section-head">
@@ -338,6 +347,17 @@ export function buildOsmdPrintHtml(izv, {
         <div class="section-body${prazno ? " empty" : ""}">${bodyHtml}</div>
       </article>`;
   }).join("");
+
+  const priloziPrazan = prazanSablon
+    ? POLJA_PRILOZI.map((p) => `
+      <article class="section prilog-section">
+        <div class="section-head">
+          <div class="badge prilog-badge">${escapeHtml(p.label.split("—")[0]?.trim() || "LL")}</div>
+          <div class="section-title">${escapeHtml(p.label.replace(/^LL\s—\s*/, ""))}</div>
+        </div>
+        <div class="section-body empty">${prazneLinije(3)}</div>
+      </article>`).join("")
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="sr">
@@ -361,7 +381,7 @@ export function buildOsmdPrintHtml(izv, {
 
     ${zaglavljeHtml}
 
-    <div class="sections">${sekcije}${prilogeHtml}</div>
+    <div class="sections">${sekcije}${prilogeHtml}${priloziPrazan}</div>
 
     <footer class="footer">
       <span>Generisano: ${escapeHtml(new Date().toLocaleString("sr-RS"))}</span>
@@ -564,6 +584,18 @@ export function exportOsmdIzvestajWord(izv, {
   return blob;
 }
 
+/** Preuzima Word i paralelno snima u KONTROLA_KVALITETA/02_8D_Izvestaji ako je povezan folder. */
+export async function exportOsmdIzvestajWordSaFolderom(izv, options = {}) {
+  const { syncFolder = true, onFolderSync, ...wordOpts } = options;
+  const blob = exportOsmdIzvestajWord(izv, { ...wordOpts, preuzmi: wordOpts.preuzmi !== false });
+  if (syncFolder) {
+    const { snimi8dWordUFolder } = await import("./kvalitetFolderSync.js");
+    const rez = await snimi8dWordUFolder(izv, wordOpts);
+    onFolderSync?.(rez);
+  }
+  return blob;
+}
+
 /** Otvara prozor za štampu (Ctrl+P) — isti izgled kao PDF. */
 export async function stampajOsmdIzvestaj(izv, options = {}) {
   const html = buildOsmdPrintHtml(izv, options);
@@ -574,9 +606,16 @@ export async function stampajOsmdIzvestaj(izv, options = {}) {
   win.onload = () => setTimeout(() => win.print(), 500);
 }
 
+/** Štampa prazan 8D obrazac (D1–D8 + LL, prazna polja). */
+export async function stampajPrazanOsmdIzvestaj(options = {}) {
+  return stampajOsmdIzvestaj({}, { ...options, prazanSablon: true });
+}
+
 export const OSMD_DB_KOLONE = [
   "id_deo",
   "broj_8d",
+  "broj_pfmea",
+  "broj_control_plan",
   "defekt_nedostatak",
   "broj_reklamacije",
   "kupac_ime_id",

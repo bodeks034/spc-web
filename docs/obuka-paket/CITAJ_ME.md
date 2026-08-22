@@ -12,6 +12,7 @@ U aplikaciji: **početni ekran → 📘 Uputstvo → Obuka paket**.
 |----------|------|
 | **Komplet obuka (HTML)** | `OBUKA_SPC_KOMPLET.html` |
 | **Operater / kontrolor — Modul 1** | `OBUKA_OPERATER_MODUL1.html` |
+| **NCR · 8D · PFMEA · CP (radno uputstvo)** | `UPUTSTVO_NCR_8D_PFMEA_CP.md` |
 
 ## Inženjer / kvalitet (Modul 2 + šifrarnik)
 

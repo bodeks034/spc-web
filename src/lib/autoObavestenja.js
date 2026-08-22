@@ -23,6 +23,7 @@ export function jeAutoObavestenje(alarm = {}) {
     || id.startsWith("ncr_rok_")
     || id.startsWith("ncr_bez_8d_")
     || id.startsWith("auto_ncr_zatvoren_")
+    || id.startsWith("auto_ncr_linija_")
     || id.startsWith("kal_")
     || id.startsWith("msa_");
 }

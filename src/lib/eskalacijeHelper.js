@@ -6,6 +6,11 @@ import { prefill8dIzNcr } from "./ncrCapa.js";
 const ULOGE_INZENJER = new Set(["kvalitet", "sef", "admin"]);
 const OTVORENE_STATUS = new Set(["otvoren", "u_toku", "aktivan", "open"]);
 
+function ncrJeZatvoren(ncr) {
+  const s = ncr?.status;
+  return s === "closed" || s === "zatvoren";
+}
+
 export function prefill8dIzEskalacije(e) {
   if (!e) return {};
   const opis = String(e.opis || "")
@@ -150,7 +155,7 @@ export async function predloziDodeljenogInzenjera(supabase) {
 
 /** Zatvori eskalacije povezane sa NCR-om (eskalacija_id, SPC alarm). */
 export async function zatvoriEskalacijeZaNcr(supabase, ncr) {
-  if (!ncr?.id || ncr.status !== "zatvoren") return { zatvoreno: [] };
+  if (!ncr?.id || !ncrJeZatvoren(ncr)) return { zatvoreno: [] };
 
   const ids = new Set();
   if (ncr.eskalacija_id) ids.add(ncr.eskalacija_id);
@@ -183,7 +188,7 @@ export async function zatvoriEskalacijeZaNcr(supabase, ncr) {
 
 /** Zatvori SPC alarme povezane sa zatvorenim NCR-om. */
 export async function zatvoriSpcAlarmeZaNcr(supabase, ncr, { zatvoreneEskalacije = [] } = {}) {
-  if (!ncr?.id || ncr.status !== "zatvoren") return { zatvoreno: [] };
+  if (!ncr?.id || !ncrJeZatvoren(ncr)) return { zatvoreno: [] };
 
   const { zatvoriSpcAlarmSistemski } = await import("./spcAlarmWorkflow.js");
   const razlog = `Auto: NCR ${ncr.broj_ncr || ncr.id} zatvoren`;

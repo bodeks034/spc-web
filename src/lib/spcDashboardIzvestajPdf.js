@@ -434,7 +434,7 @@ export function payloadPregledProizvodnje(podaci, {
       { label: "FPY ATR", value: `${podaci.attr?.fpy ?? podaci.attr?.rty ?? "—"}%` },
       { label: "FPY MER", value: `${podaci.merljive?.fpy ?? podaci.merljive?.rty ?? "—"}%` },
       { label: "RTY pogon", value: podaci.rtyPogon != null ? `${podaci.rtyPogon}%` : "—" },
-      { label: "OEE", value: podaci.oee?.prosek != null ? `${podaci.oee.prosek}%` : "—" },
+      { label: "Škart KPI", value: podaci.kpi?.skart ?? "—" },
       { label: "Eskalacije otv.", value: podaci.eskalacije?.otvorene ?? "—" },
       { label: "Merila upoz.", value: podaci.merila?.upozorenja ?? "—" },
       { label: "ATR N / NOK", value: `${podaci.attr?.ukN ?? "—"} / ${podaci.attr?.ukNOK ?? "—"}` },

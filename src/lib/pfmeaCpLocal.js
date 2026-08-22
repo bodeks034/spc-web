@@ -35,6 +35,8 @@ export function localListaDokumenata() {
       updated_at: d.azurirano,
       osmd_izvestaj_id: d.osmdIzvestajId || null,
       broj_8d: d.broj8d || "",
+      broj_pfmea: d.brojPfmea || "",
+      broj_control_plan: d.brojControlPlan || "",
       napomena: d.napomena || "",
     }));
 }
@@ -51,7 +53,7 @@ export function localUcitajDokument(docId) {
 }
 
 export function localKreirajDokument({
-  naziv, idDeo, revizija, osmdIzvestajId, broj8d, napomena,
+  naziv, idDeo, revizija, osmdIzvestajId, broj8d, brojPfmea, brojControlPlan, napomena,
 } = {}) {
   const doc = {
     id: id(),
@@ -61,6 +63,8 @@ export function localKreirajDokument({
     napomena: napomena || "",
     osmdIzvestajId: osmdIzvestajId || null,
     broj8d: broj8d || "",
+    brojPfmea: brojPfmea || "",
+    brojControlPlan: brojControlPlan || "",
     kreirano: new Date().toISOString(),
     azurirano: new Date().toISOString(),
     aktivan: true,

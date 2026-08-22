@@ -36,8 +36,8 @@ describe("akcijaZaOperativniAlarm", () => {
     const esk = akcijaZaOperativniAlarm({ id: "eskalacije_otvorene", nivo: "srednji" }, ctx);
     expect(esk.akcija).toBe(WORKFLOW_TIP.ESKALACIJE);
     expect(esk.payload.idDeo).toBe("MRAP-001");
-    const kpi = akcijaZaOperativniAlarm({ id: "oee_nizak", nivo: "srednji" }, ctx);
-    expect(kpi.payload.idDeo).toBe("MRAP-001");
+    const deo = akcijaZaOperativniAlarm({ id: "deo_nok_MRAP-001", nivo: "srednji", opis: "merljive" }, ctx);
+    expect(deo.payload.id_deo).toBe("MRAP-001");
   });
 
   it("kal_istekla vodi na merila/kalibraciju tab", () => {

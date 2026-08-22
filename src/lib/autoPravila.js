@@ -20,6 +20,13 @@ export const AUTO_PRAVILA = [
     kanal: "Glavni Teams · email SPC",
   },
   {
+    id: "ncr_linija",
+    naslov: "NCR prijava sa linije (Modul 1)",
+    opis: "Obaveštenje inženjeru kad operater/kontrolor prijavi novi NCR sa linije — status OPEN, zatvaranje u Modulu 2.",
+    okidač: "Sačuvaj NCR obrazac na tabu UNOS (Modul 1)",
+    kanal: "Teams auto · email · browser (High/Critical)",
+  },
+  {
     id: "ncr_zatvori",
     naslov: "Zatvaranje NCR",
     opis: "Auto-zatvaranje povezanih eskalacija i SPC alarma + obaveštenje o zatvaranju.",

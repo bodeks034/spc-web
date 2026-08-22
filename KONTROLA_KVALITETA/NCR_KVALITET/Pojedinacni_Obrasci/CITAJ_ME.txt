@@ -1,0 +1,6 @@
+Pojedinacni_Obrasci
+
+Ovde čuvajte popunjene NCR obrasce:
+• NCR-2026-001.xlsx (Excel)
+• NCR-2026-001.pdf (A4 obrazac sa potpisima)
+Blanko šablon uvek kopirajte iz A4_NCR_Obrazac_Template.xlsx (Save As).

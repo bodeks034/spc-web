@@ -203,7 +203,6 @@ export function analizirajProces({
   topNok = [],
   alarmi = [],
   eskalacije = {},
-  oee = {},
   period = 7,
   idDeo = null,
   rtyPogon = null,
@@ -289,15 +288,6 @@ export function analizirajProces({
       modul: "merljive",
       akcija: "Proveriti kalibraciju merila i set-up alata na pozicijama sa najviše NOK.",
       obrazlozenje: `Merljive NOK (${merP}%) iznad atributivnih (${attrP}%)`,
-    });
-  }
-
-  if (oee.prosek != null && oee.prosek < 65) {
-    korektivneMere.push({
-      prioritet: "srednji",
-      modul: "proizvodnja",
-      akcija: "Analizirati zastoje i skart/doradu u KPI unosu — cilj OEE ≥ 65%.",
-      obrazlozenje: `Prosečan OEE ${oee.prosek}% u poslednjih ${period} dana`,
     });
   }
 
@@ -545,7 +535,6 @@ export async function fetchInteligencijaDeo(supabase, { idDeo, period = 7 } = {}
     topNok,
     alarmi: [],
     eskalacije: {},
-    oee: {},
     period,
     idDeo,
   });

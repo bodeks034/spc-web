@@ -4,7 +4,7 @@
  * FPY (First Pass Yield) — prolaznost jedne faze/koraka (lokalna dijagnostika).
  * RTY (Rolled Throughput Yield) — ukupna prolaznost kroz lanac: RTY = FPY₁ × FPY₂ × …
  *
- * OEE i izveštaji efikasnosti pogona koriste RTY u faktoru kvaliteta.
+ * KPI kvaliteta koristi RTY u agregatu pogona (v. izracunajKpiPogon u kpiKvalitet.js).
  */
 
 /** UI oznake jedne faze (SPC karte) — ne mešati sa RTY pogona. */

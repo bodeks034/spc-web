@@ -49,3 +49,102 @@
 [2026-07-14T16:14:03.523Z] [INFO] START erp-uvoz
 [2026-07-14T16:14:05.341Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
 [2026-07-14T16:14:05.342Z] [INFO] OK erp-uvoz
+[2026-07-15T11:45:56.635Z] [INFO] START erp-uvoz
+[2026-07-15T11:45:57.750Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-15T11:45:57.752Z] [INFO] OK erp-uvoz
+[2026-07-16T08:35:19.286Z] [INFO] START erp-uvoz
+[2026-07-16T08:35:21.902Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-16T08:35:21.906Z] [INFO] OK erp-uvoz
+[2026-07-18T11:04:44.241Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-18T11:04:47.058Z] [INFO] Gotovo (dry-run).
+[2026-07-18T11:04:47.128Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-18T11:19:12.288Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-18T11:19:17.530Z] [INFO] Gotovo (dry-run).
+[2026-07-18T11:19:17.658Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-18T11:34:11.032Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-18T11:34:12.427Z] [INFO] Gotovo (dry-run).
+[2026-07-18T11:34:12.429Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-18T11:34:24.969Z] [INFO] START erp-uvoz
+[2026-07-18T11:34:25.631Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-18T11:34:25.635Z] [INFO] OK erp-uvoz
+[2026-07-18T11:34:36.151Z] [INFO] START erp-uvoz
+[2026-07-18T11:34:44.769Z] [INFO] Upsert ukupno 50 redova
+[2026-07-18T11:34:44.772Z] [INFO] OK erp-uvoz
+[2026-07-18T11:36:32.104Z] [INFO] START erp-uvoz
+[2026-07-18T11:36:39.783Z] [INFO] Upsert ukupno 50 redova
+[2026-07-18T11:36:39.787Z] [INFO] OK erp-uvoz
+[2026-07-18T12:35:34.031Z] [INFO] START erp-uvoz
+[2026-07-18T12:35:35.635Z] [INFO] Upsert ukupno 4 redova
+[2026-07-18T12:35:35.637Z] [INFO] OK erp-uvoz
+[2026-07-18T12:51:14.169Z] [INFO] START erp-uvoz
+[2026-07-18T12:51:22.078Z] [INFO] Upsert ukupno 32 redova
+[2026-07-18T12:51:22.080Z] [INFO] OK erp-uvoz
+[2026-07-18T12:58:05.104Z] [INFO] START erp-uvoz
+[2026-07-18T12:58:07.513Z] [INFO] Upsert ukupno 19 redova
+[2026-07-18T12:58:07.516Z] [INFO] OK erp-uvoz
+[2026-07-18T12:59:18.696Z] [INFO] START erp-uvoz
+[2026-07-18T12:59:23.893Z] [INFO] Upsert ukupno 33 redova
+[2026-07-18T12:59:23.897Z] [INFO] OK erp-uvoz
+[2026-07-18T13:08:01.682Z] [INFO] START erp-uvoz
+[2026-07-18T13:08:03.468Z] [INFO] Upsert ukupno 27 redova
+[2026-07-18T13:08:03.477Z] [INFO] OK erp-uvoz
+[2026-07-18T13:10:50.205Z] [INFO] START erp-uvoz
+[2026-07-18T13:10:53.266Z] [INFO] Upsert ukupno 27 redova
+[2026-07-18T13:10:53.268Z] [INFO] OK erp-uvoz
+[2026-07-18T13:21:53.612Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-18T13:21:55.072Z] [INFO] Gotovo (dry-run).
+[2026-07-18T13:21:55.100Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-18T13:42:31.057Z] [INFO] START erp-uvoz (dry-run)
+[2026-07-18T13:42:32.601Z] [INFO] Gotovo (dry-run).
+[2026-07-18T13:42:32.604Z] [INFO] OK erp-uvoz (dry-run)
+[2026-07-20T15:17:09.644Z] [INFO] START erp-uvoz
+[2026-07-20T15:17:11.551Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-20T15:17:11.555Z] [INFO] OK erp-uvoz
+[2026-07-21T16:26:28.879Z] [INFO] START erp-uvoz
+[2026-07-21T16:26:35.044Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-21T16:26:35.048Z] [INFO] OK erp-uvoz
+[2026-07-22T10:15:46.258Z] [INFO] START erp-uvoz
+[2026-07-22T10:15:49.280Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-07-22T10:15:49.283Z] [INFO] OK erp-uvoz
+[2026-08-04T10:30:51.253Z] [INFO] START erp-uvoz
+[2026-08-04T10:31:13.647Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-04T10:31:13.659Z] [INFO] OK erp-uvoz
+[2026-08-05T14:24:30.980Z] [INFO] START erp-uvoz
+[2026-08-05T14:24:34.540Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-05T14:24:34.569Z] [INFO] OK erp-uvoz
+[2026-08-07T15:07:49.918Z] [INFO] START erp-uvoz
+[2026-08-07T15:07:55.986Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-07T15:07:56.111Z] [INFO] OK erp-uvoz
+[2026-08-08T16:17:52.754Z] [INFO] START erp-uvoz
+[2026-08-08T16:17:55.052Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-08T16:17:55.054Z] [INFO] OK erp-uvoz
+[2026-08-09T16:57:09.877Z] [INFO] START erp-uvoz
+[2026-08-09T16:57:14.256Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-09T16:57:14.273Z] [INFO] OK erp-uvoz
+[2026-08-10T16:43:56.277Z] [INFO] START erp-uvoz
+[2026-08-10T16:43:57.300Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-10T16:43:57.302Z] [INFO] OK erp-uvoz
+[2026-08-11T10:21:52.250Z] [INFO] START erp-uvoz
+[2026-08-11T10:21:56.660Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-11T10:21:56.662Z] [INFO] OK erp-uvoz
+[2026-08-13T15:36:29.542Z] [INFO] START erp-uvoz
+[2026-08-13T15:36:32.229Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-13T15:36:32.241Z] [INFO] OK erp-uvoz
+[2026-08-14T16:34:10.960Z] [INFO] START erp-uvoz
+[2026-08-14T16:34:15.535Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-14T16:34:15.544Z] [INFO] OK erp-uvoz
+[2026-08-16T17:17:20.027Z] [INFO] START erp-uvoz
+[2026-08-16T17:17:29.315Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-16T17:17:29.320Z] [INFO] OK erp-uvoz
+[2026-08-18T09:40:10.311Z] [INFO] START erp-uvoz
+[2026-08-18T09:40:12.956Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-18T09:40:12.958Z] [INFO] OK erp-uvoz
+[2026-08-19T16:46:10.666Z] [INFO] START erp-uvoz
+[2026-08-19T16:46:20.364Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-19T16:46:20.366Z] [INFO] OK erp-uvoz
+[2026-08-20T07:47:06.561Z] [INFO] START erp-uvoz
+[2026-08-20T07:47:08.747Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-20T07:47:08.748Z] [INFO] OK erp-uvoz
+[2026-08-22T09:47:43.150Z] [INFO] START erp-uvoz
+[2026-08-22T09:47:46.526Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-22T09:47:46.527Z] [INFO] OK erp-uvoz

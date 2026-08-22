@@ -73,7 +73,11 @@ export default function IzvestajDobavljacPanel({ C, addToast, korisnik = null })
   const pdf = async () => {
     setPdfRadi(true);
     try {
-      await preuzmiIzvestajDobavljacPdf(podaci);
+      await preuzmiIzvestajDobavljacPdf(podaci, {
+        onFolderSync: (rez) => {
+          if (rez?.synced) addToast?.(`✓ Sačuvano u folder: ${rez.putanja}`, "uspeh");
+        },
+      });
       addToast?.("✓ PDF izveštaj dobavljača", "uspeh");
     } catch (e) {
       addToast?.(e.message, "greska");

@@ -1,7 +1,6 @@
-/** Pregled za šefa smene — FPY, OEE, alarmi, TOP NOK, moment %. */
+/** Pregled za šefa smene — FPY, RTY, alarmi, TOP NOK. */
 
 import { fetchZajednickiDashboard } from "./zajednickiDashboard.js";
-import { izracunajMomentPct } from "./shopFloorStatus.js";
 
 const danasIso = () => new Date().toISOString().split("T")[0];
 
@@ -42,12 +41,6 @@ export async function fetchSefSmenaPregled(supabase, {
     .limit(15);
   if (deo) spcQ = spcQ.eq("id_deo", deo);
 
-  let momQ = supabase.from("moment_protokol")
-    .select("status,id_deo")
-    .eq("datum", danas);
-  if (deo) momQ = momQ.eq("id_deo", deo);
-  if (smena) momQ = momQ.eq("smena", Number(smena));
-
   let ncrQ = supabase.from("ncr_capa")
     .select("id,broj_ncr,id_deo,status,prioritet,izvor,spc_alarm_id,osmd_id,eskalacija_id,opis,created_at")
     .not("status", "eq", "zatvoren")
@@ -55,14 +48,7 @@ export async function fetchSefSmenaPregled(supabase, {
     .limit(10);
   if (deo) ncrQ = ncrQ.eq("id_deo", deo);
 
-  const [spcRes, momRes, ncrRes] = await Promise.all([spcQ, momQ, ncrQ]);
-
-  let momOk = 0;
-  let momNok = 0;
-  for (const r of momRes.data || []) {
-    if (r.status === "OK") momOk += 1;
-    else if (r.status === "NOK") momNok += 1;
-  }
+  const [spcRes, ncrRes] = await Promise.all([spcQ, ncrQ]);
 
   const attr = dash?.attr || {};
   const mer = dash?.merljive || {};
@@ -70,11 +56,10 @@ export async function fetchSefSmenaPregled(supabase, {
 
   return {
     fpy,
-    oee: dash?.oee?.prosek ?? null,
     rty: dash?.rtyPogon ?? null,
-    skart: dash?.oee?.skart ?? 0,
-    dorada: dash?.oee?.dorada ?? 0,
-    ukupnoKpi: dash?.oee?.kpi?.ukupno_kom ?? dash?.oee?.imaKpi ? (dash?.oee?.skart + dash?.oee?.dorada) : 0,
+    skart: dash?.kpi?.skart ?? 0,
+    dorada: dash?.kpi?.dorada ?? 0,
+    ukupnoKpi: dash?.kpi?.agregat?.ukupno_kom ?? dash?.kpi?.imaKpi ? (dash?.kpi?.skart + dash?.kpi?.dorada) : 0,
     kalUpozorenja: dash?.merila?.upozorenja ?? 0,
     merilaIstekla: dash?.merila?.istekla ?? 0,
     topNok: dash?.topNok || [],
@@ -82,9 +67,6 @@ export async function fetchSefSmenaPregled(supabase, {
     visokNokDelovi: dash?.visokNokDelovi || [],
     spcAlarmi: spcRes.data || [],
     ncrOtvoreni: ncrRes.error ? [] : (ncrRes.data || []),
-    momentPctOk: izracunajMomentPct(momOk, momNok),
-    momentOk: momOk,
-    momentNok: momNok,
     operativniAlarmi: dash?.alarmi || [],
     offlinePaketi: dash?.offlinePaketi ?? 0,
     danas,

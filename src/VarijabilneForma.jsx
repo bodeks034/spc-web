@@ -44,7 +44,6 @@ import {
   AnalitikaPregledPanel,
   OdobrenjaQAPanel,
   SkartDoradaOeePanel,
-  OeeKpiTab,
   IzvestajSmeneMerljive,
   CiljeviMerljive,
   KupacMerljive,
@@ -53,6 +52,10 @@ import {
   OCKrivaPanel,
   RadniNaloziPanel,
 } from "./components/merljive/VarijabilneLazyTabovi.jsx";
+import NcrObrazacLinijaOverlay from "./components/kvalitet/NcrObrazacLinijaOverlay.jsx";
+import NcrLinijaTraka from "./components/kvalitet/NcrLinijaTraka.jsx";
+import { prefillNcrIzUnosaLinije } from "./lib/ncrObrazacPolja.js";
+import { prefill8dIzNcr } from "./lib/ncrCapa.js";
 import { ucitajOdobrenFai, snimiFaiUnos, odobriFai, ucitajPoslednjiFai, faiImaNok, ucitajFaiPoId } from "./lib/faiWorkflow.js";
 import FotoNokUnos from "./components/FotoNokUnos.jsx";
 import KalibracijaMerilaPanel from "./components/KalibracijaMerilaPanel.jsx";
@@ -69,7 +72,7 @@ import {
 } from "./layout/index.js";
 import KpiSerijaPanel from "./components/KpiSerijaPanel.jsx";
 import KpiDoradaHub from "./components/KpiDoradaHub.jsx";
-import { podrazumevaniKpiIzMerenja, agregirajKpiPoSerijama } from "./lib/oeeKpi.js";
+import { podrazumevaniKpiIzMerenja, agregirajKpiPoSerijama } from "./lib/kpiKvalitet.js";
 import { snimiKpiUnos, snimiIliAzurirajKpiUnos, pronadjiKpiUnos, kpiVrednostiIzDb, porukaKpiGreske, fetchKpiUnos } from "./lib/kpiUnos.js";
 import { ucitajPlanUzorkovanja, izracunajPlanUzorkovanja, datumSrUIso } from "./lib/planUzorkovanja.js";
 import { useOfflineQueue, stampajClientIdNaRedove } from "./lib/offlineQueue.js";
@@ -78,7 +81,7 @@ import SpcAlarmBlokada from "./components/SpcAlarmBlokada.jsx";
 import { proveriIKreirajAlarmeNokSerije, lokalniOfflineNokAlarm } from "./lib/spcAlarmWorkflow.js";
 import { pozicijeSaPrekoracenimNok } from "./lib/spcAlarmPragovi.js";
 import { posleSnimanjaMerljiva, posleSnimanjaKpiDorade } from "./lib/autoAkcije.js";
-import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezimaUTacci, jeKontrolorLinija, jeLinijaUloga, pocetniKorakUnosMer, mozeInzenjerExcel, mozeInzenjerExcelUvoz, mozeOdobritiFai, mozePregledFaiOdobrenja, podrazumevaniTabMerljive, mozeOdobrenjaQA, mozeNcrCapa } from "./lib/uloge.js";
+import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezimaUTacci, jeKontrolorLinija, jeLinijaUloga, pocetniKorakUnosMer, mozeInzenjerExcel, mozeInzenjerExcelUvoz, mozeOdobritiFai, mozePregledFaiOdobrenja, podrazumevaniTabMerljive, mozeOdobrenjaQA, mozeNcrCapa, mozeNcrUnosLinija } from "./lib/uloge.js";
 import AnalitikaHeader from "./components/analitika/AnalitikaHeader.jsx";
 import useAnalitikaBadges from "./hooks/useAnalitikaBadges.js";
 import { AnalitikaFilterProvider, useAnalitikaFilter } from "./lib/AnalitikaFilterContext.jsx";
@@ -200,6 +203,8 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const filterDeo = !jeLinija ? (analitikaFilter?.idDeo || "") : "";
   const [osmdPrefill, setOsmdPrefill] = useState(null);
   const [ncrPrefill, setNcrPrefill] = useState(null);
+  const [ncrLinijaOtvoren, setNcrLinijaOtvoren] = useState(false);
+  const [ncrLinijaPrefill, setNcrLinijaPrefill] = useState(null);
   const [pfmeaCpPrefillIz8d, setPfmeaCpPrefillIz8d] = useState(null);
   const [meriloPovezano, setMeriloPovezano] = useState(false);
   const [kljucPovezan, setKljucPovezan] = useState(false);
@@ -244,6 +249,12 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
   useEffect(() => {
     const { tab: spoljniTab, prefillNcr } = procitajSpoljnuNavigacijuTab("varijabilne");
+    if (!spoljniTab) return;
+    if (spoljniTab === "ncr" && prefillNcr && jeLinija && mozeNcrUnosLinija(korisnik?.uloga)) {
+      setNcrLinijaPrefill(prefillNcr);
+      setNcrLinijaOtvoren(true);
+      return;
+    }
     if (spoljniTab && !jeLinija && mozeTabMerljive(spoljniTab, korisnik?.uloga, rezimRada)) {
       setTab(spoljniTab);
       snimiAnalitikaTab("merljive", spoljniTab);
@@ -285,7 +296,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     ["dobavljac", "DOBAVLJAČI"],
     ["oc", "OC KRIVA"],
     ["stabilnost", "STABILNOST"],
-    ["oee", "OEE"],
     ["log", "LOG"],
     ...(mozeAnalitika && !jeLinija ? [["trasabilitet", "TRASABILITET"]] : []),
     ...(mozeInzenjerExcel(korisnik?.uloga, rezimRada) ? [["excel", "EXCEL"]] : []),
@@ -324,10 +334,15 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   }, []);
 
   const onOtvoriNcrAnalitika = useCallback((prefill = {}) => {
+    if (jeLinija && mozeNcrUnosLinija(korisnik?.uloga)) {
+      setNcrLinijaPrefill(prefill);
+      setNcrLinijaOtvoren(true);
+      return;
+    }
     setNcrPrefill(prefill);
     setTab("ncr");
     snimiAnalitikaTab("merljive", "ncr");
-  }, []);
+  }, [jeLinija, korisnik?.uloga]);
 
   const otvori8dLokalno = useCallback((d) => {
     setOsmdPrefill(normalizujPrefill8d(d));
@@ -350,7 +365,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     if (id === "dobavljac") return "#34d399";
     if (id === "oc") return "#a3e635";
     if (id === "stabilnost") return "#f472b6";
-    if (id === "oee") return C.narandzasta;
     if (id === "moment") return C.ljubicasta || "#a78bfa";
     if (id === "trasabilitet") return "#22d3ee";
     if (id === "excel") return C.plava;
@@ -385,6 +399,23 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const [koloneSnapshot, setKoloneSnapshot] = useState(() => prazneKolone(5));
   const kolone = koloneSnapshot;
   const onMerenjaChange = useCallback((cols) => setKoloneSnapshot(cols), []);
+
+  const otvoriNcrSaLinije = useCallback(() => {
+    const aktivnaKol = kolone.find((c) => c.naziv !== "-" && c.merenja?.length);
+    const poslednjeMer = aktivnaKol?.merenja?.slice(-1)[0];
+    onOtvoriNcrAnalitika(prefillNcrIzUnosaLinije({
+      id_deo: idDeo,
+      naziv_dela: nazivDela,
+      linija,
+      masina,
+      pogon: pogonKod,
+      radni_nalog: radniNalog,
+      detektovao: korisnik?.ime,
+      karakteristika: aktivnaKol?.naziv || "",
+      izmerena_vrednost: poslednjeMer?.vrednost,
+      modul: "merljive",
+    }));
+  }, [onOtvoriNcrAnalitika, kolone, idDeo, nazivDela, linija, masina, pogonKod, radniNalog, korisnik?.ime]);
   const [karakteristike, setKarakteristike] = useState([]);
   const [sopMap, setSopMap] = useState({});
   const [ucitava, setUcitava] = useState(true);
@@ -2758,6 +2789,27 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
               >
                 {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
               </button>
+              {jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga) && (
+                <button
+                  type="button"
+                  data-testid="ncr-linija-dugme"
+                  onClick={otvoriNcrSaLinije}
+                  title="Otvori NCR obrazac sa podacima sa linije"
+                  style={{
+                    background: `${C.crvena}22`,
+                    border: `1px solid ${C.crvena}`,
+                    borderRadius: 5,
+                    color: C.crvena,
+                    fontSize: 8,
+                    padding: "1px 6px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  NCR
+                </button>
+              )}
               {digitalniUnos && meriloPovezano && meriloSimulacija && (
                 <button
                   type="button"
@@ -2965,6 +3017,14 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         )}
       </div>
 
+      {jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga) && (
+        <NcrLinijaTraka
+          C={C}
+          kompakt={ekran.mob || ekran.tablet}
+          onClick={otvoriNcrSaLinije}
+        />
+      )}
+
       {tab === "unos" && (
         <PrijemMerenjeKontekst
           C={C}
@@ -3011,7 +3071,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           addToast={addToast}
           korisnik={korisnik}
           modul="merljive"
-          onOtvoriOee={() => setTab("oee")}
           onOtvori8D={otvori8dLokalno}
           onOtvoriNcr={onOtvoriNcrAnalitika}
           onNavigacija={onNavigacijaAnalitika}
@@ -3099,8 +3158,8 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       )}
 
       {tab === "ncr" && !jeLinija && (
-        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: 20, display: "flex", flexDirection: "column" }}>
-          <LazyTab C={C} label="Učitavam NCR/CAPA…">
+        <LazyTab C={C} label="Učitavam NCR…">
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", padding: 20, boxSizing: "border-box" }}>
           <NcrCapaPanel
             korisnik={korisnik}
             C={C}
@@ -3118,8 +3177,8 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
               setTab("pfmea-cp");
             }}
           />
-          </LazyTab>
         </div>
+        </LazyTab>
       )}
 
       {tab === "iso3951" && !jeLinija && (
@@ -3289,20 +3348,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       {tab === "stabilnost" && (
         <LazyTab C={C} label="Učitavam stabilnost…">
           <StabilnostMerljive C={C} addToast={addToast} sviDelovi={deloviLista} />
-        </LazyTab>
-      )}
-
-      {tab === "oee" && (
-        <LazyTab C={C} label="Učitavam OEE…">
-        <OeeKpiTab
-          C={C}
-          modul="merljive"
-          addToast={addToast}
-          idDeoFilter={(filterDeo || idDeo) || undefined}
-          datum={datumSrUIso(datum)}
-          smena={smena}
-          radniNalog={radniNalog || undefined}
-        />
         </LazyTab>
       )}
 
@@ -3847,6 +3892,20 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         {unosFormaSadrzaj}
       </div>
       )}
+
+      <NcrObrazacLinijaOverlay
+        otvoren={ncrLinijaOtvoren}
+        onZatvori={() => { setNcrLinijaOtvoren(false); setNcrLinijaPrefill(null); }}
+        prefill={ncrLinijaPrefill}
+        korisnik={korisnik}
+        C={C}
+        addToast={addToast}
+        sviDelovi={deloviLista}
+        onOtvori8D={(ncrForma) => {
+          setNcrLinijaOtvoren(false);
+          onOtvori8D?.(normalizujPrefill8d(prefill8dIzNcr(ncrForma)), { modul: "varijabilne" });
+        }}
+      />
     </div>
     </MerljiveKoloneProvider>
   );

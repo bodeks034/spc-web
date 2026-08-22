@@ -150,8 +150,10 @@ async function kreirajPdf(lista, opts = {}) {
 }
 
 export async function preuzmiEskalacijePdf(lista, opts = {}) {
-  const { pdf, filename } = await kreirajPdf(lista, opts);
-  pdf.save(filename);
+  const { syncFolder = true, onFolderSync, ...rest } = opts;
+  const { pdf, filename } = await kreirajPdf(lista, rest);
+  const { syncOperativaPdf } = await import("./kvalitetFolderIzvoz.js");
+  await syncOperativaPdf(pdf, filename, "eskalacije", { syncFolder, onFolderSync });
   return filename;
 }
 

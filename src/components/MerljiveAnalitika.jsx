@@ -5,7 +5,7 @@ import { statPoGrupi, korelacijaPozicijaMasina } from "../lib/varijabilneSpcStat
 import { formatVrednostKarte } from "../lib/varijabilneUtils.js";
 
 import { supabase } from "../lib/supabaseClient.js";
-import { exportOsmdIzvestajPdf, osmdPayloadIzForme, stampajOsmdIzvestaj, exportOsmdIzvestajWord } from "../lib/osmdIzvestajPdf.js";
+import { exportOsmdIzvestajPdf, osmdPayloadIzForme, stampajOsmdIzvestaj, exportOsmdIzvestajWordSaFolderom, stampajPrazanOsmdIzvestaj } from "../lib/osmdIzvestajPdf.js";
 import { normalizujPrefill8d } from "../lib/eskalacijeHelper.js";
 import { ucitajPfmeaCpPaketZa8d } from "../lib/osmdPfmeaCpPaket.js";
 import { exportKvalitetPaketZip } from "../lib/kvalitetPaket.js";
@@ -580,12 +580,15 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
     }
   };
 
-  const exportWord8D = (izv) => {
+  const exportWord8D = async (izv) => {
     try {
-      exportOsmdIzvestajWord(izv, {
+      await exportOsmdIzvestajWordSaFolderom(izv, {
         naslov: "8D izveštaj — merljive",
         podnaslov: "Merljive karakteristike · metoda 8 disciplina",
         prefiksFajla: "8D_merljive",
+        onFolderSync: (rez) => {
+          if (rez.synced) addToast(`✓ Word u folderu: ${rez.putanja}`, "info");
+        },
       });
       addToast("✓ Word dokument preuzet", "uspeh");
     } catch (e) {
@@ -617,11 +620,22 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
     }
   };
 
+  const stampajPrazan8D = async () => {
+    try {
+      await stampajPrazanOsmdIzvestaj({
+        naslov: "8D izveštaj — merljive",
+        podnaslov: "Merljive karakteristike · metoda 8 disciplina",
+      });
+    } catch (e) {
+      addToast(e?.message || "Štampa nije uspela", "greska");
+    }
+  };
+
   if (aktivni !== null) {
     return (
       <OsmdEditor izvestaj={aktivni} sviDelovi={sviDelovi} padding={0}
         onSacuvaj={sacuvaj} onNazad={() => setAktivni(null)} onPDF={exportPDF8D}
-        onWord={exportWord8D} onStampaj={stampaj8D}
+        onWord={exportWord8D} onStampaj={stampaj8D} onStampajPrazan={stampajPrazan8D}
         onExportPaket={exportPaketZip} supabase={supabase}
         C={C} addToast={addToast} />
     );
@@ -630,13 +644,20 @@ export function OsmDIzvestajMerljive({ korisnik, C, addToast, sviDelovi, prefill
   return (
     <OsmdScrollOkvir>
     <div style={{ padding: "0 4px", maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8, flexWrap: "wrap" }}>
         <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700 }}>8D izveštaji</div>
-        <button type="button" onClick={() => setAktivni({})}
-          style={{
-            background: C.plava, border: "none", borderRadius: 8, color: C.onAkcent,
-            fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
-          }}>+ Novi 8D</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" data-testid="8d-stampaj-prazan-mer" onClick={stampajPrazan8D}
+            style={{
+              background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8,
+              color: C.sivi, fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
+            }}>🖨 Prazan obrazac</button>
+          <button type="button" onClick={() => setAktivni({})}
+            style={{
+              background: C.plava, border: "none", borderRadius: 8, color: C.onAkcent,
+              fontSize: 12, fontWeight: 700, padding: "9px 16px", cursor: "pointer",
+            }}>+ Novi 8D</button>
+        </div>
       </div>
       {loading ? (
         <div style={{ color: C.sivi, fontSize: 12, textAlign: "center", padding: 24 }}>Učitavanje…</div>

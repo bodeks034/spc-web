@@ -19,6 +19,7 @@ describe("jeAutoObavestenje", () => {
     expect(jeAutoObavestenje({ id: "ncr_rok_12" })).toBe(true);
     expect(jeAutoObavestenje({ id: "ncr_bez_8d_5" })).toBe(true);
     expect(jeAutoObavestenje({ id: "auto_ncr_zatvoren_12" })).toBe(true);
+    expect(jeAutoObavestenje({ id: "auto_ncr_linija_42" })).toBe(true);
     expect(jeAutoObavestenje({ id: "alarm_visok_1" })).toBe(false);
   });
 });

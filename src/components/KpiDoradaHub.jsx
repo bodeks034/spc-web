@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import SkartDoradaOeePanel, { OeeFormulaRaspodela } from "./SkartDoradaOeePanel.jsx";
+import SkartDoradaOeePanel from "./SkartDoradaOeePanel.jsx";
 import {
   fetchKpiUnos,
   fetchKpiFilterOpcijeZaDeo,
@@ -463,20 +463,6 @@ export default function KpiDoradaHub({
           </div>
         ) : (
           <>
-            {agregatFilter?.kpi && agregatIzvor && (
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, marginBottom: 6 }}>
-                  AGREGAT ZA FILTER
-                  {agregatFilter.brojUnosa > 1 ? ` · ${agregatFilter.brojUnosa} unosa` : ""}
-                </div>
-                <OeeFormulaRaspodela
-                  C={C}
-                  izvor={agregatIzvor}
-                  kpi={agregatFilter.kpi}
-                  naslov="OEE = A × P × Q"
-                />
-              </div>
-            )}
             {imaNeus && (
               <div style={{
                 background: `${C.zuta}18`, border: `1px solid ${C.zuta}50`,

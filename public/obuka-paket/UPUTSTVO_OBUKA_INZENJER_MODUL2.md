@@ -72,6 +72,7 @@ Podrazumevani tab: **PREGLED**.
 | NCR / CAPA | Nesaglasnost + CAPA |
 | 8D | Formalni 8D izveštaj |
 | PFMEA / CP | FMEA + kontrolni plan |
+| **NCR · 8D · PFMEA · CP (SOP)** | `UPUTSTVO_NCR_8D_PFMEA_CP.md` — pun postupak od karantina do zatvaranja |
 | ESKALACIJE | Lanac i status eskalacija |
 | ISO 2859 | AQL atributivno |
 | ISO 3951 | Uzorkovanje merljivo |

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPC — NCR · 8D · PFMEA · Control Plan</title>
+  <style>
+    :root { --text:#111; --muted:#444; }
+    * { box-sizing:border-box; }
+    body { font-family:"Segoe UI",Arial,sans-serif; font-size:11pt; line-height:1.4; color:var(--text); margin:0; background:#c8c8c8; }
+    .page { width:210mm; min-height:297mm; margin:12px auto; padding:18mm 16mm 20mm; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.15); }
+    @media print {
+      body { background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .page {
+        width:auto; min-height:auto; margin:0; padding:0 !important;
+        box-shadow:none; page-break-after:always;
+      }
+      .page:last-child { page-break-after:auto; }
+      .no-print { display:none!important; }
+      a { color:inherit; text-decoration:none; }
+      table { page-break-inside:avoid; }
+      h2, h3 { page-break-after:avoid; }
+      th { background:#e8f2ec !important; }
+    }
+    @page { size:A4; margin:16mm 14mm 18mm 14mm; }
+    @media screen and (max-width:900px){
+      body{background:#e8e8e8!important;}
+      .page{width:100%!important;max-width:100%!important;min-height:auto!important;margin:0!important;padding:16px 14px 24px!important;box-shadow:none!important;border-radius:0;}
+      table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+      .print-bar{padding:8px;font-size:12px;}
+      .print-bar button{display:inline-block;margin:6px 0 0;margin-left:0;}
+    }
+
+    h1 { font-size:20pt; margin:0 0 4px; color:#000; }
+    h2 { font-size:13pt; margin:18px 0 8px; color:#000; border-bottom:1.5px solid #222; padding-bottom:3px; page-break-after:avoid; }
+    h3 { font-size:11pt; margin:14px 0 6px; color:#000; page-break-after:avoid; }
+    p { margin:6px 0; }
+    .sub { color:var(--muted); margin-bottom:14px; font-size:10.5pt; }
+    table { width:100%; border-collapse:collapse; margin:8px 0 14px; font-size:9pt; page-break-inside:avoid; background:#fff; }
+    th, td { border:1px solid #333; padding:6px 8px; text-align:left; vertical-align:top; background:#fff; }
+    th { background:#e8f2ec; font-weight:700; }
+    .print-bar { position:sticky; top:0; z-index:99; background:#111; color:#fff; padding:10px; text-align:center; }
+    .print-bar button { background:#1a6b3c; color:#fff; border:none; padding:8px 18px; font-weight:700; border-radius:6px; cursor:pointer; margin-left:10px; }
+    footer { margin-top:16px; border-top:1px solid #999; font-size:8pt; color:var(--muted); text-align:center; padding-top:6px; }
+    .section-start { page-break-before:always; }
+    .box { border:1.5px solid #333; padding:10px 12px; margin:10px 0; background:#fff; }
+    .flow { font-family:Consolas,"Courier New",monospace; font-size:8.5pt; line-height:1.35; white-space:pre; margin:8px 0; padding:8px 10px; border:1px solid #666; background:#f9f9f9; }
+    ul { margin:6px 0 10px 18px; padding:0; font-size:10pt; }
+    li { margin:3px 0; }
+    .chk { font-size:9.5pt; }
+  </style>
+</head>
+<body>
+
+<div class="print-bar no-print">
+  NCR · 8D · PFMEA · Control Plan (A4)
+  <button type="button" onclick="window.print()">🖨 Štampaj / Save as PDF</button>
+</div>
+
+<div class="page">
+  <h1>NCR · 8D · PFMEA · Control Plan</h1>
+  <p class="sub">Radno uputstvo · verzija 1.0 · 2026 · SPC Kontrola kvaliteta</p>
+  <div class="box">
+    <strong>Predmet:</strong> Od uočavanja greške do trajnog otklanjanja uzroka (ažuriranje PFMEA i Control Plan-a).<br>
+    <strong>Cilj:</strong> Brza izolacija loše robe i efikasno rešavanje problema <strong>bez suvišne administracije</strong>.<br>
+    <strong>Primenjuje se na:</strong> sve pogone i sektore.
+  </div>
+
+  <h2>Gde u aplikaciji</h2>
+  <table>
+    <tr><th>Dokument / akcija</th><th>Put</th></tr>
+    <tr><td>NCR Registar + Obrazac</td><td>Modul 2 → <strong>NCR</strong> (Registar / Obrazac)</td></tr>
+    <tr><td>NCR sa linije</td><td>Modul 1 → <strong>UNOS</strong> → dugme <strong>NCR</strong></td></tr>
+    <tr><td>8D izveštaj</td><td>Modul 2 → <strong>8D</strong></td></tr>
+    <tr><td>PFMEA / Control Plan</td><td>Modul 2 → <strong>PFMEA / CP</strong></td></tr>
+    <tr><td>Folder dokumentacije</td><td>Modul 2 → NCR → tab <strong>Folder kvaliteta</strong></td></tr>
+    <tr><td>Prazan obrazac (štampa)</td><td>NCR ili 8D → <strong>🖨 Prazan obrazac</strong></td></tr>
+  </table>
+  <p><strong>Folder na računaru:</strong> <code>KONTROLA_KVALITETA/</code> (Excel NCR, Word 8D, PFMEA/CP po procesu).</p>
+
+  <h2>Ko šta radi</h2>
+  <table>
+    <tr><th>Uloga</th><th>Odgovornost</th></tr>
+    <tr><td>Operater / magacioner</td><td>Uočava grešku → obaveštava kontrolora → pomaže pri karantinu</td></tr>
+    <tr><td>Kontrolor kvaliteta</td><td>Otvara NCR → karantin → containment → dispozicija</td></tr>
+    <tr><td>Ruk. proizvodnje / Kvalitet</td><td>Dispozicija robe → odluka o 8D → zatvaranje NCR</td></tr>
+    <tr><td>Inženjer kvaliteta / Tehnolog</td><td>Vodi 8D (D4–D6) → ažurira PFMEA i CP (D7)</td></tr>
+    <tr><td>Rukovodilac kvaliteta</td><td>Odobrava zatvaranje 8D (D8) nakon verifikacije</td></tr>
+  </table>
+
+  <h2>Tok postupka (pregled)</h2>
+  <div class="flow">Greška uočena
+    ↓
+KORAK 1 — NCR + karantin (hitno)
+    ↓
+KORAK 2 — Dispozicija (škart / dorada / odstupanje)
+    ↓
+    ├─ Izolovani slučaj? → Zatvori NCR (KRAJ)
+    └─ Okidač 8D? → KORAK 3
+              ↓
+KORAK 4 — 8D izveštaj (D1–D8)
+              ↓
+KORAK 5 — PFMEA + Control Plan (D7)
+              ↓
+KORAK 6 — Verifikacija i zatvaranje</div>
+  <footer>SPC Web · NCR · 8D · PFMEA · CP · str. 1</footer>
+</div>
+
+<div class="page section-start">
+  <h2>KORAK 1 — Detekcija i NCR („Gašenje požara“)</h2>
+  <p>Svaka neusaglašenost — ulazna kontrola, proizvodnja ili pre isporuke — mora se odmah evidentirati.</p>
+
+  <h3>Hitna mera — karantin</h3>
+  <table>
+    <tr><th>#</th><th>Mera</th></tr>
+    <tr><td>1</td><td>Loši komadi se <strong>odmah fizički odvajaju</strong> od ispravne robe</td></tr>
+    <tr><td>2</td><td>Crvena nalepnica <strong>„KARANTIN“</strong> (ili interni standard)</td></tr>
+    <tr><td>3</td><td>Roba u karantinu <strong>ne sme</strong> dalje u proces / montažu / ka kupcu</td></tr>
+  </table>
+  <p>Alarm / karantin na liniji → tab <strong>ODOBRENJA</strong> (Modul 2) ili direktno <strong>NCR</strong>.</p>
+
+  <h3>Minimum u NCR obrascu</h3>
+  <table>
+    <tr><th>Polje</th><th>Šta upisati</th></tr>
+    <tr><td>ID deo</td><td>Šifra dela</td></tr>
+    <tr><td>Pogon / linija / mašina</td><td>Gde je greška uočena</td></tr>
+    <tr><td>Opis</td><td>Šta nije u redu (konkretno, merljivo)</td></tr>
+    <tr><td>Količina</td><td>Proizvedena / sumnjiva / neispravna</td></tr>
+    <tr><td>Detektovao</td><td>Ko je uočio</td></tr>
+    <tr><td>Containment mere</td><td>Karantin, stop linije…</td></tr>
+    <tr><td>Status</td><td><strong>OPEN</strong> → zatim <strong>CONTAINMENT</strong></td></tr>
+  </table>
+
+  <h3>Kako u aplikaciji</h3>
+  <table>
+    <tr><th>Situacija</th><th>Put</th></tr>
+    <tr><td>Modul 1 — linija</td><td>UNOS → <strong>NCR</strong> (prefill deo/RN/linija)</td></tr>
+    <tr><td>Modul 2 — kancelarija</td><td>NCR → <strong>+ Novi NCR</strong> ili red u Registru</td></tr>
+    <tr><td>Iz SPC alarma</td><td>ODOBRENJA → Kreiraj / Otvori NCR</td></tr>
+    <tr><td>Ručno na papiru</td><td>NCR → <strong>🖨 Prazan obrazac</strong></td></tr>
+  </table>
+  <p><strong>Jedan unos = Registar + Obrazac.</strong> Čuvanjem NCR-a ažurira se i Excel <code>NCR_Registar_i_Obrazac.xlsx</code> u folderu (ako je povezan).</p>
+
+  <h2>KORAK 2 — Dispozicija robe</h2>
+  <p>Ovlašćeno lice (Ruk. proizvodnje ili Kvalitet) donosi odluku šta raditi sa izolovanom robom.</p>
+  <table>
+    <tr><th>Opcija</th><th>Opis</th><th>NCR status</th></tr>
+    <tr><td><strong>A — Škart</strong></td><td>Nepopravljiva → otpad, otpis</td><td>→ <strong>CLOSED</strong></td></tr>
+    <tr><td><strong>B — Dorada</strong></td><td>Popravka → ponovna kontrola → puštanje ako OK</td><td>→ <strong>CLOSED</strong></td></tr>
+    <tr><td><strong>C — Odstupanje</strong></td><td>Van spec., funkcionalna → pismeno odobrenje Inž./Kupca</td><td>→ <strong>CLOSED</strong></td></tr>
+  </table>
+  <p>Polja: <strong>Dispozicija</strong>, <strong>Odobrio dispoziciju</strong>, <strong>Datum zatvaranja</strong>.</p>
+  <div class="box">
+    <strong>Kada se ovde završava (bez 8D):</strong> greška je izolovana, nema uticaja na kupca i <strong>nijedan okidač 8D nije aktivan</strong> → zatvori NCR. Ne otvara se 8D.
+  </div>
+  <footer>SPC Web · NCR · 8D · PFMEA · CP · str. 2</footer>
+</div>
+
+<div class="page section-start">
+  <h2>KORAK 3 — Kada se pokreće 8D? (4 okidača)</h2>
+  <p>8D se pokreće samo ako je ispunjen <strong>bar jedan</strong> okidač. Aplikacija ih automatski proverava na NCR obrascu.</p>
+  <table>
+    <tr><th>#</th><th>Okidač</th><th>Pravilo (aplikacija)</th></tr>
+    <tr><td><strong>1</strong></td><td>Eksterna reklamacija kupca</td><td>Broj reklamacije <strong>ili</strong> „Uticaj na kupca = DA“ → <strong>8D obavezan 100 %</strong></td></tr>
+    <tr><td><strong>2</strong></td><td>Ponovljeni NCR / sistemska greška</td><td>Isti deo + linija <strong>ili</strong> sličan opis u poslednjih <strong>45 dana</strong></td></tr>
+    <tr><td><strong>3</strong></td><td>Finansijski trošak / velika količina</td><td>Trošak škarta <strong>≥ 500 €</strong>, <strong>ili</strong> neispravna <strong>≥ 50 kom</strong>, <strong>ili</strong> sumnjiva <strong>≥ 100 kom</strong></td></tr>
+    <tr><td><strong>4</strong></td><td>SC / CC karakteristika</td><td>Greška na Specijalnoj (SC) ili Kritičnoj (CC) karakteristici</td></tr>
+  </table>
+
+  <h3>Pravilo u NCR obrascu</h3>
+  <ul>
+    <li>Kolona <strong>„8D pokrenut“ = DA</strong> kada je bar jedan okidač aktivan</li>
+    <li>Dugme <strong>„Primeni preporuku“</strong> — automatski postavlja 8D i upisuje razlog</li>
+    <li><strong>NCR se ne može zatvoriti</strong> dok je 8D obavezan a nije povezan 8D izveštaj</li>
+  </ul>
+  <div class="box">
+    <strong>SC / CC:</strong> Rizik za bezbednost ili funkciju proizvoda je prevelik — <strong>odmah 8D</strong>. Nije dovoljno samo otpisati u NCR-u.
+  </div>
+
+  <h2>KORAK 4 — 8D izveštaj (D1–D8)</h2>
+  <table>
+    <tr><th>Disciplina</th><th>Sadržaj</th><th>Tipični nosioci</th></tr>
+    <tr><td><strong>D1 — Tim</strong></td><td>Voditelj, članovi (Proizvodnja, Kvalitet, Tehnologija)</td><td>Ruk. kvaliteta</td></tr>
+    <tr><td><strong>D2 — Opis</strong></td><td>5W: ko, šta, gde, kada, koliko</td><td>Tim</td></tr>
+    <tr><td><strong>D3 — Privremena akcija</strong></td><td>100 % kontrola, stop, sortiranje…</td><td>Proizvodnja + Kvalitet</td></tr>
+    <tr><td><strong>D4 — Uzrok</strong></td><td>5×Zašto, Ishikawa (6M), potvrđeni koren</td><td>Tehnologija / Inženjer</td></tr>
+    <tr><td><strong>D5 — Korektivna akcija</strong></td><td>Trajna rešenja (Poka-Yoke, promena postupka…)</td><td>Tehnologija</td></tr>
+    <tr><td><strong>D6 — Implementacija</strong></td><td>Plan ko / šta / do kada</td><td>Tim</td></tr>
+    <tr><td><strong>D7 — Prevencija</strong></td><td>PFMEA + Control Plan (Korak 5)</td><td>Inženjer kvaliteta</td></tr>
+    <tr><td><strong>D8 — Zaključak</strong></td><td>Validacija, zatvaranje, potpis</td><td>Ruk. kvaliteta</td></tr>
+  </table>
+
+  <h3>Kako u aplikaciji</h3>
+  <table>
+    <tr><th>#</th><th>Korak</th></tr>
+    <tr><td>1</td><td>Iz NCR: <strong>Otvori 8D</strong> (prefill iz NCR podataka)</td></tr>
+    <tr><td>2</td><td>Modul 2 → 8D → <strong>+ Novi 8D</strong> ili postojeći</td></tr>
+    <tr><td>3</td><td>Popuniti D1–D8 → <strong>Sačuvaj</strong></td></tr>
+    <tr><td>4</td><td>Štampaj / Word / PDF — Word u <code>02_8D_Izvestaji/</code> (ako je folder povezan)</td></tr>
+    <tr><td>5</td><td>Veza NCR ↔ 8D: polja <strong>8D pokrenut</strong>, <strong>8D broj</strong></td></tr>
+  </table>
+  <footer>SPC Web · NCR · 8D · PFMEA · CP · str. 3</footer>
+</div>
+
+<div class="page section-start">
+  <h2>KORAK 5 — PFMEA i Control Plan (D7)</h2>
+  <p><strong>Ključni korak za ISO audit.</strong> 8D se ne zatvara dok se ne uradi D7 — Sprečavanje ponavljanja.</p>
+
+  <h3>5.1 Izmena PFMEA</h3>
+  <table>
+    <tr><th>#</th><th>Akcija</th></tr>
+    <tr><td>1</td><td>Modul 2 → PFMEA / CP → deo i proces gde je greška nastala</td></tr>
+    <tr><td>2</td><td>Greška <strong>nije predviđena</strong> → novi red (mod, uzrok, posledica)</td></tr>
+    <tr><td>3</td><td>Greška <strong>jeste predviđena</strong> → podići O ili D → preračunati RPN</td></tr>
+    <tr><td>4</td><td>Definisati preporučenu kontrolu (metoda, učestalost, odgovornost)</td></tr>
+  </table>
+
+  <h3>5.2 Izmena Control Plan-a</h3>
+  <table>
+    <tr><th>#</th><th>Akcija</th></tr>
+    <tr><td>1</td><td>Control Plan za isti proces</td></tr>
+    <tr><td>2</td><td>Nova ili stroža kontrola (npr. 100 % umesto uzorka, Poka-Yoke)</td></tr>
+    <tr><td>3</td><td>Usaglasiti sa KONTROLNIM PLANOM u Modulu 2 (SPC karakteristike)</td></tr>
+  </table>
+  <p>U editoru 8D: <strong>Otvori PFMEA/CP</strong> — prefill iz D4/D5/D6. Dokumenti u modulu PFMEA/CP i u folderu <code>03_Inzenjering_Kvaliteta/Proces_{pogon}/</code>.</p>
+
+  <h2>KORAK 6 — Verifikacija i zatvaranje</h2>
+  <table>
+    <tr><th>Korak</th><th>Ko</th><th>Šta</th></tr>
+    <tr><td>1</td><td>Tim</td><td>Prati proces kroz <strong>3 serije</strong> ili <strong>30 dana</strong></td></tr>
+    <tr><td>2</td><td>Kvalitet</td><td>Proverava da greška <strong>nije ponovljena</strong></td></tr>
+    <tr><td>3</td><td>Inženjer</td><td>Potvrđuje PFMEA i CP odobrene i u produkciji</td></tr>
+    <tr><td>4</td><td>Ruk. kvaliteta</td><td>D8 — Zaključak, status 8D → <strong>Završen</strong></td></tr>
+    <tr><td>5</td><td>Kvalitet</td><td>Zatvara NCR (<strong>CLOSED</strong>, verifikacija efikasnosti)</td></tr>
+  </table>
+
+  <h2>Statusi NCR</h2>
+  <table>
+    <tr><th>Status</th><th>Značenje</th></tr>
+    <tr><td><strong>OPEN</strong></td><td>NCR otvoren, osnovni podaci</td></tr>
+    <tr><td><strong>CONTAINMENT</strong></td><td>Karantin / privremene mere aktivne</td></tr>
+    <tr><td><strong>DISPOSITION</strong></td><td>Odluka o robi (škart/dorada/odstupanje)</td></tr>
+    <tr><td><strong>VERIFICATION</strong></td><td>Provera efikasnosti mera</td></tr>
+    <tr><td><strong>8D IN PROGRESS</strong></td><td>8D izveštaj u toku</td></tr>
+    <tr><td><strong>CLOSED</strong></td><td>Zatvoren — arhiva</td></tr>
+  </table>
+  <footer>SPC Web · NCR · 8D · PFMEA · CP · str. 4</footer>
+</div>
+
+<div class="page section-start">
+  <h2>Folder KONTROLA_KVALITETA</h2>
+  <div class="flow">KONTROLA_KVALITETA/
+├── 01_NCR_Sistem/
+│   └── NCR_Registar_i_Obrazac.xlsx
+├── 02_8D_Izvestaji/
+│   └── 8D_YYYY_NNN_Opis.doc
+└── 03_Inzenjering_Kvaliteta/
+    └── Proces_{pogon}/
+        ├── PFMEA_{pogon}.xlsx
+        └── Control_Plan_{pogon}.xlsx</div>
+  <p><strong>Povezivanje:</strong> Modul 2 → NCR → tab Folder kvaliteta → <strong>Kreiraj / poveži folder</strong> (Chrome/Edge).</p>
+
+  <h2>FAQ — kratko</h2>
+  <table>
+    <tr><th>Pitanje</th><th>Odgovor</th></tr>
+    <tr><td>Svaki NOK mora NCR?</td><td>Ne svaka pojedinačna mera u LOG-u — ali <strong>značajna</strong> neusaglašenost mora imati NCR</td></tr>
+    <tr><td>NCR bez 8D?</td><td>Da — ako nijedan okidač nije aktivan i dispozicija je završena</td></tr>
+    <tr><td>Ko zatvara NCR kad je 8D obavezan?</td><td>Samo kad je 8D kreiran/povezan i popunjen do D8 — aplikacija blokira zatvaranje</td></tr>
+    <tr><td>Gde prazan obrazac?</td><td>NCR → 🖨 Prazan obrazac · 8D → 🖨 Prazan obrazac · Folder kvaliteta</td></tr>
+  </table>
+
+  <h2>Checklist — pre zatvaranja</h2>
+  <h3>NCR (bez 8D)</h3>
+  <table class="chk">
+    <tr><th>☐</th><th>Stavka</th></tr>
+    <tr><td>☐</td><td>Karantin izvršen i dokumentovan</td></tr>
+    <tr><td>☐</td><td>Dispozicija doneta i odobrena</td></tr>
+    <tr><td>☐</td><td>Containment mere zapisane</td></tr>
+    <tr><td>☐</td><td>Status → CLOSED</td></tr>
+  </table>
+  <h3>NCR + 8D</h3>
+  <table class="chk">
+    <tr><th>☐</th><th>Stavka</th></tr>
+    <tr><td>☐</td><td>Bar jedan okidač dokumentovan</td></tr>
+    <tr><td>☐</td><td>8D pokrenut = DA, broj 8D upisan</td></tr>
+    <tr><td>☐</td><td>D1–D8 kompletan</td></tr>
+    <tr><td>☐</td><td>PFMEA i CP revidirani (D7)</td></tr>
+    <tr><td>☐</td><td>Verifikacija 3 serije / 30 dana</td></tr>
+    <tr><td>☐</td><td>NCR i 8D zatvoreni</td></tr>
+  </table>
+
+  <h2>Povezana obuka</h2>
+  <table>
+    <tr><th>Dokument</th><th>Tema</th></tr>
+    <tr><td>OBUKA_INZENJER_MODUL2.html</td><td>Modul 2 — tabovi, dnevni tok</td></tr>
+    <tr><td>OBUKA_OPERATER_MODUL1.html</td><td>Linija — unos, NCR dugme</td></tr>
+    <tr><td>UPUTSTVO_NCR_8D_PFMEA_CP.md</td><td>Puna verzija uputstva (ekran)</td></tr>
+  </table>
+
+  <p style="margin-top:14px;font-size:9pt;"><strong>Odobrio:</strong> _________________________ &nbsp; <strong>Datum:</strong> ___________</p>
+  <p style="font-size:9pt;"><strong>Distribucija:</strong> Kvalitet · Proizvodnja · Tehnologija · Svi kontrolori</p>
+  <footer>SPC Web · NCR · 8D · PFMEA · CP · kraj · ver. 1.0 · 2026</footer>
+</div>
+
+</body>
+</html>

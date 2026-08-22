@@ -22,6 +22,7 @@ import {
   pfmeaRefIzEditora, cpRefIzEditora,
 } from "../lib/pfmeaControlPlan.js";
 import { supabase as defaultSupabase } from "../lib/supabaseClient.js";
+import { generisiBrojevePaketa8d, brojeviPaketaIzBroj8d } from "../lib/osmdBrojevi.js";
 import OsmdPaketPregled from "./kvalitet/OsmdPaketPregled.jsx";
 
 /** Skrol zona za 8D — radi u analitici (atributivne/merljive) gde roditelj ima overflow:hidden. */
@@ -107,7 +108,11 @@ function Zaglavlje8D({ form, setForm, C, INP }) {
                 value={form[p.key] || ""}
                 onChange={(e) => set(p.key, e.target.value)}
                 placeholder={p.ph || p.label}
-                style={INPsm}
+                readOnly={!!p.readOnly}
+                style={{
+                  ...INPsm,
+                  ...(p.readOnly ? { background: `${C.sivi}18`, opacity: 0.9, cursor: "default" } : {}),
+                }}
               />
             )}
           </div>
@@ -885,7 +890,7 @@ function PoljeUnos({ polje, idx, form, setForm, C, INP }) {
 }
 
 export default function OsmdEditor({
-  izvestaj, sviDelovi, onSacuvaj, onNazad, onPDF, onWord, onStampaj, onOtvoriPfmeaCp,
+  izvestaj, sviDelovi, onSacuvaj, onNazad, onPDF, onWord, onStampaj, onStampajPrazan, onOtvoriPfmeaCp,
   onExportPaket, supabase = defaultSupabase, C, padding = 18, addToast,
 }) {
   const [form, setForm] = useState(() => {
@@ -932,6 +937,27 @@ export default function OsmdEditor({
   useEffect(() => {
     fetchTipoviVozila().then(setTipoviVozila).catch(() => setTipoviVozila([]));
   }, []);
+
+  useEffect(() => {
+    if (form.id || !form.id_deo?.trim()) return;
+    if (form.broj_8d && form.broj_pfmea && form.broj_control_plan) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        let brojevi = null;
+        if (form.broj_8d) brojevi = brojeviPaketaIzBroj8d(form.broj_8d);
+        if (!brojevi?.broj_pfmea) brojevi = await generisiBrojevePaketa8d(supabase, form.id_deo);
+        if (cancelled || !brojevi) return;
+        setForm((p) => ({
+          ...p,
+          broj_8d: p.broj_8d || brojevi.broj_8d,
+          broj_pfmea: p.broj_pfmea || brojevi.broj_pfmea,
+          broj_control_plan: p.broj_control_plan || brojevi.broj_control_plan,
+        }));
+      } catch { /* offline / nema migracije */ }
+    })();
+    return () => { cancelled = true; };
+  }, [form.id, form.id_deo, supabase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!form.id_deo || !sviDelovi?.length) return;
@@ -1018,6 +1044,14 @@ export default function OsmdEditor({
                 background: C.hover, border: `1px solid ${C.border}`, borderRadius: 7, color: C.tekst,
                 fontSize: 11, fontWeight: 700, padding: "7px 14px", cursor: "pointer",
               }}>🖨 Štampaj</button>
+          )}
+          {onStampajPrazan && (
+            <button type="button" data-testid="8d-stampaj-prazan-editor" onClick={() => onStampajPrazan()}
+              title="Prazan 8D obrazac za ručno popunjavanje"
+              style={{
+                background: "transparent", border: `1px solid ${C.border}`, borderRadius: 7, color: C.sivi,
+                fontSize: 11, fontWeight: 700, padding: "7px 14px", cursor: "pointer",
+              }}>Prazan obrazac</button>
           )}
           {onWord && (
             <button type="button" onClick={() => onWord(form)}

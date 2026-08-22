@@ -4,7 +4,7 @@
 
 import { brojUzastopnihNok } from "./kontekstualniVodic.js";
 import { kreirajAutoEskalaciju } from "./spcStats.js";
-import { snimiNcrCapa } from "./ncrCapa.js";
+import { snimiNcrCapa, OTVORENI_NCR } from "./ncrCapa.js";
 import { normalizujIdDeo } from "./idDeoUtil.js";
 import { ucitajPodesavanjaNotifikacija } from "./notifikacije.js";
 import { posaljiAutoObavestenje } from "./autoObavestenja.js";
@@ -57,7 +57,7 @@ async function kreirajAutoNcrDraft(supabase, {
   const { data: existing } = await supabase.from("ncr_capa")
     .select("id,broj_ncr")
     .eq("id_deo", normalizujIdDeo(id_deo))
-    .in("status", ["otvoren", "analiza", "akcija", "verifikacija"])
+    .in("status", [...OTVORENI_NCR, "otvoren", "analiza", "akcija", "verifikacija"])
     .gte("created_at", since)
     .ilike("opis", `${prefiks}%`)
     .limit(1);
@@ -66,9 +66,10 @@ async function kreirajAutoNcrDraft(supabase, {
   const row = await snimiNcrCapa(supabase, {
     id_deo: normalizujIdDeo(id_deo),
     opis: `${prefiks}: ${opis}`,
-    uzrok: "",
-    korektivna: "",
-    status: "otvoren",
+    pogon: "AUTO",
+    datum_otvaranja: danasIso(),
+    ozbiljnost: prioritet === "kriticno" ? "Critical" : prioritet === "visok" ? "High" : "Medium",
+    status: "open",
     prioritet,
     izvor: "auto_pravilo",
   }, { kreiraoId: kreirao_id });
@@ -217,18 +218,76 @@ export async function posleSnimanjaKpiDorade(supabase, {
   return { ok: true };
 }
 
+function ncrLinijaNivo(ncr) {
+  const o = String(ncr?.ozbiljnost || "").toLowerCase();
+  if (o === "critical") return "kriticno";
+  if (o === "high") return "visok";
+  if (o === "medium") return "srednji";
+  return "info";
+}
+
+/** Obaveštenje inženjeru — nova NCR prijava sa linije (Modul 1). */
+export async function obavestiNcrLinija(supabase, ncr, ctx = {}) {
+  if (!ncr?.id) return { ok: false };
+  try {
+    const settings = await ucitajPodesavanjaNotifikacija(supabase);
+    if (!jeAutoPraviloUkljuceno(settings, "ncr_linija")) return { ok: false, preskoceno: true };
+
+    const deo = ncr.id_deo || "—";
+    const linija = ncr.linija || ctx.linija || "—";
+    const opisKratak = String(ncr.opis || "").trim().slice(0, 120);
+    const det = ncr.detektovao || ctx.detektovao || ctx.kontrolor || "—";
+    const nivo = ncrLinijaNivo(ncr);
+    const alarm = {
+      id: `auto_ncr_linija_${ncr.id}`,
+      naslov: `NCR sa linije — ${ncr.broj_ncr || ncr.id}`,
+      opis: [
+        deo,
+        linija !== "—" ? `linija ${linija}` : null,
+        ncr.ozbiljnost || null,
+        `detektovao ${det}`,
+        opisKratak || null,
+        "→ Modul 2 · NCR",
+      ].filter(Boolean).join(" · "),
+      nivo,
+    };
+
+    await posaljiAutoObavestenje(supabase, settings, alarm);
+
+    if (nivo === "visok" || nivo === "kriticno") {
+      const { posaljiBrowserObavestenje } = await import("./notifikacije.js");
+      posaljiBrowserObavestenje(settings, {
+        naslov: alarm.naslov,
+        opis: alarm.opis,
+        tag: alarm.id,
+      });
+    }
+
+    await zapisAutoAkcijuBrowser(supabase, {
+      tip: "ncr_linija",
+      entitet: "ncr_capa",
+      entitetId: ncr.id,
+      idDeo: ncr.id_deo,
+      opis: `NCR ${ncr.broj_ncr} prijavljen sa linije · ${linija}`,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /** Obaveštenje kad se NCR zatvori (eskalacije/SPC alarmi auto-zatvoreni). */
 export async function obavestiNcrZatvoren(supabase, ncr, {
   eskalacije = [],
   spcAlarmi = [],
 } = {}) {
-  if (!ncr?.id || ncr.status !== "zatvoren") return { ok: false };
+  if (!ncr?.id || (ncr.status !== "zatvoren" && ncr.status !== "closed")) return { ok: false };
   try {
     const settings = await ucitajPodesavanjaNotifikacija(supabase);
     if (!jeAutoPraviloUkljuceno(settings, "ncr_zatvori")) return { ok: false, preskoceno: true };
     const delovi = [
       `Deo ${ncr.id_deo || "—"}`,
-      `Status: zatvoren`,
+      `Status: closed`,
     ];
     if (eskalacije.length) delovi.push(`Eskalacije auto-zatvorene: ${eskalacije.length}`);
     if (spcAlarmi.length) delovi.push(`SPC alarmi auto-zatvoreni: ${spcAlarmi.length}`);

@@ -1,0 +1,5 @@
+NCR_KVALITET
+
+• NCR_Registar_Master.xlsx — master registar (statistika)
+• A4_NCR_Obrazac_Template.xlsx — blanko šablon (Save As)
+• Pojedinacni_Obrasci/ — pojedinačni NCR obrasci

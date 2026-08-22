@@ -4,7 +4,6 @@ import { daniDoStudije } from "./msaKalendar.js";
 
 export const ALARM_PRAGOVI = {
   nokProcenatDanas: 10,
-  oeeMinProcenat: 65,
   eskalacijaStariSati: 24,
   kalibracijaUpozorenjeDana: 30,
   msaUpozorenjeDana: 30,
@@ -15,7 +14,6 @@ const OTVORENE_ESK = new Set(["otvoren", "u_toku", "aktivan", "open"]);
 export function evaluirajAlarme({
   attr = {},
   merljive = {},
-  oee = {},
   eskalacije = [],
   merila = [],
   msaStudije = [],
@@ -35,15 +33,6 @@ export function evaluirajAlarme({
       nivo: "visok",
       naslov: `Visok NOK danas: ${pNok.toFixed(1)}%`,
       opis: `Atributivne ${attr.ukNOK || 0} NOK · Merljive ${merljive.nok || 0} NOK (ukupno ${ukN} merenja)`,
-    });
-  }
-
-  if (oee.prosek != null && oee.prosek < ALARM_PRAGOVI.oeeMinProcenat) {
-    alarmi.push({
-      id: "oee_nizak",
-      nivo: "srednji",
-      naslov: `Prosečan OEE ispod ${ALARM_PRAGOVI.oeeMinProcenat}%`,
-      opis: `Prosek poslednjih KPI unosa: ${oee.prosek}%`,
     });
   }
 

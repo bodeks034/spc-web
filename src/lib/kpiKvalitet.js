@@ -1,18 +1,18 @@
-/** OEE i prateći KPI (škart, dorada, FPY / RTY).
+/** KPI kvaliteta — škart, dorada, FPY / RTY (serija i pogon).
  *
  * Dostupnost — (planirano_min − zastoj) / planirano_min
  * Performanse — ukupno_kom / planirano_kom (brzina/output); bez plana = 100%
  * Kvalitet (jedna faza) — FPY: ispravno_iz_prve / ukupno_kom
- * Kvalitet (pogon, više faza) — RTY = proizvod FPY faza (v. izracunajOeePogon)
+ * Kvalitet (pogon, više faza) — RTY = proizvod FPY faza (v. izracunajKpiPogon)
  */
 
-import { calcFPY, calcRTYIzFaza, fazeKvalitetaPogona, izracunajOeeSaKvalitetom } from "./rtyFpy.js";
+import { calcFPY, calcRTYIzFaza, fazeKvalitetaPogona } from "./rtyFpy.js";
 
 function clamp01(x) {
   return Math.max(0, Math.min(1, x));
 }
 
-export function izracunajOeeKpi({
+export function izracunajKpiSerije({
   planirano_min = 0,
   zastoj_min = 0,
   planirano_kom = 0,
@@ -42,12 +42,6 @@ export function izracunajOeeKpi({
 
   const fpy = uk > 0 ? calcFPY(fp, uk) : null;
   const quality = fpy != null ? fpy : null;
-  const performancePct = performance != null ? performance : 1;
-  const oee = izracunajOeeSaKvalitetom({
-    availability,
-    performance: performancePct,
-    fpy: quality,
-  });
 
   return {
     availability: availability != null ? +(availability * 100).toFixed(1) : null,
@@ -55,15 +49,14 @@ export function izracunajOeeKpi({
     quality,
     fpy: quality,
     rty: quality,
-    oee,
     skartStopa: uk > 0 ? +((Number(skart) / uk) * 100).toFixed(2) : null,
     doradaStopa: uk > 0 ? +((Number(dorada) / uk) * 100).toFixed(2) : null,
     ukupno_kom: uk,
   };
 }
 
-/** OEE pogona — kvalitet iz RTY (proizvod FPY faza), ne proseka. */
-export function izracunajOeePogon({
+/** KPI pogona — kvalitet iz RTY (proizvod FPY faza), ne proseka. */
+export function izracunajKpiPogon({
   planirano_min = 0,
   zastoj_min = 0,
   planirano_kom = 0,
@@ -89,12 +82,6 @@ export function izracunajOeePogon({
     ? { faze, rty: calcRTYIzFaza(...faze) }
     : fazeKvalitetaPogona({ attr, merljive });
 
-  const oee = izracunajOeeSaKvalitetom({
-    availability,
-    performance: performance ?? 1,
-    rty,
-  });
-
   return {
     availability: availability != null ? +(availability * 100).toFixed(1) : null,
     performance: performance != null ? +(performance * 100).toFixed(1) : null,
@@ -102,7 +89,6 @@ export function izracunajOeePogon({
     fpy: fazeLista.length === 1 ? fazeLista[0]?.fpy : null,
     rty,
     faze: fazeLista,
-    oee,
     ukupno_kom: uk,
   };
 }

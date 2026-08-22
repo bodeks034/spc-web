@@ -21,7 +21,6 @@ export const InteligencijaDeoPanel = lazy(() => import("../InteligencijaDeoPanel
 export const AnalitikaPregledPanel = lazy(() => import("../analitika/AnalitikaPregledPanel.jsx"));
 export const OdobrenjaQAPanel = lazy(() => import("../analitika/OdobrenjaQAPanel.jsx"));
 export const SkartDoradaOeePanel = lazy(() => import("../SkartDoradaOeePanel.jsx"));
-export const OeeKpiTab = lazy(() => import("../SkartDoradaOeePanel.jsx").then((m) => ({ default: m.OeeKpiTab })));
 export const IzvestajSmeneMerljive = lazy(() => import("../MerljiveOplTabovi.jsx").then((m) => ({ default: m.IzvestajSmeneMerljive })));
 export const CiljeviMerljive = lazy(() => import("../MerljiveOplTabovi.jsx").then((m) => ({ default: m.CiljeviMerljive })));
 export const KupacMerljive = lazy(() => import("../MerljiveOplTabovi.jsx").then((m) => ({ default: m.KupacMerljive })));

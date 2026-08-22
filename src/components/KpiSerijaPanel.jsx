@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import SkartDoradaOeePanel from "./SkartDoradaOeePanel.jsx";
-import { izracunajOeeKpi } from "../lib/oeeKpi.js";
+import { izracunajKpiSerije } from "../lib/kpiKvalitet.js";
 
 /**
  * KPI traka — uvek vidljiva (sažetak), proširenje po kliku.
@@ -27,7 +27,7 @@ export default function KpiSerijaPanel({
   trakaJedanRed = false,
 }) {
   const prikaz = ukupnoZaDeo || vrednosti || {};
-  const kpi = useMemo(() => izracunajOeeKpi(prikaz), [prikaz]);
+  const kpi = useMemo(() => izracunajKpiSerije(prikaz), [prikaz]);
   const izPrve = Number(prikaz?.ispravno_iz_prve) || 0;
   const dorada = Number(prikaz?.dorada) || 0;
   const skart = Number(prikaz?.skart) || 0;
@@ -133,11 +133,6 @@ export default function KpiSerijaPanel({
             {chip("Dor.", dorada, C.narandzasta)}
             {chip("Šk.", skart, C.crvena)}
             {chip("OK↳", okPosle, C.plava)}
-            {!trakaJedanRed && kpi.oee != null && (
-              <span style={{ color: C.sivi, fontSize: 9, alignSelf: "center" }}>
-                OEE {kpi.oee}%
-              </span>
-            )}
           </span>
           {serijaSacuvana && !trakaJedanRed && (
             <span style={{

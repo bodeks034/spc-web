@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { normalizujPrefill8d } from "../../lib/eskalacijeHelper.js";
 import { poveziOsmd } from "../../lib/ncrCapa.js";
-import { exportOsmdIzvestajPdf, osmdPayloadIzForme, statusNaziv8d, stampajOsmdIzvestaj, exportOsmdIzvestajWord } from "../../lib/osmdIzvestajPdf.js";
+import { exportOsmdIzvestajPdf, osmdPayloadIzForme, statusNaziv8d, stampajOsmdIzvestaj, exportOsmdIzvestajWordSaFolderom, stampajPrazanOsmdIzvestaj } from "../../lib/osmdIzvestajPdf.js";
 import OsmdEditor, { OsmdScrollOkvir } from "../OsmdEditor.jsx";
 import { resetujKešPredloga } from "../../lib/predloziIzBaze.js";
 import { prefillPfmeaCpIz8d } from "../../lib/osmdPfmeaCpBridge.js";
 import { ucitajPfmeaCpPaketZa8d } from "../../lib/osmdPfmeaCpPaket.js";
 import { exportKvalitetPaketZip } from "../../lib/kvalitetPaket.js";
+import { osigurajBrojevePaketa8d } from "../../lib/osmdBrojevi.js";
 
 export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed, onOtvoriPfmeaCp }) {
   const [izvestaji, setIzvestaji] = useState([]);
@@ -28,7 +29,8 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
   }, [prefill]); // eslint-disable-line
 
   const sacuvaj = async (form) => {
-    const payload = osmdPayloadIzForme(form);
+    const saBrojevima = await osigurajBrojevePaketa8d(supabase, form);
+    const payload = osmdPayloadIzForme(saBrojevima);
     const isNew = !form.id;
     const op = isNew
       ? supabase.from("osmd_izvestaji").insert({ ...payload, kreirao_id: korisnik.radnikId })
@@ -88,9 +90,23 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
     }
   };
 
-  const exportWord8D = (izv) => {
+  const stampajPrazan8D = async () => {
     try {
-      exportOsmdIzvestajWord(izv, { naslov: "8D izveštaj o problemu", prefiksFajla: "8D" });
+      await stampajPrazanOsmdIzvestaj({ naslov: "8D izveštaj o problemu" });
+    } catch (e) {
+      addToast(e?.message || "Štampa nije uspela", "greska");
+    }
+  };
+
+  const exportWord8D = async (izv) => {
+    try {
+      await exportOsmdIzvestajWordSaFolderom(izv, {
+        naslov: "8D izveštaj o problemu",
+        prefiksFajla: "8D",
+        onFolderSync: (rez) => {
+          if (rez.synced) addToast(`✓ Word u folderu: ${rez.putanja}`, "info");
+        },
+      });
       addToast("✓ Word dokument preuzet", "uspeh");
     } catch (e) {
       addToast(e?.message || "Word izvoz nije uspeo", "greska");
@@ -120,7 +136,7 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
   if (aktivni !== null) {
     return <OsmdEditor izvestaj={aktivni} sviDelovi={sviDelovi}
       onSacuvaj={sacuvaj} onNazad={()=>setAktivni(null)}
-      onPDF={exportPDF8D} onWord={exportWord8D} onStampaj={stampaj8D}
+      onPDF={exportPDF8D} onWord={exportWord8D} onStampaj={stampaj8D} onStampajPrazan={stampajPrazan8D}
       onOtvoriPfmeaCp={onOtvoriPfmeaCp ? otvoriPfmeaCp : undefined}
       onExportPaket={exportPaketZip} supabase={supabase}
       C={C} addToast={addToast}/>;
@@ -131,11 +147,18 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
     <div style={{ padding: 18, maxWidth: 820, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:8,flexWrap:"wrap"}}>
         <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>8D IZVEŠTAJI</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <button type="button" data-testid="8d-stampaj-prazan" onClick={stampajPrazan8D}
+          style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,
+            color:C.sivi,fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
+          🖨 Prazan obrazac
+        </button>
         <button type="button" onClick={()=>setAktivni({})}
           style={{background:C.plava,border:"none",borderRadius:8,color: C.onAkcent,
             fontSize:12,fontWeight:700,padding:"9px 16px",cursor:"pointer"}}>
           + Novi 8D
         </button>
+        </div>
       </div>
       {loading?<div style={{color:C.sivi,fontSize:12,padding:20}}>Učitavanje...</div>
        :!izvestaji.length?(

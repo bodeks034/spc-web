@@ -1,6 +1,6 @@
-/** Snimanje KPI reda (škart, dorada, OEE) u tabelu kpi_unos. */
+/** Snimanje KPI reda (škart, dorada) u tabelu kpi_unos. */
 
-import { izracunajOeeKpi } from "./oeeKpi.js";
+import { izracunajKpiSerije } from "./kpiKvalitet.js";
 import { kvalitetIzPrve, kvalitetIzPrveKpi } from "./spcStats.js";
 import {
   agregirajAtributivneJedinice,
@@ -501,7 +501,7 @@ export function agregirajKpiUnos(rows, { modul } = {}) {
     ...sum,
     brojUnosa,
     brojRedovaBaze: modul === "atributivne" ? rows.length : undefined,
-    kpi: izracunajOeeKpi({
+    kpi: izracunajKpiSerije({
       ...sum,
       planirano_kom: sum.planirano_kom || lista.reduce((m, r) => Math.max(m, r.planirano_kom || 0), 0),
     }),
@@ -519,18 +519,15 @@ export function dodajKpiBlokPdf(pdf, y, agg) {
   pdf.setFontSize(13);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(30, 32, 36);
-  pdf.text(`KPI — ŠKART · DORADA · OEE (${brojUnosa} unosa)`, 14, y);
+  pdf.text(`KPI — ŠKART · DORADA (${brojUnosa} unosa)`, 14, y);
   y += 8;
 
   const kartice = [
-    ["OEE", kpi.oee != null ? `${kpi.oee}%` : "—"],
     ["RTY", kpi.rty != null ? `${kpi.rty}%` : "—"],
     ["FPY", kpi.fpy != null ? `${kpi.fpy}%` : "—"],
     ["Škart", String(skart)],
     ["Dorada", String(dorada)],
     ["UK kom", String(ukupno_kom)],
-    ["Dostupn.", kpi.availability != null ? `${kpi.availability}%` : "—"],
-    ["Perform.", kpi.performance != null ? `${kpi.performance}%` : "—"],
   ];
 
   kartice.forEach(([naziv, vrednost], i) => {

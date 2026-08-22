@@ -120,6 +120,8 @@ function spakujReakcije(osmd) {
 function pfmeaRedIz8d(osmd, ctx, refSummary = {}) {
   const idDeo = trim(osmd.id_deo);
   const defekt = trim(osmd.defekt_nedostatak);
+  const brojPfmea = trim(osmd.broj_pfmea);
+  const brojCp = trim(osmd.broj_control_plan);
   const broj8d = trim(osmd.broj_8d);
   const proc = splitProcesBrDela(refSummary.proces);
   const d6 = parseD6(osmd.d6_implementacija);
@@ -140,14 +142,16 @@ function pfmeaRedIz8d(osmd, ctx, refSummary = {}) {
     odgovorni: prviNePrazan(odgovorni, prvaAkcija?.odgovorni),
     rok: prviNePrazan(rokovi, prvaAkcija?.rok),
     status: prviNePrazan(prvaAkcija?.status, "Planirano"),
-    pfmea_veza: broj8d,
-    control_plan_ref: broj8d ? `CP — ${broj8d}` : "",
+    pfmea_veza: brojPfmea || broj8d,
+    control_plan_ref: brojCp || (broj8d ? `CP — ${broj8d}` : ""),
   };
 }
 
 function cpRedIz8d(osmd, ctx, refSummary = {}) {
   const idDeo = trim(osmd.id_deo);
   const defekt = trim(osmd.defekt_nedostatak);
+  const brojPfmea = trim(osmd.broj_pfmea);
+  const brojCp = trim(osmd.broj_control_plan);
   const broj8d = trim(osmd.broj_8d);
   const proc = splitProcesBrDela(refSummary.operacija);
   const verifikacija = spakujVerifikaciju(osmd);
@@ -164,8 +168,8 @@ function cpRedIz8d(osmd, ctx, refSummary = {}) {
     reakcija_na_nepravilan_deo: reakcije,
     mod_greske_pfmea: prviNePrazan(defekt, refSummary.karakteristika),
     odgovorni: prviNePrazan(refSummary.odgovornost),
-    pfmea_referenca: broj8d,
-    zapis_forma: broj8d ? `8D ${broj8d}` : (osmd.id ? `8D #${osmd.id}` : ""),
+    pfmea_referenca: brojPfmea || broj8d,
+    zapis_forma: brojCp || (broj8d ? `8D ${broj8d}` : (osmd.id ? `8D #${osmd.id}` : "")),
   };
 }
 
@@ -183,6 +187,8 @@ export function prefillPfmeaCpIz8d(osmd) {
   const idDeo = trim(osmd.id_deo);
   const defekt = trim(osmd.defekt_nedostatak);
   const broj8d = trim(osmd.broj_8d);
+  const brojPfmea = trim(osmd.broj_pfmea);
+  const brojCp = trim(osmd.broj_control_plan);
   const ctx = d4Kontekst(osmd);
   const pfRef = pfmeaRefZaEditor(osmd.pfmea_ref);
   const cpRef = cpRefZaEditor(osmd.control_plan_ref);
@@ -203,13 +209,15 @@ export function prefillPfmeaCpIz8d(osmd) {
     cpRedovi.push(cpGlavni);
   }
 
-  const naziv = broj8d
-    ? `PFMEA/CP — ${broj8d}`
-    : defekt
-      ? `PFMEA/CP — ${defekt.slice(0, 48)}`
-      : idDeo
-        ? `PFMEA/CP — ${idDeo}`
-        : "PFMEA/CP iz 8D";
+  const naziv = brojPfmea && brojCp
+    ? `${brojPfmea} / ${brojCp}`
+    : broj8d
+      ? `PFMEA/CP — ${broj8d}`
+      : defekt
+        ? `PFMEA/CP — ${defekt.slice(0, 48)}`
+        : idDeo
+          ? `PFMEA/CP — ${idDeo}`
+          : "PFMEA/CP iz 8D";
 
   const preneto = [];
   if (defekt) preneto.push("defekt");
@@ -220,6 +228,8 @@ export function prefillPfmeaCpIz8d(osmd) {
   return {
     osmdId: osmd.id || null,
     broj8d,
+    brojPfmea,
+    brojControlPlan: brojCp,
     idDeo,
     filterDefekt: defekt,
     naziv,
@@ -249,6 +259,8 @@ export function primeniPrefillNaPfmeaCpDoc(doc, prefill, { zameni = false } = {}
       idDeo: doc.idDeo || prefill.idDeo,
       osmdIzvestajId: prefill.osmdId || doc.osmdIzvestajId,
       broj8d: prefill.broj8d || doc.broj8d,
+      brojPfmea: prefill.brojPfmea || doc.brojPfmea,
+      brojControlPlan: prefill.brojControlPlan || doc.brojControlPlan,
       napomena: prefill.napomena || doc.napomena,
       pfmea: prefill.pfmea || { redovi: [] },
       controlPlan: prefill.controlPlan || { redovi: [] },
@@ -282,6 +294,8 @@ export function noviPfmeaCpDocIz8d(prefill) {
     napomena: prefill.napomena || "",
     osmdIzvestajId: prefill.osmdId || null,
     broj8d: prefill.broj8d || "",
+    brojPfmea: prefill.brojPfmea || "",
+    brojControlPlan: prefill.brojControlPlan || "",
     pfmea: prefill.pfmea || { redovi: [] },
     controlPlan: prefill.controlPlan || { redovi: [] },
     rpnSummary: prefill.rpnSummary || [],

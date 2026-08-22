@@ -43,9 +43,9 @@ import {
   procitajSmenuIzStorage,
   proveriKontrolnaListaDanas,
 } from "../../lib/kontrolaLista.js";
-import SkartDoradaOeePanel, { OeeKpiTab } from "../SkartDoradaOeePanel.jsx";
+import SkartDoradaOeePanel from "../SkartDoradaOeePanel.jsx";
 import KpiDoradaHub from "../KpiDoradaHub.jsx";
-import { podrazumevaniKpiIzListeP } from "../../lib/oeeKpi.js";
+import { podrazumevaniKpiIzListeP } from "../../lib/kpiKvalitet.js";
 import { porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf, pronadjiAgregiraniKpiAtributivne, snimiIliAzurirajKpiUnos, kpiVrednostiIzDb, saberiKpiVrednosti } from "../../lib/kpiUnos.js";
 import { generisiPredajaSmenePdf } from "../../lib/predajaSmenePdf.js";
 import { useOfflineQueue, stampajClientIdNaRedove } from "../../lib/offlineQueue.js";
@@ -74,6 +74,10 @@ import {
 import AQLTabela from "../kvalitet/AQLTabela.jsx";
 import EskalacijePanel from "../kvalitet/EskalacijePanel.jsx";
 import NcrCapaPanel from "../kvalitet/NcrCapaPanel.jsx";
+import NcrObrazacLinijaOverlay from "../kvalitet/NcrObrazacLinijaOverlay.jsx";
+import NcrLinijaTraka from "../kvalitet/NcrLinijaTraka.jsx";
+import { prefillNcrIzUnosaLinije } from "../../lib/ncrObrazacPolja.js";
+import { prefill8dIzNcr } from "../../lib/ncrCapa.js";
 import OsmDIzvestaj from "../kvalitet/OsmDIzvestaj.jsx";
 import { fetchPlaniranoKomZaDeo } from "../../lib/zajednickiDashboard.js";
 import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "../../lib/barkod.js";
@@ -128,7 +132,7 @@ import {
   mozePrebacivanjeRezimaUTacci,
   mozeAnalitika, jeLinijaUloga, efektivniRezimRada, jeAdmin, jeKvalitetIliVise,
   jeKontrolorLinija, pocetniKorakUnosAtr, mozeInzenjerExcel, mozeInzenjerExcelUvoz,
-  mozeSifrarnik, podrazumevaniTabAtributivne, mozeOdobrenjaQA, mozeNcrCapa,
+  mozeSifrarnik, podrazumevaniTabAtributivne, mozeOdobrenjaQA, mozeNcrCapa, mozeNcrUnosLinija,
 } from "../../lib/uloge.js";
 import AnalitikaHeader from "../analitika/AnalitikaHeader.jsx";
 import AnalitikaPregledPanel from "../analitika/AnalitikaPregledPanel.jsx";
@@ -195,7 +199,7 @@ function Dashboard({ C, addToast, onNavigacija, sviDelovi, korisnik, onOtvori8D 
 
 
 
-function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analitika", onPromeniRezim, nav8dTick = 0, licenca = null, listaPotvrdena = false }) {
+function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "analitika", onPromeniRezim, onOtvori8D, nav8dTick = 0, licenca = null, listaPotvrdena = false }) {
   const ekran = useEkran();
   const jeLinija = rezimRada === "linija";
   const koristiMobLinija = jeLinija && ekran.linijaUredjaj;
@@ -248,6 +252,8 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const filterDeo = !jeLinija ? (analitikaFilter?.idDeo || "") : "";
   const [osmdPrefill,setOsmdPrefill] = useState(null);
   const [ncrPrefill, setNcrPrefill] = useState(null);
+  const [ncrLinijaOtvoren, setNcrLinijaOtvoren] = useState(false);
+  const [ncrLinijaPrefill, setNcrLinijaPrefill] = useState(null);
   const [pfmeaCpPrefillIz8d, setPfmeaCpPrefillIz8d] = useState(null);
   const primeniNavigaciju8d = () => {
     const { tab: tab8d, prefill } = procitajNavigaciju8d("atributivne");
@@ -256,6 +262,11 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   };
   const primeniSpoljnuNavigaciju = () => {
     const { tab: wfTab, prefillNcr } = procitajSpoljnuNavigacijuTab("atributivne");
+    if (wfTab === "ncr" && prefillNcr && jeLinija && mozeNcrUnosLinija(korisnik?.uloga)) {
+      setNcrLinijaPrefill(prefillNcr);
+      setNcrLinijaOtvoren(true);
+      return;
+    }
     if (wfTab && mozeTabAtributivne(wfTab, korisnik.uloga, rezimRada)) {
       setTab(wfTab);
       snimiAnalitikaTab("atributivne", wfTab);
@@ -1133,7 +1144,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     ...(jeLinija?[["povezi-prijem","POVEŽI PRIJEM"]]:[]),
     ["crtez","CRTEŽ"],["smena","SMENA"],["karte","KONTROLNE KARTE"],
     ["dashboard","DASHBOARD"],["stanje","STANJE"],["eskalacije","ESKALACIJE"],["8d","8D"],["pfmea-cp","PFMEA / CP"],["aql","ISO 2859"],
-    ["foto","FOTO"],["oee","OEE"],["kalibracija","MERILA"],["ciljevi","CILJEVI"],["nalozi","NALOZI"],
+    ["foto","FOTO"],["kalibracija","MERILA"],["ciljevi","CILJEVI"],["nalozi","NALOZI"],
     ["kupac","KUPAC"],["dobavljac","DOBAVLJAČI"],["oc","OC KRIVA"],["stabilnost","STABILNOST"],
     ["trasabilitet","TRASABILITET"],
     ...(mozeInzenjerExcel(korisnik.uloga, rezimRada)?[["excel","EXCEL"]]:[]),
@@ -1172,10 +1183,33 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   }, []);
 
   const onOtvoriNcrAnalitika = useCallback((prefill = {}) => {
+    if (jeLinija && mozeNcrUnosLinija(korisnik?.uloga)) {
+      setNcrLinijaPrefill(prefill);
+      setNcrLinijaOtvoren(true);
+      return;
+    }
     setNcrPrefill(prefill);
     setTab("ncr");
     snimiAnalitikaTab("atributivne", "ncr");
-  }, []);
+  }, [jeLinija, korisnik?.uloga]);
+
+  const otvoriNcrSaLinije = useCallback(() => {
+    onOtvoriNcrAnalitika(prefillNcrIzUnosaLinije({
+      id_deo: idDeo,
+      naziv_dela: deoInfo?.naziv_dela,
+      linija: linijaNaziv,
+      masina: masinaNaziv,
+      pogon: pogonKod || deoInfo?.pogon_kod,
+      radni_nalog: radniNalog,
+      detektovao: korisnik?.ime,
+      status,
+      kategorija,
+      podkat,
+      defekt,
+      nok_kolicina: status === "NOK" ? kolicina : "",
+      modul: "atributivne",
+    }));
+  }, [onOtvoriNcrAnalitika, idDeo, deoInfo, linijaNaziv, masinaNaziv, pogonKod, radniNalog, korisnik?.ime, status, kategorija, podkat, defekt, kolicina]);
 
   const onPokreniUlaznuKontrolu = useCallback((prijem) => {
     const id = String(prijem?.id_deo || "").trim().toUpperCase();
@@ -1258,6 +1292,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   }
 
   return(
+    <>
     <div style={{
       minHeight:"100vh",
       ...(!jeLinija ? {
@@ -1360,6 +1395,27 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             >
               {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
             </button>
+            {jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga) && (
+              <button
+                type="button"
+                data-testid="ncr-linija-dugme"
+                onClick={otvoriNcrSaLinije}
+                title="Otvori NCR obrazac sa podacima sa linije"
+                style={{
+                  background: `${C.crvena}22`,
+                  border: `1px solid ${C.crvena}`,
+                  borderRadius: 5,
+                  color: C.crvena,
+                  fontSize: 8,
+                  padding: "1px 6px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                NCR
+              </button>
+            )}
             {jeLinija && koristiMobLinija && mozeTabAtributivne("log", korisnik.uloga, rezimRada) && (
               <button
                 type="button"
@@ -1494,6 +1550,14 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           />
         </>
       )
+      )}
+
+      {jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga) && (
+        <NcrLinijaTraka
+          C={C}
+          kompakt={ekran.mob || ekran.tablet}
+          onClick={otvoriNcrSaLinije}
+        />
       )}
 
       {tab === "unos" && (
@@ -2227,7 +2291,6 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           addToast={addToast}
           korisnik={korisnik}
           modul="atributivne"
-          onOtvoriOee={() => setTab("oee")}
           onOtvori8D={(d) => { setOsmdPrefill(d); setTab("8d"); }}
           onOtvoriNcr={onOtvoriNcrAnalitika}
           onNavigacija={onNavigacijaAnalitika}
@@ -2370,7 +2433,6 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         </div>
       )}
       {tab==="foto"        && <FotoArhiva C={C} addToast={addToast}/>}
-      {tab==="oee"         && <OeeKpiTab C={C} modul="atributivne" addToast={addToast} idDeoFilter={(filterDeo || idDeo) || undefined} datum={dISO()} smena={smena} radniNalog={radniNalog || undefined}/>}
       {tab==="kalibracija" && (
         <div style={{
           flex: 1,
@@ -2498,6 +2560,28 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         </div>
       )}
     </div>
+
+    <NcrObrazacLinijaOverlay
+      otvoren={ncrLinijaOtvoren}
+      onZatvori={() => { setNcrLinijaOtvoren(false); setNcrLinijaPrefill(null); }}
+      prefill={ncrLinijaPrefill}
+      korisnik={korisnik}
+      C={C}
+      addToast={addToast}
+      sviDelovi={sviDelovi}
+      onOtvori8D={(ncrForma) => {
+        setNcrLinijaOtvoren(false);
+        const prefill8d = normalizujPrefill8d(prefill8dIzNcr(ncrForma));
+        if (onOtvori8D) {
+          onOtvori8D(prefill8d, { modul: "atributivne" });
+        } else {
+          setOsmdPrefill(prefill8d);
+          onPromeniRezim?.("analitika");
+          setTab("8d");
+        }
+      }}
+    />
+    </>
   );
 }
 

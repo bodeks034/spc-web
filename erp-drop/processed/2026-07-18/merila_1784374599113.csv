@@ -1,0 +1,10 @@
+SifraMerila,NazivMerila,SerijskiBroj,TipMerila,lokacija,opseg,Status
+CMM-01,CMM,CMM-RTB-01,cmm,Kontrola B,0-1000 mm,aktivan
+GNG-14,GO/NO GO cep O14,GNG-14-01,cep,Preseraj,O14 H7,aktivan
+VIS-01,Digitalni visinomer,VIS-RTB-01,visinomer,Preseraj,0-300 mm,aktivan
+UGL-01,Digitalni uglomer,UGL-RTB-01,uglomer,Preseraj,0-180 stepen,aktivan
+MIK-01,Digitalni mikrometar,MIK-RTB-01,mikrometar,Ulazna,0-25 mm,aktivan
+SAT-01,Merni sat + granitna ploca,SAT-RTB-01,indikator,Preseraj,0-1 mm,aktivan
+TVR-01,Tvrdomer Brinell,TVR-RTB-01,tvrdomer,Ulazna,HB,aktivan
+PRE-01,Merac debljine premaza,PRE-RTB-01,merac_premaza,Zavrsna,0-500 um,aktivan
+ZAZ-01,Merac zazora,ZAZ-RTB-01,merac_zazora,Karoserija,0-50 mm,aktivan

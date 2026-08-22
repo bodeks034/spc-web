@@ -19,7 +19,7 @@ function metaFilter(opts = {}) {
   if (opts.filterDeo) delovi.push(`Deo: ${opts.filterDeo}`);
   if (opts.filter && opts.filter !== "sve") delovi.push(`Filter: ${opts.filter}`);
   if (opts.filterPrioritet) delovi.push(`Prioritet: ${opts.filterPrioritet}`);
-  return delovi.length ? delovi.join(" · ") : "Svi NCR / CAPA";
+  return delovi.length ? delovi.join(" · ") : "NCR";
 }
 
 function buildPrintHtml(lista, opts = {}) {
@@ -36,7 +36,7 @@ function buildPrintHtml(lista, opts = {}) {
     <td>${escHtml(n.radni_nalog || n.serija || "—")}</td>
   </tr>`).join("");
 
-  const naslov = opts.naslov || "NCR / CAPA";
+  const naslov = opts.naslov || "NCR";
   const tabelaHtml = `<table>
 <thead><tr>
 <th>Broj NCR</th><th>Deo</th><th>Status</th><th>Prioritet</th>
@@ -51,7 +51,7 @@ function buildPrintHtml(lista, opts = {}) {
       { label: "Filter", value: metaFilter(opts) },
       { label: "Zapisa", value: rows.length },
     ],
-    sekcijaNaslov: "NCR / CAPA",
+    sekcijaNaslov: "NCR",
     tabelaHtml,
   });
 }
@@ -63,7 +63,7 @@ async function kreirajPdf(lista, opts = {}) {
   await registrujPdfFontLatin(pdf);
 
   const rows = lista || [];
-  const naslov = opts.naslov || "NCR / CAPA";
+  const naslov = opts.naslov || "NCR";
   let y = await dodajPdfBrendZaglavlje(pdf, {
     naslov,
     podnaslov: `${metaFilter(opts)} · ${rows.length} zapisa · ${new Date().toLocaleString("sr-RS")}`,

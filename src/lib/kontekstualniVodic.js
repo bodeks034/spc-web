@@ -4,6 +4,8 @@
 
 import { fetchKpiUnos, agregirajKpiUnos } from "./kpiUnos.js";
 import { brojOtvorenihNcr, fetchNcrCapaLista } from "./ncrCapa.js";
+import { ncrIzBaze } from "./ncrObrazacPolja.js";
+import { evaluiraj8dOkidace } from "./ncr8dOkidaci.js";
 import { aktivneAkcijeZaAnalitiku } from "./reakcioniPlanSpc.js";
 import { WORKFLOW_TIP } from "./workflowAkcije.js";
 import { primeniLinijaFilter } from "./digestLinija.js";
@@ -37,7 +39,7 @@ export function filtrirajAlarmeZaDeo(alarmi = [], idDeo, kontekst = {}) {
 
   return (alarmi || []).filter((a) => {
     const aid = String(a.id || "").toLowerCase();
-    if (aid.startsWith("eskalacije") || aid === "oee_nizak" || aid === "offline") return false;
+    if (aid.startsWith("eskalacije") || aid === "offline") return false;
     if (aid === "nok_danas") return danasAktivno;
     if (aid.startsWith("deo_nok_")) {
       const deoIzId = aid.replace("deo_nok_", "").toUpperCase();
@@ -221,14 +223,18 @@ export function generisiKorake(kontekst = {}) {
     });
   }
 
-  const ncrBez8d = ncrLista.find((n) => n.status === "otvoren" || n.status === "analiza");
+  const ncrBez8d = ncrLista.find((n) => {
+    const ev = evaluiraj8dOkidace(ncrIzBaze(n));
+    const otv = ["open", "containment", "disposition", "otvoren", "analiza"].includes(n.status);
+    return otv && ev.obavezan8d && !n.osmd_id && !n.osmd_pokrenut;
+  });
   if (ncrBez8d) {
     koraci.push({
       id: "ncr_8d",
       redosled: 5,
       tekst: `NCR ${ncrBez8d.broj_ncr} — pokreni 8D analizu`,
       akcija: WORKFLOW_TIP.OSMD_8D,
-      payload: { ncr: ncrBez8d },
+      payload: { ncr: ncrBez8d, modul },
     });
   }
 

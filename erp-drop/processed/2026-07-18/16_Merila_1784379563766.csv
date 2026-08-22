@@ -1,0 +1,11 @@
+SifraMerila,NazivMerila,TipMerila,Proizvodjac,Model,SerijskiBroj,Tacnost,JedinicaMere,PeriodKalibracije
+CMM-01,CMM,cmm,Zeiss,Contura G2,CMM-RTB-01,0.002 mm,mm,12
+GNG-14,GO/NO GO cep O14,cep,Mahr,GNG 14 H7,GNG-14-01,IT7,mm,12
+VIS-01,Digitalni visinomer,visinomer,Mitutoyo,QM-Height 350,VIS-RTB-01,0.01 mm,mm,12
+UGL-01,Digitalni uglomer,uglomer,Mitutoyo,Pro 360,UGL-RTB-01,0.1 stepen,stepen,12
+MIK-01,Digitalni mikrometar,mikrometar,Mitutoyo,MDC-25PX,MIK-RTB-01,0.001 mm,mm,12
+SAT-01,Merni sat + granitna ploca,indikator,Mitutoyo,ID-C112X,SAT-RTB-01,0.01 mm,mm,12
+TVR-01,Tvrdomer Brinell,tvrdomer,Wilson,BH3000,TVR-RTB-01,1 HB,HB,24
+PRE-01,Merac debljine premaza,merac_premaza,Elcometer,456C,PRE-RTB-01,1 um,um,12
+ZAZ-01,Merac zazora,merac_zazora,Mahr,MarGage,ZAZ-RTB-01,0.05 mm,mm,12
+SAB-R6,Sablon radijusa R6,sablon_radijusa,Insize,4801-R6,SAB-R6-01,0.1 mm,mm,24

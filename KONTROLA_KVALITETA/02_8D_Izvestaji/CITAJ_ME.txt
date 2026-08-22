@@ -1,0 +1,4 @@
+02_8D_Izvestaji
+
+Zasebni Word izveštaji po 8D (8D_YYYY_NNN_Opis.doc).
+Ako je u registru Pokrenut 8D? = DA → otvori odgovarajući fajl ovde.

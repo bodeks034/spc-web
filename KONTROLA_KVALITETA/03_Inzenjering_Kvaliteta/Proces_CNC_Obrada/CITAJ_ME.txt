@@ -1,0 +1,2 @@
+Proces: CNC_Obrada
+PFMEA + Control Plan za ovaj pogon.

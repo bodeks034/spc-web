@@ -456,6 +456,7 @@ export default function App() {
             setC={setC}
             rezimRada={aktivniRezim}
             onPromeniRezim={promeniRezim}
+            onOtvori8D={otvori8dIzvana}
             nav8dTick={nav8dTick}
             licenca={licenca}
             listaPotvrdena={listaOk}

@@ -244,10 +244,6 @@ export function predlogMerljivihKarti({
     add("heatmap", "Heat mapa", "NOK po danu i smeni", 68);
   }
 
-  if (st.n >= 3) {
-    add("oee", "OEE", "škart, dorada i OEE za period filtera", 66);
-  }
-
   if (st.n >= 5) {
     add("masina", "Po mašini", "NOK po radnom mestu / mašini", 70);
     add("operater", "Po operateru", "kontrolor i operater na unosu", 68);

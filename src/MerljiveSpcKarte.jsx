@@ -33,7 +33,6 @@ import {
   ArhivaNokMerljive, OsmDIzvestajMerljive, HeatmapMerljivePanel,
 } from "./components/MerljiveAnalitika.jsx";
 import { histogramIGaus, proceniNormalnost } from "./lib/normalnost.js";
-import { OeeKpiTab } from "./components/SkartDoradaOeePanel.jsx";
 import ReakcioniPlanSpcPanel from "./components/ReakcioniPlanSpcPanel.jsx";
 import { exportSpcPredlogPaketPdf, exportSpcTrenutnaKartaPdf } from "./lib/spcPaketPdf.js";
 import { jeKvalitetIliVise } from "./lib/uloge.js";
@@ -54,7 +53,7 @@ const KARTE_TIPOVI = new Set(["xbar", "r", "i", "mr"]);
 
 const MERLJIVE_SPC_TAB_IDS = new Set([
   "xbar", "r", "i", "mr", "cpk", "plan", "rty", "sigma", "dashboard", "pareto",
-  "smena", "heatmap", "masina", "operater", "korelacija", "poredi", "foto_spc", "8d", "hist", "oee",
+  "smena", "heatmap", "masina", "operater", "korelacija", "poredi", "foto_spc", "8d", "hist",
 ]);
 
 function dISO() {
@@ -464,7 +463,6 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
     ["stabilnost_spc", "Stabilnost", "#f472b6"],
     ["8d", "8D", C.plava],
     ["hist", "Histogram", C.ljubicasta],
-    ["oee", "OEE", C.narandzasta],
   ];
 
   const pdfMeta = useCallback(() => ({
@@ -737,16 +735,6 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
         <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.border, fontSize: 12 }}>
           Izaberi ID dela
         </div>
-      ) : tip === "oee" ? (
-        <OeeKpiTab
-          C={C}
-          modul="merljive"
-          addToast={addToast}
-          idDeoFilter={idDeo}
-          datumOd={datumOd}
-          datumDo={datumDo}
-          smena={smena}
-        />
       ) : tip === "dashboard" ? (
         loading ? (
           <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: C.sivi }}>Učitavanje…</div>

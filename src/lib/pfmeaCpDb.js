@@ -64,7 +64,7 @@ export async function fetchPfmeaCpAuditSnapshot(supabase, { idDeo } = {}) {
 
 export async function listaPfmeaCpDokumenata(supabase, { idDeo } = {}) {
   let q = supabase.from("pfmea_cp_dokumenti")
-    .select("id,naziv,id_deo,revizija,updated_at,created_at,osmd_izvestaj_id,broj_8d,napomena")
+    .select("id,naziv,id_deo,revizija,updated_at,created_at,osmd_izvestaj_id,broj_8d,broj_pfmea,broj_control_plan,napomena")
     .eq("aktivan", true)
     .order("updated_at", { ascending: false });
   if (idDeo) q = q.eq("id_deo", String(idDeo).trim().toUpperCase());
@@ -93,6 +93,8 @@ export async function ucitajPfmeaCpDokument(supabase, id) {
     napomena: dok.napomena || "",
     osmdIzvestajId: dok.osmd_izvestaj_id || null,
     broj8d: dok.broj_8d || "",
+    brojPfmea: dok.broj_pfmea || "",
+    brojControlPlan: dok.broj_control_plan || "",
     azurirano: dok.updated_at,
     kreirano: dok.created_at,
     pfmea: { redovi: (pfmea || []).map((r) => stavkaIzDb(r, PFMEA_DB_KEYS)) },
@@ -102,7 +104,7 @@ export async function ucitajPfmeaCpDokument(supabase, id) {
 }
 
 export async function kreirajPfmeaCpDokument(supabase, {
-  naziv, idDeo, revizija, korisnik, osmdIzvestajId, broj8d, napomena,
+  naziv, idDeo, revizija, korisnik, osmdIzvestajId, broj8d, brojPfmea, brojControlPlan, napomena,
 } = {}) {
   const row = {
     naziv: naziv || "PFMEA / Control Plan",
@@ -113,6 +115,8 @@ export async function kreirajPfmeaCpDokument(supabase, {
   };
   if (osmdIzvestajId) row.osmd_izvestaj_id = osmdIzvestajId;
   if (broj8d) row.broj_8d = broj8d;
+  if (brojPfmea) row.broj_pfmea = brojPfmea;
+  if (brojControlPlan) row.broj_control_plan = brojControlPlan;
   if (napomena) row.napomena = napomena;
   const { data, error } = await supabase.from("pfmea_cp_dokumenti").insert(row).select("*").single();
   if (error) throw error;
@@ -131,6 +135,8 @@ export async function sacuvajPfmeaCpDokument(supabase, doc, korisnik) {
   };
   if (doc.osmdIzvestajId != null) head.osmd_izvestaj_id = doc.osmdIzvestajId;
   if (doc.broj8d != null) head.broj_8d = doc.broj8d || null;
+  if (doc.brojPfmea != null) head.broj_pfmea = doc.brojPfmea || null;
+  if (doc.brojControlPlan != null) head.broj_control_plan = doc.brojControlPlan || null;
   const { error: eHead } = await supabase.from("pfmea_cp_dokumenti").update(head).eq("id", doc.id);
   if (eHead) throw eHead;
 

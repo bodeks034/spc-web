@@ -15,7 +15,6 @@ export default function AnalitikaPregledPanel({
   onOtvori8D,
   onOtvoriNcr,
   modul,
-  onOtvoriOee,
   onNavigacija,
 }) {
   const filter = useAnalitikaFilter();
@@ -156,7 +155,6 @@ export default function AnalitikaPregledPanel({
           filterIdDeo={filter?.idDeo}
           filterPeriod={filter?.period}
           filterSmena={filter?.smena}
-          onDetaljiOee={onOtvoriOee}
         />
       </div>
     </div>

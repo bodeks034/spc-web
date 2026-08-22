@@ -86,9 +86,21 @@ export function mozeSifrarnik(uloga) {
   return jeKvalitetIliVise(uloga) || jeAdmin(uloga);
 }
 
-/** Modul 2 — NCR/CAPA — kvalitet / šef / admin. */
+/** Modul 2 — NCR/CAPA — kvalitet / šef / admin (zatvaranje, 8D, dispozicija). */
 export function mozeNcrCapa(uloga) {
   return jeKvalitetIliVise(uloga);
+}
+
+/** Zatvaranje NCR i promena statusa — samo Modul 2 (inženjer). */
+export function mozeNcrZatvoriti(uloga) {
+  return mozeNcrCapa(uloga);
+}
+
+/** NCR obrazac sa linije (Modul 1) — kontrolor / operater prijavljuju; status ostaje OPEN. */
+export function mozeNcrUnosLinija(uloga) {
+  if (mozeNcrCapa(uloga)) return true;
+  const u = normalizujUlogu(uloga);
+  return u === "kontrolor" || u === "operator";
 }
 
 /** Modul 2 — tab Odobrenja QA (SPC alarmi, prekidi, kalibracija) — kvalitet / šef / admin. */
@@ -136,11 +148,11 @@ const TAB_LINIJA_MERLJIVE_KONTROLOR = new Set(["unos", "moment", "log", "fai", "
 /** Operator: samo unos + log. Kontrolor: + karte, smena. Kvalitet/admin: sve. */
 const TAB_MERLJIVE_OPERATOR = new Set(["unos", "log"]);
 const TAB_MERLJIVE_KONTROLOR = new Set([
-  "unos", "log", "karte", "smena", "oee", "heatmap", "msa", "kplan", "fai", "prijemna",
+  "unos", "log", "karte", "smena", "heatmap", "msa", "kplan", "fai", "prijemna",
 ]);
 const TAB_ATRIB_OPERATOR = new Set(["unos"]);
 const TAB_ATRIB_KONTROLOR = new Set([
-  "unos", "log", "prijemna", "dashboard", "karte", "crtez", "foto", "oee", "msa", "kplan",
+  "unos", "log", "prijemna", "dashboard", "karte", "crtez", "foto", "msa", "kplan",
 ]);
 
 export function mozeTabMerljive(tab, uloga, rezimRada = "analitika") {

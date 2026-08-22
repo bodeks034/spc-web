@@ -1,10 +1,10 @@
 /** Kratki opisi tabova Modula 2 i SPC karata — par rečenica za inženjera. */
 
 /** Skraćeni tooltip — NCR / CAPA oznake u navigaciji i KPI karticama. */
-export const NCR_CAPA_TOOLTIP = "NCR (izveštaj o neusaglašenosti) · CAPA (korektivne i preventivne akcije)";
+export const NCR_CAPA_TOOLTIP = "NCR — izveštaj o neusaglašenosti";
 
-/** Opis taba Modula 2 → Kvalitet → NCR / CAPA (title + traka ispod tabova). */
-export const NCR_CAPA_OPIS_TAB = "NCR — izveštaj o neusaglašenosti: dokumentuj problem, uzrok i odgovornost. CAPA — korektivne i preventivne akcije: plan mera i verifikacija efekta. Veza sa 8D i SPC alarmima.";
+/** Opis taba Modula 2 → Kvalitet → NCR. */
+export const NCR_CAPA_OPIS_TAB = "Modul 2 — NCR registar i obrazac: inženjer vodi dispoziciju, 8D, verifikaciju i zatvaranje. Prijave sa linije dolaze iz Modula 1 (status OPEN).";
 
 /** Skraćeni tooltip — PFMEA oznake. */
 export const PFMEA_TOOLTIP = "PFMEA — analiza mogućih grešaka i njihovih efekata u procesu";
@@ -13,7 +13,7 @@ export const PFMEA_TOOLTIP = "PFMEA — analiza mogućih grešaka i njihovih efe
 export const PFMEA_CP_OPIS_TAB = "PFMEA — analiza mogućih grešaka i njihovih efekata u procesu (S/O/D, RPN). Control Plan — kontrolne mere, metode i odgovornosti u proizvodnji.";
 
 export const OPISI_ANALITIKA_ATRIB = {
-  pregled: "Zbirni KPI pogona: FPY atributivno, RTY, OEE, alarmi i TOP NOK za izabrani filter.",
+  pregled: "Zbirni KPI pogona: FPY atributivno, RTY, škart/dorada, alarmi i TOP NOK za izabrani filter.",
   dashboard: "SPC fokus: p-karta, Pareto grešaka, DPMO i FPY trend.",
   karte: "SPC kontrolne karte (p, np, C, u…) — stabilnost procesa i udeo neispravnih.",
   stanje: "Inteligencija procesa: predikcija, rizik i preporuke za intervenciju.",
@@ -31,7 +31,6 @@ export const OPISI_ANALITIKA_ATRIB = {
   dobavljac: "Izveštaj i ocena dobavljača: PPM, OK stopa, A–D klasa (kvalitet 60% + isporuka/dokumentacija/reakcija).",
   trasabilitet: "Trag dela kroz merenja, log i KPI — ko, kada, šta.",
   smena: "Rezime smene: OK/NOK, DPMO, ključni događaji.",
-  oee: "OEE, škart i dorada iz KPI unosa za period filtera.",
   kalibracija: "Status merila i kalibracija — istek, upozorenja, zahtevi.",
   ciljevi: "Ciljevi FPY/DPMO po delu — uporedi stvarno vs cilj.",
   nalozi: "Radni nalozi povezani sa delovima i proizvodnjom.",
@@ -40,7 +39,7 @@ export const OPISI_ANALITIKA_ATRIB = {
 };
 
 export const OPISI_ANALITIKA_MER = {
-  pregled: "Zbirni KPI: FPY merljivo, RTY, OEE, alarmi i problematični delovi u filteru.",
+  pregled: "Zbirni KPI: FPY merljivo, RTY, škart/dorada, alarmi i problematični delovi u filteru.",
   karte: "X̄/R, I/MR, Cp/Cpk — dimenzije, granice i SPC upozorenja.",
   stanje: "Inteligencija procesa za merljive karakteristike.",
   oc: "OC kriva ISO 3951 (Pa) + odluka lota iz merenja (Qu/Ql ≥ k).",
@@ -59,7 +58,6 @@ export const OPISI_ANALITIKA_MER = {
   dobavljac: "Izveštaj i ocena dobavljača: PPM, OK stopa, A–D klasa (kvalitet 60% + isporuka/dokumentacija/reakcija).",
   trasabilitet: "Trag merenja po delu, seriji i operateru.",
   smena: "Rezime merenja i NOK po smeni.",
-  oee: "OEE i KPI dorade/škarta za merljive serije.",
   ciljevi: "Ciljevi kvaliteta za merljive delove.",
   nalozi: "Radni nalozi za varijabilne delove.",
   prijemna: "Prijem dobavljača: lot/prijemnica, pa Ulazna kontrola (pogon A) — merljiva merenja pune OK/NOK.",
@@ -106,7 +104,6 @@ export const OPISI_SPC_MER = {
   foto_spc: "Foto NOK merenja.",
   "8d": "8D izveštaj za dimenziju / deo.",
   hist: "Histogram raspodele oko LSL/USL i nominala.",
-  oee: "OEE, škart i dorada iz KPI za filter.",
 };
 
 export function opisAnalitikaTaba(tabId, modul = "atributivne") {

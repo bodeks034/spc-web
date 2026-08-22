@@ -479,8 +479,11 @@ function safeIme(s) {
 }
 
 export async function preuzmiIzvestajKupacPdf(podaci, options = {}) {
-  const { pdf, filename } = await kreirajIzvestajKupacPdf(podaci, options);
-  pdf.save(filename);
+  const { syncFolder = true, onFolderSync, ...rest } = options;
+  const { pdf, filename } = await kreirajIzvestajKupacPdf(podaci, rest);
+  const { syncPdfUKvalitetFolder } = await import("./kvalitetFolderIzvoz.js");
+  const { FOLDER_KUPAC } = await import("./kvalitetFolderStruktura.js");
+  await syncPdfUKvalitetFolder(pdf, filename, FOLDER_KUPAC, { syncFolder, onFolderSync });
   return filename;
 }
 

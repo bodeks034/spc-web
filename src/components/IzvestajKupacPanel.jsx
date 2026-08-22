@@ -93,7 +93,12 @@ export default function IzvestajKupacPanel({
     if (!podaci) return;
     setPdfRadi(true);
     try {
-      await preuzmiIzvestajKupacPdf(podaci, pdfOpts());
+      await preuzmiIzvestajKupacPdf(podaci, {
+        ...pdfOpts(),
+        onFolderSync: (rez) => {
+          if (rez?.synced) addToast?.(`✓ Sačuvano u folder: ${rez.putanja}`, "uspeh");
+        },
+      });
       addToast?.("✓ PDF izveštaj za kupca", "uspeh");
     } catch (e) {
       addToast(e.message, "greska");

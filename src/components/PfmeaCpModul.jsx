@@ -314,6 +314,8 @@ export default function PfmeaCpModul({
             revizija: noviDoc.revizija,
             osmdIzvestajId: noviDoc.osmdIzvestajId,
             broj8d: noviDoc.broj8d,
+            brojPfmea: noviDoc.brojPfmea,
+            brojControlPlan: noviDoc.brojControlPlan,
             napomena: noviDoc.napomena,
             korisnik,
           })
@@ -322,6 +324,8 @@ export default function PfmeaCpModul({
             idDeo: noviDoc.idDeo || idDeoFilter,
             osmdIzvestajId: noviDoc.osmdIzvestajId,
             broj8d: noviDoc.broj8d,
+            brojPfmea: noviDoc.brojPfmea,
+            brojControlPlan: noviDoc.brojControlPlan,
             napomena: noviDoc.napomena,
           });
         snimljen = storageMode === "supabase"
@@ -596,11 +600,15 @@ export default function PfmeaCpModul({
           ...azuriran,
           osmdIzvestajId: osmd.id,
           broj8d: osmd.broj_8d || veza8d.broj8d,
+          brojPfmea: osmd.broj_pfmea || prefill.brojPfmea,
+          brojControlPlan: osmd.broj_control_plan || prefill.brojControlPlan,
         }, korisnik)
         : localSacuvajDokument({
           ...azuriran,
           osmdIzvestajId: osmd.id,
           broj8d: osmd.broj_8d || veza8d.broj8d,
+          brojPfmea: osmd.broj_pfmea || prefill.brojPfmea,
+          brojControlPlan: osmd.broj_control_plan || prefill.brojControlPlan,
         });
       setDoc(snimljen);
       setFilterTekst(prefill.filterDefekt || "");

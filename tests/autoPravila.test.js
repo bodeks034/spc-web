@@ -11,6 +11,7 @@ describe("AUTO_PRAVILA", () => {
   it("uključuje ključna pravila", () => {
     const ids = AUTO_PRAVILA.map((p) => p.id);
     expect(ids).toContain("nok3");
+    expect(ids).toContain("ncr_linija");
     expect(ids).toContain("ncr_zatvori");
     expect(ids).toContain("digest");
   });
