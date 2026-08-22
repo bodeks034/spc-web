@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchNastaviChecklist, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
+import { SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
 
 /** Banner na vrhu Modula 0 — prvi delimični deo i sledeći korak checkliste. */
 export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false }) {
@@ -18,6 +19,12 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
   }, []);
 
   useEffect(() => { osvezi(); }, [osvezi]);
+
+  useEffect(() => {
+    const handler = () => { osvezi(); };
+    window.addEventListener(SIFRARNIK_STATUS_EVENT, handler);
+    return () => window.removeEventListener(SIFRARNIK_STATUS_EVENT, handler);
+  }, [osvezi]);
 
   if (skriveno || loading || !stavka) return null;
 

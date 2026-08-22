@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { validirajRedovePrePropagacije } from "../src/lib/glavniUnosValidacija.js";
 import { auditPogonMapa } from "../src/lib/pogonMapaAudit.js";
 import { stavkeChecklistePoslePropagacije } from "../src/lib/sifrarnikChecklist.js";
@@ -144,6 +144,21 @@ describe("pickPrviDelimicniDeo", () => {
     );
     expect(prviDelimicni?.deo.id_deo).toBe("Z-1");
     expect(prviDelimicni?.status).not.toBe("kompletan");
+  });
+});
+
+describe("sifrarnikStatusEvent", () => {
+  it("emituje custom event", async () => {
+    const { SIFRARNIK_STATUS_EVENT, obavestiPromenuStatusaSifrarnika } = await import("../src/lib/sifrarnikStatusEvent.js");
+    const dispatched = [];
+    vi.stubGlobal("window", {
+      dispatchEvent: (ev) => { dispatched.push(ev); },
+    });
+    obavestiPromenuStatusaSifrarnika({ izvor: "test", idDeo: "X" });
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].type).toBe(SIFRARNIK_STATUS_EVENT);
+    expect(dispatched[0].detail).toEqual({ izvor: "test", idDeo: "X" });
+    vi.unstubAllGlobals();
   });
 });
 

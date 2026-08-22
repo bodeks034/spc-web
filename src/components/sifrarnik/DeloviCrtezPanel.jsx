@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchDelovi, upsertDeo } from "../../lib/sifrarnikApi.js";
 import { CrudShell, FormGrid, TableHead, TableRow, RowActions } from "./LinijePanel.jsx";
 import { inpStyle } from "./sifrarnikPanelStyle.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", slika_naziv: "",
@@ -52,6 +53,7 @@ export default function DeloviCrtezPanel({
     try {
       await upsertDeo({ ...forma, tip_kontrole: "deo" });
       addToast?.("✓ Crtež dela sačuvan", "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "crtez", akcija: "snimi", idDeo: forma?.id_deo });
       setForma(null);
       await ucitaj();
     } catch (e) {

@@ -12,6 +12,7 @@ import {
   koraciNavigacijeIzStatusDeo,
   fetchOperativniBrojeviPoDeo,
 } from "../../lib/sifrarnikOdrzavanje.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
@@ -163,6 +164,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     try {
       const rez = await obrisiDemoDelove(ids);
       addToast?.(`✓ Obrisano ${rez.obrisano} demo delova`, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "delovi", akcija: "obrisi_demo" });
       setIzabrani(new Set());
       await ucitaj();
     } catch (e) {

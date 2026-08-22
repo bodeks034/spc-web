@@ -21,6 +21,7 @@ import { inpStyle, btnStyle } from "./sifrarnikPanelStyle.js";
 import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js";
 import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { zavrsiSifrarnikOnboarding } from "../../lib/sifrarnikOnboarding.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 import { useSifrarnikOpcije } from "./useSifrarnikOpcije.js";
 import {
   stampAuditPolja,
@@ -290,6 +291,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       const vozilo = checklistCtx?.analiza?.tip === GLAVNI_UNOS_SHEET_TIP.FINAL;
       const n = await dodajSablonGresaka(idDeo, { vozilo });
       addToast?.(`✓ Dodato ${n} grešaka u katalog`, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "greske_sablon", idDeo });
       onNavigate?.("greske", { idDeo, vozilo });
     } catch (e) {
       addToast?.(e.message, "greska");
@@ -329,6 +331,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
           "uspeh",
         );
         zavrsiSifrarnikOnboarding();
+        obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "objavi" });
         return res;
       }
       addToast?.(`✓ ${aktivniSheet}: ${saved.length} redova`, "uspeh");
@@ -363,6 +366,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         "uspeh",
       );
       zavrsiSifrarnikOnboarding();
+      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "propagiraj" });
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -397,6 +401,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         : `✓ ${id}: ${res.karakteristike} dimenzija iz Osnovnog`
           + (derivedCount ? `, ${derivedCount} zavisnih` : "");
       addToast?.(msg, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "propagiraj_deo", idDeo: id });
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -566,6 +571,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       setFilter(rez.cilj);
       setKlonCilj("");
       await ucitajRedove(aktivniSheet);
+      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "kloniraj", idDeo: rez.cilj });
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {

@@ -4,6 +4,7 @@ import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { PogonPolje, PogonTekst } from "./SifrarnikPolje.jsx";
 import { usePogonOznake } from "./usePogonOznake.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
 const PRAZAN = { kategorija: "", podkategorija: "", defekt: "", opis: "", id_deo: "", pogon_kod: "" };
 
@@ -50,6 +51,7 @@ export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniN
     try {
       const n = await dodajSablonGresaka(id, { vozilo: !!voziloSablon, pogonKod: pogonFilter || "A" });
       addToast?.(`✓ Dodato ${n} stavki`, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "greske", akcija: "sablon", idDeo: id });
       await ucitaj();
     } catch (e) {
       addToast?.(e.message, "greska");
@@ -67,6 +69,7 @@ export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniN
     try {
       await upsertGreskaKatalog(forma);
       addToast?.("✓ Greška sačuvana", "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "greske", akcija: "snimi", idDeo: forma?.id_deo });
       setForma(null);
       await ucitaj();
     } catch (e) {

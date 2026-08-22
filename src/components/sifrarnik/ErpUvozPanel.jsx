@@ -22,6 +22,7 @@ import {
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
 import { fetchDeloviBezGlavnogUnosa } from "../../lib/sifrarnikOdrzavanje.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
 const CARD = (C) => ({
   background: C.panel,
@@ -85,6 +86,7 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
       const bezGu = await fetchDeloviBezGlavnogUnosa();
       if (bezGu.broj > 0) setGuUpozorenje(bezGu);
       else setGuUpozorenje(null);
+      obavestiPromenuStatusaSifrarnika({ izvor: "erp", akcija: "uvoz" });
     } catch {
       setGuUpozorenje(null);
     }
@@ -176,7 +178,7 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
   };
 
   return (
-    <div style={{ maxWidth: 820, color: C.sivi, fontSize: 11, lineHeight: 1.55 }}>
+    <div data-testid="erp-uvoz-panel" style={{ maxWidth: 820, color: C.sivi, fontSize: 11, lineHeight: 1.55 }}>
       <ErpMonitoringStrip C={C} addToast={addToast} />
       <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
         ERP uvoz u bazu

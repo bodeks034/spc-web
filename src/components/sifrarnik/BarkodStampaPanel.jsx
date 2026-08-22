@@ -8,6 +8,7 @@ import {
   podrazumevaniBarkodProfil,
 } from "../../lib/barkodEtiketa.js";
 import { useEkran } from "../../layout/useEkran.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
 export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
   const { linijaUredjaj } = useEkran();
@@ -113,6 +114,7 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
         sadrzaj_barkoda: sadrzaj,
       }, deo || {});
       addToast?.("✓ Barkod profil sačuvan", "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "barkod", akcija: "snimi", idDeo });
     } catch (e) {
       addToast?.(e.message, "greska");
     }

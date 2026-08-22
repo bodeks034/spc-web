@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { e2eKredencijali, prijaviSe } from "./helpers.js";
+import {
+  e2eKredencijali,
+  prijaviSe,
+  otvoriSifrarnik,
+  otvoriAdmin,
+  imaE2EKredencijale,
+} from "./helpers.js";
 
 function imaSifrarnikE2E() {
   const k = e2eKredencijali("kvalitet");
@@ -34,5 +40,116 @@ test.describe("Modul 0 — status dela", () => {
     }
 
     await expect(page.getByTestId("sifrarnik-tab-delovi")).toHaveCSS("border-bottom-width", "0px");
+  });
+});
+
+test.describe("Modul 0 — nastavi checklist banner", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("banner CTA menja tab kada postoji delimični deo", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnik(page, "glavni_unos");
+
+    const banner = page.getByTestId("sifrarnik-nastavi-banner");
+    const vidiBanner = await banner.isVisible().catch(() => false);
+    if (!vidiBanner) {
+      test.info().annotations.push({ type: "note", description: "Svi delovi kompletni — banner nije prikazan" });
+      return;
+    }
+
+    await page.getByTestId("sifrarnik-nastavi-cta").click();
+    await expect(page.getByTestId("sifrarnik-hub")).toBeVisible();
+  });
+});
+
+test.describe("Modul 0 — glavni unos alati", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("kloniraj deo forma i novi deo wizard su dostupni", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnik(page, "glavni_unos");
+
+    await expect(page.getByTestId("gu-kloniraj-toggle")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("gu-kloniraj-toggle").click();
+    await expect(page.getByTestId("gu-kloniraj-forma")).toBeVisible();
+    await expect(page.getByTestId("gu-kloniraj-submit")).toBeVisible();
+  });
+});
+
+test.describe("Modul 0 — delovi pregled", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("prazna pretraga prikazuje empty state ili listu", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "delovi");
+    await expect(page.getByTestId("delovi-panel")).toBeVisible({ timeout: 15000 });
+
+    const pretraga = page.locator('input[placeholder="ID, naziv…"]');
+    await pretraga.fill("__E2E_NEMA_REZULTATA__");
+    await expect(page.getByTestId("delovi-empty")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Nema delova/i)).toBeVisible();
+
+    const cta = page.getByTestId("delovi-cta-gu");
+    if (await cta.isVisible().catch(() => false)) {
+      await cta.click();
+      await expect(page.getByTestId("sifrarnik-tab-glavni_unos")).toBeVisible();
+    }
+  });
+});
+
+test.describe("Modul 0 — ERP uvoz", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("ERP tab i opcioni GU banner", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "erp");
+
+    await expect(page.getByTestId("erp-uvoz-panel")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/ERP uvoz u bazu/i)).toBeVisible();
+
+    const guBanner = page.getByTestId("erp-gu-banner");
+    if (await guBanner.isVisible().catch(() => false)) {
+      await expect(page.getByTestId("erp-gu-cta")).toBeVisible();
+      await page.getByTestId("erp-gu-cta").click();
+      await expect(page.getByTestId("sifrarnik-tab-glavni_unos")).toBeVisible();
+    }
+  });
+});
+
+test.describe("Modul 0 — održavanje kompletnost", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("prikazuje karticu kompletnosti", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "odrzavanje");
+    await expect(page.getByTestId("odrzavanje-kompletnost")).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Kompletnost šifrarnika/i)).toBeVisible();
+  });
+});
+
+test.describe("Admin — go-live status", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaE2EKredencijale(), "Nema E2E kredencijala (E2E_EMAIL)");
+
+  test("automatski go-live panel se učitava", async ({ page }) => {
+    await prijaviSe(page);
+    await otvoriAdmin(page);
+
+    const panel = page.getByTestId("admin-go-live-status");
+    await panel.scrollIntoViewIfNeeded();
+    await expect(panel).toBeVisible({ timeout: 20000 });
+    await expect(panel.getByText(/GO-LIVE STATUS/i)).toBeVisible();
+    await expect(panel.getByText(/Šema migracije/i)).toBeVisible();
   });
 });

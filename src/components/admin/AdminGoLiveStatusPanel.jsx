@@ -58,7 +58,9 @@ export default function AdminGoLiveStatusPanel({ C, addToast }) {
     && podaci.demoBroj === 0;
 
   return (
-    <div style={{
+    <div
+      data-testid="admin-go-live-status"
+      style={{
       background: C.panel,
       border: `1px solid ${sveOk ? C.zelena : C.zuta}40`,
       borderRadius: 12,
