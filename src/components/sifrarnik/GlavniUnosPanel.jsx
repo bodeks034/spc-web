@@ -303,6 +303,26 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
     setChecklistCtx(null);
   }, [aktivniSheet]);
 
+  const [concurrentUpozorenje, setConcurrentUpozorenje] = useState(false);
+
+  useEffect(() => {
+    if (!dirty || !sheetRemoteStamp) {
+      setConcurrentUpozorenje(false);
+      return undefined;
+    }
+    const poll = async () => {
+      try {
+        const trenutni = await fetchSheetMaxUpdatedAt(aktivniSheet);
+        setConcurrentUpozorenje(!!(trenutni && trenutni !== sheetRemoteStamp));
+      } catch {
+        /* polling opciono */
+      }
+    };
+    poll();
+    const t = window.setInterval(poll, 20000);
+    return () => window.clearInterval(t);
+  }, [dirty, sheetRemoteStamp, aktivniSheet]);
+
   useEffect(() => {
     if (!navSignal?.ts) return;
     if (navSignal.idDeo) {
@@ -686,6 +706,24 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+      {concurrentUpozorenje && (
+        <div
+          data-testid="gu-concurrent-banner"
+          style={{
+            marginBottom: 10,
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.crvena || "#dc2626"}55`,
+            background: `${C.crvena || "#dc2626"}12`,
+            color: C.tekst,
+            fontSize: 10,
+            lineHeight: 1.45,
+          }}
+        >
+          <strong>Concurrent edit:</strong> drugi inženjer je možda izmenio sheet „{aktivniSheet}“.
+          {" "}Osveži pre snimanja ili nastavi svesno (prepisuješ tuđe izmene).
+        </div>
+      )}
       {dirty && (
         <div
           data-testid="gu-dirty-banner"

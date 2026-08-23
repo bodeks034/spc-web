@@ -3,6 +3,7 @@ import { fetchSifrarnikAudit, preuzmiAuditCsv } from "../../lib/sifrarnikAudit.j
 import { uporediDelovi } from "../../lib/sifrarnikUporedi.js";
 import { generisiValidacioniIzvestaj, preuzmiValidacioniCsv } from "../../lib/sifrarnikValidacija.js";
 import { exportujDeoJson, preuzmiDeoJson } from "../../lib/sifrarnikExportJson.js";
+import { exportujDeloviZip } from "../../lib/sifrarnikExportZip.js";
 import { previewPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 
@@ -24,6 +25,9 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
   const [validStavke, setValidStavke] = useState(null);
   const [exportId, setExportId] = useState("");
   const [exportBusy, setExportBusy] = useState(false);
+  const [zipIds, setZipIds] = useState("");
+  const [zipBusy, setZipBusy] = useState(false);
+  const [auditArhiva, setAuditArhiva] = useState(false);
   const [previewId, setPreviewId] = useState("");
   const [preview, setPreview] = useState(null);
   const INP = inpStyle(C);
@@ -37,6 +41,7 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
         od: auditOd ? new Date(auditOd).toISOString() : null,
         limit: AUDIT_PAGE,
         offset,
+        arhiva: auditArhiva,
       });
       setAudit((prev) => (append ? [...prev, ...rows] : rows));
       setAuditOffset(offset + rows.length);
@@ -45,9 +50,9 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
     } finally {
       setAuditLoading(false);
     }
-  }, [auditFilter, auditAkcija, auditOd, addToast]);
+  }, [auditFilter, auditAkcija, auditOd, auditArhiva, addToast]);
 
-  useEffect(() => { ucitajAudit(0, false); }, [auditFilter, auditAkcija, auditOd]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { ucitajAudit(0, false); }, [auditFilter, auditAkcija, auditOd, auditArhiva]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pokreniUporedi = async () => {
     setUporediBusy(true);
@@ -109,6 +114,23 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
     }
   };
 
+  const izveziZip = async () => {
+    const ids = zipIds.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
+    if (!ids.length) {
+      addToast?.("Unesi ID delova (razdvojeno zarezom ili novim redom)", "greska");
+      return;
+    }
+    setZipBusy(true);
+    try {
+      const man = await exportujDeloviZip(ids);
+      addToast?.(`✓ ZIP: ${man.delovi.length} delova${man.greske.length ? `, ${man.greske.length} grešaka` : ""}`, man.greske.length ? "info" : "uspeh");
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setZipBusy(false);
+    }
+  };
+
   const pokreniPreview = async () => {
     try {
       const p = await previewPropagacije({ idDeo: previewId.trim() || null });
@@ -147,6 +169,15 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
           <button type="button" onClick={() => ucitajAudit(0, false)} style={btnStyle(C, C.hover, { fontSize: 9 })}>
             {auditLoading ? "…" : "↻ Osveži"}
           </button>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, color: C.sivi }}>
+            <input
+              type="checkbox"
+              data-testid="audit-arhiva-toggle"
+              checked={auditArhiva}
+              onChange={(e) => setAuditArhiva(e.target.checked)}
+            />
+            Arhiva
+          </label>
           <button
             type="button"
             data-testid="audit-csv-export"
@@ -279,6 +310,22 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
           </button>
         </div>
         <div style={{ color: C.sivi, fontSize: 9, marginTop: 6 }}>Master + GU + dimenzije + greške + barkod profil</div>
+      </section>
+
+      <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
+        <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>ZIP export (više delova)</div>
+        <textarea
+          data-testid="zip-export-ids"
+          value={zipIds}
+          onChange={(e) => setZipIds(e.target.value.toUpperCase())}
+          placeholder="ID delova, jedan po redu ili razdvojeno zarezom"
+          rows={3}
+          style={{ ...INP, width: "100%", resize: "vertical", marginBottom: 8 }}
+        />
+        <button type="button" data-testid="zip-export-btn" disabled={zipBusy} onClick={izveziZip}
+          style={btnStyle(C, C.plava, { fontSize: 9 })}>
+          {zipBusy ? "…" : "Preuzmi ZIP paket"}
+        </button>
       </section>
 
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>

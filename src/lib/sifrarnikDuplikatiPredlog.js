@@ -42,6 +42,28 @@ export async function primeniPredlogDuplikata(entry) {
   return { obrisano: ids.length, zadrziId: entry.predlog.zadrziId };
 }
 
+/** Primeni predloge za više duplikata (audit po delu). */
+export async function primeniSvePredlogeDuplikata(entries = [], { onProgress } = {}) {
+  const rezultati = [];
+  for (let i = 0; i < entries.length; i += 1) {
+    const entry = entries[i];
+    onProgress?.({ trenutni: i + 1, ukupno: entries.length, idDeo: entry.idDeo });
+    try {
+      const res = await primeniPredlogDuplikata(entry);
+      rezultati.push({ idDeo: entry.idDeo, ok: true, ...res });
+    } catch (e) {
+      rezultati.push({ idDeo: entry.idDeo, ok: false, greska: e.message || String(e) });
+    }
+  }
+  const uspeh = rezultati.filter((r) => r.ok).length;
+  await logSifrarnikAudit({
+    akcija: "obrisi_duplikat_bulk",
+    izvor: "odrzavanje",
+    detalji: { uspeh, ukupno: rezultati.length, rezultati: rezultati.slice(0, 30) },
+  });
+  return { rezultati, uspeh, neuspelo: rezultati.length - uspeh };
+}
+
 export async function fetchPredlogDuplikata(duplikat) {
   const ids = duplikat?.ids || [];
   if (!ids.length) return null;

@@ -33,10 +33,12 @@ export async function fetchSifrarnikAudit({
   od = null,
   limit = 50,
   offset = 0,
+  arhiva = false,
 } = {}) {
+  const tabela = arhiva ? "sifrarnik_audit_arhiva" : "sifrarnik_audit";
   try {
     let q = supabase
-      .from("sifrarnik_audit")
+      .from(tabela)
       .select("*")
       .order("created_at", { ascending: false })
       .range(offset, offset + Math.max(1, limit) - 1);

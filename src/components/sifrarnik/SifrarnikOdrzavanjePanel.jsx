@@ -12,8 +12,9 @@ import {
 import { fetchDeloviSpremniZaObjavu, objaviSpremneDelove } from "../../lib/sifrarnikBatchObjava.js";
 import { previewBatchPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
-import { fetchPredlogDuplikata, primeniPredlogDuplikata } from "../../lib/sifrarnikDuplikatiPredlog.js";
+import { fetchPredlogDuplikata, primeniPredlogDuplikata, primeniSvePredlogeDuplikata } from "../../lib/sifrarnikDuplikatiPredlog.js";
 import { formatBatchObjavaDigest } from "../../lib/sifrarnikBatchDigest.js";
+import { ucitajBatchSnap, preuzmiBatchSnapJson } from "../../lib/sifrarnikBatchRollback.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 import SifrarnikAlatiPanel from "./SifrarnikAlatiPanel.jsx";
 
@@ -62,6 +63,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [batchRezultati, setBatchRezultati] = useState(null);
   const [duplikatPredlozi, setDuplikatPredlozi] = useState([]);
   const [primeniBusy, setPrimeniBusy] = useState(null);
+  const [primeniSveBusy, setPrimeniSveBusy] = useState(false);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -166,6 +168,27 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
     }
   };
 
+  const primeniSveDuplikate = async () => {
+    if (!duplikatPredlozi.length) {
+      addToast?.("Nema predloga za primenu", "info");
+      return;
+    }
+    if (!window.confirm(`Primeni ${duplikatPredlozi.length} predlog(a) duplikata?\n\nBrisanje duplih dimenzija sa audit zapisom.`)) {
+      return;
+    }
+    setPrimeniSveBusy(true);
+    try {
+      const res = await primeniSvePredlogeDuplikata(duplikatPredlozi);
+      addToast?.(`✓ Primeno ${res.uspeh}/${res.rezultati.length} predloga`, res.neuspelo ? "info" : "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "odrzavanje", akcija: "obrisi_duplikat_bulk" });
+      await ucitaj();
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setPrimeniSveBusy(false);
+    }
+  };
+
   const stavke = [
     { tab: "rn", label: "Radni nalozi", hint: "Proveri zastarele aktivne RN" },
     { tab: "merila", label: "Merila / kalibracija", hint: "Kalibracije pred istek" },
@@ -258,6 +281,17 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
                 ? (batchProgress ? `Objavljujem ${batchProgress.trenutni}/${batchProgress.ukupno}…` : "Objavljujem…")
                 : `Objavi sve spremne (${spremniBroj})`}
             </button>
+            {ucitajBatchSnap() && (
+              <button
+                type="button"
+                data-testid="odrzavanje-batch-snap"
+                onClick={() => preuzmiBatchSnapJson()}
+                style={btnStyle(C, C.hover, { fontSize: 9 })}
+                title="Pre-batch snapshot (audit)"
+              >
+                Pre-batch snap
+              </button>
+            )}
           </div>
           {neuspeli.length > 0 && (
             <div
@@ -333,6 +367,15 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
                   </button>
                 </div>
               ))}
+              <button
+                type="button"
+                data-testid="duplikat-primeni-sve"
+                disabled={primeniSveBusy || !duplikatPredlozi.length}
+                onClick={primeniSveDuplikate}
+                style={btnStyle(C, C.zelena, { marginTop: 6, fontSize: 9, opacity: duplikatPredlozi.length ? 1 : 0.5 })}
+              >
+                {primeniSveBusy ? "Primeni sve…" : `Primeni sve predloge (${duplikatPredlozi.length})`}
+              </button>
             </div>
           )}
           <button type="button" onClick={() => onNavigate?.("karakteristike")}

@@ -1,6 +1,7 @@
 /** Pregled i audit šifrarnika — duplikati, status dela. */
 import { supabase } from "./supabaseClient.js";
 import { fetchGlavniUnosBrojeviPoDeo, fetchGlavniUnosBrojZaDeo } from "./glavniUnosApi.js";
+import { fetchDuplikatiIzMv, fetchKompletnostIzMv, fetchSpremniBatchIzMv, fetchDelimicniIzMv } from "./sifrarnikDeloviMv.js";
 import { logSifrarnikAudit } from "./sifrarnikAudit.js";
 
 /** Maks. broj aktivnih delova u jednom skenu statusa (kompletnost, batch). */
@@ -25,6 +26,9 @@ export function metaSkenaStatusa(skenirano, ukupnoAktivnih) {
 }
 
 export async function fetchDuplikatiKarakteristike({ limit = 5000 } = {}) {
+  const rpc = await fetchDuplikatiIzMv({ limit: Math.min(limit, 500) });
+  if (rpc?.length) return rpc;
+
   const { data, error } = await supabase
     .from("karakteristike_merljive")
     .select("id, id_deo, pogon_kod, pozicija, sifra_merenja, naziv_mere")
@@ -288,6 +292,9 @@ export function izracunajKompletnostDelova(delovi, gu, gr, barkodSet) {
 }
 
 export async function fetchKompletnostStatistika() {
+  const mv = await fetchKompletnostIzMv();
+  if (mv) return mv;
+
   const [ukupnoAktivnih, deloviRes] = await Promise.all([
     countAktivnihDelova(),
     supabase
@@ -413,23 +420,37 @@ export function nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo = null }
 }
 
 export async function fetchDelimicniDeloviSvi({ maxScan = 15000 } = {}) {
+  const rez = [];
+  let offset = 0;
+  const batch = 500;
+  while (offset < maxScan) {
+    const chunk = await fetchDelimicniIzMv({ limit: batch, offset });
+    if (chunk?.length) {
+      rez.push(...chunk);
+      if (chunk.length < batch) break;
+      offset += batch;
+      continue;
+    }
+    break;
+  }
+  if (rez.length) return rez;
+
   const [gu, gr, bk] = await Promise.all([
     fetchGlavniUnosBrojeviPoDeo(),
     fetchGreskeBrojeviPoDeo(),
     fetchBarkodProfiliSet(),
   ]);
 
-  const rez = [];
-  let offset = 0;
-  const batch = 500;
+  const legacy = [];
+  let legacyOffset = 0;
 
-  while (offset < maxScan) {
+  while (legacyOffset < maxScan) {
     const { data, error } = await supabase
       .from("delovi")
       .select("id_deo,naziv_dela,slika_naziv,aktivan")
       .eq("aktivan", true)
       .order("id_deo")
-      .range(offset, offset + batch - 1);
+      .range(legacyOffset, legacyOffset + batch - 1);
     if (error) throw error;
     const delovi = data || [];
     if (!delovi.length) break;
@@ -443,7 +464,7 @@ export async function fetchDelimicniDeloviSvi({ maxScan = 15000 } = {}) {
       };
       const status = statusDeoUSifrarniku(d, opts);
       if (status === "kompletan") continue;
-      rez.push({
+      legacy.push({
         deo: d,
         status,
         opts,
@@ -452,11 +473,11 @@ export async function fetchDelimicniDeloviSvi({ maxScan = 15000 } = {}) {
       });
     }
 
-    offset += delovi.length;
+    legacyOffset += delovi.length;
     if (delovi.length < batch) break;
   }
 
-  return rez.sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
+  return legacy.sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
 }
 
 function csvEscape(val) {

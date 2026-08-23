@@ -24,7 +24,10 @@ async function fetchDeloviPoRpcFilteru(opts) {
     if (/function.*does not exist|could not find/i.test(error.message)) return null;
     throw error;
   }
-  const delovi = (data || []).map(({ status_sifrarnik, ...d }) => d);
+  const delovi = (data || []).map((row) => {
+    const { status_sifrarnik, gu_broj, gr_broj, ima_barkod, ...d } = row;
+    return { ...d, _mv: { status_sifrarnik, gu_broj, gr_broj, ima_barkod } };
+  });
   return {
     delovi,
     hasMore: delovi.length >= opts.limit,

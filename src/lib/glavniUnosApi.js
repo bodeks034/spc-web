@@ -285,6 +285,13 @@ export async function zameniSheetRedove(sheetNaziv, redovi) {
 
   const { data, error } = await supabase.from("glavni_unos_redovi").insert(payload).select("*");
   if (error) throw error;
+  const ids = [...new Set(payload.map((r) => normalizujIdDeo(r.id_deo)).filter(Boolean))];
+  logSifrarnikAudit({
+    akcija: "gu_snimi_sheet",
+    izvor: "glavni_unos",
+    detalji: { sheet: sheetNaziv, redova: payload.length, delovi: ids.slice(0, 30) },
+  });
+  await osveziSifrarnikStatusMv();
   return data || [];
 }
 

@@ -99,7 +99,7 @@ Ako je frontend na Vercel-u, u **Project → Settings → Environment Variables*
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role — **Admin → Očisti operativu** preko `/api/admin-ocisti-operativu` |
 | `ADMIN_API_SECRET` ili `CRON_SECRET` | Opciono: Bearer auth za API bez JWT |
 
-**Pre go-live:** pokreni u Supabase SQL Editoru migracije `77`–`85` (ili `npm run db:migrate:go-live` — uključuje audit 80–81, filter RPC 82, RLS uloge 83, MV status 84, arhiva 85).
+**Pre go-live:** pokreni u Supabase SQL Editoru migracije `77`–`86` (ili `npm run db:migrate:go-live` — uključuje audit 80–81, filter RPC 82, RLS uloge 83, MV status 84, arhiva 85, skala 10k+ 86).
 
 **Automatizacija šifrarnika:** nedeljni digest zaglavljenih delova — `npm run auto:sifrarnik-zaglavljeni` (u `npm run auto:install` kao `SPC-Sifrarnik-Zaglavljeni`, petak 15:00).
 

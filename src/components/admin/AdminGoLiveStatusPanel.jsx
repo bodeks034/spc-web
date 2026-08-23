@@ -27,7 +27,7 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
 
       const demoBroj = (deloviRes.data || []).filter((d) => jeDemoIdDeo(d.id_deo)).length;
       const goLiveMigracije = MIGRACIJE_LISTA.filter((m) =>
-        /^(77|78|79|80|81|82|83|84|85)_/.test(m.fajl || ""),
+        /^(77|78|79|80|81|82|83|84|85|86)_/.test(m.fajl || ""),
       );
       const goLiveOk = goLiveMigracije.every((m) => stavke.find((s) => s.id === m.id)?.ok);
       const auditOk = !!stavke.find((s) => s.id === "sifrarnik_audit")?.ok;
@@ -124,7 +124,7 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
           <Stavka
             C={C}
             ok={podaci.goLiveMigracijeOk}
-            label="Go-live SQL (77–85)"
+            label="Go-live SQL (77–86)"
             akcijaLabel={!podaci.goLiveMigracijeOk ? "Otvori šemu" : undefined}
             onAkcija={!podaci.goLiveMigracijeOk ? otvoriSemu : undefined}
           />

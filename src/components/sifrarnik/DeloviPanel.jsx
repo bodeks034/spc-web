@@ -14,6 +14,14 @@ import {
   NEDOSTAJE_FILTER_OPCIJE,
   deoOdgovaraNedostajeFilter,
 } from "../../lib/sifrarnikOdrzavanje.js";
+import { ucitajStatusAgregate, invalidirajStatusAgregate } from "../../lib/sifrarnikStatusCache.js";
+import {
+  fetchDeloviSaMv,
+  pretraziDeloviSaMv,
+  countDeloviSaMv,
+  optsIzMvReda,
+  statusIzMvReda,
+} from "../../lib/sifrarnikDeloviMv.js";
 import { obavestiPromenuStatusaSifrarnika, SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
 import { fetchDeloviPoServerFilteru } from "../../lib/sifrarnikDeloviServerFilter.js";
 
@@ -45,8 +53,20 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [statusMenuId, setStatusMenuId] = useState(null);
 
   const [serverFiltered, setServerFiltered] = useState(false);
+  const [serverPretraga, setServerPretraga] = useState(false);
 
   const imaServerFiltera = !!(nedostajeFilter || samoDemo || samoDelimicni);
+  const imaTekstPretrage = filter.trim().length >= 2;
+
+  const optsZaDeo = useCallback((d) => {
+    if (d?._mv) return optsIzMvReda(d._mv);
+    const id = String(d?.id_deo || "").toUpperCase();
+    return {
+      guBroj: guBrojevi[id] || guBrojevi[d?.id_deo] || 0,
+      greskeBroj: greskeBrojevi[id] || greskeBrojevi[d?.id_deo] || 0,
+      imaBarkod: barkodSet.has(id),
+    };
+  }, [guBrojevi, greskeBrojevi, barkodSet]);
 
   const ucitaj = useCallback(async ({ reset = true } = {}) => {
     if (reset) setLoading(true);
@@ -64,29 +84,46 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
           offset,
         });
         setServerFiltered(true);
+        setServerPretraga(false);
         setLista((prev) => (reset ? res.delovi : [...prev, ...res.delovi]));
         setUkupnoUBazi(res.delovi.length + offset);
         setHasMore(res.hasMore);
         return;
       }
+      if (imaTekstPretrage) {
+        const offset = reset ? 0 : lista.length;
+        const res = await pretraziDeloviSaMv({
+          q: filter.trim(),
+          tipKontrole: tip,
+          limit: DELOVI_PAGE_SIZE,
+          offset,
+        });
+        setServerFiltered(false);
+        setServerPretraga(true);
+        setLista((prev) => (reset ? res.delovi : [...prev, ...res.delovi]));
+        setUkupnoUBazi(offset + res.delovi.length);
+        setHasMore(res.hasMore);
+        return;
+      }
       setServerFiltered(false);
+      setServerPretraga(false);
       const offset = reset ? 0 : lista.length;
-      const [page, total] = await Promise.all([
-        fetchDelovi({ tipKontrole: tip, limit: DELOVI_PAGE_SIZE, offset }),
-        countDelovi({ tipKontrole: tip }),
+      const [pageRes, total] = await Promise.all([
+        fetchDeloviSaMv({ tipKontrole: tip, limit: DELOVI_PAGE_SIZE, offset }),
+        countDeloviSaMv({ tipKontrole: tip }).catch(() => countDelovi({ tipKontrole: tip })),
       ]);
-      setLista((prev) => (reset ? page : [...prev, ...page]));
+      setLista((prev) => (reset ? pageRes.delovi : [...prev, ...pageRes.delovi]));
       setUkupnoUBazi(total);
-      setHasMore(offset + page.length < total);
+      setHasMore(offset + pageRes.delovi.length < total);
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
       setLoading(false);
       setUcitavaJos(false);
     }
-  }, [addToast, tipFilter, imaServerFiltera, nedostajeFilter, samoDemo, samoDelimicni, lista.length]);
+  }, [addToast, tipFilter, imaServerFiltera, imaTekstPretrage, filter, nedostajeFilter, samoDemo, samoDelimicni, lista.length]);
 
-  useEffect(() => { ucitaj({ reset: true }); }, [tipFilter, nedostajeFilter, samoDemo, samoDelimicni]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { ucitaj({ reset: true }); }, [tipFilter, nedostajeFilter, samoDemo, samoDelimicni, filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const t = setTimeout(() => setFilter(filterDraft), 300);
@@ -127,7 +164,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   }, [statusMenuId]);
 
   const loadMore = async () => {
-    if (serverFiltered) {
+    if (serverFiltered || serverPretraga) {
       await ucitaj({ reset: false });
       return;
     }
@@ -184,21 +221,20 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     color: C.tekst, fontSize: 11, padding: "7px 10px", fontFamily: "inherit",
   };
 
-  const prikaz = useMemo(() => lista.filter((d) => {
-    const opts = {
-      guBroj: guBrojevi[d.id_deo] || 0,
-      greskeBroj: greskeBrojevi[d.id_deo] || 0,
-      imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
-    };
+  const prikaz = useMemo(() => {
+    if (serverPretraga || serverFiltered) return lista;
+    return lista.filter((d) => {
+    const opts = optsZaDeo(d);
     if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
-    if (samoDelimicni && statusDeoUSifrarniku(d, opts) === "kompletan") return false;
+    if (samoDelimicni && statusIzMvReda({ ...d, ...d._mv }) === "kompletan") return false;
     if (!deoOdgovaraNedostajeFilter(d, opts, nedostajeFilter)) return false;
     if (!filter.trim()) return true;
     const q = filter.toLowerCase();
     return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
       (s) => String(s || "").toLowerCase().includes(q),
     );
-  }), [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, guBrojevi, greskeBrojevi, barkodSet]);
+  });
+  }, [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, serverPretraga, serverFiltered, optsZaDeo]);
 
   const demoNaPrikazu = useMemo(
     () => prikaz.filter((d) => jeDemoIdDeo(d.id_deo)).map((d) => d.id_deo),
@@ -443,12 +479,8 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
               )}
             </div>
           ) : prikaz.map((d, i) => {
-            const opts = {
-              guBroj: guBrojevi[d.id_deo] || 0,
-              greskeBroj: greskeBrojevi[d.id_deo] || 0,
-              imaBarkod: barkodSet.has(String(d.id_deo || "").toUpperCase()),
-            };
-            const st = statusDeoUSifrarniku(d, opts);
+            const opts = optsZaDeo(d);
+            const st = statusIzMvReda(d._mv ? { ...d, ...d._mv } : d) || statusDeoUSifrarniku(d, opts);
             const stMeta = STATUS_DEO_LABEL[st];
             const demo = jeDemoIdDeo(d.id_deo);
             const koraci = onNavigacijaStatus ? koraciNavigacijeIzStatusDeo(d, opts) : [];
@@ -558,11 +590,11 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
                 {onOtvoriGlavniUnos && (
                   <button
                     type="button"
-                    onClick={() => onOtvoriGlavniUnos?.(d.id_deo, { otvoriWizard: !guBrojevi[d.id_deo] })}
+                    onClick={() => onOtvoriGlavniUnos?.(d.id_deo, { otvoriWizard: !(opts.guBroj > 0) })}
                     title="Otvori u Glavnom unosu"
                     style={{ background: `${C.plava}18`, border: `1px solid ${C.plava}44`, borderRadius: 4, fontSize: 9, padding: "2px 5px", cursor: "pointer", color: C.plava }}
                   >
-                    GU{guBrojevi[d.id_deo] != null ? ` (${guBrojevi[d.id_deo]})` : ""}
+                    GU{opts.guBroj > 0 ? ` (${opts.guBroj})` : ""}
                   </button>
                 )}
                 <button type="button" onClick={() => setForma({ ...d, _postojeci: true })}

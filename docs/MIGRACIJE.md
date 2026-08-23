@@ -48,6 +48,7 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 83 | `83_sifrarnik_audit_rls_roles.sql` | Audit RLS — uže uloge |
 | 84 | `84_sifrarnik_deo_status_mv.sql` | Materialized view statusa delova |
 | 85 | `85_sifrarnik_audit_retention.sql` | Arhiva audit loga (12 meseci) |
+| 86 | `86_sifrarnik_mv_scale.sql` | MV skala 10k+ — lista, pretraga, kompletnost, duplikati RPC |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 
@@ -56,7 +57,7 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 ```bash
 npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–85
 npm run db:migrate -- --kvalitet   # samo 75 + 76
-npm run db:migrate:go-live  # samo 77–85 (RPC + audit + filter + MV)
+npm run db:migrate:go-live  # samo 77–86 (RPC + audit + filter + MV + skala)
 npm run db:migrate -- --file 76_osmd_pfmea_cp_brojevi.sql
 npm run db:migrate:auto     # 61 — telemetrija automatizacije
 npm run db:verify           # provera kao Admin → Status šeme (uključujući RPC 77/78)

@@ -2,6 +2,8 @@
 import { propagirajMerljiviDeo, osveziSifrarnikStatusMv } from "./glavniUnosApi.js";
 import { logSifrarnikAudit } from "./sifrarnikAudit.js";
 import { posaljiBatchObjavaDigest } from "./sifrarnikBatchDigest.js";
+import { snapBatchPreObjave } from "./sifrarnikBatchRollback.js";
+import { fetchSpremniBatchIzMv } from "./sifrarnikDeloviMv.js";
 import {
   jeSpremanZaBatchObjavu,
   fetchAktivniDeloviSaStatusom,
@@ -10,6 +12,9 @@ import {
 export { jeSpremanZaBatchObjavu };
 
 export async function fetchDeloviSpremniZaObjavu() {
+  const mvIds = await fetchSpremniBatchIzMv();
+  if (mvIds?.length) return mvIds;
+
   const { stavke } = await fetchAktivniDeloviSaStatusom();
   return stavke
     .filter(({ deo, opts, status }) => jeSpremanZaBatchObjavu(deo, opts) && status !== "kompletan")
@@ -20,6 +25,12 @@ export async function fetchDeloviSpremniZaObjavu() {
 /** Propagira sve delove sa GU + greškama + crtežom. */
 export async function objaviSpremneDelove({ onProgress } = {}) {
   const ids = await fetchDeloviSpremniZaObjavu();
+  snapBatchPreObjave({ ids, statistika: { ukupno: ids.length } });
+  logSifrarnikAudit({
+    akcija: "batch_objavi_pocetak",
+    izvor: "odrzavanje",
+    detalji: { ukupno: ids.length, ids: ids.slice(0, 50) },
+  });
   const rezultati = [];
 
   for (let i = 0; i < ids.length; i += 1) {

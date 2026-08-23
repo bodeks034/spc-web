@@ -246,6 +246,20 @@ test.describe("Modul 0 — alati panel", () => {
     await expect(page.getByTestId("validacija-prikazi-btn")).toBeVisible();
     await expect(page.getByTestId("json-export-btn")).toBeVisible();
     await expect(page.getByTestId("propagacija-preview-btn")).toBeVisible();
+    await expect(page.getByTestId("zip-export-btn")).toBeVisible();
+    await expect(page.getByTestId("audit-arhiva-toggle")).toBeVisible();
+  });
+});
+
+test.describe("Modul 0 — GU concurrent", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("GU nema concurrent banner na učitavanju", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnik(page, "glavni_unos");
+    await expect(page.getByTestId("gu-concurrent-banner")).not.toBeVisible();
   });
 });
 

@@ -58,6 +58,7 @@ export const MIGRACIJE_LISTA = [
   { id: "sifrarnik_audit_roles", naziv: "Audit log RLS uloge", fajl: "83_sifrarnik_audit_rls_roles.sql" },
   { id: "sifrarnik_deo_status_mv", naziv: "MV status delova", fajl: "84_sifrarnik_deo_status_mv.sql" },
   { id: "sifrarnik_audit_retention", naziv: "Audit arhiva", fajl: "85_sifrarnik_audit_retention.sql" },
+  { id: "sifrarnik_mv_scale", naziv: "MV skala 10k+ RPC", fajl: "86_sifrarnik_mv_scale.sql" },
 ];
 
 const PROBES = [
@@ -249,6 +250,12 @@ export async function proveriGoLiveRpc(supabase) {
   });
   const refreshMv = await proveriRpcPostoji(supabase, "refresh_sifrarnik_deo_status_mv", {});
   const auditArhiva = await proveriRpcPostoji(supabase, "sifrarnik_audit_arhiviraj", { p_meseci: 12 });
+  const kompletnost = await proveriRpcPostoji(supabase, "sifrarnik_kompletnost_stat", {});
+  const listaDelovi = await proveriRpcPostoji(supabase, "sifrarnik_lista_delovi", {
+    p_tip_kontrole: null,
+    p_limit: 1,
+    p_offset: 0,
+  });
   return {
     ocisti_operativu_rpc: ocisti,
     obrisi_deo_rpc: obrisi,
@@ -256,6 +263,7 @@ export async function proveriGoLiveRpc(supabase) {
     sifrarnik_filter_rpc: filterDelovi,
     sifrarnik_deo_status_mv: refreshMv,
     sifrarnik_audit_retention: auditArhiva,
+    sifrarnik_mv_scale: kompletnost.ok && listaDelovi.ok ? { ok: true, poruka: "OK" } : { ok: false, poruka: "Nedostaje RPC skale 86" },
   };
 }
 
@@ -273,6 +281,7 @@ export async function proveriSemu(supabase) {
   byId.sifrarnik_filter_rpc_fn = goLiveRpc.sifrarnik_filter_rpc;
   byId.sifrarnik_deo_status_mv_fn = goLiveRpc.sifrarnik_deo_status_mv;
   byId.sifrarnik_audit_retention_fn = goLiveRpc.sifrarnik_audit_retention;
+  byId.sifrarnik_mv_scale_fn = goLiveRpc.sifrarnik_mv_scale;
 
   const mapUser = {
     kpi_unos: byId.kpi_unos?.ok,
@@ -335,6 +344,7 @@ export async function proveriSemu(supabase) {
     sifrarnik_audit_roles: byId.sifrarnik_audit_tbl?.ok,
     sifrarnik_deo_status_mv: byId.mv_delovi_status?.ok && byId.sifrarnik_deo_status_mv_fn?.ok,
     sifrarnik_audit_retention: byId.sifrarnik_audit_arhiva?.ok && byId.sifrarnik_audit_retention_fn?.ok,
+    sifrarnik_mv_scale: byId.sifrarnik_mv_scale_fn?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({

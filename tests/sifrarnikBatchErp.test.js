@@ -5,8 +5,16 @@ vi.mock("../src/lib/glavniUnosApi.js", () => ({
   osveziSifrarnikStatusMv: vi.fn(async () => {}),
 }));
 
+vi.mock("../src/lib/sifrarnikBatchRollback.js", () => ({
+  snapBatchPreObjave: vi.fn(),
+}));
+
 vi.mock("../src/lib/sifrarnikBatchDigest.js", () => ({
   posaljiBatchObjavaDigest: vi.fn(async () => ({ preskoceno: true })),
+}));
+
+vi.mock("../src/lib/sifrarnikDeloviMv.js", () => ({
+  fetchSpremniBatchIzMv: vi.fn(async () => null),
 }));
 
 vi.mock("../src/lib/sifrarnikAudit.js", () => ({
