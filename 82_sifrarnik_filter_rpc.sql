@@ -1,6 +1,8 @@
 -- Server-side filter delova po statusu šifrarnika (Modul 0 → Delovi)
 -- Posle 81_sifrarnik_audit_rls.sql
 
+DROP FUNCTION IF EXISTS public.sifrarnik_filter_delovi(text, boolean, boolean, text, int, int);
+
 CREATE OR REPLACE FUNCTION public.sifrarnik_filter_delovi(
   p_nedostaje text DEFAULT NULL,
   p_samo_delimicni boolean DEFAULT false,
@@ -23,7 +25,7 @@ RETURNS TABLE (
   aktivan boolean,
   napomena text,
   kom_za_kontrolu int,
-  greska_katalog_id int,
+  greska_katalog_id text,
   linija_id int,
   masina_id int,
   status_sifrarnik text

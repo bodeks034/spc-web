@@ -1,6 +1,13 @@
 -- Skala 10k+ delova: RPC čita iz mv_delovi_sifrarnik_status (posle 84 + refresh)
 -- Pokreni posle 85_sifrarnik_audit_retention.sql
 
+DROP FUNCTION IF EXISTS public.sifrarnik_pretrazi_delovi(text, text, int, int);
+DROP FUNCTION IF EXISTS public.sifrarnik_lista_delovi(text, int, int);
+DROP FUNCTION IF EXISTS public.sifrarnik_filter_delovi(text, boolean, boolean, text, int, int);
+DROP FUNCTION IF EXISTS public.sifrarnik_kompletnost_stat();
+DROP FUNCTION IF EXISTS public.sifrarnik_duplikati_dimenzija(int);
+DROP FUNCTION IF EXISTS public.sifrarnik_spremni_batch(int, int);
+
 CREATE OR REPLACE FUNCTION public.sifrarnik_filter_delovi(
   p_nedostaje text DEFAULT NULL,
   p_samo_delimicni boolean DEFAULT false,
@@ -23,7 +30,7 @@ RETURNS TABLE (
   aktivan boolean,
   napomena text,
   kom_za_kontrolu int,
-  greska_katalog_id int,
+  greska_katalog_id text,
   linija_id int,
   masina_id int,
   status_sifrarnik text,
@@ -98,7 +105,7 @@ RETURNS TABLE (
   aktivan boolean,
   napomena text,
   kom_za_kontrolu int,
-  greska_katalog_id int,
+  greska_katalog_id text,
   linija_id int,
   masina_id int,
   status_sifrarnik text,
@@ -143,7 +150,7 @@ RETURNS TABLE (
   aktivan boolean,
   napomena text,
   kom_za_kontrolu int,
-  greska_katalog_id int,
+  greska_katalog_id text,
   linija_id int,
   masina_id int,
   status_sifrarnik text,
