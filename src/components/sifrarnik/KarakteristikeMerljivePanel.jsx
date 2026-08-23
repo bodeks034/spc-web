@@ -32,7 +32,7 @@ const PRAZAN = {
   klasa: "", radni_nalog: "", napomena: "", slika: "",
 };
 
-export default function KarakteristikeMerljivePanel({ C, addToast }) {
+export default function KarakteristikeMerljivePanel({ C, addToast, navSignal }) {
   const { opcije } = useSifrarnikOpcije(addToast);
   const { format: formatPogon, opcije: pogonOpcije } = usePogonOznake(addToast);
   const [lista, setLista] = useState([]);
@@ -54,6 +54,17 @@ export default function KarakteristikeMerljivePanel({ C, addToast }) {
   }, [addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  useEffect(() => {
+    if (!navSignal?.ts) return;
+    if (navSignal.idDeo) {
+      const id = normalizujIdDeo(navSignal.idDeo);
+      setIdDeoDraft(id);
+      setIdDeoFilter(id);
+      ucitaj(id || null, navSignal.pogonFilter || null);
+      if (navSignal.pogonFilter) setPogonFilter(navSignal.pogonFilter);
+    }
+  }, [navSignal?.ts, navSignal?.idDeo, navSignal?.pogonFilter, ucitaj]);
 
   const primeniFilter = () => {
     const id = normalizujIdDeo(idDeoDraft);

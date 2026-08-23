@@ -243,6 +243,22 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
           {erpDryRunGu.primer?.length > 0 && (
             <span style={{ color: C.sivi }}> ({erpDryRunGu.primer.join(", ")}{erpDryRunGu.broj > erpDryRunGu.primer.length ? "…" : ""})</span>
           )}
+          {onNavigate && (
+            <>
+              {" "}
+              <button
+                type="button"
+                data-testid="erp-dryrun-gu-cta"
+                onClick={() => onNavigate("delovi", {
+                  nedostajeFilter: "gu",
+                  idDeo: erpDryRunGu.primer?.[0] || erpDryRunGu.ids?.[0],
+                })}
+                style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontWeight: 700, fontSize: 10 }}
+              >
+                Pregled delova bez GU →
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -269,7 +285,11 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
             <button
               type="button"
               data-testid="erp-gu-cta"
-              onClick={() => onNavigate("glavni_unos", { otvoriWizard: true })}
+              onClick={() => onNavigate("delovi", {
+                nedostajeFilter: "gu",
+                samoDelimicni: true,
+                idDeo: guUpozorenje.primer?.[0] || guUpozorenje.ids?.[0],
+              })}
               style={{
                 background: "none",
                 border: "none",
@@ -280,7 +300,7 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
                 fontSize: 10,
               }}
             >
-              Otvori Glavni unos →
+              Otvori delovi bez GU →
             </button>
           )}
         </div>

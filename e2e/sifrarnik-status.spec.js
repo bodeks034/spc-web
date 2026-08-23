@@ -147,6 +147,14 @@ test.describe("Modul 0 — delovi pregled", () => {
 
   test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
 
+  test("filter nedostaje je dostupan", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "delovi");
+    await expect(page.getByTestId("delovi-nedostaje-filter")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("delovi-nedostaje-filter").selectOption("gu");
+    await expect(page.getByTestId("delovi-panel")).toBeVisible();
+  });
+
   test("prazna pretraga prikazuje empty state ili listu", async ({ page }) => {
     await prijaviSe(page, "kvalitet");
     await otvoriSifrarnikTab(page, "delovi");
@@ -181,7 +189,7 @@ test.describe("Modul 0 — ERP uvoz", () => {
     if (await guBanner.isVisible().catch(() => false)) {
       await expect(page.getByTestId("erp-gu-cta")).toBeVisible();
       await page.getByTestId("erp-gu-cta").click();
-      await expect(page.getByTestId("sifrarnik-tab-glavni_unos")).toBeVisible();
+      await expect(page.getByTestId("sifrarnik-tab-delovi")).toBeVisible();
     }
   });
 });
@@ -197,6 +205,30 @@ test.describe("Modul 0 — održavanje kompletnost", () => {
     await expect(page.getByTestId("odrzavanje-kompletnost")).toBeVisible({ timeout: 20000 });
     await expect(page.getByText(/Kompletnost šifrarnika/i)).toBeVisible();
     await expect(page.getByTestId("odrzavanje-csv-export")).toBeVisible();
+  });
+
+  test("batch objavi dugme je vidljivo", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "odrzavanje");
+    await expect(page.getByTestId("odrzavanje-batch-objavi")).toBeVisible({ timeout: 20000 });
+  });
+});
+
+test.describe("Modul 0 — quick start", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("quick start panel je vidljiv ili sakriven", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnik(page, "glavni_unos");
+    const qs = page.getByTestId("sifrarnik-quick-start");
+    const vidi = await qs.isVisible().catch(() => false);
+    if (vidi) {
+      await expect(page.getByText(/Brzi start/i)).toBeVisible();
+      await page.getByTestId("sifrarnik-quick-start-dismiss").click();
+      await expect(qs).not.toBeVisible();
+    }
   });
 });
 

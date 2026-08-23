@@ -10,6 +10,7 @@ import {
 } from "./karakteristikaMerljive.js";
 import { ensureDeoMasterMinimal, syncMerljiviSifrarnikZaDeo } from "./importDerivedSifrarnik.js";
 import { normalizujIdDeo, jePunIdDeo } from "./idDeoUtil.js";
+import { logSifrarnikAudit } from "./sifrarnikAudit.js";
 import { ucitajRedovePoIdDeo } from "./idDeoQuery.js";
 
 function greskaNedostajeTabela(error) {
@@ -114,16 +115,28 @@ export async function deleteDefektVozilo(id) {
   if (error) throw error;
 }
 
-export async function fetchDelovi({ tipKontrole = null, voziloKatalogId = null, samoAktivni = false } = {}) {
+export async function fetchDelovi({ tipKontrole = null, voziloKatalogId = null, samoAktivni = false, limit = null, offset = 0 } = {}) {
   let q = supabase.from("delovi")
     .select("id,id_deo,naziv_dela,karakteristika,tip_kontrole,vozilo_katalog_id,sifra_vozila,broj_crteza,revizija,slika_naziv,aktivan,napomena,kom_za_kontrolu,greska_katalog_id,linija_id,masina_id")
     .order("id_deo");
   if (samoAktivni) q = q.eq("aktivan", true);
   if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
   if (voziloKatalogId) q = q.eq("vozilo_katalog_id", String(voziloKatalogId).trim().toUpperCase());
+  if (limit != null) q = q.range(offset, offset + limit - 1);
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
+}
+
+export const DELOVI_PAGE_SIZE = 100;
+
+export async function countDelovi({ tipKontrole = null, samoAktivni = false } = {}) {
+  let q = supabase.from("delovi").select("*", { count: "exact", head: true });
+  if (samoAktivni) q = q.eq("aktivan", true);
+  if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
+  const { count, error } = await q;
+  if (error) throw error;
+  return count || 0;
 }
 
 export async function upsertDeo(deo) {
@@ -150,6 +163,7 @@ export async function upsertDeo(deo) {
     .select("*")
     .single();
   if (error) throw error;
+  logSifrarnikAudit({ idDeo, akcija: "upsert_deo", izvor: "sifrarnik_api" });
   return data;
 }
 

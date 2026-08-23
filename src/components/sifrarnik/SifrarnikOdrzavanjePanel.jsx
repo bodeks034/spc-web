@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
-import { fetchDuplikatiKarakteristike, fetchDelimicniDeloviPreview, fetchKompletnostStatistika, fetchDelimicniDeloviSvi, preuzmiDelimicniCsv, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
+import {
+  fetchDuplikatiKarakteristike,
+  fetchDelimicniDeloviPreview,
+  fetchKompletnostStatistika,
+  fetchDelimicniDeloviSvi,
+  preuzmiDelimicniCsv,
+  STATUS_DEO_LABEL,
+  SIFRARNIK_STATUS_SCAN_LIMIT,
+} from "../../lib/sifrarnikOdrzavanje.js";
 import { fetchDeloviSpremniZaObjavu, objaviSpremneDelove } from "../../lib/sifrarnikBatchObjava.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
@@ -15,6 +23,28 @@ async function countTable(table, filter = {}) {
   return count || 0;
 }
 
+function UpozorenjeLimit({ C, meta }) {
+  if (!meta?.truncated) return null;
+  return (
+    <div
+      data-testid="odrzavanje-limit-upozorenje"
+      style={{
+        marginBottom: 10,
+        padding: "8px 10px",
+        borderRadius: 6,
+        border: `1px solid ${C.narandzasta || "#f59e0b"}55`,
+        background: `${C.narandzasta || "#f59e0b"}12`,
+        fontSize: 9,
+        color: C.tekst,
+        lineHeight: 1.45,
+      }}
+    >
+      ⚠ Prikazano {meta.skenirano}/{meta.ukupnoAktivnih} aktivnih delova (limit {meta.limit || SIFRARNIK_STATUS_SCAN_LIMIT}).
+      {" "}Statistika i batch mogu biti nepotpuni — kontaktiraj admin za pun audit.
+    </div>
+  );
+}
+
 export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [podaci, setPodaci] = useState(null);
   const [duplikati, setDuplikati] = useState([]);
@@ -24,6 +54,8 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [csvBusy, setCsvBusy] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
   const [spremniBroj, setSpremniBroj] = useState(0);
+  const [batchProgress, setBatchProgress] = useState(null);
+  const [batchRezultati, setBatchRezultati] = useState(null);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -77,8 +109,13 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       return;
     }
     setBatchBusy(true);
+    setBatchProgress({ trenutni: 0, ukupno: spremniBroj });
+    setBatchRezultati(null);
     try {
-      const rez = await objaviSpremneDelove();
+      const rez = await objaviSpremneDelove({
+        onProgress: (p) => setBatchProgress(p),
+      });
+      setBatchRezultati(rez.rezultati);
       obavestiPromenuStatusaSifrarnika({ izvor: "odrzavanje", akcija: "batch_objavi" });
       addToast?.(`✓ Objavljeno ${rez.uspeh}/${rez.rezultati.length} delova`, rez.neuspelo ? "info" : "uspeh");
       await ucitaj();
@@ -86,8 +123,11 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       addToast?.(e.message, "greska");
     } finally {
       setBatchBusy(false);
+      setBatchProgress(null);
     }
   };
+
+  const neuspeli = (batchRezultati || []).filter((r) => !r.ok);
 
   const stavke = [
     { tab: "rn", label: "Radni nalozi", hint: "Proveri zastarele aktivne RN" },
@@ -135,6 +175,8 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
         </div>
       )}
 
+      <UpozorenjeLimit C={C} meta={komplet} />
+
       {komplet && !loading && (
         <div
           data-testid="odrzavanje-kompletnost"
@@ -175,9 +217,36 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
               style={btnStyle(C, C.zelena, { fontSize: 9, opacity: batchBusy || !spremniBroj ? 0.55 : 1 })}
               title="GU + greške + crtež → propagacija u dimenzije"
             >
-              {batchBusy ? "Objavljujem…" : `Objavi sve spremne (${spremniBroj})`}
+              {batchBusy
+                ? (batchProgress ? `Objavljujem ${batchProgress.trenutni}/${batchProgress.ukupno}…` : "Objavljujem…")
+                : `Objavi sve spremne (${spremniBroj})`}
             </button>
           </div>
+          {neuspeli.length > 0 && (
+            <div
+              data-testid="odrzavanje-batch-greske"
+              style={{
+                marginTop: 10,
+                padding: 8,
+                borderRadius: 6,
+                border: `1px solid ${C.crvena || "#dc2626"}44`,
+                background: `${C.crvena || "#dc2626"}10`,
+              }}
+            >
+              <div style={{ color: C.crvena || "#dc2626", fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
+                Neuspešno ({neuspeli.length})
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 16, fontSize: 9, color: C.tekst, lineHeight: 1.5 }}>
+                {neuspeli.map((r) => (
+                  <li key={r.idDeo}>
+                    <strong>{r.idDeo}</strong>
+                    {" — "}
+                    <span style={{ color: C.sivi }}>{r.greska}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -196,7 +265,14 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
           <ul style={{ margin: 0, paddingLeft: 16, fontSize: 9, color: C.sivi, lineHeight: 1.5 }}>
             {duplikati.map((d) => (
               <li key={`${d.idDeo}-${d.pogon}-${d.pozicija}`}>
-                <strong style={{ color: C.plava }}>{d.idDeo}</strong>
+                <button
+                  type="button"
+                  data-testid={`duplikat-link-${d.idDeo}`}
+                  onClick={() => onNavigate?.("karakteristike", { idDeo: d.idDeo, pogonFilter: d.pogon })}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.plava, fontWeight: 700, fontSize: 9 }}
+                >
+                  {d.idDeo}
+                </button>
                 {" · "}{d.pogon}/{d.pozicija} — {d.broj}×
               </li>
             ))}
@@ -227,7 +303,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
             <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700 }}>
               Delimični delovi ({delimicni.length}+)
             </div>
-            <button type="button" onClick={() => onNavigate?.("delovi")}
+            <button type="button" onClick={() => onNavigate?.("delovi", { samoDelimicni: true })}
               style={{ ...btnStyle(C, C.hover, { fontSize: 9, padding: "2px 6px" }) }}>
               Svi delovi →
             </button>

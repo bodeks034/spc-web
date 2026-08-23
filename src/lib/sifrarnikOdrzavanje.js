@@ -1,6 +1,28 @@
 /** Pregled i audit šifrarnika — duplikati, status dela. */
 import { supabase } from "./supabaseClient.js";
-import { fetchGlavniUnosBrojeviPoDeo } from "./glavniUnosApi.js";
+import { fetchGlavniUnosBrojeviPoDeo, fetchGlavniUnosBrojZaDeo } from "./glavniUnosApi.js";
+import { logSifrarnikAudit } from "./sifrarnikAudit.js";
+
+/** Maks. broj aktivnih delova u jednom skenu statusa (kompletnost, batch). */
+export const SIFRARNIK_STATUS_SCAN_LIMIT = 2000;
+
+async function countAktivnihDelova() {
+  const { count, error } = await supabase
+    .from("delovi")
+    .select("*", { count: "exact", head: true })
+    .eq("aktivan", true);
+  if (error) throw error;
+  return count || 0;
+}
+
+export function metaSkenaStatusa(skenirano, ukupnoAktivnih) {
+  return {
+    skenirano,
+    ukupnoAktivnih,
+    truncated: ukupnoAktivnih > skenirano,
+    limit: SIFRARNIK_STATUS_SCAN_LIMIT,
+  };
+}
 
 export async function fetchDuplikatiKarakteristike({ limit = 5000 } = {}) {
   const { data, error } = await supabase
@@ -48,6 +70,31 @@ export async function fetchBarkodProfiliSet() {
     throw error;
   }
   return new Set((data || []).map((r) => String(r.id_deo || "").trim().toUpperCase()).filter(Boolean));
+}
+
+export async function fetchGreskeBrojZaDeo(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return 0;
+  const { count, error } = await supabase
+    .from("greske_katalog")
+    .select("*", { count: "exact", head: true })
+    .eq("id_deo", id);
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function fetchImaBarkodZaDeo(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return false;
+  const { count, error } = await supabase
+    .from("barkod_profili")
+    .select("*", { count: "exact", head: true })
+    .eq("id_deo", id);
+  if (error) {
+    if (/does not exist|relation/i.test(error.message)) return false;
+    throw error;
+  }
+  return (count || 0) > 0;
 }
 
 /** @returns {'kompletan'|'delimicno'|'samo_master'} */
@@ -241,12 +288,16 @@ export function izracunajKompletnostDelova(delovi, gu, gr, barkodSet) {
 }
 
 export async function fetchKompletnostStatistika() {
-  const { data: delovi, error } = await supabase
-    .from("delovi")
-    .select("id_deo,slika_naziv")
-    .eq("aktivan", true)
-    .limit(2000);
-  if (error) throw error;
+  const [ukupnoAktivnih, deloviRes] = await Promise.all([
+    countAktivnihDelova(),
+    supabase
+      .from("delovi")
+      .select("id_deo,slika_naziv")
+      .eq("aktivan", true)
+      .limit(SIFRARNIK_STATUS_SCAN_LIMIT),
+  ]);
+  if (deloviRes.error) throw deloviRes.error;
+  const delovi = deloviRes.data || [];
 
   const [gu, gr, bk] = await Promise.all([
     fetchGlavniUnosBrojeviPoDeo(),
@@ -254,7 +305,10 @@ export async function fetchKompletnostStatistika() {
     fetchBarkodProfiliSet(),
   ]);
 
-  return izracunajKompletnostDelova(delovi || [], gu, gr, bk);
+  return {
+    ...izracunajKompletnostDelova(delovi, gu, gr, bk),
+    ...metaSkenaStatusa(delovi.length, ukupnoAktivnih),
+  };
 }
 
 /** Prvi aktivni deo koji nije kompletan — za „Nastavi checklist“ banner. */
@@ -287,12 +341,16 @@ export function pickPrviDelimicniDeo(delovi, gu, gr, barkodSet, { preskociIdDeo 
 }
 
 export async function fetchAktivniDeloviSaStatusom() {
-  const { data: delovi, error } = await supabase
-    .from("delovi")
-    .select("id_deo,naziv_dela,slika_naziv,aktivan")
-    .eq("aktivan", true)
-    .limit(2000);
-  if (error) throw error;
+  const [ukupnoAktivnih, deloviRes] = await Promise.all([
+    countAktivnihDelova(),
+    supabase
+      .from("delovi")
+      .select("id_deo,naziv_dela,slika_naziv,aktivan")
+      .eq("aktivan", true)
+      .limit(SIFRARNIK_STATUS_SCAN_LIMIT),
+  ]);
+  if (deloviRes.error) throw deloviRes.error;
+  const delovi = deloviRes.data || [];
 
   const [gu, gr, bk] = await Promise.all([
     fetchGlavniUnosBrojeviPoDeo(),
@@ -300,7 +358,7 @@ export async function fetchAktivniDeloviSaStatusom() {
     fetchBarkodProfiliSet(),
   ]);
 
-  return (delovi || []).map((d) => {
+  const stavke = delovi.map((d) => {
     const id = String(d?.id_deo || "").trim().toUpperCase();
     const opts = {
       guBroj: gu[id] || gu[d?.id_deo] || 0,
@@ -316,6 +374,8 @@ export async function fetchAktivniDeloviSaStatusom() {
       koraci: koraciNavigacijeIzStatusDeo(d, opts),
     };
   });
+
+  return { stavke, ...metaSkenaStatusa(delovi.length, ukupnoAktivnih) };
 }
 
 /** GU + greške + crtež — spreman za batch propagaciju. */
@@ -353,7 +413,7 @@ export function nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo = null }
 }
 
 export async function fetchDelimicniDeloviSvi() {
-  const stavke = await fetchAktivniDeloviSaStatusom();
+  const { stavke } = await fetchAktivniDeloviSaStatusom();
   return stavke
     .filter(({ status }) => status !== "kompletan")
     .sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
@@ -400,16 +460,12 @@ export async function navigacijaZaIdDeo(idDeo) {
   if (error) throw error;
   if (!deo) return { pronadjen: false, idDeo: id };
 
-  const [gu, gr, bk] = await Promise.all([
-    fetchGlavniUnosBrojeviPoDeo(),
-    fetchGreskeBrojeviPoDeo(),
-    fetchBarkodProfiliSet(),
+  const [guBroj, greskeBroj, imaBarkod] = await Promise.all([
+    fetchGlavniUnosBrojZaDeo(id),
+    fetchGreskeBrojZaDeo(id),
+    fetchImaBarkodZaDeo(id),
   ]);
-  const opts = {
-    guBroj: gu[id] || 0,
-    greskeBroj: gr[id] || 0,
-    imaBarkod: bk.has(id),
-  };
+  const opts = { guBroj, greskeBroj, imaBarkod };
   const status = statusDeoUSifrarniku(deo, opts);
   const nav = navigacijaIzStatusDeo(deo, opts);
   return {
@@ -494,7 +550,10 @@ export async function obrisiDeoIzSifrarnika(idDeo) {
     p_id_deo: id,
     p_potvrdi: "OBRISI_DEO",
   });
-  if (!rpcErr && rpcData?.ok) return { idDeo: id, rpc: true };
+  if (!rpcErr && rpcData?.ok) {
+    logSifrarnikAudit({ idDeo: id, akcija: "obrisi_deo", izvor: "rpc" });
+    return { idDeo: id, rpc: true };
+  }
   if (rpcErr && !rpcNedostaje(rpcErr)) throw rpcErr;
 
   await obrisiPoIdDeo("glavni_unos_redovi", id);
@@ -507,6 +566,7 @@ export async function obrisiDeoIzSifrarnika(idDeo) {
   await obrisiPoIdDeo("ciljevi", id);
   const { error } = await supabase.from("delovi").delete().eq("id_deo", id);
   if (error) throw error;
+  logSifrarnikAudit({ idDeo: id, akcija: "obrisi_deo", izvor: "fallback" });
   return { idDeo: id };
 }
 

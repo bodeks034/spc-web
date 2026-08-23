@@ -21,6 +21,7 @@ export default function NoviDeoWizard({
   const [korak, setKorak] = useState(1);
   const [tip, setTip] = useState(GLAVNI_UNOS_SHEET_TIP.PROJEKAT);
   const [erp, setErp] = useState("");
+  const [sablonId, setSablonId] = useState("");
   const [sheetIme, setSheetIme] = useState("");
   const [kreira, setKreira] = useState(false);
   const INP = inpStyle(C);
@@ -44,7 +45,7 @@ export default function NoviDeoWizard({
           sifraVozila: tip === GLAVNI_UNOS_SHEET_TIP.OPSTI ? null : erp.trim().toUpperCase(),
         });
       }
-      onIzaberiSheet?.(naziv);
+      onIzaberiSheet?.(naziv, { sablonId: sablonId.trim() || null });
       if (tip === GLAVNI_UNOS_SHEET_TIP.FINAL) {
         onFinalVozilo?.();
       } else {
@@ -104,6 +105,16 @@ export default function NoviDeoWizard({
                 placeholder="HAM, NTV, MRAP…" style={{ ...INP, width: "100%", marginTop: 4 }} />
             </label>
           )}
+          <label style={{ display: "block", marginBottom: 12 }}>
+            <span style={{ color: C.sivi, fontSize: 9 }}>Kopiraj strukturu sa dela (opciono)</span>
+            <input
+              data-testid="wizard-sablon-id"
+              value={sablonId}
+              onChange={(e) => setSablonId(e.target.value.toUpperCase())}
+              placeholder="npr. HAM-NM-001"
+              style={{ ...INP, width: "100%", marginTop: 4 }}
+            />
+          </label>
           <button type="button" onClick={nastaviTip}
             disabled={tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !erp.trim()}
             style={btnStyle(C, C.plava, { disabled: tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !erp.trim() })}>

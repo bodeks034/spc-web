@@ -48,6 +48,7 @@ import ErpUvozPanel from "./ErpUvozPanel.jsx";
 import SifrarnikNastaviBanner from "./SifrarnikNastaviBanner.jsx";
 import SifrarnikMigracijeBanner from "./SifrarnikMigracijeBanner.jsx";
 import SifrarnikGlobalPretraga from "./SifrarnikGlobalPretraga.jsx";
+import SifrarnikQuickStart from "./SifrarnikQuickStart.jsx";
 import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
@@ -437,6 +438,8 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
       <SifrarnikMigracijeBanner C={C} />
 
+      <SifrarnikQuickStart C={C} onNavigate={idiNaTab} skriveno={onboarding} />
+
       <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={onboarding} />
 
       <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} />
@@ -616,7 +619,9 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
         {podtab === "pogon_atr" && <PogonAtributivniPanel C={C} addToast={addToast} />}
 
-        {podtab === "karakteristike" && <KarakteristikeMerljivePanel C={C} addToast={addToast} />}
+        {podtab === "karakteristike" && (
+          <KarakteristikeMerljivePanel C={C} addToast={addToast} navSignal={navCtx} />
+        )}
 
         {podtab === "spc_alarm" && <SpcAlarmPragoviPanel C={C} addToast={addToast} />}
 

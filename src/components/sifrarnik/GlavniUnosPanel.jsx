@@ -493,17 +493,25 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         poSheetu[s].push(r);
       });
 
-      let ukupno = 0;
+      const ukupno = Object.values(poSheetu).reduce((s, rows) => s + rows.length, 0);
+      const pregled = Object.entries(poSheetu)
+        .map(([sheet, rows]) => `${sheet}: ${rows.length} redova (zamena)`)
+        .join("\n");
+      if (!window.confirm(`Uvesti ${ukupno} redova iz ${file.name}?\n\n${pregled}\n\nPostojeći redovi po sheet-u biće zamenjeni.`)) {
+        return;
+      }
+
+      let sacuvano = 0;
       for (const [sheet, rows] of Object.entries(poSheetu)) {
         const saved = await zameniSheetRedove(sheet, rows.map((r, i) => normalizujRedZaSnimanje(r, sheet, i)));
-        ukupno += saved.length;
+        sacuvano += saved.length;
       }
 
       await ucitajSheetove();
       const prviSheet = Object.keys(poSheetu)[0] || aktivniSheet;
       setAktivniSheet(prviSheet);
       await ucitajRedove(prviSheet);
-      addToast?.(`✓ Uvezeno ${ukupno} redova iz ${file.name}`, "uspeh");
+      addToast?.(`✓ Uvezeno ${sacuvano} redova iz ${file.name}`, "uspeh");
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -581,6 +589,46 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+      {dirty && (
+        <div
+          data-testid="gu-dirty-banner"
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            marginBottom: 10,
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.narandzasta || "#f59e0b"}66`,
+            background: `${C.narandzasta || "#f59e0b"}18`,
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+            fontSize: 10,
+          }}
+        >
+          <span style={{ color: C.tekst, fontWeight: 700 }}>
+            ⚠ Nesačuvane izmene — sačuvaj ili objavi pre promene sheeta
+          </span>
+          <button
+            type="button"
+            disabled={snima}
+            onClick={() => sacuvajSheet({ propagirajPosle: false })}
+            style={btnStyle(C, C.plava, { fontSize: 9, padding: "4px 10px" })}
+          >
+            {snima ? "…" : "Sačuvaj sheet"}
+          </button>
+          <button
+            type="button"
+            disabled={snima || propagira}
+            onClick={objaviUSifrarnik}
+            style={btnStyle(C, C.zelena, { fontSize: 9, padding: "4px 10px" })}
+          >
+            Objavi u šifrarnik
+          </button>
+        </div>
+      )}
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10, lineHeight: 1.5 }}>
         <strong style={{ color: C.tekst }}>Glavni unos</strong> — unos dimenzija i zaglavlja; objava puni Merljive, RN i Delovi.
         {" "}
@@ -696,9 +744,14 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
             setDirty(false);
             addToast?.(`✓ Sheet ${novi.naziv}`, "uspeh");
           }}
-          onIzaberiSheet={(naziv) => {
+          onIzaberiSheet={(naziv, ctx = {}) => {
             if (dirty && !window.confirm("Nesačuvane izmene — preći na drugi sheet?")) return;
             setAktivniSheet(naziv);
+            if (ctx.sablonId) {
+              setKlonIzvor(String(ctx.sablonId).trim().toUpperCase());
+              setKlonOtvoren(true);
+              addToast?.(`Šablon ${ctx.sablonId} — unesi novi ID u Kloniraj deo`, "info");
+            }
           }}
           onGrupniUnos={() => otvoriGrupniUnos()}
           onFinalVozilo={() => otvoriGrupniUnos(null, { finalVozilo: true })}

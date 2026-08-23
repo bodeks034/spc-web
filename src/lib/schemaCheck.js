@@ -52,6 +52,7 @@ export const MIGRACIJE_LISTA = [
   { id: "ocisti_operativu_rpc", naziv: "Go-live čišćenje operative (RPC)", fajl: "77_ocisti_operativu_rpc.sql" },
   { id: "obrisi_deo_rpc", naziv: "Brisanje dela iz šifrarnika (RPC)", fajl: "78_obrisi_deo_iz_sifrarnika_rpc.sql" },
   { id: "obrisi_demo_delove_rpc", naziv: "Bulk brisanje DEMO delova (RPC)", fajl: "79_obrisi_demo_delove_rpc.sql" },
+  { id: "sifrarnik_audit", naziv: "Audit log šifrarnika", fajl: "80_sifrarnik_audit.sql" },
 ];
 
 const PROBES = [
