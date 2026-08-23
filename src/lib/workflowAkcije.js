@@ -257,6 +257,25 @@ export function akcijaZaOperativniAlarm(alarm, kontekst = {}) {
 }
 
 /** Sačuvaj tab za otvaranje posle ulaska u modul. */
+export const PFMEA_ID_DEO_KEY = "spc_pfmea_id_deo";
+
+export function sacuvajPfmeaNav(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (id) sessionStorage.setItem(PFMEA_ID_DEO_KEY, id);
+  sacuvajSpoljnuNavigacijuTab("pfmea-cp", { modul: "atributivne" });
+  sacuvajCiljniModul("atributivne");
+}
+
+export function procitajPfmeaNavIdDeo() {
+  try {
+    const v = sessionStorage.getItem(PFMEA_ID_DEO_KEY);
+    if (v) sessionStorage.removeItem(PFMEA_ID_DEO_KEY);
+    return v;
+  } catch {
+    return null;
+  }
+}
+
 export function sacuvajSpoljnuNavigacijuTab(tab, { prefillNcr, modul = "atributivne" } = {}) {
   ocistiPendingWorkflowNav();
   const key = tabStorageKey(modul);

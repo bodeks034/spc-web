@@ -5,7 +5,7 @@ import SifrarnikHub from "./SifrarnikHub.jsx";
 /**
  * Modul 0 — šifrarnik (master podaci pre unosa i analitike).
  */
-export default function SifrarnikModul({ korisnik, onNazad, onOdjava, C, onToggleTema, temaTamna }) {
+export default function SifrarnikModul({ korisnik, onNazad, onOdjava, C, onToggleTema, temaTamna, onOtvoriModul }) {
   const [toast, setToast] = useState(null);
 
   const addToast = useCallback((tekst, tip = "info") => {
@@ -33,7 +33,7 @@ export default function SifrarnikModul({ korisnik, onNazad, onOdjava, C, onToggl
       />
 
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-        <SifrarnikHub C={C} addToast={addToast} korisnik={korisnik} />
+        <SifrarnikHub C={C} addToast={addToast} korisnik={korisnik} onOtvoriModul={onOtvoriModul} />
       </div>
 
       {toast && (

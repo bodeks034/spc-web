@@ -232,6 +232,21 @@ test.describe("Modul 0 — quick start", () => {
   });
 });
 
+test.describe("Modul 0 — alati panel", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("odrzavanje prikazuje alati panel", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "odrzavanje");
+    await expect(page.getByTestId("sifrarnik-alati-panel")).toBeVisible({ timeout: 20000 });
+    await expect(page.getByTestId("audit-filter-id")).toBeVisible();
+    await expect(page.getByTestId("validacija-csv-btn")).toBeVisible();
+    await expect(page.getByTestId("propagacija-preview-btn")).toBeVisible();
+  });
+});
+
 test.describe("Admin — go-live status", () => {
   test.describe.configure({ timeout: 60000 });
 

@@ -46,6 +46,7 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
   const [apiStatus, setApiStatus] = useState(null);
   const [guUpozorenje, setGuUpozorenje] = useState(null);
   const [erpDryRunGu, setErpDryRunGu] = useState(null);
+  const [guListaOtvorena, setGuListaOtvorena] = useState(false);
 
   const config = useMemo(() => {
     try {
@@ -308,6 +309,32 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
             >
               Otvori delovi bez GU →
             </button>
+          )}
+          {(guUpozorenje.ids?.length || 0) > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                data-testid="erp-gu-lista-toggle"
+                onClick={() => setGuListaOtvorena((v) => !v)}
+                style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontSize: 9, fontWeight: 700 }}
+              >
+                {guListaOtvorena ? "Sakrij listu" : `Prikaži svih ${guUpozorenje.broj} ID-jeva`}
+              </button>
+              {guListaOtvorena && (
+                <div data-testid="erp-gu-lista" style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {(guUpozorenje.ids || guUpozorenje.primer || []).slice(0, 40).map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => onNavigate?.("glavni_unos", { idDeo: id })}
+                      style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 9, cursor: "pointer", color: C.plava }}
+                    >
+                      {id}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

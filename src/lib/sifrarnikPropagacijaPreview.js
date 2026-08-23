@@ -65,7 +65,7 @@ export async function previewPropagacije({ sheetNaziv = null, idDeo = null } = {
 }
 
 /** Agregirani preview za više delova (batch objava). */
-export async function previewBatchPropagacije(ids = []) {
+export async function previewBatchPropagacije(ids = [], { paralelno = 5 } = {}) {
   const uniq = [...new Set((ids || []).map((id) => String(id).trim().toUpperCase()).filter(Boolean))];
   if (!uniq.length) {
     return { novih: 0, izmenjenih: 0, ukupno: 0, delovi: 0, poruka: "Nema delova za preview" };
@@ -73,11 +73,15 @@ export async function previewBatchPropagacije(ids = []) {
   let novih = 0;
   let izmenjenih = 0;
   let ukupno = 0;
-  for (const id of uniq) {
-    const p = await previewPropagacije({ idDeo: id });
-    novih += p.novih || 0;
-    izmenjenih += p.izmenjenih || 0;
-    ukupno += p.ukupno || 0;
+  const chunkSize = Math.max(1, paralelno);
+  for (let i = 0; i < uniq.length; i += chunkSize) {
+    const chunk = uniq.slice(i, i + chunkSize);
+    const rezultati = await Promise.all(chunk.map((id) => previewPropagacije({ idDeo: id })));
+    for (const p of rezultati) {
+      novih += p.novih || 0;
+      izmenjenih += p.izmenjenih || 0;
+      ukupno += p.ukupno || 0;
+    }
   }
   return {
     novih,

@@ -22,7 +22,7 @@ import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js
 import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { zavrsiSifrarnikOnboarding } from "../../lib/sifrarnikOnboarding.js";
 import { previewPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
-import { sacuvajGuUndoSnapshot, ucitajGuUndoSnapshot, obrisiGuUndoSnapshot } from "../../lib/guXlsxUndo.js";
+import { sacuvajGuUndoSnapshot, ucitajGuUndoSnapshot, obrisiGuUndoSnapshot, preostaloUndoMs, formatUndoPreostalo } from "../../lib/guXlsxUndo.js";
 import { useSifrarnikOpcije } from "./useSifrarnikOpcije.js";
 import {
   stampAuditPolja,
@@ -208,6 +208,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const [klonOtvoren, setKlonOtvoren] = useState(false);
   const [klonira, setKlonira] = useState(false);
   const [imaUndo, setImaUndo] = useState(() => !!ucitajGuUndoSnapshot());
+  const [undoPreostalo, setUndoPreostalo] = useState(() => preostaloUndoMs(ucitajGuUndoSnapshot()));
   const fileRef = useRef(null);
   const INP = inpStyle(C);
 
@@ -224,6 +225,20 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [dirty, formaIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!imaUndo) return undefined;
+    const t = window.setInterval(() => {
+      const snap = ucitajGuUndoSnapshot();
+      if (!snap) {
+        setImaUndo(false);
+        setUndoPreostalo(0);
+        return;
+      }
+      setUndoPreostalo(preostaloUndoMs(snap));
+    }, 30000);
+    return () => window.clearInterval(t);
+  }, [imaUndo]);
 
   const opcije = bazaOpcije
     ? dopuniOpcijeIzRedova(bazaOpcije, redovi, GLAVNI_UNOS_OPCIJE_MAPA)
@@ -558,6 +573,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       }
       sacuvajGuUndoSnapshot({ poSheetu: undoPoSheetu, imeFajla: file.name });
       setImaUndo(true);
+      setUndoPreostalo(preostaloUndoMs(ucitajGuUndoSnapshot()));
 
       let sacuvano = 0;
       for (const [sheet, rows] of Object.entries(poSheetu)) {
@@ -894,10 +910,17 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
           Uvezi .xlsx
         </button>
         {imaUndo && (
+          <>
           <button type="button" data-testid="gu-xlsx-undo" onClick={vratiXlsxUndo} disabled={snima}
             style={btnStyle(C, C.hover, { disabled: snima, fontSize: 10 })}>
             ↩ Undo import
           </button>
+          {undoPreostalo > 0 && (
+            <span data-testid="gu-xlsx-undo-ttl" style={{ color: C.sivi, fontSize: 9, alignSelf: "center" }}>
+              ističe za {formatUndoPreostalo(undoPreostalo)}
+            </span>
+          )}
+          </>
         )}
         <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
           onChange={(e) => uvoziXlsx(e.target.files?.[0])} />

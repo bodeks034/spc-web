@@ -533,7 +533,7 @@ export async function fetchDeloviBezGlavnogUnosa({ limit = 500 } = {}) {
     .map((d) => String(d.id_deo || "").trim().toUpperCase())
     .filter((id) => id && !(gu[id] > 0));
 
-  return { broj: ids.length, primer: ids.slice(0, 8) };
+  return { broj: ids.length, primer: ids.slice(0, 8), ids };
 }
 
 /** Delovi sa statusom ≠ kompletan (pregled u Održavanju). */

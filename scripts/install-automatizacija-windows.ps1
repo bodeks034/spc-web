@@ -137,6 +137,7 @@ $tasks = @(
   @{ Name = "SPC-Auto-Podsetnici"; Script = "scripts\auto-podsetnici.mjs"; Extra = ""; Schedule = "daily08"; Desc = "Proaktivni podsetnici (oba modula)"; Type = "node" },
   @{ Name = "SPC-Auto-Health"; Script = "scripts\auto-health-check.mjs"; Extra = "--email"; Schedule = "daily0630"; Desc = "Health check + email ako problem"; Type = "node" },
   @{ Name = "SPC-Nedeljni-Rollup"; Script = "scripts\nedeljni-rollup.mjs"; Extra = ""; Schedule = "weeklyFri15"; Desc = "Nedeljni email rollup"; Type = "node" },
+  @{ Name = "SPC-Sifrarnik-Zaglavljeni"; Script = "scripts\auto-sifrarnik-zaglavljeni.mjs"; Extra = ""; Schedule = "weeklyFri15"; Desc = "Email digest zaglavljenih delova u šifrarniku"; Type = "node" },
   @{ Name = "SPC-Postgres-Backup"; Script = "scripts\backup-postgres-windows.ps1"; Extra = ""; Schedule = "daily02"; Desc = "Nocni PostgreSQL backup (Docker)"; Type = "powershell" },
   @{ Name = "SPC-MomentDrop-Watcher"; Script = "scripts\watch-moment-drop.mjs"; Extra = "--watch"; Schedule = "atlogon"; Desc = "Moment-drop auto uvoz"; Type = "node" }
 )

@@ -12,6 +12,7 @@ import SifrarnikFilterBar from "./SifrarnikFilterBar.jsx";
 import { formatGraniceRedZaFormu, granicaZaPrikaz } from "../../lib/glavniUnosGranice.js";
 import { ucitajRevizije } from "../../lib/karakteristikeRevizija.js";
 import { fetchPfmeaCpZaDeo } from "../../lib/sifrarnikPfmeaLink.js";
+import { sacuvajPfmeaNav } from "../../lib/workflowAkcije.js";
 import { supabase } from "../../lib/supabaseClient.js";
 
 const KAR_FIELD_META = {
@@ -34,7 +35,7 @@ const PRAZAN = {
   klasa: "", radni_nalog: "", napomena: "", slika: "",
 };
 
-export default function KarakteristikeMerljivePanel({ C, addToast, navSignal }) {
+export default function KarakteristikeMerljivePanel({ C, addToast, navSignal, onOtvoriModul }) {
   const { opcije } = useSifrarnikOpcije(addToast);
   const { format: formatPogon, opcije: pogonOpcije } = usePogonOznake(addToast);
   const [lista, setLista] = useState([]);
@@ -162,7 +163,22 @@ export default function KarakteristikeMerljivePanel({ C, addToast, navSignal }) 
       {idDeoFilter && pfmeaLink?.dokumenti?.length > 0 && (
         <div data-testid="dim-pfmea-link" style={{ marginBottom: 8, fontSize: 9, color: C.sivi }}>
           PFMEA/CP: {pfmeaLink.dokumenti.map((d) => d.naziv || d.broj_pfmea || d.id).join(" · ")}
-          {" "}(Modul PFMEA/CP za detalje)
+          {onOtvoriModul && (
+            <>
+              {" · "}
+              <button
+                type="button"
+                data-testid="dim-pfmea-otvori"
+                onClick={() => {
+                  sacuvajPfmeaNav(idDeoFilter);
+                  onOtvoriModul("atributivne");
+                }}
+                style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontWeight: 700, fontSize: 9 }}
+              >
+                Otvori PFMEA/CP →
+              </button>
+            </>
+          )}
         </div>
       )}
       <SifrarnikFilterBar

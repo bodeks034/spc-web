@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
+import { formatErpUvozVreme } from "../../lib/erpUvozLog.js";
 import { proveriSemu, proveriGoLiveRpc, MIGRACIJE_LISTA } from "../../lib/schemaCheck.js";
 import {
   fetchKompletnostStatistika,
@@ -15,19 +16,21 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
   const osvezi = useCallback(async () => {
     setLoading(true);
     try {
-      const [stavke, rpc, komplet, bezGu, deloviRes] = await Promise.all([
+      const [stavke, rpc, komplet, bezGu, deloviRes, erpLog] = await Promise.all([
         proveriSemu(supabase),
         proveriGoLiveRpc(supabase),
         fetchKompletnostStatistika(),
         fetchDeloviBezGlavnogUnosa(),
         supabase.from("delovi").select("id_deo").limit(2000),
+        supabase.from("erp_uvoz_log").select("created_at,uspeh,izvor").order("created_at", { ascending: false }).limit(1),
       ]);
 
       const demoBroj = (deloviRes.data || []).filter((d) => jeDemoIdDeo(d.id_deo)).length;
       const goLiveMigracije = MIGRACIJE_LISTA.filter((m) =>
-        /^(77|78|79)_/.test(m.fajl || ""),
+        /^(77|78|79|80|81|82)_/.test(m.fajl || ""),
       );
       const goLiveOk = goLiveMigracije.every((m) => stavke.find((s) => s.id === m.id)?.ok);
+      const auditOk = !!stavke.find((s) => s.id === "sifrarnik_audit")?.ok;
 
       setPodaci({
         schemaOk: stavke.every((s) => s.ok),
@@ -35,9 +38,11 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
         schemaUkupno: stavke.length,
         rpc,
         goLiveMigracijeOk: goLiveOk,
+        auditOk,
         komplet,
         bezGu,
         demoBroj,
+        erpPoslednji: erpLog.data?.[0] || null,
       });
     } catch (e) {
       addToast?.(e.message || "Go-live provera nije uspela", "greska");
@@ -52,6 +57,7 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
   const sveOk = podaci
     && podaci.schemaOk
     && podaci.goLiveMigracijeOk
+    && podaci.auditOk
     && Object.values(podaci.rpc).every((r) => r?.ok)
     && podaci.komplet.procenat >= 80
     && podaci.bezGu.broj === 0
@@ -117,9 +123,16 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
           <Stavka
             C={C}
             ok={podaci.goLiveMigracijeOk}
-            label="Go-live SQL (77–79)"
+            label="Go-live SQL (77–82)"
             akcijaLabel={!podaci.goLiveMigracijeOk ? "Otvori šemu" : undefined}
             onAkcija={!podaci.goLiveMigracijeOk ? otvoriSemu : undefined}
+          />
+          <Stavka
+            C={C}
+            ok={podaci.auditOk}
+            label="Audit log šifrarnika (80–81)"
+            akcijaLabel={!podaci.auditOk ? "Otvori šemu" : undefined}
+            onAkcija={!podaci.auditOk ? otvoriSemu : undefined}
           />
           <Stavka
             C={C}
@@ -150,6 +163,32 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
             onAkcija={podaci.komplet.procenat < 80
               ? () => onOtvoriSifrarnik?.("odrzavanje")
               : undefined}
+          />
+          <Stavka
+            C={C}
+            ok={podaci.komplet.delimicno === 0}
+            label={`Delimični delovi: ${podaci.komplet.delimicno}`}
+            akcijaLabel={podaci.komplet.delimicno > 0 ? "Otvori delovi" : undefined}
+            onAkcija={podaci.komplet.delimicno > 0
+              ? () => onOtvoriSifrarnik?.("delovi", { samoDelimicni: true })
+              : undefined}
+          />
+          <Stavka
+            C={C}
+            ok={!!podaci.erpPoslednji?.uspeh}
+            label={podaci.erpPoslednji
+              ? `Poslednji ERP uvoz: ${formatErpUvozVreme(podaci.erpPoslednji.created_at)} · ${podaci.erpPoslednji.izvor || "—"}`
+              : "ERP uvoz: nema zapisa"}
+            akcijaLabel={!podaci.erpPoslednji ? "Otvori ERP" : undefined}
+            onAkcija={!podaci.erpPoslednji
+              ? () => onOtvoriSifrarnik?.("erp")
+              : undefined}
+          />
+          <Stavka
+            C={C}
+            ok={true}
+            label="Backup: Task SPC-Postgres-Backup (02:00) — npm run backup:db"
+            hint="Proveri ručno jednom pre go-live"
           />
           <Stavka
             C={C}

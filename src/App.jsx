@@ -425,6 +425,7 @@ export default function App() {
             korisnik={korisnik}
             onOdjava={odjava}
             onNazad={() => setModul(null)}
+            onOtvoriModul={setModul}
             C={C}
             onToggleTema={() => setC((p) => (p.naziv === "tamna" ? TEME.svetla : TEME.tamna))}
             temaTamna={C.naziv === "tamna"}

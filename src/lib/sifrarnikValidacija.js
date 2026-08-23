@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient.js";
 import {
   fetchAktivniDeloviSaStatusom,
   fetchDuplikatiKarakteristike,
+  fetchBarkodProfiliSet,
   jeSpremanZaBatchObjavu,
 } from "./sifrarnikOdrzavanje.js";
 
@@ -12,10 +13,46 @@ function csvEscape(val) {
   return s;
 }
 
+async function fetchRnZastareli() {
+  const danas = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("radni_nalozi")
+    .select("id_deo,broj_rn,datum_do,aktivan")
+    .eq("aktivan", true)
+    .lt("datum_do", danas)
+    .limit(100);
+  if (error && !/does not exist/i.test(error.message)) throw error;
+  return data || [];
+}
+
+async function fetchMerilaKalibracijaIstek() {
+  const danas = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("merila")
+    .select("id,naziv,kalibracije(sledeca_kal)")
+    .limit(200);
+  if (error && !/does not exist/i.test(error.message)) throw error;
+  const istekla = [];
+  for (const m of data || []) {
+    const kal = [...(m.kalibracije || [])].sort(
+      (a, b) => new Date(b.sledeca_kal || 0) - new Date(a.sledeca_kal || 0),
+    )[0];
+    if (kal?.sledeca_kal && kal.sledeca_kal < danas) {
+      istekla.push({ naziv: m.naziv, sledeca_kal: kal.sledeca_kal });
+    }
+  }
+  return istekla;
+}
+
 export async function generisiValidacioniIzvestaj() {
   const stavke = [];
-  const { stavke: deloviStavke } = await fetchAktivniDeloviSaStatusom();
-  const dups = await fetchDuplikatiKarakteristike({ limit: 100 });
+  const [{ stavke: deloviStavke }, dups, bk, rnZastareli, kalIstek] = await Promise.all([
+    fetchAktivniDeloviSaStatusom(),
+    fetchDuplikatiKarakteristike({ limit: 100 }),
+    fetchBarkodProfiliSet(),
+    fetchRnZastareli(),
+    fetchMerilaKalibracijaIstek(),
+  ]);
 
   for (const { deo, status, opts, nedostaje } of deloviStavke) {
     if (status === "kompletan") continue;
@@ -31,6 +68,10 @@ export async function generisiValidacioniIzvestaj() {
     if (jeSpremanZaBatchObjavu(deo, opts) && status !== "kompletan") {
       stavke.push({ tip: "spreman_za_objavu", id_deo: deo.id_deo, status, problem: "Spreman za batch objavu" });
     }
+    const id = String(deo.id_deo || "").trim().toUpperCase();
+    if ((opts.guBroj > 0 || status === "kompletan") && !bk.has(id)) {
+      stavke.push({ tip: "nema_barkod", id_deo: deo.id_deo, status, problem: "Nema barkod profila" });
+    }
   }
 
   for (const d of dups.slice(0, 50)) {
@@ -39,6 +80,24 @@ export async function generisiValidacioniIzvestaj() {
       id_deo: d.idDeo,
       status: "",
       problem: `Dupli ${d.pogon}/${d.pozicija} (${d.broj}×)`,
+    });
+  }
+
+  for (const rn of rnZastareli) {
+    stavke.push({
+      tip: "rn_zastareo",
+      id_deo: rn.id_deo || "",
+      status: "aktivan",
+      problem: `RN ${rn.broj_rn || "?"} istekao ${rn.datum_do || ""}`,
+    });
+  }
+
+  for (const m of kalIstek) {
+    stavke.push({
+      tip: "kalibracija_istekla",
+      id_deo: "",
+      status: "",
+      problem: `Merilo ${m.naziv} — kalibracija ${m.sledeca_kal}`,
     });
   }
 

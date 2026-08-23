@@ -1,4 +1,4 @@
-/** Server-side sken delova po filteru „nedostaje“ — puni stranice bez učitavanja cele baze u memoriju. */
+/** Server-side filter delova — RPC (82) ili JS fallback sken. */
 import { supabase } from "./supabaseClient.js";
 import { fetchGlavniUnosBrojeviPoDeo } from "./glavniUnosApi.js";
 import {
@@ -11,6 +11,28 @@ import {
 
 const SKEN_BATCH = 200;
 
+async function fetchDeloviPoRpcFilteru(opts) {
+  const { data, error } = await supabase.rpc("sifrarnik_filter_delovi", {
+    p_nedostaje: opts.nedostajeFilter || null,
+    p_samo_delimicni: !!opts.samoDelimicni,
+    p_samo_demo: !!opts.samoDemo,
+    p_tip_kontrole: opts.tipKontrole || null,
+    p_limit: opts.limit,
+    p_offset: opts.offset,
+  });
+  if (error) {
+    if (/function.*does not exist|could not find/i.test(error.message)) return null;
+    throw error;
+  }
+  const delovi = (data || []).map(({ status_sifrarnik, ...d }) => d);
+  return {
+    delovi,
+    hasMore: delovi.length >= opts.limit,
+    serverFiltered: true,
+    viaRpc: true,
+  };
+}
+
 export async function fetchDeloviPoServerFilteru({
   nedostajeFilter = "",
   samoDemo = false,
@@ -22,6 +44,16 @@ export async function fetchDeloviPoServerFilteru({
   const key = String(nedostajeFilter || "").trim();
   const trebaFilter = key || samoDemo || samoDelimicni;
   if (!trebaFilter) return null;
+
+  const rpcRes = await fetchDeloviPoRpcFilteru({
+    nedostajeFilter: key,
+    samoDemo,
+    samoDelimicni,
+    tipKontrole,
+    limit,
+    offset,
+  });
+  if (rpcRes) return rpcRes;
 
   const [gu, gr, bk] = await Promise.all([
     fetchGlavniUnosBrojeviPoDeo(),
@@ -52,14 +84,14 @@ export async function fetchDeloviPoServerFilteru({
 
     for (const d of batch) {
       const id = String(d.id_deo || "").trim().toUpperCase();
-      const opts = {
+      const rowOpts = {
         guBroj: gu[id] || 0,
         greskeBroj: gr[id] || 0,
         imaBarkod: bk.has(id),
       };
       if (samoDemo && !jeDemoIdDeo(d.id_deo)) continue;
-      if (samoDelimicni && statusDeoUSifrarniku(d, opts) === "kompletan") continue;
-      if (!deoOdgovaraNedostajeFilter(d, opts, key)) continue;
+      if (samoDelimicni && statusDeoUSifrarniku(d, rowOpts) === "kompletan") continue;
+      if (!deoOdgovaraNedostajeFilter(d, rowOpts, key)) continue;
 
       if (preskoceno < offset) {
         preskoceno += 1;
@@ -77,5 +109,6 @@ export async function fetchDeloviPoServerFilteru({
     delovi: rezultat,
     hasMore: hasMoreDb || rezultat.length >= limit,
     serverFiltered: true,
+    viaRpc: false,
   };
 }

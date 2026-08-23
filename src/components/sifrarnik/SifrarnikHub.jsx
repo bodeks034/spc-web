@@ -62,6 +62,8 @@ import {
   zavrsiSifrarnikOnboarding,
 } from "../../lib/sifrarnikOnboarding.js";
 import { SIFRARNIK_NAV_EVENT, ucitajPendingSifrarnikNav } from "../../lib/sifrarnikNavEvent.js";
+import { setSifrarnikAuditKorisnik } from "../../lib/sifrarnikAuditKorisnik.js";
+import { pokreniSifrarnikStatusPolling } from "../../lib/sifrarnikStatusPolling.js";
 
 const ONBOARDING_TABOVI = new Set(["glavni_unos", "pogon_mapa", "odrzavanje", "liste"]);
 
@@ -213,7 +215,7 @@ const SVI_TABOVI = GRUPE.flatMap((g) => g.tabovi);
 
  */
 
-export default function SifrarnikHub({ C, addToast, korisnik }) {
+export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
   const { mob, linijaUredjaj } = useEkran();
 
@@ -247,6 +249,13 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
   }, []);
 
 
+
+  useEffect(() => {
+    setSifrarnikAuditKorisnik(korisnik);
+    return () => setSifrarnikAuditKorisnik(null);
+  }, [korisnik]);
+
+  useEffect(() => pokreniSifrarnikStatusPolling(), []);
 
   useEffect(() => {
     const pending = ucitajPendingSifrarnikNav();
@@ -579,7 +588,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
         )}
 
         {podtab === "odrzavanje" && (
-          <SifrarnikOdrzavanjePanel C={C} addToast={addToast} onNavigate={idiNaTab} />
+          <SifrarnikOdrzavanjePanel C={C} addToast={addToast} onNavigate={idiNaTab} onOtvoriModul={onOtvoriModul} />
         )}
 
         {podtab === "rn" && <RadniNaloziPanel C={C} addToast={addToast} sviDelovi={deloviZaRn} />}
@@ -621,7 +630,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
         {podtab === "pogon_atr" && <PogonAtributivniPanel C={C} addToast={addToast} />}
 
         {podtab === "karakteristike" && (
-          <KarakteristikeMerljivePanel C={C} addToast={addToast} navSignal={navCtx} />
+          <KarakteristikeMerljivePanel C={C} addToast={addToast} navSignal={navCtx} onOtvoriModul={onOtvoriModul} />
         )}
 
         {podtab === "spc_alarm" && <SpcAlarmPragoviPanel C={C} addToast={addToast} />}

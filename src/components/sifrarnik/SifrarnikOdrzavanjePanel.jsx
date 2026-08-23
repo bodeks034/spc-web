@@ -12,6 +12,7 @@ import {
 import { fetchDeloviSpremniZaObjavu, objaviSpremneDelove } from "../../lib/sifrarnikBatchObjava.js";
 import { previewBatchPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
+import { fetchPredlogDuplikata } from "../../lib/sifrarnikDuplikatiPredlog.js";
 import SifrarnikAlatiPanel from "./SifrarnikAlatiPanel.jsx";
 
 async function countTable(table, filter = {}) {
@@ -57,6 +58,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [spremniBroj, setSpremniBroj] = useState(0);
   const [batchProgress, setBatchProgress] = useState(null);
   const [batchRezultati, setBatchRezultati] = useState(null);
+  const [duplikatPredlozi, setDuplikatPredlozi] = useState([]);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -72,6 +74,8 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       ]);
       setPodaci({ delovi, rnAktivni, merila, karakteristike });
       setDuplikati(dups.slice(0, 15));
+      const predlozi = await Promise.all(dups.slice(0, 5).map((d) => fetchPredlogDuplikata(d).catch(() => null)));
+      setDuplikatPredlozi(predlozi.filter(Boolean));
       setDelimicni(delim);
       setKomplet(kompletStat);
       setSpremniBroj((await fetchDeloviSpremniZaObjavu()).length);
@@ -286,6 +290,16 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
               </li>
             ))}
           </ul>
+          {duplikatPredlozi.length > 0 && (
+            <div data-testid="duplikat-predlozi" style={{ marginTop: 8, fontSize: 9, color: C.sivi, lineHeight: 1.5 }}>
+              <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 4 }}>Predlog rešenja</div>
+              {duplikatPredlozi.map((p) => (
+                <div key={`${p.idDeo}-${p.pogon}-${p.pozicija}`} style={{ marginBottom: 4 }}>
+                  <strong style={{ color: C.plava }}>{p.idDeo}</strong> {p.pogon}/{p.pozicija}: zadrži ID {p.predlog.zadrziId}, obriši {p.predlog.obrisiIds.join(", ")}
+                </div>
+              ))}
+            </div>
+          )}
           <button type="button" onClick={() => onNavigate?.("karakteristike")}
             style={{ ...btnStyle(C, C.hover, { marginTop: 8, fontSize: 9 }) }}>
             Otvori dimenzije →

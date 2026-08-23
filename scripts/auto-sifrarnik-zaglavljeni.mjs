@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Podsetnik za delimične delove u šifrarniku duže od N dana.
+ * Podsetnik za delimične delove u šifrarniku duže od N dana bez aktivnosti.
  * npm run auto:sifrarnik-zaglavljeni
  * npm run auto:sifrarnik-zaglavljeni -- --dry-run
  */
@@ -10,6 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 import { loadEnvZaSkripte } from "../src/lib/loadEnvFile.js";
 import { kreirajSkriptaLog } from "./lib/skriptaLog.mjs";
 import { posaljiEmailIzEnv } from "./lib/posaljiEmailEnv.mjs";
+import { fetchDelimicniDeloviSvi } from "../src/lib/sifrarnikOdrzavanje.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skriptaLog = kreirajSkriptaLog(ROOT, "auto-sifrarnik-zaglavljeni.log", { jobId: "auto-sifrarnik-zaglavljeni" });
@@ -26,15 +27,18 @@ async function main() {
     const supabase = createClient(url, key);
     const cutoff = new Date(Date.now() - dana * 86400000).toISOString();
 
-    const { data: delimicni } = await supabase
-      .from("delovi")
-      .select("id_deo,naziv_dela,slika_naziv")
-      .eq("aktivan", true)
-      .limit(5000);
+    const delimicni = await fetchDelimicniDeloviSvi();
+    const ids = delimicni.map(({ deo }) => String(deo?.id_deo || "").trim().toUpperCase()).filter(Boolean);
+
+    if (!ids.length) {
+      await skriptaLog.info("Nema delimičnih delova");
+      return;
+    }
 
     const { data: audit } = await supabase
       .from("sifrarnik_audit")
       .select("id_deo,created_at")
+      .in("id_deo", ids.slice(0, 500))
       .order("created_at", { ascending: false })
       .limit(5000);
 
@@ -44,19 +48,20 @@ async function main() {
       if (id && !poslednji.has(id)) poslednji.set(id, r.created_at);
     }
 
-    const zaglavljeni = (delimicni || []).filter((d) => {
-      const id = String(d.id_deo || "").toUpperCase();
+    const zaglavljeni = delimicni.filter(({ deo }) => {
+      const id = String(deo?.id_deo || "").toUpperCase();
       const ts = poslednji.get(id);
       return !ts || ts < cutoff;
     }).slice(0, 30);
 
-    await skriptaLog.info(`Pronađeno ${zaglavljeni.length} delova bez aktivnosti ${dana}+ dana`);
+    await skriptaLog.info(`Pronađeno ${zaglavljeni.length} delimičnih delova bez aktivnosti ${dana}+ dana`);
 
     if (!zaglavljeni.length) return;
 
     const body = [
       `Delimični delovi bez izmena ${dana}+ dana (${zaglavljeni.length}):`,
-      ...zaglavljeni.map((d) => `• ${d.id_deo} — ${d.naziv_dela || ""}`),
+      ...zaglavljeni.map(({ deo, status, nedostaje }) =>
+        `• ${deo.id_deo} — ${deo.naziv_dela || ""} [${status}] ${(nedostaje || []).join(", ")}`),
       "",
       "Modul 0 → Održavanje → Nastavi checklist",
     ].join("\n");

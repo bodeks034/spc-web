@@ -57,7 +57,7 @@ import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
 import ZajednickiDashboard from "../ZajednickiDashboard.jsx";
 import InteligencijaDeoPanel from "../InteligencijaDeoPanel.jsx";
 import { procitajNavigaciju8d, predloziDodeljenogInzenjera, prefill8dIzEskalacije, normalizujPrefill8d } from "../../lib/eskalacijeHelper.js";
-import { procitajSpoljnuNavigacijuTab, peekPendingWorkflowTab } from "../../lib/workflowAkcije.js";
+import { procitajSpoljnuNavigacijuTab, peekPendingWorkflowTab, procitajPfmeaNavIdDeo } from "../../lib/workflowAkcije.js";
 import { exportOsmdIzvestajPdf, osmdPayloadIzForme, statusNaziv8d, stampajOsmdIzvestaj } from "../../lib/osmdIzvestajPdf.js";
 import OsmdEditor from "../OsmdEditor.jsx";
 import PfmeaCpModul from "../PfmeaCpModul.jsx";
@@ -255,6 +255,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const [ncrLinijaOtvoren, setNcrLinijaOtvoren] = useState(false);
   const [ncrLinijaPrefill, setNcrLinijaPrefill] = useState(null);
   const [pfmeaCpPrefillIz8d, setPfmeaCpPrefillIz8d] = useState(null);
+  const [pfmeaIdDeoNav, setPfmeaIdDeoNav] = useState("");
   const primeniNavigaciju8d = () => {
     const { tab: tab8d, prefill } = procitajNavigaciju8d("atributivne");
     if (tab8d && mozeTabAtributivne(tab8d, korisnik.uloga, rezimRada)) setTab(tab8d);
@@ -271,6 +272,10 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       setTab(wfTab);
       snimiAnalitikaTab("atributivne", wfTab);
       if (wfTab === "ncr" && prefillNcr) setNcrPrefill(prefillNcr);
+      if (wfTab === "pfmea-cp") {
+        const navId = procitajPfmeaNavIdDeo();
+        if (navId) setPfmeaIdDeoNav(navId);
+      }
     }
   };
   useEffect(() => { primeniNavigaciju8d(); primeniSpoljnuNavigaciju(); }, [nav8dTick]); // eslint-disable-line
@@ -2393,7 +2398,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           C={C}
           addToast={addToast}
           korisnik={korisnik}
-          idDeoFilter={filterDeo || idDeo || ""}
+          idDeoFilter={pfmeaIdDeoNav || filterDeo || idDeo || ""}
           prefillIz8d={pfmeaCpPrefillIz8d}
           onPrefillIz8dUsed={() => setPfmeaCpPrefillIz8d(null)}
           onOtvori8d={async (payload) => {

@@ -201,6 +201,25 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) 
     [bulkIds],
   );
 
+  const izveziBulkCsv = () => {
+    if (!bulkLista.length) return;
+    const header = "id_deo,format,sadrzaj";
+    const redovi = bulkLista.map((id) => {
+      const s = buildSadrzajBarkoda({ idDeo: id, format, radniNalog, smena: smena ? Number(smena) : 1 });
+      const esc = (v) => `"${String(v).replace(/"/g, '""')}"`;
+      return [esc(id), esc(format), esc(s)].join(",");
+    });
+    const csv = `\uFEFF${[header, ...redovi].join("\n")}`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `barkod_bulk_${bulkLista.length}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addToast?.(`✓ CSV: ${bulkLista.length} redova`, "uspeh");
+  };
+
   useEffect(() => {
     if (bulkLista.length && !idDeo) {
       setIdDeo(bulkLista[0]);
@@ -255,6 +274,22 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) 
             }}
           >
             {bulkStampa ? "Štampam…" : `Štampaj sve (${bulkLista.length})`}
+          </button>
+          <button
+            type="button"
+            data-testid="barkod-bulk-csv"
+            onClick={izveziBulkCsv}
+            style={{
+              background: C.hover,
+              border: `1px solid ${C.border}`,
+              borderRadius: 6,
+              color: C.tekst,
+              fontSize: 10,
+              padding: "6px 12px",
+              cursor: "pointer",
+            }}
+          >
+            CSV lista
           </button>
         </div>
       )}
