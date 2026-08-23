@@ -1,6 +1,7 @@
 /** Batch propagacija delova spremnih za objavu (GU + greške + crtež). */
-import { propagirajMerljiviDeo } from "./glavniUnosApi.js";
+import { propagirajMerljiviDeo, osveziSifrarnikStatusMv } from "./glavniUnosApi.js";
 import { logSifrarnikAudit } from "./sifrarnikAudit.js";
+import { posaljiBatchObjavaDigest } from "./sifrarnikBatchDigest.js";
 import {
   jeSpremanZaBatchObjavu,
   fetchAktivniDeloviSaStatusom,
@@ -36,5 +37,7 @@ export async function objaviSpremneDelove({ onProgress } = {}) {
   }
 
   const uspeh = rezultati.filter((r) => r.ok).length;
-  return { ids, rezultati, uspeh, neuspelo: rezultati.length - uspeh };
+  await osveziSifrarnikStatusMv();
+  const digest = await posaljiBatchObjavaDigest(rezultati).catch(() => ({ preskoceno: true }));
+  return { ids, rezultati, uspeh, neuspelo: rezultati.length - uspeh, digest };
 }

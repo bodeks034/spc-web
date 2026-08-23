@@ -26,6 +26,8 @@
     "auto:podsetnici:dry": "node scripts/auto-podsetnici.mjs --dry-run",
     "auto:sifrarnik-zaglavljeni": "node scripts/auto-sifrarnik-zaglavljeni.mjs",
     "auto:sifrarnik-zaglavljeni:dry": "node scripts/auto-sifrarnik-zaglavljeni.mjs --dry-run",
+    "auto:sifrarnik-audit-retention": "node scripts/auto-sifrarnik-audit-retention.mjs",
+    "auto:sifrarnik-audit-retention:dry": "node scripts/auto-sifrarnik-audit-retention.mjs --dry-run",
     "auto:health": "node scripts/auto-health-check.mjs",
     "auto:health:email": "node scripts/auto-health-check.mjs --email",
     "logs:auto": "node scripts/pregled-automatizacija-logova.mjs",

@@ -30,6 +30,8 @@ import { preuzmiPfmeaCpExcel } from "../lib/pfmeaCpExcelExport.js";
 import { exportPfmeaCpPdf, stampajPfmeaCp } from "../lib/pfmeaCpPdf.js";
 import { OsmdScrollOkvir } from "./OsmdEditor.jsx";
 import { jeKvalitetIliVise } from "../lib/uloge.js";
+import { sacuvajOtvoriSifrarnik } from "../lib/appModulNav.js";
+import { normalizujIdDeo } from "../lib/idDeoUtil.js";
 import PfmeaCpUnosForma from "./pfmea/PfmeaCpUnosForma.jsx";
 import RpnSummaryPregled from "./pfmea/RpnSummaryPregled.jsx";
 import PfmeaSkaleOblacici from "./pfmea/PfmeaSkaleOblacic.jsx";
@@ -371,6 +373,7 @@ export default function PfmeaCpModul({
 
   const pfmeaRedovi = doc?.pfmea?.redovi || [];
   const cpRedovi = doc?.controlPlan?.redovi || [];
+  const idDeoSifrarnik = normalizujIdDeo(doc?.idDeo || idDeoFilter || formaRed?.br_dela || "");
   const rpnRedovi = useMemo(
     () => izracunajRpnSummary(pfmeaRedovi),
     [pfmeaRedovi],
@@ -921,6 +924,26 @@ export default function PfmeaCpModul({
             >
               {imaVezu8d ? "→ Otvori 8D" : "→ 8D REF"}
             </button>
+          )}
+          {idDeoSifrarnik && (
+            <>
+              <button
+                type="button"
+                data-testid="pfmea-otvori-dimenzije"
+                onClick={() => sacuvajOtvoriSifrarnik("karakteristike", { idDeo: idDeoSifrarnik })}
+                style={BTN(C.plava, { outline: true })}
+              >
+                → Dimenzije
+              </button>
+              <button
+                type="button"
+                data-testid="pfmea-otvori-gu"
+                onClick={() => sacuvajOtvoriSifrarnik("glavni_unos", { idDeo: idDeoSifrarnik })}
+                style={BTN(C.plava, { outline: true })}
+              >
+                → Glavni unos
+              </button>
+            </>
           )}
           {imaVezu8d && mozeEdit && (
             <button

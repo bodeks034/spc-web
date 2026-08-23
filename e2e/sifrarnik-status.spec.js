@@ -243,7 +243,22 @@ test.describe("Modul 0 — alati panel", () => {
     await expect(page.getByTestId("sifrarnik-alati-panel")).toBeVisible({ timeout: 20000 });
     await expect(page.getByTestId("audit-filter-id")).toBeVisible();
     await expect(page.getByTestId("validacija-csv-btn")).toBeVisible();
+    await expect(page.getByTestId("validacija-prikazi-btn")).toBeVisible();
+    await expect(page.getByTestId("json-export-btn")).toBeVisible();
     await expect(page.getByTestId("propagacija-preview-btn")).toBeVisible();
+  });
+});
+
+test.describe("Modul 0 — validacija tabela", () => {
+  test.describe.configure({ timeout: 60000 });
+
+  test.skip(!imaSifrarnikE2E(), "Nema E2E kvalitet kredencijala");
+
+  test("prikaz validacione tabele", async ({ page }) => {
+    await prijaviSe(page, "kvalitet");
+    await otvoriSifrarnikTab(page, "odrzavanje");
+    await page.getByTestId("validacija-prikazi-btn").click();
+    await expect(page.getByTestId("validacija-tabela")).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -261,5 +276,9 @@ test.describe("Admin — go-live status", () => {
     await expect(panel).toBeVisible({ timeout: 20000 });
     await expect(panel.getByText(/GO-LIVE STATUS/i)).toBeVisible();
     await expect(panel.getByText(/Šema migracije/i)).toBeVisible();
+    const erpHist = page.getByTestId("admin-erp-istorija");
+    if (await erpHist.isVisible().catch(() => false)) {
+      await expect(erpHist.getByText(/Poslednjih/i)).toBeVisible();
+    }
   });
 });

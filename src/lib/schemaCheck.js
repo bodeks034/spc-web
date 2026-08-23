@@ -55,6 +55,9 @@ export const MIGRACIJE_LISTA = [
   { id: "sifrarnik_audit", naziv: "Audit log šifrarnika", fajl: "80_sifrarnik_audit.sql" },
   { id: "sifrarnik_audit_rls", naziv: "Audit log RLS", fajl: "81_sifrarnik_audit_rls.sql" },
   { id: "sifrarnik_filter_rpc", naziv: "Filter delova RPC", fajl: "82_sifrarnik_filter_rpc.sql" },
+  { id: "sifrarnik_audit_roles", naziv: "Audit log RLS uloge", fajl: "83_sifrarnik_audit_rls_roles.sql" },
+  { id: "sifrarnik_deo_status_mv", naziv: "MV status delova", fajl: "84_sifrarnik_deo_status_mv.sql" },
+  { id: "sifrarnik_audit_retention", naziv: "Audit arhiva", fajl: "85_sifrarnik_audit_retention.sql" },
 ];
 
 const PROBES = [
@@ -126,6 +129,9 @@ const PROBES = [
   { id: "foto_atr", table: "kontrolni_log", select: "id,foto,client_id" },
   { id: "client_id_mer", table: "merenja_varijabilna", select: "id,client_id" },
   { id: "radnici_pin", table: "radnici", select: "id,pin_hash" },
+  { id: "sifrarnik_audit_tbl", table: "sifrarnik_audit", select: "id,akcija,created_at" },
+  { id: "sifrarnik_audit_arhiva", table: "sifrarnik_audit_arhiva", select: "id,akcija" },
+  { id: "mv_delovi_status", table: "mv_delovi_sifrarnik_status", select: "id_deo,status_sifrarnik" },
 ];
 
 function greskaNedostaje(error) {
@@ -233,7 +239,24 @@ export async function proveriGoLiveRpc(supabase) {
     p_id_deo_list: ["__PROBE__"],
     p_potvrdi: "__SCHEMA_PROBE__",
   });
-  return { ocisti_operativu_rpc: ocisti, obrisi_deo_rpc: obrisi, obrisi_demo_delove_rpc: obrisiDemo };
+  const filterDelovi = await proveriRpcPostoji(supabase, "sifrarnik_filter_delovi", {
+    p_nedostaje: null,
+    p_samo_delimicni: false,
+    p_samo_demo: false,
+    p_tip_kontrole: null,
+    p_limit: 1,
+    p_offset: 0,
+  });
+  const refreshMv = await proveriRpcPostoji(supabase, "refresh_sifrarnik_deo_status_mv", {});
+  const auditArhiva = await proveriRpcPostoji(supabase, "sifrarnik_audit_arhiviraj", { p_meseci: 12 });
+  return {
+    ocisti_operativu_rpc: ocisti,
+    obrisi_deo_rpc: obrisi,
+    obrisi_demo_delove_rpc: obrisiDemo,
+    sifrarnik_filter_rpc: filterDelovi,
+    sifrarnik_deo_status_mv: refreshMv,
+    sifrarnik_audit_retention: auditArhiva,
+  };
 }
 
 export async function proveriSemu(supabase) {
@@ -247,6 +270,9 @@ export async function proveriSemu(supabase) {
   byId.ocisti_operativu_rpc = goLiveRpc.ocisti_operativu_rpc;
   byId.obrisi_deo_rpc = goLiveRpc.obrisi_deo_rpc;
   byId.obrisi_demo_delove_rpc = goLiveRpc.obrisi_demo_delove_rpc;
+  byId.sifrarnik_filter_rpc_fn = goLiveRpc.sifrarnik_filter_rpc;
+  byId.sifrarnik_deo_status_mv_fn = goLiveRpc.sifrarnik_deo_status_mv;
+  byId.sifrarnik_audit_retention_fn = goLiveRpc.sifrarnik_audit_retention;
 
   const mapUser = {
     kpi_unos: byId.kpi_unos?.ok,
@@ -302,6 +328,13 @@ export async function proveriSemu(supabase) {
     erp_glavni_sheetovi: byId.erp_glavni_sheetovi?.ok,
     ocisti_operativu_rpc: byId.ocisti_operativu_rpc?.ok,
     obrisi_deo_rpc: byId.obrisi_deo_rpc?.ok,
+    obrisi_demo_delove_rpc: byId.obrisi_demo_delove_rpc?.ok,
+    sifrarnik_audit: byId.sifrarnik_audit_tbl?.ok,
+    sifrarnik_audit_rls: byId.sifrarnik_audit_tbl?.ok,
+    sifrarnik_filter_rpc: byId.sifrarnik_filter_rpc_fn?.ok,
+    sifrarnik_audit_roles: byId.sifrarnik_audit_tbl?.ok,
+    sifrarnik_deo_status_mv: byId.mv_delovi_status?.ok && byId.sifrarnik_deo_status_mv_fn?.ok,
+    sifrarnik_audit_retention: byId.sifrarnik_audit_arhiva?.ok && byId.sifrarnik_audit_retention_fn?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({

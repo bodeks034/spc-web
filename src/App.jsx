@@ -9,6 +9,7 @@ import { normalizujPrefill8d, sacuvajNavigacijuNcr } from "./lib/eskalacijeHelpe
 import { sacuvajSpoljnuNavigacijuTab } from "./lib/workflowAkcije.js";
 import { modulZaRouting } from "./lib/deoModul.js";
 import { sacuvajSifrarnikNav } from "./lib/sifrarnikNavEvent.js";
+import { APP_MODUL_NAV_EVENT } from "./lib/appModulNav.js";
 import {
   podrazumevaniRezim,
   mozePrebacivanjeRezima,
@@ -79,6 +80,18 @@ export default function App() {
     if (!korisnik) return;
     initSpcAlarmPragoviSync();
     ucitajSpcAlarmPragove(supabase).catch(() => {});
+  }, [korisnik]);
+
+  useEffect(() => {
+    if (!korisnik) return undefined;
+    const handler = (e) => {
+      const { modul: target, tab, ctx } = e.detail || {};
+      if (target !== "sifrarnik" || !mozeSifrarnik(korisnik.uloga)) return;
+      sacuvajSifrarnikNav(tab || "delovi", ctx || {});
+      setModul("sifrarnik");
+    };
+    window.addEventListener(APP_MODUL_NAV_EVENT, handler);
+    return () => window.removeEventListener(APP_MODUL_NAV_EVENT, handler);
   }, [korisnik]);
 
   useEffect(() => {

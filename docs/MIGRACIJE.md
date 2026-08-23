@@ -42,15 +42,21 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 77 | `77_ocisti_operativu_rpc.sql` | RPC Admin — čišćenje operative pre go-live |
 | 78 | `78_obrisi_deo_iz_sifrarnika_rpc.sql` | RPC — brisanje dela + šifrarnik redovi (DEMO bulk) |
 | 79 | `79_obrisi_demo_delove_rpc.sql` | RPC — bulk brisanje DEMO/TEST delova (jedan poziv) |
+| 80 | `80_sifrarnik_audit.sql` | Audit log šifrarnika |
+| 81 | `81_sifrarnik_audit_rls.sql` | RLS audit log |
+| 82 | `82_sifrarnik_filter_rpc.sql` | RPC filter delova (server-side) |
+| 83 | `83_sifrarnik_audit_rls_roles.sql` | Audit RLS — uže uloge |
+| 84 | `84_sifrarnik_deo_status_mv.sql` | Materialized view statusa delova |
+| 85 | `85_sifrarnik_audit_retention.sql` | Arhiva audit loga (12 meseci) |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 
 **Automatski (ako imaš DATABASE_URL):**
 
 ```bash
-npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–78
+npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–85
 npm run db:migrate -- --kvalitet   # samo 75 + 76
-npm run db:migrate:go-live  # samo 77–79 (RPC go-live)
+npm run db:migrate:go-live  # samo 77–85 (RPC + audit + filter + MV)
 npm run db:migrate -- --file 76_osmd_pfmea_cp_brojevi.sql
 npm run db:migrate:auto     # 61 — telemetrija automatizacije
 npm run db:verify           # provera kao Admin → Status šeme (uključujući RPC 77/78)

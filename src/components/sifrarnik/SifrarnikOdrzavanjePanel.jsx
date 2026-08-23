@@ -12,7 +12,9 @@ import {
 import { fetchDeloviSpremniZaObjavu, objaviSpremneDelove } from "../../lib/sifrarnikBatchObjava.js";
 import { previewBatchPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
-import { fetchPredlogDuplikata } from "../../lib/sifrarnikDuplikatiPredlog.js";
+import { fetchPredlogDuplikata, primeniPredlogDuplikata } from "../../lib/sifrarnikDuplikatiPredlog.js";
+import { formatBatchObjavaDigest } from "../../lib/sifrarnikBatchDigest.js";
+import { btnStyle } from "./sifrarnikPanelStyle.js";
 import SifrarnikAlatiPanel from "./SifrarnikAlatiPanel.jsx";
 
 async function countTable(table, filter = {}) {
@@ -59,6 +61,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   const [batchProgress, setBatchProgress] = useState(null);
   const [batchRezultati, setBatchRezultati] = useState(null);
   const [duplikatPredlozi, setDuplikatPredlozi] = useState([]);
+  const [primeniBusy, setPrimeniBusy] = useState(null);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
@@ -131,6 +134,9 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       setBatchRezultati(rez.rezultati);
       obavestiPromenuStatusaSifrarnika({ izvor: "odrzavanje", akcija: "batch_objavi" });
       addToast?.(`✓ Objavljeno ${rez.uspeh}/${rez.rezultati.length} delova`, rez.neuspelo ? "info" : "uspeh");
+      if (rez.rezultati?.length && !rez.digest?.preskoceno) {
+        addToast?.(formatBatchObjavaDigest(rez.rezultati).split("\n").slice(0, 3).join(" · "), "info");
+      }
       await ucitaj();
     } catch (e) {
       addToast?.(e.message, "greska");
@@ -141,6 +147,24 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
   };
 
   const neuspeli = (batchRezultati || []).filter((r) => !r.ok);
+
+  const primeniDuplikat = async (entry) => {
+    const key = `${entry.idDeo}-${entry.pogon}-${entry.pozicija}`;
+    if (!window.confirm(`Primeni predlog za ${entry.idDeo} ${entry.pogon}/${entry.pozicija}?\n\nZadrži ID ${entry.predlog.zadrziId}, obriši ${entry.predlog.obrisiIds.join(", ")}`)) {
+      return;
+    }
+    setPrimeniBusy(key);
+    try {
+      const res = await primeniPredlogDuplikata(entry);
+      addToast?.(`✓ Obrisano ${res.obrisano} duplikata`, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "odrzavanje", akcija: "obrisi_duplikat" });
+      await ucitaj();
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setPrimeniBusy(null);
+    }
+  };
 
   const stavke = [
     { tab: "rn", label: "Radni nalozi", hint: "Proveri zastarele aktivne RN" },
@@ -294,8 +318,19 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
             <div data-testid="duplikat-predlozi" style={{ marginTop: 8, fontSize: 9, color: C.sivi, lineHeight: 1.5 }}>
               <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 4 }}>Predlog rešenja</div>
               {duplikatPredlozi.map((p) => (
-                <div key={`${p.idDeo}-${p.pogon}-${p.pozicija}`} style={{ marginBottom: 4 }}>
-                  <strong style={{ color: C.plava }}>{p.idDeo}</strong> {p.pogon}/{p.pozicija}: zadrži ID {p.predlog.zadrziId}, obriši {p.predlog.obrisiIds.join(", ")}
+                <div key={`${p.idDeo}-${p.pogon}-${p.pozicija}`} style={{ marginBottom: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span>
+                    <strong style={{ color: C.plava }}>{p.idDeo}</strong> {p.pogon}/{p.pozicija}: zadrži ID {p.predlog.zadrziId}, obriši {p.predlog.obrisiIds.join(", ")}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid={`duplikat-primeni-${p.idDeo}`}
+                    disabled={primeniBusy === `${p.idDeo}-${p.pogon}-${p.pozicija}`}
+                    onClick={() => primeniDuplikat(p)}
+                    style={btnStyle(C, C.plava, { fontSize: 9, padding: "2px 8px" })}
+                  >
+                    {primeniBusy === `${p.idDeo}-${p.pogon}-${p.pozicija}` ? "…" : "Primeni"}
+                  </button>
                 </div>
               ))}
             </div>

@@ -226,6 +226,25 @@ export async function fetchGlavniUnosRedovi(sheetNaziv) {
   return data || [];
 }
 
+export async function fetchSheetMaxUpdatedAt(sheetNaziv) {
+  const { data, error } = await supabase
+    .from("glavni_unos_redovi")
+    .select("updated_at")
+    .eq("sheet_naziv", sheetNaziv)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data?.[0]?.updated_at || null;
+}
+
+export async function osveziSifrarnikStatusMv() {
+  try {
+    await supabase.rpc("refresh_sifrarnik_deo_status_mv");
+  } catch {
+    /* MV opciona dok migracija 84 nije primenjena */
+  }
+}
+
 export async function snimiGlavniUnosRed(row) {
   const { id, _postojeci, ...body } = row || {};
   const payload = { ...body, updated_at: new Date().toISOString() };
@@ -410,6 +429,8 @@ export async function propagirajGlavniUnos({ sheetNaziv = null, idDeo = null } =
     derived.push({ sheet: "delovi_atributivni_pogon (glavni unos)", status: "ok", count: atrCount });
   }
 
+  await osveziSifrarnikStatusMv();
+
   return {
     karakteristike: karCount,
     delovi: touchedDeos,
@@ -430,6 +451,7 @@ export async function propagirajMerljiviDeo(idDeo) {
   if (glavni.length) {
     const res = await propagirajGlavniUnos({ idDeo: norm });
     logSifrarnikAudit({ idDeo: norm, akcija: "propagiraj", izvor: "glavni_unos", detalji: { karakteristike: res.karakteristike } });
+    await osveziSifrarnikStatusMv();
     return res;
   }
 
@@ -441,6 +463,7 @@ export async function propagirajMerljiviDeo(idDeo) {
   if (kar.length) {
     const derived = await syncMerljiviSifrarnikZaDeo(supabase, norm);
     logSifrarnikAudit({ idDeo: norm, akcija: "propagiraj", izvor: "karakteristike", detalji: { izKarakteristika: true } });
+    await osveziSifrarnikStatusMv();
     return {
       karakteristike: kar.length,
       delovi: [norm],

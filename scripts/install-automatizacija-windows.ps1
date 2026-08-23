@@ -85,6 +85,9 @@ function Register-SpcTask {
     "weeklySun03" {
       New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "03:00"
     }
+    "monthlyFirst03" {
+      New-ScheduledTaskTrigger -Weekly -WeeksInterval 4 -DaysOfWeek Sunday -At "03:15"
+    }
     "atlogon" { New-ScheduledTaskTrigger -AtLogOn }
     default { New-ScheduledTaskTrigger -Daily -At "06:30" }
   }
@@ -138,6 +141,7 @@ $tasks = @(
   @{ Name = "SPC-Auto-Health"; Script = "scripts\auto-health-check.mjs"; Extra = "--email"; Schedule = "daily0630"; Desc = "Health check + email ako problem"; Type = "node" },
   @{ Name = "SPC-Nedeljni-Rollup"; Script = "scripts\nedeljni-rollup.mjs"; Extra = ""; Schedule = "weeklyFri15"; Desc = "Nedeljni email rollup"; Type = "node" },
   @{ Name = "SPC-Sifrarnik-Zaglavljeni"; Script = "scripts\auto-sifrarnik-zaglavljeni.mjs"; Extra = ""; Schedule = "weeklyFri15"; Desc = "Email digest zaglavljenih delova u šifrarniku"; Type = "node" },
+  @{ Name = "SPC-Sifrarnik-Audit-Retention"; Script = "scripts\auto-sifrarnik-audit-retention.mjs"; Extra = ""; Schedule = "monthlyFirst03"; Desc = "Arhiva audit loga šifrarnika starijeg od 12 meseci"; Type = "node" },
   @{ Name = "SPC-Postgres-Backup"; Script = "scripts\backup-postgres-windows.ps1"; Extra = ""; Schedule = "daily02"; Desc = "Nocni PostgreSQL backup (Docker)"; Type = "powershell" },
   @{ Name = "SPC-MomentDrop-Watcher"; Script = "scripts\watch-moment-drop.mjs"; Extra = "--watch"; Schedule = "atlogon"; Desc = "Moment-drop auto uvoz"; Type = "node" }
 )

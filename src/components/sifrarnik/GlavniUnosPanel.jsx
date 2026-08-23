@@ -4,6 +4,7 @@ import {
   fetchGlavniUnosSheetKonfiguracije,
   kreirajGlavniUnosSheet,
   fetchGlavniUnosRedovi,
+  fetchSheetMaxUpdatedAt,
   zameniSheetRedove,
   propagirajGlavniUnos,
   propagirajMerljiviDeo,
@@ -209,6 +210,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const [klonira, setKlonira] = useState(false);
   const [imaUndo, setImaUndo] = useState(() => !!ucitajGuUndoSnapshot());
   const [undoPreostalo, setUndoPreostalo] = useState(() => preostaloUndoMs(ucitajGuUndoSnapshot()));
+  const [sheetRemoteStamp, setSheetRemoteStamp] = useState(null);
   const fileRef = useRef(null);
   const INP = inpStyle(C);
 
@@ -262,8 +264,12 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const ucitajRedove = useCallback(async (sheet) => {
     setLoading(true);
     try {
-      const data = await fetchGlavniUnosRedovi(sheet);
+      const [data, remoteStamp] = await Promise.all([
+        fetchGlavniUnosRedovi(sheet),
+        fetchSheetMaxUpdatedAt(sheet).catch(() => null),
+      ]);
       setRedovi(data.map(formatRedZaFormu));
+      setSheetRemoteStamp(remoteStamp);
       setDirty(false);
       setFormaIdx(null);
       setGrupnaOtvorena(false);
@@ -274,6 +280,21 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       setLoading(false);
     }
   }, [addToast]);
+
+  const proveriConcurrentEdit = async () => {
+    if (!sheetRemoteStamp) return true;
+    try {
+      const trenutni = await fetchSheetMaxUpdatedAt(aktivniSheet);
+      if (trenutni && trenutni !== sheetRemoteStamp) {
+        return window.confirm(
+          "Neko drugi je možda izmenio ovaj sheet u međuvremenu.\n\nNastaviti sa snimanjem (prepisuješ tuđe izmene)?",
+        );
+      }
+    } catch {
+      /* provera opciona */
+    }
+    return true;
+  };
 
   useEffect(() => { ucitajSheetove(); }, [ucitajSheetove]);
   useEffect(() => { ucitajRedove(aktivniSheet); }, [aktivniSheet, ucitajRedove]);
@@ -340,6 +361,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
 
   const sacuvajSheet = async ({ propagirajPosle = true } = {}) => {
     if (propagirajPosle && !potvrdiPrePropagacije()) return;
+    if (!(await proveriConcurrentEdit())) return;
     setSnima(true);
     try {
       const payload = redovi.map((r, i) => normalizujRedZaSnimanje(
@@ -349,6 +371,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       ));
       const saved = await zameniSheetRedove(aktivniSheet, payload);
       setRedovi(saved.map(formatRedZaFormu));
+      setSheetRemoteStamp(await fetchSheetMaxUpdatedAt(aktivniSheet).catch(() => new Date().toISOString()));
       setDirty(false);
       if (propagirajPosle) {
         const res = await propagirajGlavniUnos();

@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../src/lib/glavniUnosApi.js", () => ({
   propagirajMerljiviDeo: vi.fn(),
+  osveziSifrarnikStatusMv: vi.fn(async () => {}),
+}));
+
+vi.mock("../src/lib/sifrarnikBatchDigest.js", () => ({
+  posaljiBatchObjavaDigest: vi.fn(async () => ({ preskoceno: true })),
 }));
 
 vi.mock("../src/lib/sifrarnikAudit.js", () => ({

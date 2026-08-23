@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchSifrarnikAudit, preuzmiAuditCsv } from "../../lib/sifrarnikAudit.js";
 import { uporediDelovi } from "../../lib/sifrarnikUporedi.js";
 import { generisiValidacioniIzvestaj, preuzmiValidacioniCsv } from "../../lib/sifrarnikValidacija.js";
+import { exportujDeoJson, preuzmiDeoJson } from "../../lib/sifrarnikExportJson.js";
 import { previewPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 
@@ -20,6 +21,9 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
   const [uporedi, setUporedi] = useState(null);
   const [uporediBusy, setUporediBusy] = useState(false);
   const [validBusy, setValidBusy] = useState(false);
+  const [validStavke, setValidStavke] = useState(null);
+  const [exportId, setExportId] = useState("");
+  const [exportBusy, setExportBusy] = useState(false);
   const [previewId, setPreviewId] = useState("");
   const [preview, setPreview] = useState(null);
   const INP = inpStyle(C);
@@ -61,6 +65,7 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
     setValidBusy(true);
     try {
       const stavke = await generisiValidacioniIzvestaj();
+      setValidStavke(stavke);
       if (!stavke.length) {
         addToast?.("Nema problema u izveštaju", "info");
         return;
@@ -71,6 +76,36 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
       addToast?.(e.message, "greska");
     } finally {
       setValidBusy(false);
+    }
+  };
+
+  const ucitajValidaciju = async () => {
+    setValidBusy(true);
+    try {
+      setValidStavke(await generisiValidacioniIzvestaj());
+    } catch (e) {
+      addToast?.(e.message, "greska");
+      setValidStavke([]);
+    } finally {
+      setValidBusy(false);
+    }
+  };
+
+  const izveziJson = async () => {
+    const id = exportId.trim();
+    if (!id) {
+      addToast?.("Unesi ID dela", "greska");
+      return;
+    }
+    setExportBusy(true);
+    try {
+      const payload = await exportujDeoJson(id);
+      preuzmiDeoJson(payload, payload.id_deo);
+      addToast?.(`✓ JSON: ${payload.id_deo}`, "uspeh");
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setExportBusy(false);
     }
   };
 
@@ -179,11 +214,71 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
       </section>
 
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
-        <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Validacioni izveštaj (CSV)</div>
-        <button type="button" data-testid="validacija-csv-btn" disabled={validBusy} onClick={izveziValidaciju}
-          style={btnStyle(C, C.hover, { fontSize: 9 })}>
-          {validBusy ? "…" : "Izvezi CSV problema"}
-        </button>
+        <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Validacioni izveštaj</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <button type="button" data-testid="validacija-prikazi-btn" disabled={validBusy} onClick={ucitajValidaciju}
+            style={btnStyle(C, C.plava, { fontSize: 9 })}>
+            {validBusy ? "…" : "Prikaži tabelu"}
+          </button>
+          <button type="button" data-testid="validacija-csv-btn" disabled={validBusy} onClick={izveziValidaciju}
+            style={btnStyle(C, C.hover, { fontSize: 9 })}>
+            {validBusy ? "…" : "Izvezi CSV"}
+          </button>
+        </div>
+        {validStavke && (
+          <div data-testid="validacija-tabela" style={{ maxHeight: 180, overflow: "auto", fontSize: 9 }}>
+            {validStavke.length === 0 ? (
+              <div style={{ color: C.zelena }}>✓ Nema problema</div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ color: C.sivi, textAlign: "left" }}>
+                    <th style={{ padding: "2px 4px" }}>Tip</th>
+                    <th style={{ padding: "2px 4px" }}>ID</th>
+                    <th style={{ padding: "2px 4px" }}>Opis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {validStavke.slice(0, 50).map((s, i) => (
+                    <tr key={`${s.tip}-${s.id_deo || s.id}-${i}`} style={{ borderTop: `1px solid ${C.border}` }}>
+                      <td style={{ padding: "3px 4px", color: C.narandzasta || "#f59e0b" }}>{s.tip}</td>
+                      <td style={{ padding: "3px 4px" }}>
+                        {s.id_deo && (
+                          <button type="button" onClick={() => onNavigate?.("delovi", { idDeo: s.id_deo })}
+                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.plava, fontWeight: 700 }}>
+                            {s.id_deo}
+                          </button>
+                        )}
+                      </td>
+                      <td style={{ padding: "3px 4px", color: C.sivi }}>{s.problem || s.opis || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {validStavke.length > 50 && (
+              <div style={{ color: C.sivi, marginTop: 4 }}>… +{validStavke.length - 50} stavki (CSV za pun izvoz)</div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
+        <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>JSON export dela</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            data-testid="json-export-id"
+            value={exportId}
+            onChange={(e) => setExportId(e.target.value.toUpperCase())}
+            placeholder="ID dela"
+            style={{ ...INP, width: 140 }}
+          />
+          <button type="button" data-testid="json-export-btn" disabled={exportBusy} onClick={izveziJson}
+            style={btnStyle(C, C.zelena, { fontSize: 9 })}>
+            {exportBusy ? "…" : "Preuzmi JSON"}
+          </button>
+        </div>
+        <div style={{ color: C.sivi, fontSize: 9, marginTop: 6 }}>Master + GU + dimenzije + greške + barkod profil</div>
       </section>
 
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>

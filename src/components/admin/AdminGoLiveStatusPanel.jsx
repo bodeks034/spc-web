@@ -22,12 +22,12 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
         fetchKompletnostStatistika(),
         fetchDeloviBezGlavnogUnosa(),
         supabase.from("delovi").select("id_deo").limit(2000),
-        supabase.from("erp_uvoz_log").select("created_at,uspeh,izvor").order("created_at", { ascending: false }).limit(1),
+        supabase.from("erp_uvoz_log").select("created_at,uspeh,izvor,greska,detalj").order("created_at", { ascending: false }).limit(5),
       ]);
 
       const demoBroj = (deloviRes.data || []).filter((d) => jeDemoIdDeo(d.id_deo)).length;
       const goLiveMigracije = MIGRACIJE_LISTA.filter((m) =>
-        /^(77|78|79|80|81|82)_/.test(m.fajl || ""),
+        /^(77|78|79|80|81|82|83|84|85)_/.test(m.fajl || ""),
       );
       const goLiveOk = goLiveMigracije.every((m) => stavke.find((s) => s.id === m.id)?.ok);
       const auditOk = !!stavke.find((s) => s.id === "sifrarnik_audit")?.ok;
@@ -43,6 +43,7 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
         bezGu,
         demoBroj,
         erpPoslednji: erpLog.data?.[0] || null,
+        erpIstorija: erpLog.data || [],
       });
     } catch (e) {
       addToast?.(e.message || "Go-live provera nije uspela", "greska");
@@ -123,7 +124,7 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
           <Stavka
             C={C}
             ok={podaci.goLiveMigracijeOk}
-            label="Go-live SQL (77–82)"
+            label="Go-live SQL (77–85)"
             akcijaLabel={!podaci.goLiveMigracijeOk ? "Otvori šemu" : undefined}
             onAkcija={!podaci.goLiveMigracijeOk ? otvoriSemu : undefined}
           />
@@ -184,6 +185,27 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
               ? () => onOtvoriSifrarnik?.("erp")
               : undefined}
           />
+          {podaci.erpIstorija.length > 0 && (
+            <div
+              data-testid="admin-erp-istorija"
+              style={{
+                marginLeft: 24,
+                padding: "6px 8px",
+                borderRadius: 6,
+                background: C.hover,
+                fontSize: 9,
+                lineHeight: 1.5,
+              }}
+            >
+              <div style={{ color: C.sivi, fontWeight: 700, marginBottom: 4 }}>Poslednjih {podaci.erpIstorija.length} uvoza</div>
+              {podaci.erpIstorija.map((r) => (
+                <div key={r.created_at} style={{ color: r.uspeh ? C.zelena : C.crvena || "#dc2626" }}>
+                  {r.uspeh ? "✓" : "✗"} {formatErpUvozVreme(r.created_at)} · {r.izvor || "—"}
+                  {(r.greska || r.detalj) ? ` — ${String(r.greska || r.detalj).slice(0, 60)}` : ""}
+                </div>
+              ))}
+            </div>
+          )}
           <Stavka
             C={C}
             ok={true}
