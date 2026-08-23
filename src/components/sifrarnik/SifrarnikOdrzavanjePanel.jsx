@@ -10,8 +10,9 @@ import {
   SIFRARNIK_STATUS_SCAN_LIMIT,
 } from "../../lib/sifrarnikOdrzavanje.js";
 import { fetchDeloviSpremniZaObjavu, objaviSpremneDelove } from "../../lib/sifrarnikBatchObjava.js";
+import { previewBatchPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
-import { btnStyle } from "./sifrarnikPanelStyle.js";
+import SifrarnikAlatiPanel from "./SifrarnikAlatiPanel.jsx";
 
 async function countTable(table, filter = {}) {
   let q = supabase.from(table).select("*", { count: "exact", head: true });
@@ -105,7 +106,15 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       addToast?.("Nema delova sa GU + greškama + crtežom", "info");
       return;
     }
-    if (!window.confirm(`Propagirati ${spremniBroj} del(a) u dimenzije/SOP?\n\nSamo delovi sa GU + greškama + crtežom.`)) {
+    let previewMsg = "";
+    try {
+      const ids = await fetchDeloviSpremniZaObjavu();
+      const preview = await previewBatchPropagacije(ids);
+      previewMsg = preview.poruka ? `\n\nPreview: ${preview.poruka}` : "";
+    } catch {
+      /* preview opciono */
+    }
+    if (!window.confirm(`Propagirati ${spremniBroj} del(a) u dimenzije/SOP?\n\nSamo delovi sa GU + greškama + crtežom.${previewMsg}`)) {
       return;
     }
     setBatchBusy(true);
@@ -372,6 +381,8 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       <button type="button" onClick={ucitaj} style={{ ...btnStyle(C, C.hover, { marginTop: 12, fontSize: 9 }) }}>
         ↻ Osveži brojeve
       </button>
+
+      <SifrarnikAlatiPanel C={C} addToast={addToast} onNavigate={onNavigate} />
     </div>
   );
 }

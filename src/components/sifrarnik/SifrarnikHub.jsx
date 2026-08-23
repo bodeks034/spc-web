@@ -574,6 +574,7 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
             onOtvoriGlavniUnos={(idDeo, opts = {}) => idiNaTab("glavni_unos", { idDeo, ...opts })}
             onNavigacijaStatus={(tab, ctx) => idiNaTab(tab, ctx)}
             navSignal={navCtx}
+            onBulkBarkod={(ids) => idiNaTab("barkod", { bulkIds: ids })}
           />
         )}
 
@@ -653,7 +654,12 @@ export default function SifrarnikHub({ C, addToast, korisnik }) {
 
         {podtab === "barkod" && (
 
-          <BarkodStampaPanel C={C} addToast={addToast} pocetniDeo={izabraniDeo || (navCtx?.idDeo ? { id_deo: navCtx.idDeo } : null)} />
+          <BarkodStampaPanel
+            C={C}
+            addToast={addToast}
+            pocetniDeo={izabraniDeo || (navCtx?.idDeo ? { id_deo: navCtx.idDeo } : null)}
+            bulkIds={navCtx?.bulkIds}
+          />
 
         )}
 

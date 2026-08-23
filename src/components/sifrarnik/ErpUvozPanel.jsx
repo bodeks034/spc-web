@@ -207,6 +207,12 @@ export default function ErpUvozPanel({ C, addToast, onNavigate }) {
 
   return (
     <div data-testid="erp-uvoz-panel" style={{ maxWidth: 820, color: C.sivi, fontSize: 11, lineHeight: 1.55 }}>
+      <div style={{ color: C.sivi, fontSize: 10, marginBottom: 12, lineHeight: 1.5 }}>
+        <strong style={{ color: C.tekst }}>ERP uvoz u bazu</strong> — CSV → Supabase (SAP/Pantheon mapiranje).
+        {" "}
+        <span style={{ fontSize: 9 }}>Health: <code>npm run logs:auto</code> · cron <code>erp:uvoz</code></span>
+      </div>
+
       <ErpMonitoringStrip C={C} addToast={addToast} />
       <div style={{ color: C.tekst, fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
         ERP uvoz u bazu

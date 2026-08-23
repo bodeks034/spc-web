@@ -21,7 +21,8 @@ import { inpStyle, btnStyle } from "./sifrarnikPanelStyle.js";
 import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js";
 import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { zavrsiSifrarnikOnboarding } from "../../lib/sifrarnikOnboarding.js";
-import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
+import { previewPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
+import { sacuvajGuUndoSnapshot, ucitajGuUndoSnapshot, obrisiGuUndoSnapshot } from "../../lib/guXlsxUndo.js";
 import { useSifrarnikOpcije } from "./useSifrarnikOpcije.js";
 import {
   stampAuditPolja,
@@ -206,8 +207,23 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const [klonCilj, setKlonCilj] = useState("");
   const [klonOtvoren, setKlonOtvoren] = useState(false);
   const [klonira, setKlonira] = useState(false);
+  const [imaUndo, setImaUndo] = useState(() => !!ucitajGuUndoSnapshot());
   const fileRef = useRef(null);
   const INP = inpStyle(C);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (dirty) sacuvajSheet({ propagirajPosle: false });
+      }
+      if (e.key === "Escape" && formaIdx != null) {
+        setFormaIdx(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [dirty, formaIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const opcije = bazaOpcije
     ? dopuniOpcijeIzRedova(bazaOpcije, redovi, GLAVNI_UNOS_OPCIJE_MAPA)
@@ -375,11 +391,46 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   };
 
   const objaviUSifrarnik = async () => {
+    try {
+      const id = normalizujIdDeo(filter);
+      const preview = await previewPropagacije({
+        sheetNaziv: id ? null : aktivniSheet,
+        idDeo: id || null,
+      });
+      if (preview.ukupno > 0 && !window.confirm(`Objaviti u šifrarnik?\n\n${preview.poruka}`)) {
+        return;
+      }
+    } catch {
+      /* preview opciono */
+    }
     if (dirty) {
       await sacuvajSheet({ propagirajPosle: true });
       return;
     }
     await samoPropagiraj();
+  };
+
+  const vratiXlsxUndo = async () => {
+    const snap = ucitajGuUndoSnapshot();
+    if (!snap?.poSheetu) {
+      addToast?.("Nema snimka pre importa", "info");
+      return;
+    }
+    if (!window.confirm(`Vratiti stanje pre importa${snap.imeFajla ? ` (${snap.imeFajla})` : ""}?`)) return;
+    setSnima(true);
+    try {
+      for (const [sheet, rows] of Object.entries(snap.poSheetu)) {
+        await zameniSheetRedove(sheet, rows);
+      }
+      obrisiGuUndoSnapshot();
+      setImaUndo(false);
+      await ucitajRedove(aktivniSheet);
+      addToast?.("✓ Vraćeno stanje pre XLSX importa", "uspeh");
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setSnima(false);
+    }
   };
 
   const propagirajFilterDeo = async () => {
@@ -500,6 +551,13 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       if (!window.confirm(`Uvesti ${ukupno} redova iz ${file.name}?\n\n${pregled}\n\nPostojeći redovi po sheet-u biće zamenjeni.`)) {
         return;
       }
+
+      const undoPoSheetu = {};
+      for (const sheet of Object.keys(poSheetu)) {
+        undoPoSheetu[sheet] = await fetchGlavniUnosRedovi(sheet);
+      }
+      sacuvajGuUndoSnapshot({ poSheetu: undoPoSheetu, imeFajla: file.name });
+      setImaUndo(true);
 
       let sacuvano = 0;
       for (const [sheet, rows] of Object.entries(poSheetu)) {
@@ -835,6 +893,12 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         <button type="button" onClick={() => fileRef.current?.click()} disabled={snima} style={btnStyle(C, C.narandzasta || "#f59e0b", { disabled: snima })}>
           Uvezi .xlsx
         </button>
+        {imaUndo && (
+          <button type="button" data-testid="gu-xlsx-undo" onClick={vratiXlsxUndo} disabled={snima}
+            style={btnStyle(C, C.hover, { disabled: snima, fontSize: 10 })}>
+            ↩ Undo import
+          </button>
+        )}
         <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
           onChange={(e) => uvoziXlsx(e.target.files?.[0])} />
       </div>

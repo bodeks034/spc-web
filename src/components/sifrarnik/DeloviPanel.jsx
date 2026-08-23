@@ -15,7 +15,7 @@ import {
   deoOdgovaraNedostajeFilter,
 } from "../../lib/sifrarnikOdrzavanje.js";
 import { obavestiPromenuStatusaSifrarnika, SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
-import { ucitajStatusAgregate, invalidirajStatusAgregate } from "../../lib/sifrarnikStatusCache.js";
+import { fetchDeloviPoServerFilteru } from "../../lib/sifrarnikDeloviServerFilter.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
@@ -23,7 +23,7 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
-export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal }) {
+export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal, onBulkBarkod }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guBrojevi, setGuBrojevi] = useState({});
@@ -44,11 +44,32 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [brise, setBrise] = useState(false);
   const [statusMenuId, setStatusMenuId] = useState(null);
 
+  const [serverFiltered, setServerFiltered] = useState(false);
+
+  const imaServerFiltera = !!(nedostajeFilter || samoDemo || samoDelimicni);
+
   const ucitaj = useCallback(async ({ reset = true } = {}) => {
     if (reset) setLoading(true);
     else setUcitavaJos(true);
     try {
       const tip = tipFilter === "svi" ? null : tipFilter;
+      if (imaServerFiltera) {
+        const offset = reset ? 0 : lista.length;
+        const res = await fetchDeloviPoServerFilteru({
+          nedostajeFilter,
+          samoDemo,
+          samoDelimicni,
+          tipKontrole: tip,
+          limit: DELOVI_PAGE_SIZE,
+          offset,
+        });
+        setServerFiltered(true);
+        setLista((prev) => (reset ? res.delovi : [...prev, ...res.delovi]));
+        setUkupnoUBazi(res.delovi.length + offset);
+        setHasMore(res.hasMore);
+        return;
+      }
+      setServerFiltered(false);
       const offset = reset ? 0 : lista.length;
       const [page, total] = await Promise.all([
         fetchDelovi({ tipKontrole: tip, limit: DELOVI_PAGE_SIZE, offset }),
@@ -63,9 +84,9 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       setLoading(false);
       setUcitavaJos(false);
     }
-  }, [addToast, tipFilter]);
+  }, [addToast, tipFilter, imaServerFiltera, nedostajeFilter, samoDemo, samoDelimicni, lista.length]);
 
-  useEffect(() => { ucitaj({ reset: true }); }, [tipFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { ucitaj({ reset: true }); }, [tipFilter, nedostajeFilter, samoDemo, samoDelimicni]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const t = setTimeout(() => setFilter(filterDraft), 300);
@@ -106,6 +127,10 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   }, [statusMenuId]);
 
   const loadMore = async () => {
+    if (serverFiltered) {
+      await ucitaj({ reset: false });
+      return;
+    }
     setUcitavaJos(true);
     try {
       const tip = tipFilter === "svi" ? null : tipFilter;
@@ -303,6 +328,13 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
             {brise ? "…" : `Obriši izabrane (${izabrani.size})`}
           </button>
           <span style={{ color: C.sivi, fontSize: 9 }}>DEMO automatski · produkcija traži OBRISI_DEO</span>
+          {onBulkBarkod && izabrani.size > 0 && (
+            <button type="button" data-testid="delovi-bulk-barkod"
+              onClick={() => onBulkBarkod([...izabrani])}
+              style={{ background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "6px 10px", cursor: "pointer" }}>
+              Barkod ({izabrani.size})
+            </button>
+          )}
         </div>
       )}
 

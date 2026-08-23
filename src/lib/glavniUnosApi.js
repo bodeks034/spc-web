@@ -1,6 +1,7 @@
 /** Glavni unos — Supabase CRUD + propagacija u merljive/atributivne. */
 
 import { supabase } from "./supabaseClient.js";
+import { logSifrarnikAudit } from "./sifrarnikAudit.js";
 import {
   buildLookupsFromPogonRows,
   karakteristikeIzGlavniUnosRedova,
@@ -427,7 +428,9 @@ export async function propagirajMerljiviDeo(idDeo) {
 
   const glavni = await fetchGlavniUnosRedoviZaDeo(norm);
   if (glavni.length) {
-    return propagirajGlavniUnos({ idDeo: norm });
+    const res = await propagirajGlavniUnos({ idDeo: norm });
+    logSifrarnikAudit({ idDeo: norm, akcija: "propagiraj", izvor: "glavni_unos", detalji: { karakteristike: res.karakteristike } });
+    return res;
   }
 
   const kar = await ucitajRedovePoIdDeo(supabase, "karakteristike_merljive", norm, {
@@ -437,6 +440,7 @@ export async function propagirajMerljiviDeo(idDeo) {
 
   if (kar.length) {
     const derived = await syncMerljiviSifrarnikZaDeo(supabase, norm);
+    logSifrarnikAudit({ idDeo: norm, akcija: "propagiraj", izvor: "karakteristike", detalji: { izKarakteristika: true } });
     return {
       karakteristike: kar.length,
       delovi: [norm],

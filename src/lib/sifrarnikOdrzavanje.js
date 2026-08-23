@@ -412,11 +412,51 @@ export function nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo = null }
   };
 }
 
-export async function fetchDelimicniDeloviSvi() {
-  const { stavke } = await fetchAktivniDeloviSaStatusom();
-  return stavke
-    .filter(({ status }) => status !== "kompletan")
-    .sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
+export async function fetchDelimicniDeloviSvi({ maxScan = 15000 } = {}) {
+  const [gu, gr, bk] = await Promise.all([
+    fetchGlavniUnosBrojeviPoDeo(),
+    fetchGreskeBrojeviPoDeo(),
+    fetchBarkodProfiliSet(),
+  ]);
+
+  const rez = [];
+  let offset = 0;
+  const batch = 500;
+
+  while (offset < maxScan) {
+    const { data, error } = await supabase
+      .from("delovi")
+      .select("id_deo,naziv_dela,slika_naziv,aktivan")
+      .eq("aktivan", true)
+      .order("id_deo")
+      .range(offset, offset + batch - 1);
+    if (error) throw error;
+    const delovi = data || [];
+    if (!delovi.length) break;
+
+    for (const d of delovi) {
+      const id = String(d?.id_deo || "").trim().toUpperCase();
+      const opts = {
+        guBroj: gu[id] || 0,
+        greskeBroj: gr[id] || 0,
+        imaBarkod: bk.has(id),
+      };
+      const status = statusDeoUSifrarniku(d, opts);
+      if (status === "kompletan") continue;
+      rez.push({
+        deo: d,
+        status,
+        opts,
+        nedostaje: nedostajeZaDeo(d, opts),
+        koraci: koraciNavigacijeIzStatusDeo(d, opts),
+      });
+    }
+
+    offset += delovi.length;
+    if (delovi.length < batch) break;
+  }
+
+  return rez.sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
 }
 
 function csvEscape(val) {

@@ -10,7 +10,7 @@ import {
 import { useEkran } from "../../layout/useEkran.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
-export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
+export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) {
   const { linijaUredjaj } = useEkran();
   const [delovi, setDelovi] = useState([]);
   const [idDeo, setIdDeo] = useState(pocetniDeo?.id_deo || "");
@@ -53,6 +53,42 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
       setCustomSirinaMm(p.customSirinaMm);
     }
   }, [pocetniDeo]);
+
+  const [bulkStampa, setBulkStampa] = useState(false);
+
+  const stampajBulk = async () => {
+    const ids = (bulkIds || []).filter(Boolean);
+    if (!ids.length) return;
+    setBulkStampa(true);
+    try {
+      const blokovi = [];
+      let printDim = dim;
+      for (const rawId of ids) {
+        const id = String(rawId).trim().toUpperCase();
+        const d = delovi.find((x) => x.id_deo === id) || { id_deo: id };
+        const s = buildSadrzajBarkoda({ idDeo: id, format, radniNalog, smena: smena ? Number(smena) : 1 });
+        const slike = await generisiEtiketaSlike({ sadrzaj: s, tipKoda, dimenzijaId, customSirinaMm });
+        printDim = slike.dim || printDim;
+        blokovi.push(etiketaHtmlBlok({
+          idDeo: id,
+          naziv: d.naziv_dela,
+          tipKontrole: d.tip_kontrole || "deo",
+          sadrzaj: s,
+          opis: BARKOD_FORMATI.find((f) => f.id === format)?.naziv || format,
+          qrUrl: slike.qrUrl,
+          codeUrl: slike.codeUrl,
+          dim: printDim,
+        }));
+      }
+      stampajEtikete(blokovi, `Barkod bulk (${ids.length})`, { dim: printDim });
+      addToast?.(`✓ Štampano ${ids.length} etiketa`, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "barkod", akcija: "bulk_stampaj" });
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setBulkStampa(false);
+    }
+  };
 
   const sadrzaj = buildSadrzajBarkoda({
     idDeo,
@@ -160,12 +196,68 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
     [delovi],
   );
 
+  const bulkLista = useMemo(
+    () => (bulkIds || []).map((id) => String(id).trim().toUpperCase()).filter(Boolean),
+    [bulkIds],
+  );
+
+  useEffect(() => {
+    if (bulkLista.length && !idDeo) {
+      setIdDeo(bulkLista[0]);
+      const match = delovi.find((x) => x.id_deo === bulkLista[0]);
+      if (match) setDeo(match);
+    }
+  }, [bulkLista, delovi, idDeo]);
+
   const INP = {
     background: C.input, border: `1px solid ${C.border}`, borderRadius: 6,
     color: C.tekst, fontSize: 11, padding: "7px 10px", fontFamily: "inherit",
   };
 
   return (
+    <div>
+      {bulkLista.length > 0 && (
+        <div
+          data-testid="barkod-bulk-banner"
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.plava}44`,
+            background: `${C.plava}10`,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+          }}
+        >
+          <span style={{ color: C.tekst, fontSize: 10, fontWeight: 700 }}>
+            Bulk štampa: {bulkLista.length} delova
+          </span>
+          <span style={{ color: C.sivi, fontSize: 9 }}>
+            {bulkLista.slice(0, 8).join(", ")}{bulkLista.length > 8 ? "…" : ""}
+          </span>
+          <button
+            type="button"
+            data-testid="barkod-bulk-stampaj"
+            disabled={bulkStampa}
+            onClick={stampajBulk}
+            style={{
+              background: C.zelena,
+              border: "none",
+              borderRadius: 6,
+              color: C.onAkcent,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "6px 12px",
+              cursor: "pointer",
+              opacity: bulkStampa ? 0.6 : 1,
+            }}
+          >
+            {bulkStampa ? "Štampam…" : `Štampaj sve (${bulkLista.length})`}
+          </button>
+        </div>
+      )}
     <div style={{
       display: "grid",
       gridTemplateColumns: linijaUredjaj ? "1fr" : "1fr 1fr",
@@ -348,6 +440,7 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo }) {
           <div style={{ color: C.border, fontSize: 11 }}>Nema pregleda</div>
         )}
       </div>
+    </div>
     </div>
   );
 }

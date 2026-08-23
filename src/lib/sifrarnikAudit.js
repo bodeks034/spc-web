@@ -24,3 +24,24 @@ export async function logSifrarnikAudit({
     /* tabela opciona dok migracija 80 nije primenjena */
   }
 }
+
+export async function fetchSifrarnikAudit({ idDeo = null, limit = 50 } = {}) {
+  try {
+    let q = supabase
+      .from("sifrarnik_audit")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (idDeo) {
+      q = q.eq("id_deo", String(idDeo).trim().toUpperCase());
+    }
+    const { data, error } = await q;
+    if (error) {
+      if (/does not exist|could not find/i.test(error.message)) return [];
+      throw error;
+    }
+    return data || [];
+  } catch {
+    return [];
+  }
+}

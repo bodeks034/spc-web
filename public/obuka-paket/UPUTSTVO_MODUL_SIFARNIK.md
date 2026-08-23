@@ -340,9 +340,15 @@ Na liniji: bez potvrde liste operater ne ulazi u unos (osim admin).
 
 #### IV.1.15 Održavanje
 
-**Svrha:** Mesečna / pre go-live provera — brojevi (delovi, aktivni RN, merila, dimenzije), **duplikati dimenzija** (isti pogon + pozicija) i prečice ka tabovima.
+**Svrha:** Mesečna / pre go-live provera — brojevi (delovi, aktivni RN, merila, dimenzije), **duplikati dimenzija** (isti pogon + pozicija), kompletnost šifrarnika i prečice ka tabovima.
 
-**Akcije:** klik na stavku otvara tab (RN, merila, dimenzije, delovi, pogon mapa, Glavni unos). Admin: link ka **Očisti operativu** (vidi §5).
+**Akcije:** klik na stavku otvara tab (RN, merila, dimenzije, delovi, pogon mapa, Glavni unos). **Objavi sve spremne** — batch propagacija delova sa GU + greškama + crtežom (preview pre potvrde). **Izvezi CSV delimičnih** — delovi koji nisu kompletni.
+
+**Alati panel (inženjeri):** audit log (`sifrarnik_audit`) · upoređivanje dva dela · validacioni CSV · preview propagacije po ID dela.
+
+**Automatizacija:** `npm run auto:sifrarnik-zaglavljeni` — email digest delova zaglavljenih u delimičnom statusu (cron, vidi `GO_LIVE_RUNBOOK.md`).
+
+Admin: link ka **Očisti operativu** (vidi §5).
 
 ---
 
@@ -671,7 +677,7 @@ Korak-po-korak: [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md)
 
 ### V.4 Mesečno (tab Održavanje)
 
-Neaktivni RN · istekle kalibracije · duplikati dimenzija · brojevi delova/RN/merila.
+Neaktivni RN · istekle kalibracije · duplikati dimenzija · brojevi delova/RN/merila · **audit log** · batch objava spremnih delova · validacioni izveštaj · digest zaglavljenih delova (`auto:sifrarnik-zaglavljeni`).
 
 ---
 

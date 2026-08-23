@@ -10,7 +10,9 @@ import { usePogonOznake } from "./usePogonOznake.js";
 import { PogonTekst } from "./SifrarnikPolje.jsx";
 import SifrarnikFilterBar from "./SifrarnikFilterBar.jsx";
 import { formatGraniceRedZaFormu, granicaZaPrikaz } from "../../lib/glavniUnosGranice.js";
-import { normalizujIdDeo } from "../../lib/idDeoUtil.js";
+import { ucitajRevizije } from "../../lib/karakteristikeRevizija.js";
+import { fetchPfmeaCpZaDeo } from "../../lib/sifrarnikPfmeaLink.js";
+import { supabase } from "../../lib/supabaseClient.js";
 
 const KAR_FIELD_META = {
   pogon_kod: { type: "pogon" },
@@ -44,6 +46,8 @@ export default function KarakteristikeMerljivePanel({ C, addToast, navSignal }) 
   const [pogonFilter, setPogonFilter] = useState("");
   const [filter, setFilter] = useState("");
   const [propaguje, setPropaguje] = useState(false);
+  const [revizije, setRevizije] = useState([]);
+  const [pfmeaLink, setPfmeaLink] = useState(null);
 
   const ucitaj = useCallback(async (idDeo = null, pogonKod = null) => {
     setLoading(true);
@@ -65,6 +69,17 @@ export default function KarakteristikeMerljivePanel({ C, addToast, navSignal }) 
       if (navSignal.pogonFilter) setPogonFilter(navSignal.pogonFilter);
     }
   }, [navSignal?.ts, navSignal?.idDeo, navSignal?.pogonFilter, ucitaj]);
+
+  useEffect(() => {
+    const id = idDeoFilter || normalizujIdDeo(idDeoDraft);
+    if (!id) {
+      setRevizije([]);
+      setPfmeaLink(null);
+      return;
+    }
+    ucitajRevizije(supabase, { idDeo: id, limit: 15 }).then(({ data }) => setRevizije(data || []));
+    fetchPfmeaCpZaDeo(id).then(setPfmeaLink).catch(() => setPfmeaLink(null));
+  }, [idDeoFilter, idDeoDraft]);
 
   const primeniFilter = () => {
     const id = normalizujIdDeo(idDeoDraft);
@@ -132,7 +147,24 @@ export default function KarakteristikeMerljivePanel({ C, addToast, navSignal }) 
       addLabel="+ Dimenzija">
       <div style={{ color: C.sivi, fontSize: 9, marginBottom: 8 }}>
         Glavni izvor za merljive — LSL/USL, FAI, broj merenja. Za stepene: DMS unos (npr. 444444).
+        <span style={{ display: "block", marginTop: 4, fontSize: 8 }}>Prečice u Glavnom unosu: Ctrl+S sačuvaj</span>
       </div>
+      {idDeoFilter && revizije.length > 0 && (
+        <div data-testid="dim-revizije-panel" style={{ marginBottom: 8, padding: 8, borderRadius: 6, border: `1px solid ${C.border}`, background: C.panel, fontSize: 9 }}>
+          <strong style={{ color: C.tekst }}>Revizije granica ({revizije.length})</strong>
+          <ul style={{ margin: "4px 0 0", paddingLeft: 14, lineHeight: 1.5, color: C.sivi, maxHeight: 80, overflow: "auto" }}>
+            {revizije.slice(0, 8).map((r) => (
+              <li key={r.id}>{r.pozicija || "?"} · {r.polje}: {r.stara_vrednost} → {r.nova_vrednost} ({r.created_at?.slice(0, 10)})</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {idDeoFilter && pfmeaLink?.dokumenti?.length > 0 && (
+        <div data-testid="dim-pfmea-link" style={{ marginBottom: 8, fontSize: 9, color: C.sivi }}>
+          PFMEA/CP: {pfmeaLink.dokumenti.map((d) => d.naziv || d.broj_pfmea || d.id).join(" · ")}
+          {" "}(Modul PFMEA/CP za detalje)
+        </div>
+      )}
       <SifrarnikFilterBar
         C={C}
         idDraft={idDeoDraft}
