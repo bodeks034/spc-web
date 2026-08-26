@@ -27,5 +27,6 @@ describe("sumirajProveruSeme", () => {
     expect(ids).toContain("ocisti_operativu_rpc");
     expect(ids).toContain("obrisi_deo_rpc");
     expect(ids).toContain("obrisi_demo_delove_rpc");
+    expect(ids).toContain("tipovi_linije_privremene");
   });
 });

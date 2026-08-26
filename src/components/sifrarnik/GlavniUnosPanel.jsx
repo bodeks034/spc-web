@@ -18,6 +18,7 @@ import { FormGrid } from "./LinijePanel.jsx";
 import GlavniUnosGrupnaForma from "./GlavniUnosGrupnaForma.jsx";
 import GlavniUnosChecklistPanel from "./GlavniUnosChecklistPanel.jsx";
 import NoviDeoWizard from "./NoviDeoWizard.jsx";
+import GlavniUnosSheetBirac from "./GlavniUnosSheetBirac.jsx";
 import { inpStyle, btnStyle } from "./sifrarnikPanelStyle.js";
 import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js";
 import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
@@ -46,6 +47,8 @@ import {
   GLAVNI_UNOS_SHEET_TIP,
   analizaSheeta,
 } from "../../lib/glavniUnosSheetTip.js";
+import { fetchTipoviVozila } from "../../lib/sifrarnikApi.js";
+import { sheetRadneLinije } from "../../lib/sifrarnikRadnaLinija.js";
 
 const DEFAULT_SHEETS = ["vozilo1", "vozilo2", "vozilo3", "vozilo6"];
 
@@ -186,7 +189,7 @@ function idDeoPoslePropagacije(redovi, filter) {
   return ids[ids.length - 1] || null;
 }
 
-export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, navSignal }) {
+export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, navSignal, tipoviVozilaHub = [], radnaLinija = "" }) {
   const { opcije: bazaOpcije } = useSifrarnikOpcije(addToast);
   const [sheetovi, setSheetovi] = useState(DEFAULT_SHEETS);
   const [sheetKonfiguracije, setSheetKonfiguracije] = useState([]);
@@ -203,6 +206,8 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const [dirty, setDirty] = useState(false);
   const [checklistCtx, setChecklistCtx] = useState(null);
   const [wizardOtvoren, setWizardOtvoren] = useState(false);
+  const [wizardPreset, setWizardPreset] = useState(null);
+  const [tipoviVozila, setTipoviVozila] = useState([]);
   const [sablonUcitava, setSablonUcitava] = useState(false);
   const [klonIzvor, setKlonIzvor] = useState("");
   const [klonCilj, setKlonCilj] = useState("");
@@ -300,6 +305,12 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   useEffect(() => { ucitajRedove(aktivniSheet); }, [aktivniSheet, ucitajRedove]);
 
   useEffect(() => {
+    if (!radnaLinija || !sheetovi.length) return;
+    const predlog = sheetRadneLinije(radnaLinija, "delovi");
+    if (predlog && sheetovi.includes(predlog)) setAktivniSheet(predlog);
+  }, [radnaLinija, sheetovi]);
+
+  useEffect(() => {
     setChecklistCtx(null);
   }, [aktivniSheet]);
 
@@ -324,13 +335,32 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   }, [dirty, sheetRemoteStamp, aktivniSheet]);
 
   useEffect(() => {
+    if (tipoviVozilaHub.length) {
+      setTipoviVozila(tipoviVozilaHub);
+      return;
+    }
+    fetchTipoviVozila().then(setTipoviVozila).catch(() => setTipoviVozila([]));
+  }, [tipoviVozilaHub]);
+
+  useEffect(() => {
     if (!navSignal?.ts) return;
     if (navSignal.idDeo) {
       setFilter(navSignal.idDeo);
       setChecklistCtx(null);
     }
-    if (navSignal.otvoriWizard) setWizardOtvoren(true);
-  }, [navSignal?.ts, navSignal?.idDeo, navSignal?.otvoriWizard]);
+    if (navSignal.otvoriWizard) {
+      setWizardPreset({
+        ts: navSignal.ts,
+        linijaKod: navSignal.wizardLinija || null,
+        tip: navSignal.wizardTip || GLAVNI_UNOS_SHEET_TIP.PROJEKAT,
+        autoPotvrdi: !!navSignal.wizardAutoPotvrdi,
+      });
+      setWizardOtvoren(true);
+      requestAnimationFrame(() => {
+        document.querySelector("[data-testid=novi-deo-wizard]")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [navSignal?.ts, navSignal?.idDeo, navSignal?.otvoriWizard, navSignal?.wizardLinija, navSignal?.wizardTip, navSignal?.wizardAutoPotvrdi]);
 
   const potvrdiPrePropagacije = () => {
     const { greske, upozorenja } = validirajRedovePrePropagacije(redovi);
@@ -684,6 +714,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
     return C.sivi;
   };
 
+  const promeniAktivniSheet = (s) => {
+    if (dirty && !window.confirm("Nesačuvane izmene — preći na drugi sheet?")) return;
+    setAktivniSheet(s);
+  };
+
   const pokreniKloniranje = async () => {
     if (!klonIzvor.trim() || !klonCilj.trim()) {
       addToast?.("Unesi izvor i cilj ID dela", "greska");
@@ -769,63 +804,30 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         {" "}
         <button
           type="button"
-          onClick={() => setWizardOtvoren(true)}
+          onClick={() => {
+            setWizardPreset(null);
+            setWizardOtvoren(true);
+          }}
           style={{ background: "none", border: "none", padding: 0, color: C.plava, cursor: "pointer", fontWeight: 700, fontSize: 10 }}
         >
           + Novi deo (čarobnjak)
         </button>
-        <div style={{ marginTop: 4, fontSize: 9 }}>
-          Aktivni sheet:{" "}
-          <strong style={{ color: bedzBoja(analizaAktivnog.tip) }}>{analizaAktivnog.kratko}</strong>
-          {" — "}{analizaAktivnog.opis}
-        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {sheetovi.map((s) => {
-          const konfig = sheetKonfiguracije.find((r) => r.naziv === s);
-          const bedz = s === aktivniSheet
-            ? analizaAktivnog
-            : analizaSheeta([], { ...konfig, naziv: s });
-          return (
-          <button
-            key={s}
-            type="button"
-            onClick={() => { if (dirty && !window.confirm("Nesačuvane izmene — preći na drugi sheet?")) return; setAktivniSheet(s); }}
-            style={{
-              background: aktivniSheet === s ? `${C.plava}22` : C.panel,
-              border: `1px solid ${aktivniSheet === s ? C.plava : C.border}`,
-              borderRadius: 6, padding: "4px 10px", cursor: "pointer",
-              fontSize: 10, fontWeight: aktivniSheet === s ? 700 : 400,
-              color: aktivniSheet === s ? C.plava : C.sivi,
-            }}
-            title={bedz.opis}
-          >
-            {s}
-            <span style={{ color: bedzBoja(bedz.tip), fontWeight: 600 }}>
-              {" · "}{bedz.kratko}
-            </span>
-          </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => setWizardOtvoren(true)}
-          style={btnStyle(C, C.zelena, { fontSize: 9 })}
-          title="Tip → sheet → grupni unos"
-        >
-          + Novi deo
-        </button>
-        <button
-          type="button"
-          data-testid="gu-kloniraj-toggle"
-          onClick={() => setKlonOtvoren((v) => !v)}
-          style={btnStyle(C, C.hover, { fontSize: 9 })}
-          title="Kopiraj dimenzije sa postojećeg dela"
-        >
-          {klonOtvoren ? "▾ Kloniraj deo" : "▸ Kloniraj deo"}
-        </button>
-      </div>
+      <GlavniUnosSheetBirac
+        C={C}
+        sheetovi={sheetovi}
+        sheetKonfiguracije={sheetKonfiguracije}
+        aktivniSheet={aktivniSheet}
+        onPromeniSheet={promeniAktivniSheet}
+        fokusLinijaKod={radnaLinija}
+        onNoviDeo={() => {
+          setWizardPreset(null);
+          setWizardOtvoren(true);
+        }}
+        onToggleKlon={() => setKlonOtvoren((v) => !v)}
+        klonOtvoren={klonOtvoren}
+      />
 
       {klonOtvoren && (
         <div
@@ -867,10 +869,17 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
 
       {wizardOtvoren && (
         <NoviDeoWizard
+          key={wizardPreset?.ts || "wizard"}
           C={C}
           sheetovi={sheetovi}
           sheetKonfiguracije={sheetKonfiguracije}
-          onCancel={() => setWizardOtvoren(false)}
+          tipoviVozila={tipoviVozila}
+          wizardPreset={wizardPreset}
+          radnaLinija={radnaLinija}
+          onCancel={() => {
+            setWizardOtvoren(false);
+            setWizardPreset(null);
+          }}
           onKreirajSheet={async (opts) => {
             const novi = await kreirajGlavniUnosSheet(opts);
             await ucitajSheetove();

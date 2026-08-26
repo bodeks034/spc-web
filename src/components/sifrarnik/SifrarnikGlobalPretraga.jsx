@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { navigacijaZaIdDeo, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
+import { deoPripadaLiniji } from "../../lib/linijaProizvoda.js";
 
 /** Globalna pretraga dela po ID u Modulu 0. */
-export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast }) {
+export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radnaLinija = "" }) {
   const [upit, setUpit] = useState("");
   const [trazi, setTrazi] = useState(false);
 
@@ -18,6 +19,13 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast }) {
       if (!rez?.pronadjen) {
         addToast?.(`Deo ${id} nije u šifrarniku`, "greska");
         return;
+      }
+      if (radnaLinija && !deoPripadaLiniji(rez.deo, radnaLinija)) {
+        const vk = rez.deo?.vozilo_katalog_id || rez.deo?.sifra_vozila || "?";
+        addToast?.(
+          `${id} pripada liniji ${vk}, ne ${radnaLinija}. Otvaram pregled.`,
+          "info",
+        );
       }
       const korak = rez.nav || rez.koraci?.[0];
       if (korak) {
@@ -80,12 +88,16 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast }) {
           fontSize: 10,
           fontWeight: 700,
           padding: "6px 12px",
-          cursor: "pointer",
-          opacity: trazi ? 0.6 : 1,
+          cursor: trazi ? "wait" : "pointer",
         }}
       >
-        {trazi ? "…" : "Idi →"}
+        {trazi ? "…" : "Nađi"}
       </button>
+      {radnaLinija && (
+        <span style={{ color: C.sivi, fontSize: 9 }} title="Upozorenje ako deo nije na izabranoj liniji">
+          fokus: {radnaLinija}
+        </span>
+      )}
     </div>
   );
 }

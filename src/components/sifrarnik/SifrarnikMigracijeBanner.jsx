@@ -79,7 +79,7 @@ export default function SifrarnikMigracijeBanner({ C }) {
           Nedostaje RPC — {fali.join(", ")}
         </span>
         <span style={{ color: C.sivi, display: "block", marginTop: 4, fontSize: 9 }}>
-          Pokreni u Supabase SQL Editoru: 77–85 ili <code>npm run db:migrate:go-live</code>
+          Pokreni u Supabase SQL Editoru: 77–87 ili <code>npm run db:migrate:go-live</code>
         </span>
       </div>
       <button

@@ -1,37 +1,102 @@
-import { useState } from "react";
-import { GLAVNI_UNOS_SHEET_TIP, filtrirajSheetovePoTipu, predlogNazivaSheeta } from "../../lib/glavniUnosSheetTip.js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GLAVNI_UNOS_SHEET_TIP, filtrirajSheetovePoTipu } from "../../lib/glavniUnosSheetTip.js";
+import {
+  grupisiLinije,
+  jeLinijaProizvod,
+  jeLinijaVozila,
+  normalizujKodLinije,
+  predlogSheetaZaLiniju,
+} from "../../lib/linijaProizvoda.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
 
 const TIPOVI = [
-  { id: GLAVNI_UNOS_SHEET_TIP.OPSTI, label: "Opšti deo", opis: "Nije vezano za vozilo (zavrtanj, lim…)" },
-  { id: GLAVNI_UNOS_SHEET_TIP.PROJEKAT, label: "Deo projekta vozila", opis: "Komponenta na HAM/NTV projektu — tip_kontrole=deo" },
-  { id: GLAVNI_UNOS_SHEET_TIP.FINAL, label: "Celo vozilo (final)", opis: "Finalna kontrola — tip_kontrole=vozilo" },
+  { id: GLAVNI_UNOS_SHEET_TIP.OPSTI, label: "Opšti deo", opis: "Nezavisno od vozila/proizvoda (zavrtanj, lim…)" },
+  { id: GLAVNI_UNOS_SHEET_TIP.PROJEKAT, label: "Komponenta", opis: "Deo vezan za izabrano vozilo ili proizvod (tip_kontrole=deo)" },
+  { id: GLAVNI_UNOS_SHEET_TIP.FINAL, label: "Finalna kontrola", opis: "Vozilo → dijagram; proizvod → grupni unos bez dijagrama" },
 ];
+
+function tipGUzaUnos(tipSheet, linijaKod) {
+  if (tipSheet === GLAVNI_UNOS_SHEET_TIP.OPSTI) return GLAVNI_UNOS_SHEET_TIP.OPSTI;
+  if (tipSheet === GLAVNI_UNOS_SHEET_TIP.FINAL) {
+    return jeLinijaVozila(linijaKod) ? GLAVNI_UNOS_SHEET_TIP.FINAL : GLAVNI_UNOS_SHEET_TIP.PROJEKAT;
+  }
+  return GLAVNI_UNOS_SHEET_TIP.PROJEKAT;
+}
 
 export default function NoviDeoWizard({
   C,
   sheetovi,
   sheetKonfiguracije = [],
+  tipoviVozila = [],
+  wizardPreset = null,
+  radnaLinija = "",
   onCancel,
   onKreirajSheet,
   onIzaberiSheet,
   onGrupniUnos,
   onFinalVozilo,
 }) {
+  const { vozila, proizvodi, ostalo } = useMemo(() => grupisiLinije(tipoviVozila), [tipoviVozila]);
+
   const [korak, setKorak] = useState(1);
   const [tip, setTip] = useState(GLAVNI_UNOS_SHEET_TIP.PROJEKAT);
-  const [erp, setErp] = useState("");
+  const [linijaKod, setLinijaKod] = useState("");
   const [sablonId, setSablonId] = useState("");
   const [sheetIme, setSheetIme] = useState("");
   const [kreira, setKreira] = useState(false);
+  const autoPotvrdioRef = useRef(null);
   const INP = inpStyle(C);
 
-  const predlog = predlogNazivaSheeta(tip, erp, sheetovi);
-  const prikazSheetovi = filtrirajSheetovePoTipu(sheetovi, sheetKonfiguracije, tip, erp);
+  useEffect(() => {
+    autoPotvrdioRef.current = null;
+  }, [wizardPreset?.ts]);
+
+  useEffect(() => {
+    if (!wizardPreset?.linijaKod && wizardPreset?.tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !radnaLinija) return;
+    if (wizardPreset?.tip === GLAVNI_UNOS_SHEET_TIP.OPSTI) {
+      setTip(GLAVNI_UNOS_SHEET_TIP.OPSTI);
+      setSheetIme("opsti_1");
+      setKorak(2);
+      return;
+    }
+    const kod = normalizujKodLinije(wizardPreset?.linijaKod || radnaLinija);
+    if (!kod) return;
+    setLinijaKod(kod);
+    const presetTip = wizardPreset?.tip || GLAVNI_UNOS_SHEET_TIP.PROJEKAT;
+    setTip(presetTip === GLAVNI_UNOS_SHEET_TIP.FINAL
+      ? GLAVNI_UNOS_SHEET_TIP.FINAL
+      : GLAVNI_UNOS_SHEET_TIP.PROJEKAT);
+    const vrsta = presetTip === GLAVNI_UNOS_SHEET_TIP.FINAL ? "final" : "delovi";
+    setSheetIme(predlogSheetaZaLiniju(kod, vrsta));
+    setKorak(2);
+  }, [wizardPreset?.linijaKod, wizardPreset?.tip, wizardPreset?.ts, radnaLinija]);
+
+  useEffect(() => {
+    if (wizardPreset?.linijaKod || wizardPreset?.tip === GLAVNI_UNOS_SHEET_TIP.OPSTI) return;
+    if (!radnaLinija || korak !== 1) return;
+    const kod = normalizujKodLinije(radnaLinija);
+    setLinijaKod(kod);
+    setTip(GLAVNI_UNOS_SHEET_TIP.PROJEKAT);
+    setSheetIme(predlogSheetaZaLiniju(kod, "delovi"));
+    setKorak(2);
+  }, [radnaLinija, wizardPreset?.linijaKod, wizardPreset?.tip, korak]);
+
+  const erp = linijaKod.trim().toUpperCase();
+  const tipZaSheet = tipGUzaUnos(tip, erp);
+  const predlog = tip === GLAVNI_UNOS_SHEET_TIP.FINAL
+    ? predlogSheetaZaLiniju(erp, "final")
+    : predlogSheetaZaLiniju(erp, "delovi");
+  const prikazSheetovi = filtrirajSheetovePoTipu(sheetovi, sheetKonfiguracije, tipZaSheet, erp);
 
   const nastaviTip = () => {
-    setSheetIme(predlog);
+    setSheetIme(tip === GLAVNI_UNOS_SHEET_TIP.OPSTI ? "opsti_1" : predlog);
     setKorak(2);
+  };
+
+  const sifraZaNoviSheet = (naziv) => {
+    if (tip === GLAVNI_UNOS_SHEET_TIP.OPSTI) return null;
+    if (/_final\b/i.test(naziv) || tip === GLAVNI_UNOS_SHEET_TIP.FINAL) return null;
+    return erp || null;
   };
 
   const kreirajIliIzaberi = async (ime) => {
@@ -42,11 +107,11 @@ export default function NoviDeoWizard({
       if (!sheetovi.includes(naziv)) {
         await onKreirajSheet?.({
           naziv,
-          sifraVozila: tip === GLAVNI_UNOS_SHEET_TIP.OPSTI ? null : erp.trim().toUpperCase(),
+          sifraVozila: sifraZaNoviSheet(naziv),
         });
       }
-      onIzaberiSheet?.(naziv, { sablonId: sablonId.trim() || null });
-      if (tip === GLAVNI_UNOS_SHEET_TIP.FINAL) {
+      onIzaberiSheet?.(naziv, { sablonId: sablonId.trim() || null, linijaKod: erp || null });
+      if (tip === GLAVNI_UNOS_SHEET_TIP.FINAL && jeLinijaVozila(erp)) {
         onFinalVozilo?.();
       } else {
         onGrupniUnos?.();
@@ -57,18 +122,72 @@ export default function NoviDeoWizard({
     }
   };
 
+  useEffect(() => {
+    if (!wizardPreset?.autoPotvrdi || korak !== 2 || kreira) return;
+    const autoKey = wizardPreset.ts;
+    if (autoPotvrdioRef.current === autoKey) return;
+    const naziv = String(sheetIme || predlog).trim().toLowerCase();
+    if (!naziv) return;
+    autoPotvrdioRef.current = autoKey;
+    kreirajIliIzaberi(naziv);
+  }, [wizardPreset?.autoPotvrdi, wizardPreset?.ts, korak, sheetIme, predlog, kreira]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const renderLinijaSelect = () => (
+    <label style={{ display: "block", marginBottom: 12 }}>
+      <span style={{ color: C.sivi, fontSize: 9 }}>
+        {tip === GLAVNI_UNOS_SHEET_TIP.FINAL ? "Vozilo ili proizvod *" : "Linija (vozilo / proizvod) *"}
+      </span>
+      <select
+        data-testid="wizard-linija-select"
+        value={linijaKod}
+        onChange={(e) => setLinijaKod(e.target.value)}
+        style={{ ...INP, width: "100%", marginTop: 4 }}
+      >
+        <option value="">— izaberi —</option>
+        {vozila.length > 0 && (
+          <optgroup label="Vozila (VOZ-XX)">
+            {vozila.map((t) => (
+              <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+            ))}
+          </optgroup>
+        )}
+        {proizvodi.length > 0 && (
+          <optgroup label="Proizvodi (PRO-XX)">
+            {proizvodi.map((t) => (
+              <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+            ))}
+          </optgroup>
+        )}
+        {ostalo.length > 0 && (
+          <optgroup label="Ostale linije">
+            {ostalo.map((t) => (
+              <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+      {linijaKod && jeLinijaProizvod(linijaKod) && tip === GLAVNI_UNOS_SHEET_TIP.FINAL && (
+        <span style={{ display: "block", color: C.sivi, fontSize: 9, marginTop: 4 }}>
+          Proizvod se ne kontroliše dijagramom — finalna kontrola ide kao običan deo (grupni unos).
+        </span>
+      )}
+    </label>
+  );
+
   return (
-    <div style={{
-      background: C.panel,
-      border: `2px solid ${C.plava}66`,
-      borderRadius: 8,
-      padding: 14,
-      marginBottom: 12,
-    }}
+    <div
+      data-testid="novi-deo-wizard"
+      style={{
+        background: C.panel,
+        border: `2px solid ${C.plava}66`,
+        borderRadius: 8,
+        padding: 14,
+        marginBottom: 12,
+      }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ color: C.tekst, fontSize: 13, fontWeight: 700 }}>
-          Čarobnjak — novi deo (korak {korak}/2)
+          Čarobnjak — novi deo {radnaLinija && korak === 2 ? `(${radnaLinija})` : `(korak ${korak}/2)`}
         </div>
         <button type="button" onClick={onCancel} style={{ background: "none", border: "none", color: C.sivi, cursor: "pointer" }}>
           ✕
@@ -80,15 +199,17 @@ export default function NoviDeoWizard({
           <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10 }}>Izaberi tip unosa:</div>
           <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
             {TIPOVI.map((t) => (
-              <label key={t.id} style={{
-                display: "flex",
-                gap: 10,
-                padding: 10,
-                borderRadius: 6,
-                border: `1px solid ${tip === t.id ? C.plava : C.border}`,
-                background: tip === t.id ? `${C.plava}15` : C.bg,
-                cursor: "pointer",
-              }}
+              <label
+                key={t.id}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  padding: 10,
+                  borderRadius: 6,
+                  border: `1px solid ${tip === t.id ? C.plava : C.border}`,
+                  background: tip === t.id ? `${C.plava}15` : C.bg,
+                  cursor: "pointer",
+                }}
               >
                 <input type="radio" checked={tip === t.id} onChange={() => setTip(t.id)} />
                 <span>
@@ -98,26 +219,23 @@ export default function NoviDeoWizard({
               </label>
             ))}
           </div>
-          {tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && (
-            <label style={{ display: "block", marginBottom: 12 }}>
-              <span style={{ color: C.sivi, fontSize: 9 }}>ERP šifra vozila *</span>
-              <input value={erp} onChange={(e) => setErp(e.target.value.toUpperCase())}
-                placeholder="HAM, NTV, MRAP…" style={{ ...INP, width: "100%", marginTop: 4 }} />
-            </label>
-          )}
+          {tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && renderLinijaSelect()}
           <label style={{ display: "block", marginBottom: 12 }}>
             <span style={{ color: C.sivi, fontSize: 9 }}>Kopiraj strukturu sa dela (opciono)</span>
             <input
               data-testid="wizard-sablon-id"
               value={sablonId}
               onChange={(e) => setSablonId(e.target.value.toUpperCase())}
-              placeholder="npr. HAM-NM-001"
+              placeholder="npr. VOZ-01-NM-001"
               style={{ ...INP, width: "100%", marginTop: 4 }}
             />
           </label>
-          <button type="button" onClick={nastaviTip}
-            disabled={tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !erp.trim()}
-            style={btnStyle(C, C.plava, { disabled: tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !erp.trim() })}>
+          <button
+            type="button"
+            onClick={nastaviTip}
+            disabled={tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !linijaKod.trim()}
+            style={btnStyle(C, C.plava, { disabled: tip !== GLAVNI_UNOS_SHEET_TIP.OPSTI && !linijaKod.trim() })}
+          >
             Dalje → sheet
           </button>
         </>
@@ -126,12 +244,9 @@ export default function NoviDeoWizard({
       {korak === 2 && (
         <>
           <div style={{ color: C.sivi, fontSize: 10, marginBottom: 8 }}>
-            Izaberi postojeći sheet{erp ? ` (${erp})` : ""} ili kreiraj novi:
-            {erp && prikazSheetovi.length < sheetovi.length && (
-              <span style={{ display: "block", fontSize: 9, marginTop: 2 }}>
-                Prikazano {prikazSheetovi.length} od {sheetovi.length} (filtrirano po tipu/ERP)
-              </span>
-            )}
+            {tip === GLAVNI_UNOS_SHEET_TIP.OPSTI
+              ? "Opšti delovi — sheet opsti_1:"
+              : `Sheet za ${erp || "liniju"}:`}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
             {prikazSheetovi.map((s) => (

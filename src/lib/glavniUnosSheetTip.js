@@ -90,10 +90,118 @@ export function checklistPoslePropagacije(analiza) {
   ];
   if (analiza.tip === GLAVNI_UNOS_SHEET_TIP.FINAL) {
     return [
-      "Tip vozila + dijagram (Modul 0 → Celo vozilo)",
+      "Tip vozila + dijagram (Modul 0 → Linije proizvoda)",
       "Defekti po zonama (katalog vozila)",
       ...zajednicko.slice(1),
     ];
   }
   return zajednicko;
+}
+
+export const SHEET_GRUPA = {
+  OPSTI: "opsti",
+  VOZILO: "vozilo",
+  PROIZVOD: "proizvod",
+  LEGACY: "legacy",
+};
+
+/** Parsira voz-01_delovi, pro-02_final, opsti_1, vozilo1… */
+export function metaSheetNaziva(naziv) {
+  const n = String(naziv || "").toLowerCase();
+  let m = n.match(/^voz-(\d+)_(delovi|final)$/);
+  if (m) {
+    return {
+      grupa: SHEET_GRUPA.VOZILO,
+      kod: `VOZ-${String(m[1]).padStart(2, "0")}`,
+      vrsta: m[2],
+      naziv: n,
+    };
+  }
+  m = n.match(/^pro-(\d+)_(delovi|final)$/);
+  if (m) {
+    return {
+      grupa: SHEET_GRUPA.PROIZVOD,
+      kod: `PRO-${String(m[1]).padStart(2, "0")}`,
+      vrsta: m[2],
+      naziv: n,
+    };
+  }
+  if (/^opsti/.test(n)) {
+    return { grupa: SHEET_GRUPA.OPSTI, kod: null, vrsta: "delovi", naziv: n };
+  }
+  return { grupa: SHEET_GRUPA.LEGACY, kod: null, vrsta: null, naziv: n };
+}
+
+/** Grupiše sheetove po liniji — za kompaktan UI umesto 40+ dugmadi. */
+export function grupisiSheetovePoLiniji(sheetovi = []) {
+  const opsti = [];
+  const vozila = new Map();
+  const proizvodi = new Map();
+  const legacy = [];
+
+  for (const naziv of sheetovi) {
+    const meta = metaSheetNaziva(naziv);
+    if (meta.grupa === SHEET_GRUPA.OPSTI) {
+      opsti.push(naziv);
+      continue;
+    }
+    if (meta.grupa === SHEET_GRUPA.VOZILO) {
+      if (!vozila.has(meta.kod)) vozila.set(meta.kod, { delovi: null, final: null });
+      const slot = vozila.get(meta.kod);
+      if (meta.vrsta === "final") slot.final = naziv;
+      else slot.delovi = naziv;
+      continue;
+    }
+    if (meta.grupa === SHEET_GRUPA.PROIZVOD) {
+      if (!proizvodi.has(meta.kod)) proizvodi.set(meta.kod, { delovi: null, final: null });
+      const slot = proizvodi.get(meta.kod);
+      if (meta.vrsta === "final") slot.final = naziv;
+      else slot.delovi = naziv;
+      continue;
+    }
+    legacy.push(naziv);
+  }
+
+  const sortKod = (a, b) => a[0].localeCompare(b[0], undefined, { numeric: true });
+  return {
+    opsti,
+    vozila: [...vozila.entries()].sort(sortKod),
+    proizvodi: [...proizvodi.entries()].sort(sortKod),
+    legacy,
+  };
+}
+
+/** Ključ linije za dropdown: opsti:opsti_1, voz:VOZ-01, pro:PRO-02, legacy:vozilo1 */
+export function kljucLinijeSheeta(meta, naziv) {
+  if (meta.grupa === SHEET_GRUPA.OPSTI) return `opsti:${naziv}`;
+  if (meta.grupa === SHEET_GRUPA.VOZILO) return `voz:${meta.kod}`;
+  if (meta.grupa === SHEET_GRUPA.PROIZVOD) return `pro:${meta.kod}`;
+  return `legacy:${naziv}`;
+}
+
+export function sheetIzKljucaLinije(kljuc, vrsta, grupe) {
+  if (!kljuc) return null;
+  const [tip, id] = kljuc.split(":");
+  if (tip === "opsti") return id;
+  if (tip === "voz") {
+    const par = grupe.vozila.find(([k]) => k === id);
+    return par ? (vrsta === "final" ? par[1].final : par[1].delovi) || par[1].delovi || par[1].final : null;
+  }
+  if (tip === "pro") {
+    const par = grupe.proizvodi.find(([k]) => k === id);
+    return par ? (vrsta === "final" ? par[1].final : par[1].delovi) || par[1].delovi || par[1].final : null;
+  }
+  if (tip === "legacy") return id;
+  return null;
+}
+
+export function kljucLinijeIzSheeta(naziv, grupe) {
+  const meta = metaSheetNaziva(naziv);
+  if (meta.grupa === SHEET_GRUPA.OPSTI) {
+    return grupe.opsti.includes(naziv) ? kljucLinijeSheeta(meta, naziv) : null;
+  }
+  if (meta.grupa === SHEET_GRUPA.VOZILO) return `voz:${meta.kod}`;
+  if (meta.grupa === SHEET_GRUPA.PROIZVOD) return `pro:${meta.kod}`;
+  if (grupe.legacy.includes(naziv)) return `legacy:${naziv}`;
+  return null;
 }

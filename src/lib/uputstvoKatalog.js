@@ -165,6 +165,16 @@ export const UPUTSTVO_DOKUMENTI = [
     obukaPaket: true,
   },
   {
+    id: "linije-voz-pro",
+    kategorija: "koriscenje",
+    naslov: "Linije VOZ / PRO — vozila i proizvodi",
+    opis: "Privremeni kodovi, Brzi start, folderi za tehničke crteže, sync linija",
+    fajl: "/obuka-paket/UPUTSTVO_LINIJE_VOZ_PRO.md",
+    tip: "markdown",
+    uloge: KANCELARIJA,
+    obukaPaket: true,
+  },
+  {
     id: "novi-deo-sifrarnik",
     kategorija: "koriscenje",
     naslov: "Novi deo u Šifrarniku",

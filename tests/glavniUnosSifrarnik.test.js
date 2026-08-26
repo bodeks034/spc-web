@@ -5,6 +5,8 @@ import { stavkeChecklistePoslePropagacije } from "../src/lib/sifrarnikChecklist.
 import {
   GLAVNI_UNOS_SHEET_TIP,
   filtrirajSheetovePoTipu,
+  grupisiSheetovePoLiniji,
+  sheetIzKljucaLinije,
 } from "../src/lib/glavniUnosSheetTip.js";
 import { SABLON_GRESKE_OPSTI, SABLON_GRESKE_VOZILO } from "../src/lib/greskaSablon.js";
 import { statusDeoUSifrarniku, jeDemoIdDeo, nedostajeZaDeo, navigacijaIzStatusDeo, koraciNavigacijeIzStatusDeo, izracunajKompletnostDelova, pickPrviDelimicniDeo, deoOdgovaraNedostajeFilter } from "../src/lib/sifrarnikOdrzavanje.js";
@@ -78,6 +80,26 @@ describe("filtrirajSheetovePoTipu", () => {
   it("filtrira projekat po ERP", () => {
     const f = filtrirajSheetovePoTipu(svi, konfig, GLAVNI_UNOS_SHEET_TIP.PROJEKAT, "HAM");
     expect(f).toEqual(["ham_delovi"]);
+  });
+});
+
+describe("grupisiSheetovePoLiniji", () => {
+  const sheetovi = [
+    "opsti_1", "voz-01_delovi", "voz-01_final", "pro-02_delovi", "pro-02_final", "vozilo1",
+  ];
+
+  it("grupiše VOZ/PRO/opšti/legacy", () => {
+    const g = grupisiSheetovePoLiniji(sheetovi);
+    expect(g.opsti).toEqual(["opsti_1"]);
+    expect(g.vozila[0][0]).toBe("VOZ-01");
+    expect(g.proizvodi[0][0]).toBe("PRO-02");
+    expect(g.legacy).toEqual(["vozilo1"]);
+  });
+
+  it("sheetIzKljucaLinije bira delovi/final", () => {
+    const g = grupisiSheetovePoLiniji(sheetovi);
+    expect(sheetIzKljucaLinije("voz:VOZ-01", "delovi", g)).toBe("voz-01_delovi");
+    expect(sheetIzKljucaLinije("voz:VOZ-01", "final", g)).toBe("voz-01_final");
   });
 });
 

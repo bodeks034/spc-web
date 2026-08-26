@@ -30,6 +30,7 @@ const GO_LIVE_BLOK = [
   "84_sifrarnik_deo_status_mv.sql",
   "85_sifrarnik_audit_retention.sql",
   "86_sifrarnik_mv_scale.sql",
+  "87_tipovi_linije_privremene.sql",
 ];
 
 const PILOT_BLOK = [

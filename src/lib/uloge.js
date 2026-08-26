@@ -86,6 +86,11 @@ export function mozeSifrarnik(uloga) {
   return jeKvalitetIliVise(uloga) || jeAdmin(uloga);
 }
 
+/** Napredno u Modulu 0 — ERP, backup, migracije, moment (samo admin). */
+export function mozeSifrarnikNapredno(uloga) {
+  return jeAdmin(uloga);
+}
+
 /** Modul 2 — NCR/CAPA — kvalitet / šef / admin (zatvaranje, 8D, dispozicija). */
 export function mozeNcrCapa(uloga) {
   return jeKvalitetIliVise(uloga);

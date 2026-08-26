@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { fetchTipoviVozila, upsertTipVozila } from "../../lib/sifrarnikApi.js";
 import { resetTipoviVozilaCache } from "../../lib/useVoziloDijagramSrc.js";
+import { grupisiLinije, jeLinijaProizvod, jeLinijaVozila } from "../../lib/linijaProizvoda.js";
+import { putanjaLinijeRel, putanjaLinijeWeb } from "../../lib/linijaCrteziPaths.js";
+import { syncLinijeCrteziApi } from "../../lib/linijeCrteziSyncApi.js";
 import { FormGrid } from "./LinijePanel.jsx";
 
 const PRAZAN = {
@@ -41,6 +44,14 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
       await upsertTipVozila(forma);
       resetTipoviVozilaCache();
       addToast?.("✓ Tip vozila sačuvan", "uspeh");
+      if (forma?.kod && (jeLinijaVozila(forma.kod) || jeLinijaProizvod(forma.kod))) {
+        try {
+          await syncLinijeCrteziApi(forma.kod);
+          addToast?.(`✓ Folder crteža za ${forma.kod}`, "uspeh");
+        } catch {
+          addToast?.("Folder crteža: pokreni Napredno → Održavanje → Kreiraj folder (ili npm run linije-crtezi:api)", "info");
+        }
+      }
       setForma(null);
       await ucitaj();
     } catch (e) {
@@ -55,15 +66,50 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
     ...(forma?._postojeci ? { kod: { readOnly: true } } : {}),
   };
 
+  const grupe = useMemo(() => grupisiLinije(lista), [lista]);
+
+  const prikaziGrupu = (naslov, stavke, boja) => {
+    if (!stavke.length) return null;
+    return (
+      <>
+        <div style={{
+          padding: "8px 10px", background: `${boja}18`, fontSize: 9, fontWeight: 700,
+          color: C.tekst, borderTop: `1px solid ${C.border}`,
+        }}>
+          {naslov}
+        </div>
+        {stavke.map((t, i) => (
+          <div key={t.kod} style={{
+            display: "grid", gridTemplateColumns: "72px 1fr 1fr 1fr 64px",
+            padding: "9px 10px", borderTop: i ? `1px solid ${C.border}` : "none",
+            fontSize: 11, gap: 8, alignItems: "center",
+            background: voziloKod === t.kod ? `${C.plava}12` : "transparent",
+          }}>
+            <span style={{ fontWeight: 700, color: boja }}>{t.kod}</span>
+            <span>{t.naziv}</span>
+            <span style={{ color: C.sivi, fontSize: 9 }} title={t.dijagram_src || ""}>
+              {t.dijagram_src ? (t.dijagram_src.length > 28 ? `${t.dijagram_src.slice(0, 26)}…` : t.dijagram_src) : "—"}
+            </span>
+            <span style={{ color: C.sivi, fontSize: 9 }}>{t.slika_sop || "—"}</span>
+            <button type="button" onClick={() => { onIzaberiVozilo?.(t.kod); setForma({ ...t, _postojeci: true }); }}
+              style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 9, padding: "4px 6px", cursor: "pointer", color: C.tekst }}>
+              Izmeni
+            </button>
+          </div>
+        ))}
+      </>
+    );
+  };
+
   return (
     <div>
       <div style={{ color: C.sivi, fontSize: 9, marginBottom: 8, lineHeight: 1.5 }}>
-        <strong style={{ color: C.tekst }}>Dijagram za unos</strong> — silueta sa zonama K/M/T (PNG bez krugova).
-        Uvezi sliku ili upiši putanju npr. <code>/vozilo/dijagrami/MRAP.png</code>.
-        {" "}SOP crtež ide u Storage <code>atributivne/</code> (posebno polje).
+        <strong style={{ color: C.tekst }}>Linije proizvoda</strong> — <code>VOZ-XX</code> vozila, <code>PRO-XX</code> samostalni proizvodi.
+        {" "}Kod ostaje isti; <strong>Naziv</strong> slobodno preimenuj kad saznaš pravo ime.
+        {" "}Dijagram (vozilo): silueta sa zonama K/M/T — npr. <code>/vozilo/dijagrami/MRAP.png</code>.
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ color: C.sivi, fontSize: 10 }}>{lista.length} tipova vozila</span>
+        <span style={{ color: C.sivi, fontSize: 10 }}>{lista.length} linija</span>
         <button type="button" onClick={() => setForma({ ...PRAZAN })}
           style={{
             background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent,
@@ -73,6 +119,19 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
         </button>
       </div>
 
+      {forma && (jeLinijaVozila(forma.kod) || jeLinijaProizvod(forma.kod)) && (
+        <div style={{
+          marginBottom: 10, padding: "8px 10px", borderRadius: 6,
+          border: `1px solid ${C.border}`, background: C.hover, fontSize: 9, lineHeight: 1.45, color: C.sivi,
+        }}>
+          <strong style={{ color: C.tekst }}>Folder crteža:</strong>{" "}
+          <code style={{ color: C.tekst }}>{putanjaLinijeRel(forma.kod)}</code>
+          {" "}· dijagram:{" "}
+          <code style={{ color: C.tekst }}>{putanjaLinijeWeb(forma.kod, "dijagram", "silueta.png")}</code>
+          {" "}· sync foldera: Modul 0 → Napredno → Održavanje
+        </div>
+      )}
+
       {forma && (
         <FormGrid
           C={C}
@@ -81,7 +140,7 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
           setForma={setForma}
           fields={[
             ["Kod *", "kod"],
-            ["Naziv *", "naziv"],
+            ["Naziv (prikaz) *", "naziv"],
             ["Prefiks ID dela", "prefiks_id_deo"],
             ["Dijagram (silueta)", "dijagram_src"],
             ["SOP crtež", "slika_sop"],
@@ -105,25 +164,9 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
           }}>
             <span>KOD</span><span>NAZIV</span><span>DIJAGRAM</span><span>SOP</span><span />
           </div>
-          {lista.map((t, i) => (
-            <div key={t.kod} style={{
-              display: "grid", gridTemplateColumns: "72px 1fr 1fr 1fr 64px",
-              padding: "9px 10px", borderTop: i ? `1px solid ${C.border}` : "none",
-              fontSize: 11, gap: 8, alignItems: "center",
-              background: voziloKod === t.kod ? `${C.plava}12` : "transparent",
-            }}>
-              <span style={{ fontWeight: 700, color: C.plava }}>{t.kod}</span>
-              <span>{t.naziv}</span>
-              <span style={{ color: C.sivi, fontSize: 9 }} title={t.dijagram_src || ""}>
-                {t.dijagram_src ? (t.dijagram_src.length > 28 ? `${t.dijagram_src.slice(0, 26)}…` : t.dijagram_src) : "—"}
-              </span>
-              <span style={{ color: C.sivi, fontSize: 9 }}>{t.slika_sop || "—"}</span>
-              <button type="button" onClick={() => { onIzaberiVozilo?.(t.kod); setForma({ ...t, _postojeci: true }); }}
-                style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 9, padding: "4px 6px", cursor: "pointer", color: C.tekst }}>
-                Izmeni
-              </button>
-            </div>
-          ))}
+          {prikaziGrupu("Vozila (VOZ-XX)", grupe.vozila, C.plava)}
+          {prikaziGrupu("Proizvodi (PRO-XX)", grupe.proizvodi, C.zelena || "#22c55e")}
+          {prikaziGrupu("Stare linije (legacy)", grupe.ostalo, C.sivi)}
         </div>
       )}
     </div>

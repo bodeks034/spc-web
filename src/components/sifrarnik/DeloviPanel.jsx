@@ -24,6 +24,7 @@ import {
 } from "../../lib/sifrarnikDeloviMv.js";
 import { obavestiPromenuStatusaSifrarnika, SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
 import { fetchDeloviPoServerFilteru } from "../../lib/sifrarnikDeloviServerFilter.js";
+import { deoPripadaLiniji } from "../../lib/linijaProizvoda.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
@@ -31,7 +32,7 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
-export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal, onBulkBarkod }) {
+export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal, onBulkBarkod, radnaLinija = "" }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guBrojevi, setGuBrojevi] = useState({});
@@ -222,8 +223,13 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   };
 
   const prikaz = useMemo(() => {
-    if (serverPretraga || serverFiltered) return lista;
+    if (serverPretraga || serverFiltered) {
+      return radnaLinija
+        ? lista.filter((d) => deoPripadaLiniji(d, radnaLinija))
+        : lista;
+    }
     return lista.filter((d) => {
+    if (radnaLinija && !deoPripadaLiniji(d, radnaLinija)) return false;
     const opts = optsZaDeo(d);
     if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
     if (samoDelimicni && statusIzMvReda({ ...d, ...d._mv }) === "kompletan") return false;
@@ -234,7 +240,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       (s) => String(s || "").toLowerCase().includes(q),
     );
   });
-  }, [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, serverPretraga, serverFiltered, optsZaDeo]);
+  }, [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, serverPretraga, serverFiltered, optsZaDeo, radnaLinija]);
 
   const demoNaPrikazu = useMemo(
     () => prikaz.filter((d) => jeDemoIdDeo(d.id_deo)).map((d) => d.id_deo),
@@ -310,6 +316,19 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
 
   return (
     <div data-testid="delovi-panel">
+      {radnaLinija && (
+        <div
+          data-testid="delovi-radna-linija-filter"
+          style={{
+            marginBottom: 10, padding: "6px 10px", borderRadius: 6,
+            border: `1px solid ${C.plava}44`, background: `${C.plava}0d`,
+            fontSize: 9, color: C.sivi,
+          }}
+        >
+          Filtrirano po liniji <strong style={{ color: C.tekst }}>{radnaLinija}</strong>
+          {" "}— promeni u „Radim na liniji“ iznad ili izaberi „Sve linije“.
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 12, flexWrap: "wrap" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span style={{ color: C.sivi, fontSize: 9 }}>TIP</span>

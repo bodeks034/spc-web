@@ -326,7 +326,7 @@ export default function GlavniUnosGrupnaForma({
                 ID npr. <strong style={{ color: C.tekst }}>HAM-001</strong> · linija Završna.
                 Jedan red finalne kontrole → propagacija postavlja{" "}
                 <strong style={{ color: C.tekst }}>tip_kontrole=vozilo</strong>.
-                Posle save: dijagram i defekti po zonama u Modul 0 → Celo vozilo.
+                Posle save: dijagram i defekti po zonama u Modul 0 → Linije proizvoda.
               </>
             ) : (
               <>

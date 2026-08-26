@@ -14,6 +14,7 @@ U aplikaciji: **Početni ekran → 📘 Uputstvo → Obuka paket**.
 | **Inženjer / kvalitet — Modul 0** | **`UPUTSTVO_MODUL_SIFARNIK.md`** | Markdown — **glavno uputstvo** |
 | **Isti sadržaj — štampa A4** | `OBUKA_MODUL_SIFARNIK.html` | auto iz MD §X (SYNC blokovi) |
 | **Novi deo korak-po-korak** | `UPUTSTVO_NOVI_DEO_SIFARNIK.md` | procedura |
+| **Linije VOZ / PRO (vozila i proizvodi)** | `UPUTSTVO_LINIJE_VOZ_PRO.md` | crteži + Brzi start |
 | **Operater — Modul 1** | `OBUKA_OPERATER_MODUL1.html` | HTML |
 
 ### Struktura `UPUTSTVO_MODUL_SIFARNIK.md`

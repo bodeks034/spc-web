@@ -119,6 +119,8 @@
     "dokument:go-live-it": "node scripts/generisi-it-go-live-pdf.mjs",
     "sync:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs",
     "sync:uputstvo": "node scripts/sync-uputstvo-public.mjs",
+    "sync:linije-crtezi": "node scripts/sync-linije-crtezi.mjs",
+    "linije-crtezi:api": "node scripts/linije-crtezi-api.mjs",
     "fix:nt-001": "node scripts/fix-nt-001-sifrarnik.mjs && node scripts/sync-sifrarnik-iz-merljivih.mjs && node scripts/pakuj-sifrarnik-folder.mjs",
     "validiraj:nt-001": "node scripts/validiraj-nt-001-uvoz.mjs",
     "pakuj:sifrarnik": "node scripts/sync-sifrarnik-iz-merljivih.mjs && node scripts/pakuj-sifrarnik-folder.mjs",

@@ -49,6 +49,7 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 84 | `84_sifrarnik_deo_status_mv.sql` | Materialized view statusa delova |
 | 85 | `85_sifrarnik_audit_retention.sql` | Arhiva audit loga (12 meseci) |
 | 86 | `86_sifrarnik_mv_scale.sql` | MV skala 10k+ — lista, pretraga, kompletnost, duplikati RPC |
+| 87 | `87_tipovi_linije_privremene.sql` | VOZ-01…10, PRO-01…10 + GU sheetovi |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 

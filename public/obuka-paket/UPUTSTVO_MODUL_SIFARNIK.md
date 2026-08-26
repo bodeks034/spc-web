@@ -32,6 +32,8 @@ Centralna baza **pre proizvodnje**: delovi, dimenzije, greške, RN, linije, meri
 
 Detalj: [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md).
 
+**Linije vozila i proizvoda (VOZ-XX / PRO-XX):** Brzi start u aplikaciji, privremeni nazivi, folderi za crteže — [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md). Folderi: `public/sifrarnik/linije/` · sync: `npm run sync:linije-crtezi`.
+
 **Onboarding:** dok nema 5+ dimenzija prikazani su samo Glavni unos, Pogon mapa, Liste, Održavanje. Posle **Objavi u šifrarnik** otvaraju se svi tabovi.
 
 | Uloga | Modul 0 |

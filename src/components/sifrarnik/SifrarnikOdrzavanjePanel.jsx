@@ -17,6 +17,7 @@ import { formatBatchObjavaDigest } from "../../lib/sifrarnikBatchDigest.js";
 import { ucitajBatchSnap, preuzmiBatchSnapJson } from "../../lib/sifrarnikBatchRollback.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 import SifrarnikAlatiPanel from "./SifrarnikAlatiPanel.jsx";
+import SifrarnikLinijeCrteziPanel from "./SifrarnikLinijeCrteziPanel.jsx";
 
 async function countTable(table, filter = {}) {
   let q = supabase.from(table).select("*", { count: "exact", head: true });
@@ -50,7 +51,7 @@ function UpozorenjeLimit({ C, meta }) {
   );
 }
 
-export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
+export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAdmin = false, radnaLinija = "" }) {
   const [podaci, setPodaci] = useState(null);
   const [duplikati, setDuplikati] = useState([]);
   const [delimicni, setDelimicni] = useState([]);
@@ -473,6 +474,10 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate }) {
       <button type="button" onClick={ucitaj} style={{ ...btnStyle(C, C.hover, { marginTop: 12, fontSize: 9 }) }}>
         ↻ Osveži brojeve
       </button>
+
+      {jeAdmin && (
+        <SifrarnikLinijeCrteziPanel C={C} addToast={addToast} radnaLinija={radnaLinija} />
+      )}
 
       <SifrarnikAlatiPanel C={C} addToast={addToast} onNavigate={onNavigate} />
     </div>

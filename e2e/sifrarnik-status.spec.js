@@ -15,7 +15,11 @@ function imaSifrarnikE2E() {
 async function otvoriSifrarnikTab(page, tab = "delovi") {
   await page.getByTestId("modul-sifrarnik").click();
   await expect(page.getByTestId("sifrarnik-hub")).toBeVisible({ timeout: 20000 });
-  await page.getByTestId(`sifrarnik-tab-${tab}`).click();
+  const tabEl = page.getByTestId(`sifrarnik-tab-${tab}`);
+  if (!(await tabEl.isVisible().catch(() => false))) {
+    await page.getByTestId("sifrarnik-grupa-napredno").click();
+  }
+  await tabEl.click();
 }
 
 test.describe("Modul 0 — status dela", () => {

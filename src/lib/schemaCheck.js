@@ -59,6 +59,7 @@ export const MIGRACIJE_LISTA = [
   { id: "sifrarnik_deo_status_mv", naziv: "MV status delova", fajl: "84_sifrarnik_deo_status_mv.sql" },
   { id: "sifrarnik_audit_retention", naziv: "Audit arhiva", fajl: "85_sifrarnik_audit_retention.sql" },
   { id: "sifrarnik_mv_scale", naziv: "MV skala 10k+ RPC", fajl: "86_sifrarnik_mv_scale.sql" },
+  { id: "tipovi_linije_privremene", naziv: "VOZ/PRO privremene linije", fajl: "87_tipovi_linije_privremene.sql" },
 ];
 
 const PROBES = [
@@ -267,6 +268,48 @@ export async function proveriGoLiveRpc(supabase) {
   };
 }
 
+/** Migracija 87 — seed VOZ/PRO linija + GU sheetovi. */
+export async function proveriTipoviLinijePrivremene(supabase) {
+  try {
+    const { data: tip, error: tipErr } = await supabase
+      .from("tipovi_vozila")
+      .select("kod")
+      .eq("kod", "VOZ-01")
+      .maybeSingle();
+    if (tipErr) {
+      if (greskaNedostaje(tipErr)) {
+        return { id: "tipovi_linije_privremene", ok: false, poruka: tipErr.message };
+      }
+      return { id: "tipovi_linije_privremene", ok: false, poruka: tipErr.message };
+    }
+    if (!tip?.kod) {
+      return {
+        id: "tipovi_linije_privremene",
+        ok: false,
+        poruka: "Nedostaje VOZ-01 u tipovi_vozila — pokreni 87_tipovi_linije_privremene.sql",
+      };
+    }
+    const { data: sheet, error: sheetErr } = await supabase
+      .from("glavni_unos_sheetovi")
+      .select("naziv")
+      .eq("naziv", "voz-01_delovi")
+      .maybeSingle();
+    if (sheetErr && greskaNedostaje(sheetErr)) {
+      return { id: "tipovi_linije_privremene", ok: false, poruka: sheetErr.message };
+    }
+    if (!sheet?.naziv) {
+      return {
+        id: "tipovi_linije_privremene",
+        ok: false,
+        poruka: "Nedostaje sheet voz-01_delovi — pokreni 87_tipovi_linije_privremene.sql",
+      };
+    }
+    return { id: "tipovi_linije_privremene", ok: true, poruka: "OK" };
+  } catch (e) {
+    return { id: "tipovi_linije_privremene", ok: false, poruka: e.message || String(e) };
+  }
+}
+
 export async function proveriSemu(supabase) {
   const byId = {};
   for (const p of PROBES) {
@@ -282,6 +325,7 @@ export async function proveriSemu(supabase) {
   byId.sifrarnik_deo_status_mv_fn = goLiveRpc.sifrarnik_deo_status_mv;
   byId.sifrarnik_audit_retention_fn = goLiveRpc.sifrarnik_audit_retention;
   byId.sifrarnik_mv_scale_fn = goLiveRpc.sifrarnik_mv_scale;
+  byId.tipovi_linije_privremene = await proveriTipoviLinijePrivremene(supabase);
 
   const mapUser = {
     kpi_unos: byId.kpi_unos?.ok,
@@ -345,6 +389,7 @@ export async function proveriSemu(supabase) {
     sifrarnik_deo_status_mv: byId.mv_delovi_status?.ok && byId.sifrarnik_deo_status_mv_fn?.ok,
     sifrarnik_audit_retention: byId.sifrarnik_audit_arhiva?.ok && byId.sifrarnik_audit_retention_fn?.ok,
     sifrarnik_mv_scale: byId.sifrarnik_mv_scale_fn?.ok,
+    tipovi_linije_privremene: byId.tipovi_linije_privremene?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({
@@ -415,6 +460,7 @@ export async function proveriSemu(supabase) {
       m.id === "ocena_dobavljaca" && byId.ocena_dobavljaca,
       m.id === "prijemna_veza_mer" && byId.prijemna_veza_mer,
       m.id === "erp_glavni_sheetovi" && byId.erp_glavni_sheetovi,
+      m.id === "tipovi_linije_privremene" && byId.tipovi_linije_privremene,
     ].filter(Boolean),
   }));
 }

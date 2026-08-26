@@ -49,11 +49,12 @@ import SifrarnikNastaviBanner from "./SifrarnikNastaviBanner.jsx";
 import SifrarnikMigracijeBanner from "./SifrarnikMigracijeBanner.jsx";
 import SifrarnikGlobalPretraga from "./SifrarnikGlobalPretraga.jsx";
 import SifrarnikQuickStart from "./SifrarnikQuickStart.jsx";
+import SifrarnikRadnaLinijaBar from "./SifrarnikRadnaLinijaBar.jsx";
 import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
 
-import { fetchDeloviListaZaRn } from "../../lib/sifrarnikApi.js";
+import { fetchDeloviListaZaRn, fetchTipoviVozila } from "../../lib/sifrarnikApi.js";
 import { supabase } from "../../lib/supabaseClient.js";
 import { useEkran } from "../../layout/useEkran.js";
 import {
@@ -64,8 +65,15 @@ import {
 import { SIFRARNIK_NAV_EVENT, ucitajPendingSifrarnikNav } from "../../lib/sifrarnikNavEvent.js";
 import { setSifrarnikAuditKorisnik } from "../../lib/sifrarnikAuditKorisnik.js";
 import { pokreniSifrarnikStatusPolling } from "../../lib/sifrarnikStatusPolling.js";
+import { GLAVNI_UNOS_SHEET_TIP } from "../../lib/glavniUnosSheetTip.js";
+import {
+  sacuvajRadnuLiniju,
+  ucitajRadnuLiniju,
+} from "../../lib/sifrarnikRadnaLinija.js";
+import { normalizujKodLinije } from "../../lib/linijaProizvoda.js";
+import { mozeSifrarnikNapredno } from "../../lib/uloge.js";
 
-const ONBOARDING_TABOVI = new Set(["glavni_unos", "pogon_mapa", "odrzavanje", "liste"]);
+const ONBOARDING_TABOVI = new Set(["glavni_unos", "pogon_mapa", "liste"]);
 
 
 
@@ -105,7 +113,7 @@ const GRUPE = [
 
       ["kontrolna", "Kontrolna lista"],
 
-      ["odrzavanje", "Održavanje"],
+      ["barkod", "Barkod"],
 
     ],
 
@@ -139,8 +147,6 @@ const GRUPE = [
 
       ["karakteristike", "Dimenzije (pregled)"],
 
-      ["spc_alarm", "SPC alarm %"],
-
       ["sop", "SOP po delu (pregled)"],
 
       ["merila", "Merila / kalibracija"],
@@ -151,17 +157,17 @@ const GRUPE = [
 
   {
 
-    id: "vozilo",
+    id: "linije_proizvoda",
 
-    naziv: "Celo vozilo",
+    naziv: "Linije proizvoda",
 
     tabovi: [
 
-      ["vozila", "Tipovi vozila"],
+      ["vozila", "Tipovi linija"],
 
-      ["defekti", "Defekti vozila"],
+      ["defekti", "Defekti po liniji"],
 
-      ["delovi_vozilo", "Delovi vozila"],
+      ["delovi_vozilo", "Delovi po liniji"],
 
     ],
 
@@ -169,33 +175,23 @@ const GRUPE = [
 
   {
 
-    id: "moment",
+    id: "napredno",
 
-    naziv: "Moment ključ",
-
-    tabovi: [
-
-      ["moment_sifrarnik", "Šifrarnik JOB"],
-
-      ["moment_kljucevi", "Ključevi / kalibracija"],
-
-    ],
-
-  },
-
-  {
-
-    id: "alati",
-
-    naziv: "Alati",
+    naziv: "Napredno",
 
     tabovi: [
 
-      ["barkod", "Barkod"],
+      ["odrzavanje", "Održavanje"],
+
+      ["spc_alarm", "SPC alarm %"],
+
+      ["moment_sifrarnik", "Moment JOB"],
+
+      ["moment_kljucevi", "Moment ključevi"],
 
       ["erp", "ERP uvoz"],
 
-      ["backup", "Backup"],
+      ["backup", "Backup / izvoz"],
 
     ],
 
@@ -221,7 +217,9 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
   const [podtab, setPodtab] = useState("glavni_unos");
 
-  const [voziloKod, setVoziloKod] = useState("MRAP");
+  const [voziloKod, setVoziloKod] = useState(() => ucitajRadnuLiniju() || "MRAP");
+
+  const [radnaLinija, setRadnaLinija] = useState(() => ucitajRadnuLiniju());
 
   const [izabraniDeo, setIzabraniDeo] = useState(null);
 
@@ -230,12 +228,20 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
   const [onboarding, setOnboarding] = useState(false);
 
   const [deloviZaRn, setDeloviZaRn] = useState([]);
+  const [tipoviVozila, setTipoviVozila] = useState([]);
 
 
 
   const idiNaTab = useCallback((tab, ctx = {}) => {
 
-    setNavCtx({ ...ctx, ts: Date.now() });
+    setNavCtx({
+      otvoriWizard: false,
+      wizardLinija: null,
+      wizardTip: null,
+      wizardAutoPotvrdi: false,
+      ...ctx,
+      ts: Date.now(),
+    });
 
     if (ctx.idDeo) {
       setIzabraniDeo({
@@ -244,9 +250,76 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
       });
     }
 
+    const lk = normalizujKodLinije(ctx.radnaLinijaFilter || ctx.linijaKod || ctx.voziloKod || "");
+    if (lk) {
+      setRadnaLinija(lk);
+      sacuvajRadnuLiniju(lk);
+      setVoziloKod(lk);
+    }
+
     setPodtab(tab);
 
   }, []);
+
+
+
+  const promeniRadnuLiniju = useCallback((kod) => {
+
+    const k = normalizujKodLinije(kod);
+
+    setRadnaLinija(k);
+
+    sacuvajRadnuLiniju(k);
+
+    if (k) {
+
+      setVoziloKod(k);
+
+      setPodtab("glavni_unos");
+
+    }
+
+  }, []);
+
+
+
+  const otvoriNoviDeoNaLiniji = useCallback((linijaKod) => {
+
+    promeniRadnuLiniju(linijaKod);
+
+    idiNaTab("glavni_unos", {
+
+      otvoriWizard: true,
+
+      wizardLinija: linijaKod || null,
+
+      wizardTip: GLAVNI_UNOS_SHEET_TIP.PROJEKAT,
+
+      wizardAutoPotvrdi: true,
+
+    });
+
+  }, [idiNaTab, promeniRadnuLiniju]);
+
+
+
+  const preimenujRadnuLiniju = useCallback((linijaKod) => {
+
+    if (linijaKod) promeniRadnuLiniju(linijaKod);
+
+    idiNaTab("vozila");
+
+  }, [idiNaTab, promeniRadnuLiniju]);
+
+
+
+  const quickStartNavigate = useCallback((tab, ctx = {}) => {
+
+    if (ctx.wizardLinija) promeniRadnuLiniju(ctx.wizardLinija);
+
+    idiNaTab(tab, ctx);
+
+  }, [idiNaTab, promeniRadnuLiniju]);
 
 
 
@@ -351,6 +424,10 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
   useEffect(() => { ucitajDeloveRn(); }, [ucitajDeloveRn]);
 
+  useEffect(() => {
+    fetchTipoviVozila().then(setTipoviVozila).catch(() => setTipoviVozila([]));
+  }, []);
+
 
 
   const otvoriBarkod = (deo) => {
@@ -363,19 +440,20 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
 
 
+  const jeAdminSifrarnik = mozeSifrarnikNapredno(korisnik?.uloga);
+
   const aktivnaGrupa = GRUPE.find((g) => g.tabovi.some(([id]) => id === podtab)) || GRUPE[0];
 
-  const prikazGrupe = onboarding
-
+  const bazaGrupe = onboarding
     ? GRUPE.map((g) => ({
-
       ...g,
-
       tabovi: g.tabovi.filter(([id]) => ONBOARDING_TABOVI.has(id)),
-
     })).filter((g) => g.tabovi.length)
-
     : GRUPE;
+
+  const prikazGrupe = jeAdminSifrarnik
+    ? bazaGrupe
+    : bazaGrupe.filter((g) => g.id !== "napredno");
 
 
 
@@ -445,13 +523,31 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
       )}
 
-      <SifrarnikMigracijeBanner C={C} />
+      {jeAdminSifrarnik && <SifrarnikMigracijeBanner C={C} />}
 
-      <SifrarnikQuickStart C={C} onNavigate={idiNaTab} skriveno={onboarding} />
+      {!onboarding && (
+        <SifrarnikRadnaLinijaBar
+          C={C}
+          tipoviVozila={tipoviVozila}
+          radnaLinija={radnaLinija}
+          onPromeni={promeniRadnuLiniju}
+          onNoviDeo={otvoriNoviDeoNaLiniji}
+          onPreimenuj={preimenujRadnuLiniju}
+        />
+      )}
+
+      <SifrarnikQuickStart
+        C={C}
+        onNavigate={quickStartNavigate}
+        tipoviVozila={tipoviVozila}
+        skriveno={onboarding}
+        radnaLinija={radnaLinija}
+        prikaziTehnicko={jeAdminSifrarnik}
+      />
 
       <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={onboarding} />
 
-      <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} />
+      <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} radnaLinija={radnaLinija} />
 
       <div style={{ marginBottom: 12, flexShrink: 0 }}>
 
@@ -480,6 +576,8 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             key={g.id}
 
             type="button"
+
+            data-testid={`sifrarnik-grupa-${g.id}`}
 
             onClick={() => setPodtab(g.tabovi[0][0])}
 
@@ -566,6 +664,8 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             korisnik={korisnik}
             onNavigate={idiNaTab}
             navSignal={navCtx}
+            tipoviVozilaHub={tipoviVozila}
+            radnaLinija={radnaLinija}
           />
         )}
 
@@ -584,11 +684,19 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             onNavigacijaStatus={(tab, ctx) => idiNaTab(tab, ctx)}
             navSignal={navCtx}
             onBulkBarkod={(ids) => idiNaTab("barkod", { bulkIds: ids })}
+            radnaLinija={radnaLinija}
           />
         )}
 
         {podtab === "odrzavanje" && (
-          <SifrarnikOdrzavanjePanel C={C} addToast={addToast} onNavigate={idiNaTab} onOtvoriModul={onOtvoriModul} />
+          <SifrarnikOdrzavanjePanel
+            C={C}
+            addToast={addToast}
+            onNavigate={idiNaTab}
+            onOtvoriModul={onOtvoriModul}
+            jeAdmin={jeAdminSifrarnik}
+            radnaLinija={radnaLinija}
+          />
         )}
 
         {podtab === "rn" && <RadniNaloziPanel C={C} addToast={addToast} sviDelovi={deloviZaRn} />}
