@@ -1,6 +1,6 @@
-# Uputstvo — novo vozilo u Šifrarniku (Celo vozilo)
+# Uputstvo — novo vozilo u Šifrarniku (Linije proizvoda)
 
-Kompletna procedura za **inženjera / kvalitet** kako da uvede novi tip vozila u SPC (Modul 0 → Celo vozilo), da bi na **atributivnom unosu** radio dijagram sa zonama K/M/T/I/E/F i završna kontrola (**pogon F**).
+Kompletna procedura za **inženjera / kvalitet** kako da uvede novi tip vozila u SPC (Modul 0 → **Linije proizvoda**), da bi na **atributivnom unosu** radio dijagram sa zonama K/M/T/I/E/F i završna kontrola (**pogon F**).
 
 Primer kroz celo uputstvo: **HAM** (civilni hamer). Za novi model zameni `HAM` svojim kodom (npr. `PICKUP`, `SUV2`).
 
@@ -65,7 +65,7 @@ HAMER: "/vozilo/dijagrami/ham.png",
 
 ## Korak 2 — Tipovi vozila (Modul 0)
 
-**Put:** Modul 0 — Šifrarnik → grupa **Celo vozilo** → tab **Tipovi vozila** → **+ Novi tip**
+**Put:** Modul 0 — Šifrarnik → grupa **Linije proizvoda** → tab **Tipovi linija** → **+ Novi tip**
 
 | Polje u UI | Obavezno | Primer HAM | Napomena |
 |------------|----------|------------|----------|
@@ -246,7 +246,7 @@ Unos
 | `public/vozilo/dijagrami/CITAJ_ME.md` | Format siluete, viewBox, zamena fajla |
 | `UPUTSTVO_MODUL_SIFARNIK.md` §9 | Tipovi / Defekti / Delovi vozila |
 | `UPUTSTVO_NOVI_DEO_SIFARNIK.md` | Novi **deo** (komponenta), ne vozilo |
-| [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) | Grupa Celo vozilo (§ IV.4) |
+| [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) | Grupa Linije proizvoda (§ IV.4) |
 | `UPUTSTVO_PRAVLJENJE_BARKODOVA.md` | Etikete za ID dela |
 
 ---

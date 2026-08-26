@@ -62,7 +62,7 @@ Pomoćni podaci (ne unosiš svaki dan):
 
 1. **+ Novi deo** — tip **3** (npr. `ham_final`) + ERP `HAM` → automatski **Final vozilo** unos.
 2. ID npr. `HAM-001`, **Objavi u šifrarnik**.
-3. Modul 0 → **Celo vozilo:**
+3. Modul 0 → **Linije proizvoda:**
    - Tip vozila + dijagram (`public/vozilo/dijagrami/`)
    - Defekti po zonama
 4. Test atributivnog unosa (dijagram + zone).
@@ -140,14 +140,16 @@ Delovi **van** trenutnog sheeta **ostaju** u šifrarniku — sync ih ne briše.
 
 ## Checklist posle propagacije
 
-U aplikaciji se prikazuje **zeleni panel** sa klikabilnim stavkama (ne samo tekst u toast poruci).
+U aplikaciji se prikazuje **zeleni panel** sa klikabilnim stavkama — svaka vodi na odgovarajući tab Modula 0. Stavke uključuju **kod linije** kad je sheet vezan za VOZ/PRO (npr. „Katalog grešaka — VOZ-03“, „Defekti po liniji — VOZ-03“).
 
 | Tip | Još uradi u Modulu 0 |
 |-----|----------------------|
 | **Deo (komponenta)** | Delovi (pregled) · Katalog grešaka · Crtež · Pogon mapa · Barkod · test Modul 1 |
-| **Celo vozilo** | Tip vozila + dijagram · Defekti po zonama · Barkod · test dijagrama |
+| **Final vozilo / linija** | Tip linije + dijagram · Defekti po liniji · Delovi po liniji · Barkod · test dijagrama |
 
 Dugme **+ Šablon grešaka (5 tipičnih)** u checklist panelu otvara katalog sa unapred popunjenim ID-om.
+
+Više: [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md) §VIII.
 
 ---
 

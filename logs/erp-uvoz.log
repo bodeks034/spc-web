@@ -148,3 +148,9 @@
 [2026-08-22T09:47:43.150Z] [INFO] START erp-uvoz
 [2026-08-22T09:47:46.526Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
 [2026-08-22T09:47:46.527Z] [INFO] OK erp-uvoz
+[2026-08-23T18:10:53.163Z] [INFO] START erp-uvoz
+[2026-08-23T18:12:05.776Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-23T18:12:05.782Z] [INFO] OK erp-uvoz
+[2026-08-26T16:32:29.162Z] [INFO] START erp-uvoz
+[2026-08-26T16:35:09.536Z] [INFO] Nema CSV za uvoz u C:\mix\spc-web\erp-drop\incoming — preskačem.
+[2026-08-26T16:35:10.340Z] [INFO] OK erp-uvoz

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import { supabase } from "../lib/supabaseClient.js";
 
-import { ucitajTrasabilitet, preuzmiTrasabilitetPdf, filtrirajLanacPoKomadu } from "../lib/trasabilitetIzvestaj.js";
+import { ucitajTrasabilitet, preuzmiTrasabilitetPdf, preuzmiTrasabilitetPdfPoLotu, filtrirajLanacPoKomadu } from "../lib/trasabilitetIzvestaj.js";
 import { getAktivnaSesija } from "../lib/spcSesija.js";
 import { fetchKpiFilterOpcijeZaDeo } from "../lib/kpiUnos.js";
 import { procitajNavigacijuTrasabilitet } from "../lib/workflowAkcije.js";
@@ -482,7 +482,6 @@ export default function TrasabilitetPanel({ C, addToast, modul = "merljive", poc
             }
             setPdfBusy(true);
             try {
-              const { preuzmiTrasabilitetPdfPoLotu } = await import("../lib/trasabilitetIzvestaj.js");
               await preuzmiTrasabilitetPdfPoLotu(podaci, vinLot.trim());
               addToast?.("ISO PDF po lotu preuzet", "uspeh");
             } catch (e) {

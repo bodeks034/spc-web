@@ -5,7 +5,7 @@ export const MerljiveAnalitikaDashboard = lazy(() => import("../spc/MerljiveAnal
 export const InzenjerExcelPanel = lazy(() => import("../../InzenjerExcelPanel.jsx"));
 export const MerilaMsaHub = lazy(() => import("../MerilaMsaHub.jsx"));
 export const KontrolniPlanPanel = lazy(() => import("../KontrolniPlanPanel.jsx"));
-export const FaiOdobrenjePanel = lazy(() => import("../FaiOdobrenjePanel.jsx"));
+export { default as FaiOdobrenjePanel } from "../FaiOdobrenjePanel.jsx";
 export const RadniNaloziPanel = lazy(() => import("../RadniNaloziPanel.jsx"));
 export const PfmeaCpModul = lazy(() => import("../PfmeaCpModul.jsx"));
 export const EskalacijePanel = lazy(() => import("../kvalitet/EskalacijePanel.jsx"));

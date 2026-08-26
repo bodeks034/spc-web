@@ -1,6 +1,6 @@
 # Modul 0 — Šifrarnik
 
-**Kompletno uputstvo** — 6 grupa, 25+ tabova. Unos master podataka, puštanje novog dela, go-live i održavanje.
+**Kompletno uputstvo** — 5 grupa tabova. Unos master podataka, puštanje novog dela, go-live i održavanje.
 
 **Ulaz:** Početni ekran → **Modul 0 — Šifrarnik** (📋) · **Uloge:** kvalitet, šef, admin · **Štampa:** `OBUKA_MODUL_SIFARNIK.html` (sync: `npm run sync:uputstvo`).
 
@@ -32,14 +32,17 @@ Centralna baza **pre proizvodnje**: delovi, dimenzije, greške, RN, linije, meri
 
 Detalj: [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md).
 
-**Linije vozila i proizvoda (VOZ-XX / PRO-XX):** Brzi start u aplikaciji, privremeni nazivi, folderi za crteže — [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md). Folderi: `public/sifrarnik/linije/` · sync: `npm run sync:linije-crtezi`.
+**Linije VOZ / PRO:** [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md) — **Radim na liniji**, Brzi start, Tipovi linija, folderi crteža.
 
-**Onboarding:** dok nema 5+ dimenzija prikazani su samo Glavni unos, Pogon mapa, Liste, Održavanje. Posle **Objavi u šifrarnik** otvaraju se svi tabovi.
+**Radni režim:** padajući meni **Radim na liniji** na vrhu Modula 0 — fokusira Glavni unos, Brzi start, Delovi (pregled) i globalnu pretragu na jednu `VOZ-XX` / `PRO-XX` liniju.
 
-| Uloga | Modul 0 |
-|-------|---------|
-| Kvalitet, šef, admin | Da |
-| Kontrolor, operater | Ne |
+**Onboarding:** dok nema 5+ dimenzija prikazani su samo **Glavni unos**, **Pogon mapa**, **Liste**. Posle **Objavi u šifrarnik** otvaraju se sve grupe (osim **Napredno** — samo admin).
+
+| Uloga | Modul 0 | Napredno (ERP, Održavanje…) |
+|-------|---------|----------------------------|
+| Kvalitet, šef | Da | Ne |
+| Admin | Da | Da |
+| Kontrolor, operater | Ne | Ne |
 
 ---
 
@@ -49,9 +52,9 @@ Detalj: [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md).
 |-------|--------|-----|
 | Tabovi | forma | Modul 0 |
 | **Glavni unos** | app / `.xlsx` | Osnovno → **Objavi u šifrarnik** |
-| **ERP uvoz** | **samo `.csv`** | Alati → ERP uvoz |
+| **ERP uvoz** | **samo `.csv`** | Napredno → ERP uvoz (admin) |
 | RN brzi uvoz | `.csv` | Radni nalozi |
-| Backup | izvoz `.xlsx` | Alati — nema uvoza |
+| Backup | izvoz `.xlsx` | Napredno → Backup (admin) |
 
 **Ne u Modulu 0:** log merenja (Modul 1); `.xlsx` u ERP tabu; master Excel kroz UI.
 
@@ -65,12 +68,13 @@ Detalji: [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md) · [UPUTSTVO_ERP_K
 
 | Grupa | Tabovi |
 |-------|--------|
-| **Osnovno** | Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Dobavljači · Linije · Mašine · Smene · Ciljevi · Kontrolna lista · **Održavanje** |
+| **Osnovno** | Glavni unos · Pogon mapa · Linija↔deo · Liste · Delovi · RN · Kupci · Dobavljači · Linije · Mašine · Smene · Ciljevi · Kontrolna lista · **Barkod** |
 | **Atributivne** | Greške · Crtež · Pogoni po delu |
-| **Merljive** | Dimenzije · SPC alarm · SOP · Merila |
-| **Celo vozilo** | Tipovi · Defekti · Delovi vozila |
-| **Moment ključ** | JOB · Ključevi |
-| **Alati** | Barkod · ERP uvoz · Backup |
+| **Merljive** | Dimenzije · SOP · Merila |
+| **Linije proizvoda** | Tipovi linija · Defekti po liniji · Delovi po liniji |
+| **Napredno** *(admin)* | Održavanje · SPC alarm % · Moment JOB · Moment ključevi · ERP uvoz · Backup |
+
+Detaljno VOZ/PRO i radni režim: [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md).
 
 ---
 
@@ -121,7 +125,9 @@ Posle objave prikazuje se **checklist** (klik na stavku otvara tab; opcija **+ �
 | Kupac | `kupci` |
 | Radni nalog | `radni_nalozi` |
 
-**Posle propagacije ručno:** katalog grešaka, crtež dela; za vozilo — dijagram + defekti po zonama (grupa Celo vozilo).
+**Posle propagacije ručno:** katalog grešaka, crtež dela; za final — dijagram + defekti po zonama (grupa **Linije proizvoda**). Checklist panel nakon objave vodi na tabove sa **imenom linije** (npr. „Defekti po liniji — VOZ-03“).
+
+**Kompaktan birač sheeta:** kod više linija (VOZ/PRO 01–10+) — dropdown linija + Komponente/Final umesto desetina sheet tabova. Vidi [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md) §V.
 
 Puna dokumentacija: [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md).
 
@@ -505,13 +511,15 @@ Na liniji: digitalna merila se vezuju preko vendor profila; istekla kalibracija 
 
 ---
 
-### IV.4 Celo vozilo
+### IV.4 Linije proizvoda
 
-Za kontrolu **celog vozila** (ne pojedinačnog dela).
+Za **tip linije** (VOZ/PRO ili legacy MRAP…) — dijagram, defekti finalne kontrole, delovi `tip_kontrole=vozilo`.
 
 **Kompletna procedura za novo vozilo:** `UPUTSTVO_NOVO_VOZILO_SIFARNIK.md` (dijagram → tip → deo → defekti → pogon F → test).
 
-#### IV.4.1 Tipovi vozila
+**VOZ/PRO model:** [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md).
+
+#### IV.4.1 Tipovi linija
 
 **Tabela:** `tipovi_vozila`
 
@@ -527,7 +535,7 @@ ERP CSV: `tipovi_vozila.csv`.
 
 ---
 
-#### IV.4.2 Defekti vozila
+#### IV.4.2 Defekti po liniji
 
 **Tabela:** `katalog_gresaka_vozilo`
 
@@ -537,7 +545,7 @@ Koristi se u vozilo-modu atributivnog unosa (zona na dijagramu).
 
 ---
 
-#### IV.4.3 Delovi vozila
+#### IV.4.3 Delovi po liniji
 
 **Tabela:** `delovi` gde `tip_kontrole = 'vozilo'`
 
@@ -545,11 +553,37 @@ Delovi vezani za tip vozila — ID, naziv, slika, kom za kontrolu.
 
 ---
 
-### IV.5 Moment ključ
+### IV.5 Napredno *(samo admin)*
 
-Za montažu sa **digitalnim moment ključevima** (Atlas, itd.).
+Tabovi: **Održavanje** · **SPC alarm %** · **Moment JOB** · **Moment ključevi** · **ERP uvoz** · **Backup**.
 
-#### IV.5.1 Šifrarnik JOB
+Inženjer (kvalitet, šef) vidi **4 grupe** — Osnovno, Atributivne, Merljive, Linije proizvoda.
+
+#### IV.5.1 Održavanje
+
+Statistika kompletnosti, batch objava delova, duplikati dimenzija, CSV delimičnih delova, audit alati. Panel **Folderi crteža (VOZ/PRO)** — kreiranje `public/sifrarnik/linije/` preko lokalnog API-ja (`npm run linije-crtezi:api`).
+
+#### IV.5.2 Barkod *(u grupi Osnovno)*
+
+**Svrha:** Profili etiketa za štampu barkoda po delu.
+
+**Tabela:** `barkod_profili`
+
+| Polje | Značenje |
+|-------|----------|
+| id_deo | Deo |
+| format | id / id_rn / puna |
+| tip_koda | QR, Code128… |
+| sadrzaj_barkoda | Šta je u kodu |
+| radni_nalog | Opciono RN u kodu |
+
+**Akcije:** pregled, Sačuvaj profil, **Štampaj**.
+
+Detalji: [UPUTSTVO_PRAVLJENJE_BARKODOVA.md](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md).
+
+#### IV.5.3 Moment ključ
+
+#### IV.5.3.1 Šifrarnik JOB
 
 Unutrašnji pod-tabovi:
 
@@ -567,7 +601,7 @@ Na liniji (Modul 1 → tab MOMENT): operater prati sekvencu koraka sa ključem.
 
 ---
 
-#### IV.5.2 Ključevi / kalibracija
+#### IV.5.3.2 Ključevi / kalibracija
 
 Isti panel kao **Merila / kalibracija** — opšti registar merila uključujući moment ključeve.
 
@@ -575,31 +609,7 @@ Za **konfiguraciju sekvence** koristite pod-tab **Šifrarnik JOB**.
 
 ---
 
-### IV.6 Alati
-
-#### IV.6.1 Barkod
-
-**Svrha:** Profili etiketa za štampu barkoda po delu.
-
-**Tabela:** `barkod_profili`
-
-| Polje | Značenje |
-|-------|----------|
-| id_deo | Deo |
-| format | id / id_rn / puna |
-| tip_koda | QR, Code128… |
-| sadrzaj_barkoda | Šta je u kodu |
-| radni_nalog | Opciono RN u kodu |
-
-**Akcije:** pregled, Sačuvaj profil, **Štampaj**.
-
-Na liniji: skener čita barkod → otvara deo (i RN ako je u profilu).
-
-Detalji: [UPUTSTVO_PRAVLJENJE_BARKODOVA.md](./UPUTSTVO_PRAVLJENJE_BARKODOVA.md).
-
----
-
-#### IV.6.2 ERP uvoz ⭐ (CSV)
+#### IV.5.4 ERP uvoz ⭐ (CSV)
 
 **Svrha:** Masovni dnevni uvoz iz SAP / Pantheon — **bez Excela**.
 
@@ -641,7 +651,7 @@ Primeri CSV: folder `erp-drop/examples/`.
 
 ---
 
-#### IV.6.3 Backup
+#### IV.5.5 Backup
 
 **Samo izvoz** — preuzima `SPC_sifrarnik_backup_{datum}.xlsx`.
 
