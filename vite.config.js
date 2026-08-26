@@ -34,6 +34,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],
+    setupFiles: ['tests/vitest.setup.js'],
   },
   // Opciona jača obfuskacija (npm i -D vite-plugin-javascript-obfuscator):
   // plugins: [react(), obfuscator({ apply: 'build' })],
