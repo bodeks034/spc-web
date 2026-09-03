@@ -13,6 +13,7 @@ import BrendingNaslov from "./BrendingNaslov.jsx";
 import AppFooter from "./AppFooter.jsx";
 import ZajednickiDashboard from "./ZajednickiDashboard.jsx";
 import LinijaAlarmiPocetna from "./LinijaAlarmiPocetna.jsx";
+import DanasTokPanel from "./DanasTokPanel.jsx";
 import SchemaAlarmBanner from "./SchemaAlarmBanner.jsx";
 import KpiDoradaHub from "./KpiDoradaHub.jsx";
 import LicencaStatusPanel from "./LicencaStatusPanel.jsx";
@@ -148,7 +149,7 @@ export default function PocetniEkran({
     modulBroj: 99,
     ikon: "🔧",
     naziv: "Admin Panel",
-    opis: "Excel ↔ Supabase · radnici · prekidi · reset smene",
+    opis: "Excel ↔ Supabase · radnici · prekidi · go-live",
     boja: C.zuta,
     dostupan: modulDozvoljen(licenca, "admin"),
     key: "admin",
@@ -330,6 +331,15 @@ export default function PocetniEkran({
           </div>
         )}
 
+        <DanasTokPanel
+          C={C}
+          korisnik={korisnik}
+          licenca={licenca}
+          onIzbor={onIzbor}
+          onWorkflow={workflowHandlers}
+          smena={pocetnaSmena}
+        />
+
         {mozePregledSemeAlarm(korisnik.uloga) && (
           <div style={{ width: "100%", maxWidth: 960 }}>
             <SchemaAlarmBanner
@@ -374,7 +384,7 @@ export default function PocetniEkran({
           </div>
         )}
 
-        {vidiLinijaAlarme && <LinijaAlarmiPocetna C={C} />}
+        {vidiLinijaAlarme && <LinijaAlarmiPocetna C={C} onWorkflow={workflowHandlers} />}
 
         {PREKIDAC_MODULA.length > 0 && (
           <div style={{

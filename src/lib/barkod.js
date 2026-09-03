@@ -69,10 +69,22 @@ export function obradiEnterIdPolja(sirovo, { obradiBarkod, potvrdiId } = {}) {
   potvrdiId?.(s);
 }
 
+/** Atributi za polja sa šiframa (ID deo, radni nalog, serija) na tabletu/telefonu. */
+export const ATRIBUTI_TASTATURE_SIFRA = {
+  inputMode: "text",
+  autoCapitalize: "characters",
+  autoCorrect: "off",
+  autoComplete: "off",
+  spellCheck: false,
+};
+
 /** Handleri za <input> ID — USB čitač + ručni unos + Enter. */
 export function idBarkodInputHandleri(obradiBarkod, { postaviId, potvrdiId, upperCase = false } = {}) {
   const norm = (v) => (upperCase ? String(v ?? "").toUpperCase() : String(v ?? ""));
   return {
+    // Šifre tipa 5501-A nisu rečenice: bez ovoga mobilna tastatura ih
+    // autokorektuje i kapitalizuje, a predlozi zaklanjaju polje.
+    ...ATRIBUTI_TASTATURE_SIFRA,
     onChange: (e) => {
       const v = e.target.value;
       if (izgledaKaoBarkod(v)) {

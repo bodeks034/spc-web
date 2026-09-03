@@ -1,7 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "../../lib/supabaseClient.js";
-import { fetchZajednickiDashboard } from "../../lib/zajednickiDashboard.js";
 import { useAnalitikaFilter } from "../../lib/AnalitikaFilterContext.jsx";
+import { useDashboardPodaci } from "../../lib/useDashboardPodaci.js";
 
 function Chip({ label, value, boja, C, onClick, title }) {
   const klik = typeof onClick === "function";
@@ -31,35 +29,12 @@ function Chip({ label, value, boja, C, onClick, title }) {
 /** Kompaktni KPI u hederu — samo na PREGLED tabu. */
 export default function AnalitikaMiniKpi({ C, modul, onNavigacija, kompakt }) {
   const filter = useAnalitikaFilter();
-  const [podaci, setPodaci] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const ucitaj = useCallback(async () => {
-    setLoading(true);
-    try {
-      const d = await fetchZajednickiDashboard(supabase, {
-        period: Number(filter?.period || 7),
-        idDeo: filter?.idDeo || undefined,
-        linija: filter?.linija || undefined,
-        smena: filter?.smena || undefined,
-      });
-      setPodaci(d);
-    } catch {
-      setPodaci(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [filter?.period, filter?.idDeo, filter?.linija, filter?.smena]);
-
-  useEffect(() => { ucitaj(); }, [ucitaj]);
-
-  useEffect(() => {
-    const ch = supabase.channel("analitika_mini_kpi")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" }, ucitaj)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "merenja_varijabilna" }, ucitaj)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [ucitaj]);
+  const { podaci, loading, greska, osvezavaSe, osvezi } = useDashboardPodaci({
+    period: Number(filter?.period || 7),
+    idDeo: filter?.idDeo || "",
+    linija: filter?.linija || "",
+    smena: filter?.smena ?? "",
+  });
 
   const nav = onNavigacija
     ? (dest) => () => onNavigacija(dest)
@@ -81,6 +56,10 @@ export default function AnalitikaMiniKpi({ C, modul, onNavigacija, kompakt }) {
       <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 1, flexShrink: 0 }}>PREGLED</span>
       {loading ? (
         <span style={{ color: C.border, fontSize: 10 }}>…</span>
+      ) : greska && !podaci ? (
+        <span role="alert" style={{ color: C.crvena, fontSize: 10 }} title={greska}>
+          greška — klikni ↻
+        </span>
       ) : !podaci ? (
         <span style={{ color: C.border, fontSize: 10 }}>—</span>
       ) : (
@@ -144,9 +123,10 @@ export default function AnalitikaMiniKpi({ C, modul, onNavigacija, kompakt }) {
       )}
       <button
         type="button"
-        onClick={ucitaj}
-        disabled={loading}
+        onClick={osvezi}
+        disabled={osvezavaSe}
         title="Osveži"
+        aria-label="Osveži KPI"
         style={{
           flexShrink: 0,
           marginLeft: "auto",

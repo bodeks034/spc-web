@@ -9,6 +9,7 @@ import {
   queueCounts,
   getStorageMode,
 } from "../lib/offlineQueue.js";
+import { Modal } from "./ui/SpcUi.jsx";
 
 export default function OfflineSyncPanel({
   supabase,
@@ -20,6 +21,9 @@ export default function OfflineSyncPanel({
   kompakt,
 }) {
   const [queue, setQueue] = useState([]);
+  // Nativni confirm() je sitan dijalog koji se u rukavicama lako promaši —
+  // za brisanje nesinhronizovanih zapisa ide pravi modal.
+  const [potvrdaBrisanja, setPotvrdaBrisanja] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [storage, setStorage] = useState("…");
   const [online, setOnline] = useState(
@@ -142,13 +146,7 @@ export default function OfflineSyncPanel({
           Osveži
         </button>
         {counts.total > 0 && (
-          <button type="button" onClick={() => {
-            if (window.confirm("Obrisati ceo offline red? Podaci se gube.")) {
-              clearQueue();
-              refresh();
-              addToast?.("Offline red obrisan", "info");
-            }
-          }}
+          <button type="button" onClick={() => setPotvrdaBrisanja(true)}
             style={{
               background: "none", border: `1px solid ${C.crvena}`, borderRadius: 6,
               color: C.crvena, fontSize: 10, padding: "8px 12px", cursor: "pointer",
@@ -157,6 +155,22 @@ export default function OfflineSyncPanel({
           </button>
         )}
       </div>
+
+      {potvrdaBrisanja && (
+        <Modal
+          C={C}
+          tip="greska"
+          poruka={`Obrisati ceo offline red?\n\n${counts.total} paket(a), ~${counts.stavki} stavki još nije poslato u bazu. Ovi podaci se trajno gube.`}
+          okTekst="Obriši trajno"
+          onOK={() => {
+            clearQueue();
+            refresh();
+            setPotvrdaBrisanja(false);
+            addToast?.("Offline red obrisan", "info");
+          }}
+          onOtkazati={() => setPotvrdaBrisanja(false)}
+        />
+      )}
 
       {!queue.length ? (
         <div style={{ color: C.border, fontSize: 11, textAlign: "center", padding: 12 }}>

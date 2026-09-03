@@ -1,32 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabaseClient.js";
-import { fetchZajednickiDashboard } from "../lib/zajednickiDashboard.js";
+import { useState } from "react";
+import { useDashboardPodaci } from "../lib/useDashboardPodaci.js";
 import OperativniAlarmiStrip from "./OperativniAlarmiStrip.jsx";
 
 /** Kontrolor na početnom ekranu — samo kritični alarmi, bez punog pregleda proizvodnje. */
 export default function LinijaAlarmiPocetna({ C }) {
-  const [alarmi, setAlarmi] = useState([]);
+  const { podaci } = useDashboardPodaci({ period: 1 });
+  const alarmi = podaci?.alarmi || [];
   const [sakrij, setSakrij] = useState(false);
-
-  const ucitaj = useCallback(async () => {
-    try {
-      const d = await fetchZajednickiDashboard(supabase, { period: 1 });
-      setAlarmi(d?.alarmi || []);
-    } catch {
-      setAlarmi([]);
-    }
-  }, []);
-
-  useEffect(() => { ucitaj(); }, [ucitaj]);
-
-  useEffect(() => {
-    const ch = supabase.channel("linija_alarmi_pocetna")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" }, () => ucitaj())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "merenja_varijabilna" }, () => ucitaj())
-      .on("postgres_changes", { event: "*", schema: "public", table: "spc_alarmi" }, () => ucitaj())
-      .subscribe();
-    return () => supabase.removeChannel(ch);
-  }, [ucitaj]);
 
   if (sakrij || !alarmi.length) return null;
 

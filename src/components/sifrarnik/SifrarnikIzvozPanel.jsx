@@ -15,7 +15,7 @@ export default function SifrarnikIzvozPanel({ C, addToast }) {
     setBusy(true);
     try {
       const book = await exportMasterWorkbook(supabase);
-      downloadWorkbook(book, `SPC_sifrarnik_backup_${dISO()}.xlsx`);
+      await downloadWorkbook(book, `SPC_sifrarnik_backup_${dISO()}.xlsx`);
       addToast?.("✓ Backup Excel preuzet", "uspeh");
     } catch (e) {
       addToast?.(e.message, "greska");

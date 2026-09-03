@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
+import useMeriloState from "./hooks/useMeriloState.js";
+import useToasts from "./hooks/useToasts.js";
+import { ZahtevPrekid, ucitajOdobrenPrekid, zatvoriPrekidZahtev } from "./lib/kontrolaSesije.jsx";
 import {
   setListaOkSession,
   getListaOkSession,
@@ -7,15 +9,18 @@ import {
   proveriKontrolnaListaDanas,
 } from "./lib/kontrolaLista.js";
 import { useAutoSmena } from "./hooks/useAutoSmena.js";
+import { useNacrtRadneListe } from "./hooks/useNacrtRadneListe.js";
+import LinijaTabTraka from "./components/ui/LinijaTabTraka.jsx";
+import UnosSesijaBanneri from "./components/ui/UnosSesijaBanneri.jsx";
+import LinijaHeaderAkcije from "./components/ui/LinijaHeaderAkcije.jsx";
+import LinijaHeaderChip from "./components/ui/LinijaHeaderChip.jsx";
+import KontrolnaListaGate from "./components/ui/KontrolnaListaGate.jsx";
 import {
-  toDec, isStepen, koristiUgaoUnosKolone, inputModeMerenja,
-  validirajUnos, proveriOkNok, bojaMerenja, bojaUnosMerenja,
-  formatOpsegPlausibilnosti,
+  proveriOkNok,
   svaMerenjaZavrsena, imaBiloSta, grupeMerenja, grupeMerenjaSaMetom,
-  brojMerenjaZaSeriju, labelSerije, metaSerije, koloneZaGrupu, koloneFaiZaDeo, faiPotrebanZaDeo,
+  brojMerenjaZaSeriju, metaSerije, koloneZaGrupu, koloneFaiZaDeo, faiPotrebanZaDeo,
   brojPotrebnihZaKolonu, kolonePetStranica,
-  filterKeyUnos, sanitizujInputMerenja, unosMerenjaSpremanZaDodavanje, unosMerenjaNepotpun, primeniTastMerenja,
-  unosKaoUgao, jeMerljivaKarakteristika,
+  jeMerljivaKarakteristika,
   idSpremanZaUcitavanje, porukaNepoznatIdDeo, listaIdDeoIzKarakteristika,
 } from "./lib/varijabilneUtils.js";
 import { propagirajMetaKarakteristika } from "./lib/definicijaKarakteristika.js";
@@ -43,7 +48,6 @@ import {
   InteligencijaDeoPanel,
   AnalitikaPregledPanel,
   OdobrenjaQAPanel,
-  SkartDoradaOeePanel,
   IzvestajSmeneMerljive,
   CiljeviMerljive,
   KupacMerljive,
@@ -57,18 +61,12 @@ import NcrLinijaTraka from "./components/kvalitet/NcrLinijaTraka.jsx";
 import { prefillNcrIzUnosaLinije } from "./lib/ncrObrazacPolja.js";
 import { prefill8dIzNcr } from "./lib/ncrCapa.js";
 import { ucitajOdobrenFai, snimiFaiUnos, odobriFai, ucitajPoslednjiFai, faiImaNok, ucitajFaiPoId } from "./lib/faiWorkflow.js";
-import FotoNokUnos from "./components/FotoNokUnos.jsx";
-import KalibracijaMerilaPanel from "./components/KalibracijaMerilaPanel.jsx";
 import { supabase } from "./lib/supabaseClient.js";
 import {
   useEkran,
   resetSkrolPosleRotacije,
   layoutListaMerljive,
   layoutPokaYokeMerljive,
-  DIM_GENERALIJE_RED,
-  flexPolje,
-  dimKolonaUnos,
-  onFocusTastatura,
 } from "./layout/index.js";
 import KpiSerijaPanel from "./components/KpiSerijaPanel.jsx";
 import KpiDoradaHub from "./components/KpiDoradaHub.jsx";
@@ -81,7 +79,7 @@ import SpcAlarmBlokada from "./components/SpcAlarmBlokada.jsx";
 import { proveriIKreirajAlarmeNokSerije, lokalniOfflineNokAlarm } from "./lib/spcAlarmWorkflow.js";
 import { pozicijeSaPrekoracenimNok } from "./lib/spcAlarmPragovi.js";
 import { posleSnimanjaMerljiva, posleSnimanjaKpiDorade } from "./lib/autoAkcije.js";
-import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, opisUloge, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezimaUTacci, jeKontrolorLinija, jeLinijaUloga, pocetniKorakUnosMer, mozeInzenjerExcel, mozeInzenjerExcelUvoz, mozeOdobritiFai, mozePregledFaiOdobrenja, podrazumevaniTabMerljive, mozeOdobrenjaQA, mozeNcrCapa, mozeNcrUnosLinija } from "./lib/uloge.js";
+import { mozeTabMerljive, jeKvalitetIliVise, jeAdmin, mozeAnalitika as mozeAnalitikaUloga, mozePrebacivanjeRezimaUTacci, jeKontrolorLinija, pocetniKorakUnosMer, mozeInzenjerExcel, mozeInzenjerExcelUvoz, mozeOdobritiFai, mozePregledFaiOdobrenja, podrazumevaniTabMerljive, mozeOdobrenjaQA, mozeNcrCapa, mozeNcrUnosLinija } from "./lib/uloge.js";
 import AnalitikaHeader from "./components/analitika/AnalitikaHeader.jsx";
 import useAnalitikaBadges from "./hooks/useAnalitikaBadges.js";
 import { AnalitikaFilterProvider, useAnalitikaFilter } from "./lib/AnalitikaFilterContext.jsx";
@@ -96,7 +94,6 @@ import {
   mapaMerila,
   upozorenjaInstrumentaZaKolone,
   kalibracijaBlokiraUnos,
-  tekstInstrumentaSaBrojem,
 } from "./lib/meriloStatus.js";
 import {
   ucitajOdobrenuKalibraciju,
@@ -110,7 +107,7 @@ import { procitajSpoljnuNavigacijuTab, peekPendingWorkflowTab } from "./lib/work
 import { ensureSesija, novaSesija, getAktivnaSesija } from "./lib/spcSesija.js";
 import ShopFloorStatusBar from "./components/ShopFloorStatusBar.jsx";
 import KarantinBlokada from "./components/KarantinBlokada.jsx";
-import { proveriAktivanKarantin } from "./lib/karantinProvera.js";
+import { proveriAktivanKarantin, karantinNeuspeh } from "./lib/karantinProvera.js";
 import { buildMerenjeVarijabilnaRow, snimiJednoMerenjeVarijabilno } from "./lib/merenjaVarijabilnaSnimi.js";
 import { syncPrijemnaIzMerenja } from "./lib/dobavljaciApi.js";
 import PrijemMerenjeKontekst, {
@@ -118,7 +115,6 @@ import PrijemMerenjeKontekst, {
   ucitajPrijemKontekst,
 } from "./components/PrijemMerenjeKontekst.jsx";
 import PrijemnaKontrolaPanel from "./components/atributivne/PrijemnaKontrolaPanel.jsx";
-import CrtezZoomViewer from "./components/CrtezZoomViewer.jsx";
 import CrtezPregledPanel from "./components/CrtezPregledPanel.jsx";
 import { fetchPlaniranoKomZaDeo } from "./lib/zajednickiDashboard.js";
 import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "./lib/barkod.js";
@@ -147,15 +143,13 @@ import { fetchPogonLinijaMapa } from "./lib/pogonLinijaApi.js";
 import { fetchMerljiviSifrarnikZaDeo, fetchMerljiviSopIndeks } from "./lib/sifrarnikApi.js";
 import { buildLookupsFromPogonRows } from "./lib/glavniUnosCore.js";
 import { pogonLinijaMapIzGlavnogUnosa, setPogonLinijaMap } from "./lib/pogonLinijaLookup.js";
-import IdDeoBarkodRed from "./components/IdDeoBarkodRed.jsx";
 import SmenaIdUnosRed from "./components/SmenaIdUnosRed.jsx";
-import SmenaAutoPrikaz from "./components/SmenaAutoPrikaz.jsx";
 import PogonIzborPanel from "./components/PogonIzborPanel.jsx";
 import { indeksSledecePrazno } from "./lib/meriloUvoz.js";
 import { porukaDbGreske, jeMreznaGreska, jeDupliClientId } from "./lib/dbGreske.js";
 import LinijaWizardNav, { KORACI_MERLJIVE_LINIJA, KORACI_MERLJIVE_KONTROLOR } from "./components/LinijaWizardNav.jsx";
 import MobilniMerljiviUnos from "./components/MobilniMerljiviUnos.jsx";
-import { normalizujPrefill8d, prefill8dIzEskalacije, procitajNavigacijuNcr } from "./lib/eskalacijeHelper.js";
+import { normalizujPrefill8d, prefill8dIzEskalacije } from "./lib/eskalacijeHelper.js";
 import MerljiveLinijaLeviPanel from "./components/MerljiveLinijaLeviPanel.jsx";
 import AppHeader from "./components/AppHeader.jsx";
 import MerljiveGreskaUcitavanja from "./components/merljive/MerljiveGreskaUcitavanja.jsx";
@@ -206,46 +200,18 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const [ncrLinijaOtvoren, setNcrLinijaOtvoren] = useState(false);
   const [ncrLinijaPrefill, setNcrLinijaPrefill] = useState(null);
   const [pfmeaCpPrefillIz8d, setPfmeaCpPrefillIz8d] = useState(null);
-  const [meriloPovezano, setMeriloPovezano] = useState(false);
-  const [kljucPovezan, setKljucPovezan] = useState(false);
+  const {
+    meriloPovezano, kljucPovezan, setKljucPovezan,
+    meriloSimulacija, autoSnimiMerilo,
+    meriloStopRef, meriloSimulirajRef, snimaMeriloRef, autoSnimiMeriloRef,
+    registerMeriloStop, registerMeriloSimuliraj,
+    onMeriloPovezanChange, onAutoSnimiMeriloChange,
+  } = useMeriloState();
   const [karantinInfo, setKarantinInfo] = useState(null);
-  const [meriloSimulacija, setMeriloSimulacija] = useState(false);
-  const [autoSnimiMerilo, setAutoSnimiMerilo] = useState(
-    () => localStorage.getItem("merilo_auto_snimi") === "1",
-  );
-  const meriloStopRef = useRef(null);
-  const meriloSimulirajRef = useRef(null);
-  const snimaMeriloRef = useRef(false);
   const prijemKontekstRef = useRef(ucitajPrijemKontekst("merljive"));
-  const autoSnimiMeriloRef = useRef(autoSnimiMerilo);
-  autoSnimiMeriloRef.current = autoSnimiMerilo;
-  const [toasts, setToasts] = useState([]);
+  const { toasts, addToast } = useToasts();
   const mozeAdmin = jeAdmin(korisnik?.uloga);
   const mozeAnalitika = mozeAnalitikaUloga(korisnik?.uloga);
-
-  const registerMeriloStop = useCallback((fn) => {
-    meriloStopRef.current = fn;
-  }, []);
-
-  const registerMeriloSimuliraj = useCallback((fn) => {
-    meriloSimulirajRef.current = fn;
-  }, []);
-
-  const onMeriloPovezanChange = useCallback((povezan, opts = {}) => {
-    setMeriloPovezano(povezan);
-    setMeriloSimulacija(!!opts.simulacija);
-  }, []);
-
-  const onAutoSnimiMeriloChange = useCallback((v) => {
-    setAutoSnimiMerilo(v);
-    localStorage.setItem("merilo_auto_snimi", v ? "1" : "0");
-  }, []);
-
-  const addToast = useCallback((tekst, tip = "info") => {
-    const id = Date.now();
-    setToasts(p => [...p, { tekst, tip, id }]);
-    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4500);
-  }, []);
 
   useEffect(() => {
     const { tab: spoljniTab, prefillNcr } = procitajSpoljnuNavigacijuTab("varijabilne");
@@ -275,7 +241,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   }, [addToast]);
 
   const {
-    online, queue, counts: offlineCounts, addMerljiveSerija, flushQueue,
+    online, queue, counts: offlineCounts, addMerljiveSerija, flushQueue, zaglavljeni,
   } = useOfflineQueue(supabase, { onFlushed });
 
   const TABOVI = [
@@ -789,14 +755,19 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     };
   }, [proveriKalibraciju]);
 
+  // Ref umesto direktne zavisnosti: pretplata se pravi jednom po korisniku,
+  // a ne ponovo pri svakoj promeni callback-a.
+  const kalibracijaHandlerRef = useRef(null);
+  kalibracijaHandlerRef.current = proveriKalibraciju;
+
   useEffect(() => {
     if (!korisnik?.radnikId) return;
     const ch = supabase.channel("kalibracija_merljive")
       .on("postgres_changes", { event: "*", schema: "public", table: "kalibracija_zahtevi" },
-        () => proveriKalibraciju())
+        () => kalibracijaHandlerRef.current?.())
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, [korisnik?.radnikId, proveriKalibraciju]);
+  }, [korisnik?.radnikId]);
 
   const brojKolonaMer = useMemo(
     () => kolone.filter(k => k.naziv !== "-").length,
@@ -1046,11 +1017,17 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   const serijaPotpuna = svaMerenjaZavrsena(kolone, potrebanBroj);
   const imaNepotpunuSesiju = idDeo && (preostaloSesije > 0 || (grupaAB && !serijaPotpuna && imaBiloSta(kolone)));
 
+  const [prekidiRtOk, setPrekidiRtOk] = useState(false);
+  const prekidHandlerRef = useRef(null);
+  prekidHandlerRef.current = proveriPrekid;
+
+  /** Rezerva ako realtime ne radi. Kad je pretplata živa, retko; inače na 4 s. */
   useEffect(() => {
     if (!idDeo || preostaloSesije <= 0 || prekidOdobrenId) return;
-    const t = setInterval(() => proveriPrekid(), 4000);
+    const razmak = prekidiRtOk ? 30000 : 4000;
+    const t = setInterval(() => prekidHandlerRef.current?.(), razmak);
     return () => clearInterval(t);
-  }, [idDeo, preostaloSesije, prekidOdobrenId, proveriPrekid]);
+  }, [idDeo, preostaloSesije, prekidOdobrenId, prekidiRtOk]);
 
   useEffect(() => {
     const osvezi = () => {
@@ -1068,10 +1045,13 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     if (!korisnik?.radnikId) return;
     const ch = supabase.channel("prekidi_merljive")
       .on("postgres_changes", { event: "*", schema: "public", table: "prekidi_zahtevi" },
-        () => proveriPrekid())
-      .subscribe();
-    return () => supabase.removeChannel(ch);
-  }, [korisnik?.radnikId, proveriPrekid]);
+        () => prekidHandlerRef.current?.())
+      .subscribe((status) => setPrekidiRtOk(status === "SUBSCRIBED"));
+    return () => {
+      setPrekidiRtOk(false);
+      supabase.removeChannel(ch);
+    };
+  }, [korisnik?.radnikId]);
 
   useEffect(() => {
     let ok = true;
@@ -1199,7 +1179,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     let ok = true;
     proveriAktivanKarantin(supabase, { idDeo, radniNalog })
       .then((r) => { if (ok) setKarantinInfo(r); })
-      .catch(() => { if (ok) setKarantinInfo(null); });
+      .catch((e) => { if (ok) setKarantinInfo(karantinNeuspeh(e)); });
     return () => { ok = false; };
   }, [idDeo, radniNalog]);
 
@@ -1210,18 +1190,48 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     }
     proveriAktivanKarantin(supabase, { idDeo, radniNalog })
       .then(setKarantinInfo)
-      .catch(() => setKarantinInfo(null));
+      .catch((e) => setKarantinInfo(karantinNeuspeh(e)));
   }, [idDeo, radniNalog]);
-
-  const resetKolone = useCallback((broj) => {
-    koloneBridgeRef.current?.resetKolone?.(broj);
-    setKoloneSnapshot(prazneKolone(broj));
-  }, []);
 
   const setKoloneSpolja = useCallback((cols) => {
     koloneBridgeRef.current?.setKolone?.(cols);
     setKoloneSnapshot(cols);
   }, []);
+
+  // Izmerene vrednosti pre snimanja žive samo u state-u — čuvamo ih trajno.
+  const imaUnetihMerenja = useMemo(
+    () => kolone.some((k) => k?.naziv !== "-" && (k?.merenja?.length || 0) > 0),
+    [kolone],
+  );
+  const nacrtPodaci = useMemo(
+    () => (imaUnetihMerenja ? { kolone, idDeo, radniNalog, pogonKod, grupaAB } : null),
+    [imaUnetihMerenja, kolone, idDeo, radniNalog, pogonKod, grupaAB],
+  );
+  const nacrtKljuc = `merljive-${korisnik?.radnikId || korisnik?.email || "anon"}`;
+  const { vraceniNacrt, odbaciNacrt, zatvoriPonudu, ocistiNacrt } = useNacrtRadneListe(
+    nacrtKljuc,
+    nacrtPodaci,
+  );
+
+  const resetKolone = useCallback((broj) => {
+    koloneBridgeRef.current?.resetKolone?.(broj);
+    setKoloneSnapshot(prazneKolone(broj));
+    ocistiNacrt();
+  }, [ocistiNacrt]);
+
+  const vratiNacrt = useCallback(() => {
+    const p = vraceniNacrt?.podaci;
+    if (!p?.kolone) return;
+    setKoloneSpolja(p.kolone);
+    zatvoriPonudu();
+  }, [vraceniNacrt, setKoloneSpolja, zatvoriPonudu]);
+
+  const nacrtOpis = useMemo(() => {
+    const p = vraceniNacrt?.podaci;
+    if (!p?.kolone) return "";
+    const n = p.kolone.reduce((a, k) => a + (k?.merenja?.length || 0), 0);
+    return `${n} merenja${p.idDeo ? ` · ${p.idDeo}` : ""}`;
+  }, [vraceniNacrt]);
 
   const kolonaJePuna = useCallback(
     (k) => k && k.naziv !== "-" && k.merenja.length >= brojPotrebnihZaKolonu(k, potrebanBroj),
@@ -2581,30 +2591,18 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
   if (trebaCekListaMer) {
     return (
-      <div style={{
-        minHeight: "100dvh",
-        background: C.bg,
-        fontFamily: "'IBM Plex Mono', monospace",
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        <AppHeader
-          korisnik={korisnik}
-          onOdjava={onOdjava}
-          onNazad={onNazad}
-          C={C}
-          onToggleTema={onToggleTema}
-          temaTamna={temaTamna}
-        />
-        <KontrolnaLista
-          korisnik={korisnik}
-          smena={Number(smena)}
-          naslovModul="Merljive"
-          akcent={C.zelena}
-          onZavrsena={zavrsiKontrolnuListu}
-          C={C}
-        />
-      </div>
+      <KontrolnaListaGate
+        C={C}
+        korisnik={korisnik}
+        onOdjava={onOdjava}
+        onNazad={onNazad}
+        onToggleTema={onToggleTema}
+        temaTamna={temaTamna}
+        smena={smena}
+        naslovModul="Merljive"
+        akcent={C.zelena}
+        onZavrsena={zavrsiKontrolnuListu}
+      />
     );
   }
 
@@ -2706,7 +2704,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         />
       )}
 
-      {jeLinija && karantinInfo?.aktivan && (
+      {jeLinija && (karantinInfo?.aktivan || karantinInfo?.neproveren) && (
         <KarantinBlokada
           C={C}
           karantin={karantinInfo}
@@ -2770,83 +2768,91 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           onToggleTema={onToggleTema}
           temaTamna={temaTamna}
           desnoExtra={(
-            <>
-              <button
-                type="button"
-                onClick={() => setKpiHubOtvoren(true)}
-                title="KPI dorada i škart po ID delu"
-                style={{
-                  background: `${C.zelena}22`,
-                  border: `1px solid ${C.zelena}`,
-                  borderRadius: 5,
-                  color: C.zelena,
-                  fontSize: 8,
-                  padding: "1px 6px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
-              </button>
-              {jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga) && (
-                <button
-                  type="button"
-                  data-testid="ncr-linija-dugme"
-                  onClick={otvoriNcrSaLinije}
-                  title="Otvori NCR obrazac sa podacima sa linije"
-                  style={{
-                    background: `${C.crvena}22`,
-                    border: `1px solid ${C.crvena}`,
-                    borderRadius: 5,
-                    color: C.crvena,
-                    fontSize: 8,
-                    padding: "1px 6px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
-                >
-                  NCR
-                </button>
+            <LinijaHeaderAkcije
+              C={C}
+              kompakt={ekran.mob || ekran.tablet}
+              jeLinija={jeLinija}
+              onKpi={() => setKpiHubOtvoren(true)}
+              ncr={jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga)
+                ? { onClick: otvoriNcrSaLinije }
+                : null}
+              onPromeniRezim={mozePrebacivanjeRezimaUTacci(korisnik?.uloga) ? onPromeniRezim : null}
+              afterRezim={(
+                <>
+                  {jeLinija && koristiMobLinija && digitalniUnos && mozeTabMerljive("moment", korisnik?.uloga, rezimRada) && (
+                    <LinijaHeaderChip
+                      C={C}
+                      boja={C.ljubicasta || "#a78bfa"}
+                      aktivan={tab === "moment"}
+                      onClick={() => setTab(tab === "moment" ? "unos" : "moment")}
+                      stil={{ padding: "1px 5px" }}
+                    >
+                      {tab === "moment" ? "←" : "MOM"}
+                    </LinijaHeaderChip>
+                  )}
+                  {jeLinija && koristiMobLinija && mozeTabMerljive("log", korisnik?.uloga, rezimRada) && (
+                    <LinijaHeaderChip
+                      C={C}
+                      boja={C.zelena}
+                      aktivan={tab === "log"}
+                      onClick={() => setTab(tab === "log" ? "unos" : "log")}
+                      stil={{ padding: "1px 5px" }}
+                    >
+                      {tab === "log" ? "←" : "LOG"}
+                    </LinijaHeaderChip>
+                  )}
+                  {jeLinija && koristiMobLinija && mozeTabMerljive("prijemna", korisnik?.uloga, rezimRada) && (
+                    <LinijaHeaderChip
+                      C={C}
+                      boja={C.plava}
+                      aktivan={tab === "prijemna"}
+                      onClick={() => setTab(tab === "prijemna" ? "unos" : "prijemna")}
+                      title="Prijemna kontrola dobavljača"
+                      stil={{ padding: "1px 5px" }}
+                    >
+                      {tab === "prijemna" ? "←" : "PRIJEM"}
+                    </LinijaHeaderChip>
+                  )}
+                  {jeLinija && koristiMobLinija && mozeTabMerljive("povezi-prijem", korisnik?.uloga, rezimRada) && (
+                    <LinijaHeaderChip
+                      C={C}
+                      boja={C.plava}
+                      aktivan={tab === "povezi-prijem"}
+                      onClick={() => setTab(tab === "povezi-prijem" ? "unos" : "povezi-prijem")}
+                      title="Poveži merenja sa prijemom dobavljača"
+                      stil={{ padding: "1px 5px" }}
+                    >
+                      {tab === "povezi-prijem" ? "←" : "POVEŽI"}
+                    </LinijaHeaderChip>
+                  )}
+                </>
               )}
+            >
               {digitalniUnos && meriloPovezano && meriloSimulacija && (
-                <button
-                  type="button"
+                <LinijaHeaderChip
+                  C={C}
+                  boja={C.zuta}
+                  aktivan
                   onClick={() => meriloSimulirajRef.current?.()}
                   title="Pošalji test merenje (simulacija)"
-                  style={{
-                    background: `${C.zuta}22`,
-                    border: `1px solid ${C.zuta}`,
-                    borderRadius: 5,
-                    color: C.zuta,
-                    fontSize: 8,
-                    padding: "1px 6px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
+                  stil={{ background: `${C.zuta}22`, border: `1px solid ${C.zuta}`, color: C.zuta }}
                 >
                   📤
-                </button>
+                </LinijaHeaderChip>
               )}
               {digitalniUnos && meriloPovezano && (
-                <button
-                  type="button"
+                <LinijaHeaderChip
+                  C={C}
+                  boja={meriloSimulacija ? C.zuta : C.zelena}
+                  aktivan
                   onClick={() => meriloStopRef.current?.()}
                   title={meriloSimulacija
                     ? "Prekini simulaciju"
                     : `Merilo povezano${autoSnimiMerilo ? " · auto u bazu (OK)" : ""} — klik za prekid`}
-                  style={{
+                  stil={{
                     background: meriloSimulacija ? `${C.zuta}22` : `${C.zelena}22`,
                     border: `1px solid ${meriloSimulacija ? C.zuta : C.zelena}`,
-                    borderRadius: 5,
                     color: meriloSimulacija ? C.zuta : C.zelena,
-                    fontSize: 8,
-                    padding: "1px 6px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
@@ -2860,145 +2866,46 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
                   {(ekran.mob || ekran.tablet)
                     ? (meriloSimulacija ? "Sim" : (autoSnimiMerilo ? "Mer·auto" : "Merilo"))
                     : (meriloSimulacija ? "Simulacija" : (autoSnimiMerilo ? "Merilo · auto" : "Merilo povezano"))}
-                </button>
+                </LinijaHeaderChip>
               )}
               {digitalniUnos && (
                 <span title="Digitalni unos"
                   style={{ color: C.zelena, fontSize: 8, fontWeight: 700, flexShrink: 0 }}>±</span>
               )}
-              {mozePrebacivanjeRezimaUTacci(korisnik?.uloga) && typeof onPromeniRezim === "function" && (
-                <button
-                  type="button"
-                  onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
-                  title={jeLinija ? "Modul 2 — Analitika" : "Modul 1 — Unos"}
-                  style={{
-                    background: jeLinija ? `${C.zelena}22` : `${C.plava}22`,
-                    border: `1px solid ${jeLinija ? C.zelena : C.plava}`,
-                    borderRadius: 5, color: jeLinija ? C.zelena : C.plava,
-                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                  }}
-                >
-                  {(ekran.mob || ekran.tablet) ? (jeLinija ? "📊" : "🏭") : (jeLinija ? "📊 Modul 2 — Analitika" : "🏭 Modul 1 — Unos")}
-                </button>
-              )}
-              {jeLinija && koristiMobLinija && digitalniUnos && mozeTabMerljive("moment", korisnik?.uloga, rezimRada) && (
-                <button
-                  type="button"
-                  onClick={() => setTab(tab === "moment" ? "unos" : "moment")}
-                  style={{
-                    background: tab === "moment" ? `${C.ljubicasta || "#a78bfa"}22` : C.hover,
-                    border: `1px solid ${tab === "moment" ? (C.ljubicasta || "#a78bfa") : C.border}`,
-                    borderRadius: 5, color: tab === "moment" ? (C.ljubicasta || "#a78bfa") : C.sivi,
-                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                  }}
-                >
-                  {tab === "moment" ? "←" : "MOM"}
-                </button>
-              )}
-              {jeLinija && koristiMobLinija && mozeTabMerljive("log", korisnik?.uloga, rezimRada) && (
-                <button
-                  type="button"
-                  onClick={() => setTab(tab === "log" ? "unos" : "log")}
-                  style={{
-                    background: tab === "log" ? `${C.zelena}22` : C.hover,
-                    border: `1px solid ${tab === "log" ? C.zelena : C.border}`,
-                    borderRadius: 5, color: tab === "log" ? C.zelena : C.sivi,
-                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                  }}
-                >
-                  {tab === "log" ? "←" : "LOG"}
-                </button>
-              )}
-              {jeLinija && koristiMobLinija && mozeTabMerljive("prijemna", korisnik?.uloga, rezimRada) && (
-                <button
-                  type="button"
-                  onClick={() => setTab(tab === "prijemna" ? "unos" : "prijemna")}
-                  title="Prijemna kontrola dobavljača"
-                  style={{
-                    background: tab === "prijemna" ? `${C.plava}22` : C.hover,
-                    border: `1px solid ${tab === "prijemna" ? C.plava : C.border}`,
-                    borderRadius: 5, color: tab === "prijemna" ? C.plava : C.sivi,
-                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                  }}
-                >
-                  {tab === "prijemna" ? "←" : "PRIJEM"}
-                </button>
-              )}
-              {jeLinija && koristiMobLinija && mozeTabMerljive("povezi-prijem", korisnik?.uloga, rezimRada) && (
-                <button
-                  type="button"
-                  onClick={() => setTab(tab === "povezi-prijem" ? "unos" : "povezi-prijem")}
-                  title="Poveži merenja sa prijemom dobavljača"
-                  style={{
-                    background: tab === "povezi-prijem" ? `${C.plava}22` : C.hover,
-                    border: `1px solid ${tab === "povezi-prijem" ? C.plava : C.border}`,
-                    borderRadius: 5, color: tab === "povezi-prijem" ? C.plava : C.sivi,
-                    fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                  }}
-                >
-                  {tab === "povezi-prijem" ? "←" : "POVEŽI"}
-                </button>
-              )}
-            </>
+            </LinijaHeaderAkcije>
           )}
           trakaIspod={ekran.telefon ? null : (
-            jeLinija ? (
-              <ShopFloorStatusBar
-                C={C}
-                online={online}
-                offlineTotal={offlineCounts.total}
-                onSync={() => flushQueue()}
-                digitalniUnos={digitalniUnos}
-                meriloPovezano={meriloPovezano}
-                meriloSimulacija={meriloSimulacija}
-                kljucPovezan={kljucPovezan}
-                idDeo={idDeo}
-                smena={smena}
-                linija={linija}
-                modul="merljive"
-              />
-            ) : (
-              <ShopFloorStatusBar
-                C={C}
-                online={online}
-                offlineTotal={offlineCounts.total}
-                onSync={() => flushQueue()}
-                digitalniUnos={digitalniUnos}
-                meriloPovezano={meriloPovezano}
-                meriloSimulacija={meriloSimulacija}
-                kljucPovezan={kljucPovezan}
-                idDeo={idDeo}
-                smena={smena}
-                linija={linija}
-                modul="merljive"
-                kompakt
-                onNavigacija={onNavigacijaAnalitika}
-              />
-            )
+            <ShopFloorStatusBar
+              C={C}
+              online={online}
+              offlineTotal={offlineCounts.total}
+              onSync={() => flushQueue()}
+              digitalniUnos={digitalniUnos}
+              meriloPovezano={meriloPovezano}
+              meriloSimulacija={meriloSimulacija}
+              kljucPovezan={kljucPovezan}
+              idDeo={idDeo}
+              smena={smena}
+              linija={linija}
+              modul="merljive"
+              kompakt={!jeLinija}
+              onNavigacija={jeLinija ? undefined : onNavigacijaAnalitika}
+            />
           )}
         />
         {(punPristupTabovima || !jeLinija || linijaTaboviVidljivi || mozePregledFai) && prikazTabovi?.length > 1 && (
         jeLinija ? (
-        <div style={{
-          display: "flex",
-          borderTop: `1px solid ${C.border}`,
-          padding: (ekran.mob || ekran.tablet) ? "0 6px" : "0 12px",
-          flexWrap: "nowrap",
-          overflowX: (ekran.mob || ekran.tablet) ? "auto" : "visible",
-          WebkitOverflowScrolling: "touch",
-        }}>
-          {TABOVI.map(([id, naziv]) => (
-            <button key={id} type="button" data-testid={`tab-${id}`} onClick={() => setTab(id)} style={{
-              background: "none", border: "none",
-              borderBottom: tab === id ? `2px solid ${bojaTaba(id)}` : "2px solid transparent",
-              color: tab === id ? bojaTaba(id) : C.sivi,
-              fontSize: ekran.mob ? 9 : 10, fontWeight: 700, padding: ekran.mob ? "8px 10px" : "8px 14px", cursor: "pointer", letterSpacing: 0.5,
-              flexShrink: 0,
-            }}>
-              {naziv}
-            </button>
-          ))}
-        </div>
+        <LinijaTabTraka
+          C={C}
+          tab={tab}
+          onTabChange={setTab}
+          tabovi={TABOVI}
+          kompakt={ekran.mob || ekran.tablet}
+          bojaTaba={bojaTaba}
+          borderTop
+          borderBottom={false}
+          paddingX={(ekran.mob || ekran.tablet) ? 6 : 12}
+        />
         ) : (
           <>
             <AnalitikaHeader
@@ -3026,18 +2933,29 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
       )}
 
       {tab === "unos" && (
-        <PrijemMerenjeKontekst
+        <UnosSesijaBanneri
           C={C}
-          addToast={addToast}
-          modul="merljive"
-          idDeo={idDeo}
-          kontekst={prijemKontekst}
-          onKontekst={setPrijemKontekst}
-          onAktiviran={() => setPogonKod("A")}
-          kompakt={ekran.mob || ekran.tablet}
-          rezim="banner"
-          pogonKod={pogonKod}
-        />
+          zaglavljeni={zaglavljeni}
+          onPokusaj={flushQueue}
+          nacrt={vraceniNacrt}
+          opis={nacrtOpis}
+          onVrati={vratiNacrt}
+          onOdbaci={odbaciNacrt}
+          margin="0 12px"
+        >
+          <PrijemMerenjeKontekst
+            C={C}
+            addToast={addToast}
+            modul="merljive"
+            idDeo={idDeo}
+            kontekst={prijemKontekst}
+            onKontekst={setPrijemKontekst}
+            onAktiviran={() => setPogonKod("A")}
+            kompakt={ekran.mob || ekran.tablet}
+            rezim="banner"
+            pogonKod={pogonKod}
+          />
+        </UnosSesijaBanneri>
       )}
 
       {tab === "povezi-prijem" && (

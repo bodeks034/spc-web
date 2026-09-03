@@ -62,6 +62,73 @@ export async function fetchSifrarnikAudit({
   }
 }
 
+/** Distinct ID-evi sa akcijom zatvoren_deo od ponoći (timski brojač). */
+export async function fetchDanasZatvorenoIzAudit({ limit = 500 } = {}) {
+  const detalj = await fetchDanasZatvorenoDetaljno({ limit });
+  return {
+    dan: detalj.dan,
+    broj: detalj.broj,
+    ids: detalj.ids,
+    izvor: "audit",
+  };
+}
+
+/** Agregacija audit redova — testabilno bez Supabase. */
+export function agregirajDanasZatvoreno(redovi = [], { dan = null } = {}) {
+  const danIso = dan || new Date().toISOString().slice(0, 10);
+  const ids = new Set();
+  const poKorisnikuMap = new Map();
+  const hronologija = [];
+
+  for (const r of redovi || []) {
+    const id = String(r.id_deo || "").trim().toUpperCase();
+    if (!id) continue;
+    const korisnik = String(r.korisnik || "").trim() || "(nepoznat)";
+    const created = r.created_at || null;
+    ids.add(id);
+    if (!poKorisnikuMap.has(korisnik)) {
+      poKorisnikuMap.set(korisnik, { korisnik, ids: new Set(), broj: 0 });
+    }
+    const bucket = poKorisnikuMap.get(korisnik);
+    if (!bucket.ids.has(id)) {
+      bucket.ids.add(id);
+      bucket.broj += 1;
+    }
+    hronologija.push({ idDeo: id, korisnik, created_at: created });
+  }
+
+  const poKorisniku = [...poKorisnikuMap.values()]
+    .map((b) => ({
+      korisnik: b.korisnik,
+      broj: b.broj,
+      ids: [...b.ids],
+    }))
+    .sort((a, b) => b.broj - a.broj || a.korisnik.localeCompare(b.korisnik));
+
+  return {
+    dan: danIso,
+    broj: ids.size,
+    ids: [...ids],
+    poKorisniku,
+    hronologija,
+    izvor: "audit",
+  };
+}
+
+/** Timski pregled: ko je danas zatvorio koje delove. */
+export async function fetchDanasZatvorenoDetaljno({ limit = 500 } = {}) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const redovi = await fetchSifrarnikAudit({
+    akcija: "zatvoren_deo",
+    od: start.toISOString(),
+    limit,
+  });
+  return agregirajDanasZatvoreno(redovi, {
+    dan: start.toISOString().slice(0, 10),
+  });
+}
+
 export function auditLogUCsv(redovi) {
   const header = ["created_at", "id_deo", "akcija", "izvor", "korisnik", "detalji"].join(",");
   const esc = (v) => {

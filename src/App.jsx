@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { KontrolnaLista } from "./lib/kontrolaSesije.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import useToasts from "./hooks/useToasts.js";
+import KontrolnaListaGate from "./components/ui/KontrolnaListaGate.jsx";
 import {
   setListaOkSession,
   getListaOkSession,
@@ -10,6 +12,7 @@ import { sacuvajSpoljnuNavigacijuTab } from "./lib/workflowAkcije.js";
 import { modulZaRouting } from "./lib/deoModul.js";
 import { sacuvajSifrarnikNav } from "./lib/sifrarnikNavEvent.js";
 import { APP_MODUL_NAV_EVENT } from "./lib/appModulNav.js";
+import { citajModulIzHasha, upisiModulUHash } from "./lib/appRuta.js";
 import {
   podrazumevaniRezim,
   mozePrebacivanjeRezima,
@@ -19,7 +22,8 @@ import {
   mozeOdobrenjaQA,
   mozeSifrarnik,
 } from "./lib/uloge.js";
-import { supabase } from "./lib/supabaseClient.js";
+import { supabase, KONFIG_NEDOSTAJE, KONFIG_PORUKA } from "./lib/supabaseClient.js";
+import { sinhronizujAppStore } from "./lib/appStore.js";
 import useLicencaGate from "./hooks/useLicencaGate.js";
 import useAdminZahtevNotifikacije from "./hooks/useAdminZahtevNotifikacije.js";
 import LicencaBlokada from "./components/LicencaBlokada.jsx";
@@ -36,7 +40,7 @@ const VarijabilneForma = lazy(() => import("./VarijabilneForma.jsx"));
 const GlavnaForma = lazy(() => import("./components/atributivne/GlavnaForma.jsx"));
 const AdminPanel = lazy(() => import("./components/admin/AdminPanel.jsx"));
 import { Toast } from "./components/ui/SpcUi.jsx";
-import { TEME } from "./lib/teme.js";
+import { TemaProvider, useTema } from "./lib/TemaContext.jsx";
 import { ucitajRadnika } from "./lib/radnikAuth.js";
 import { proveriMaxKorisnika } from "./lib/licencaMaxKorisnika.js";
 import { registrujUredjajLicence } from "./lib/licencaUredjaj.js";
@@ -44,7 +48,21 @@ import { ocistiUnosDraft } from "./lib/unosDraft.js";
 import { obrisiPoslednjiDeo } from "./lib/poslednjiDeoLinija.js";
 import { clearSesija } from "./lib/spcSesija.js";
 import { registrujPWA } from "./lib/pwa.js";
+import SwUpdateBanner from "./components/ui/SwUpdateBanner.jsx";
 import { initSpcAlarmPragoviSync, ucitajSpcAlarmPragove } from "./lib/spcAlarmPragovi.js";
+
+function safeSessionGet(key, fallback = null) {
+  try {
+    return sessionStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+function safeSessionSet(key, val) {
+  try {
+    sessionStorage.setItem(key, val);
+  } catch { /* private mode / quota */ }
+}
 
 function ModulUcitavanje({ C }) {
   return (
@@ -63,16 +81,13 @@ function ModulUcitavanje({ C }) {
   );
 }
 
-export default function App() {
+function AppSadrzaj() {
   const licenca = useLicencaGate();
   const [korisnik, setKorisnik] = useState(null);
   const [checking, setChecking] = useState(true);
-  const [modul, setModul] = useState(null);
+  const [modul, setModul] = useState(() => citajModulIzHasha());
   const [tabletZakljucan, setTabletZakljucan] = useState(false);
-  const [C, setC] = useState(() => {
-    const saved = localStorage.getItem("spc_tema");
-    return saved === "svetla" ? TEME.svetla : TEME.tamna;
-  });
+  const { C, setC, toggleTema } = useTema();
   const [listaOk, setListaOk] = useState(false);
   const [listaOkVar, setListaOkVar] = useState(false);
 
@@ -101,6 +116,27 @@ export default function App() {
     }
   }, [modul]);
 
+  // Hash prati otvoreni modul, pa refresh i deljenje linka zadržavaju kontekst.
+  useEffect(() => {
+    if (!korisnik) return;
+    upisiModulUHash(modul, { zameni: citajModulIzHasha() === modul });
+  }, [modul, korisnik]);
+
+  // Back dugme je ranije napuštalo aplikaciju umesto da vrati na početni ekran.
+  useEffect(() => {
+    const naPromenu = () => setModul(citajModulIzHasha());
+    window.addEventListener("popstate", naPromenu);
+    return () => window.removeEventListener("popstate", naPromenu);
+  }, []);
+
+  // Ručno ukucan hash ne sme da otvori modul za koji korisnik nema pravo.
+  useEffect(() => {
+    if (!korisnik || !modul) return;
+    const zabranjen = (modul === "sifrarnik" && !mozeSifrarnik(korisnik.uloga))
+      || (modul === "admin" && !jeAdmin(korisnik.uloga));
+    if (zabranjen) setModul(null);
+  }, [korisnik, modul]);
+
   useEffect(() => {
     if (modul !== "atributivne" && modul !== "varijabilne") return;
     const sm = procitajSmenuIzStorage();
@@ -115,13 +151,13 @@ export default function App() {
   const [nav8dTick, setNav8dTick] = useState(0);
   const otvoriModulAnalitika = (targetModul) => {
     setRezimRada("analitika");
-    sessionStorage.setItem("spc_rezim_rada", "analitika");
+    safeSessionSet("spc_rezim_rada", "analitika");
     setNav8dTick((t) => t + 1);
     if (modul !== targetModul) setModul(targetModul);
   };
   const otvori8dIzvana = (esk, { modul = "atributivne" } = {}) => {
     const target = modulZaRouting(modul);
-    sessionStorage.setItem("spc_8d_prefill", JSON.stringify(normalizujPrefill8d(esk)));
+    safeSessionSet("spc_8d_prefill", JSON.stringify(normalizujPrefill8d(esk)));
     sacuvajSpoljnuNavigacijuTab("8d", { modul: target });
     otvoriModulAnalitika(target);
   };
@@ -136,28 +172,28 @@ export default function App() {
     otvoriModulAnalitika(target);
   };
   const [rezimRada, setRezimRada] = useState(() =>
-    sessionStorage.getItem("spc_rezim_rada") || "linija",
+    safeSessionGet("spc_rezim_rada") || "linija",
   );
 
   useEffect(() => {
     if (!korisnik) return;
     if (jeLinijaUloga(korisnik.uloga)) {
       setRezimRada("linija");
-      sessionStorage.setItem("spc_rezim_rada", "linija");
+      safeSessionSet("spc_rezim_rada", "linija");
       return;
     }
-    const saved = sessionStorage.getItem("spc_rezim_rada");
+    const saved = safeSessionGet("spc_rezim_rada");
     if (!saved) {
       const r = podrazumevaniRezim(korisnik.uloga);
       setRezimRada(r);
-      sessionStorage.setItem("spc_rezim_rada", r);
+      safeSessionSet("spc_rezim_rada", r);
     }
   }, [korisnik]);
 
   const promeniRezim = (novi) => {
     if (!korisnik || !mozePrebacivanjeRezima(korisnik.uloga)) return;
     setRezimRada(novi);
-    sessionStorage.setItem("spc_rezim_rada", novi);
+    safeSessionSet("spc_rezim_rada", novi);
   };
 
   const izadjiIzModula = useCallback((targetModul = modul) => {
@@ -175,15 +211,19 @@ export default function App() {
     ? efektivniRezimRada(korisnik.uloga, rezimRada)
     : rezimRada;
 
-  useEffect(() => { localStorage.setItem("spc_tema", C.naziv); }, [C]);
+  useEffect(() => {
+    sinhronizujAppStore({
+      korisnik,
+      modul,
+      rezimRada: aktivniRezim,
+      licenca,
+      temaC: C,
+    });
+  }, [korisnik, modul, aktivniRezim, licenca, C]);
+
   useEffect(() => { registrujPWA(); }, []);
 
-  const [globalToasts, setGlobalToasts] = useState([]);
-  const addGlobalToast = useCallback((tekst, tip = "info") => {
-    const id = Date.now();
-    setGlobalToasts((p) => [...p, { tekst, tip, id }]);
-    setTimeout(() => setGlobalToasts((p) => p.filter((t) => t.id !== id)), 4500);
-  }, []);
+  const { toasts: globalToasts, addToast: addGlobalToast } = useToasts();
   const globalToastEl = <Toast poruke={globalToasts} C={C} />;
 
   useAdminZahtevNotifikacije({
@@ -284,10 +324,30 @@ export default function App() {
 
   const wrapSaTabletom = (node) => (
     <TabletSmenaContext.Provider value={zatraziTabletZakljucaj}>
+      <SwUpdateBanner C={C} />
       {tabletOverlay}
       {node}
     </TabletSmenaContext.Provider>
   );
+
+  if (KONFIG_NEDOSTAJE) {
+    return (
+      <div style={{
+        minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center",
+        justifyContent: "center", padding: 24,
+      }}>
+        <div style={{
+          maxWidth: 520, border: `1px solid ${C.crvena}`, borderRadius: 12,
+          background: C.panel, padding: "22px 24px", color: C.tekst, lineHeight: 1.6,
+        }}>
+          <div style={{ color: C.crvena, fontWeight: 700, marginBottom: 8 }}>
+            Aplikacija nije povezana sa bazom
+          </div>
+          <div style={{ fontSize: 13, color: C.sivi }}>{KONFIG_PORUKA}</div>
+        </div>
+      </div>
+    );
+  }
 
   if (licenca.ucitava || checking) {
     return (
@@ -310,7 +370,7 @@ export default function App() {
     return wrapSaTabletom(
       <>
         {globalToastEl}
-        <LicencaUpozorenje licenca={licenca} C={C} />
+        <LicencaUpozorenje />
         <PocetniEkran
           korisnik={korisnik}
           licenca={licenca}
@@ -329,68 +389,54 @@ export default function App() {
   }
 
   if (modul === "atributivne" && !modulDozvoljen(licenca, "atributivne")) {
-    return <ModulBlokiran nazivModula="Atributivne kontrole" C={C} onNazad={() => izadjiIzModula("atributivne")} />;
+    return <ModulBlokiran nazivModula="Atributivne kontrole" onNazad={() => izadjiIzModula("atributivne")} />;
   }
   if (modul === "varijabilne" && !modulDozvoljen(licenca, "varijabilne")) {
-    return <ModulBlokiran nazivModula="Merljive (varijabilne)" C={C} onNazad={() => izadjiIzModula("varijabilne")} />;
+    return <ModulBlokiran nazivModula="Merljive (varijabilne)" onNazad={() => izadjiIzModula("varijabilne")} />;
   }
   if (modul === "admin" && !modulDozvoljen(licenca, "admin")) {
-    return <ModulBlokiran nazivModula="Admin panel" C={C} onNazad={() => setModul(null)} />;
+    return <ModulBlokiran nazivModula="Admin panel" onNazad={() => setModul(null)} />;
   }
   if (modul === "sifrarnik" && !modulDozvoljen(licenca, "sifrarnik")) {
-    return <ModulBlokiran nazivModula="Modul 0 — Šifrarnik" C={C} onNazad={() => setModul(null)} />;
+    return <ModulBlokiran nazivModula="Modul 0 — Šifrarnik" onNazad={() => setModul(null)} />;
   }
 
   if (modul === "atributivne" && aktivniRezim === "linija" && !listaOk && !jeAdmin(korisnik?.uloga)) {
     return wrapSaTabletom(
-      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'IBM Plex Mono',monospace" }}>
-        <AppHeader
-          korisnik={korisnik}
-          onOdjava={odjava}
-          onNazad={() => izadjiIzModula("atributivne")}
-          C={C}
-          onToggleTema={() => setC((p) => (p.naziv === "tamna" ? TEME.svetla : TEME.tamna))}
-          temaTamna={C.naziv === "tamna"}
-        />
-        <KontrolnaLista
-          korisnik={korisnik}
-          smena={procitajSmenuIzStorage()}
-          naslovModul="Atributivne"
-          onZavrsena={() => {
-            const sm = procitajSmenuIzStorage();
-            setListaOkSession("atributivne", sm);
-            setListaOk(true);
-          }}
-          C={C}
-        />
-      </div>,
+      <KontrolnaListaGate
+        onOdjava={odjava}
+        onNazad={() => izadjiIzModula("atributivne")}
+        onToggleTema={toggleTema}
+        temaTamna={C.naziv === "tamna"}
+        smena={procitajSmenuIzStorage()}
+        naslovModul="Atributivne"
+        minHeight="100vh"
+        onZavrsena={() => {
+          const sm = procitajSmenuIzStorage();
+          setListaOkSession("atributivne", sm);
+          setListaOk(true);
+        }}
+      />,
     );
   }
 
   if (modul === "varijabilne" && aktivniRezim === "linija" && !listaOkVar && !jeAdmin(korisnik?.uloga)) {
     return wrapSaTabletom(
-      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'IBM Plex Mono',monospace" }}>
-        <AppHeader
-          korisnik={korisnik}
-          onOdjava={odjava}
-          onNazad={() => izadjiIzModula("varijabilne")}
-          C={C}
-          onToggleTema={() => setC((p) => (p.naziv === "tamna" ? TEME.svetla : TEME.tamna))}
-          temaTamna={C.naziv === "tamna"}
-        />
-        <KontrolnaLista
-          korisnik={korisnik}
-          smena={procitajSmenuIzStorage()}
-          naslovModul="Merljive"
-          akcent={C.zelena}
-          onZavrsena={() => {
-            const sm = procitajSmenuIzStorage();
-            setListaOkSession("varijabilne", sm);
-            setListaOkVar(true);
-          }}
-          C={C}
-        />
-      </div>,
+      <KontrolnaListaGate
+        onOdjava={odjava}
+        onNazad={() => izadjiIzModula("varijabilne")}
+        onToggleTema={toggleTema}
+        temaTamna={C.naziv === "tamna"}
+        smena={procitajSmenuIzStorage()}
+        naslovModul="Merljive"
+        akcent={C.zelena}
+        minHeight="100vh"
+        onZavrsena={() => {
+          const sm = procitajSmenuIzStorage();
+          setListaOkSession("varijabilne", sm);
+          setListaOkVar(true);
+        }}
+      />,
     );
   }
 
@@ -398,19 +444,21 @@ export default function App() {
     return jeAdmin(korisnik.uloga) ? wrapSaTabletom(
       <>
         {globalToastEl}
-        <LicencaUpozorenje licenca={licenca} C={C} />
-        <Suspense fallback={<ModulUcitavanje C={C} />}>
-          <AdminPanel
-            korisnik={korisnik}
-            licenca={licenca}
-            onNazad={() => setModul(null)}
-            C={C}
-            onOtvoriSifrarnik={(tab, ctx) => {
-              sacuvajSifrarnikNav(tab, ctx);
-              setModul("sifrarnik");
-            }}
-          />
-        </Suspense>
+        <LicencaUpozorenje />
+        <ErrorBoundary C={C} naziv="Admin" onNazad={() => setModul(null)}>
+          <Suspense fallback={<ModulUcitavanje C={C} />}>
+            <AdminPanel
+              korisnik={korisnik}
+              licenca={licenca}
+              onNazad={() => setModul(null)}
+              C={C}
+              onOtvoriSifrarnik={(tab, ctx) => {
+                sacuvajSifrarnikNav(tab, ctx);
+                setModul("sifrarnik");
+              }}
+            />
+          </Suspense>
+        </ErrorBoundary>
       </>,
     ) : (
       <div style={{
@@ -432,18 +480,20 @@ export default function App() {
   if (modul === "sifrarnik") {
     return mozeSifrarnik(korisnik.uloga) ? wrapSaTabletom(
       <>
-        <LicencaUpozorenje licenca={licenca} C={C} />
-        <Suspense fallback={<ModulUcitavanje C={C} />}>
-          <SifrarnikModul
-            korisnik={korisnik}
-            onOdjava={odjava}
-            onNazad={() => setModul(null)}
-            onOtvoriModul={setModul}
-            C={C}
-            onToggleTema={() => setC((p) => (p.naziv === "tamna" ? TEME.svetla : TEME.tamna))}
-            temaTamna={C.naziv === "tamna"}
-          />
-        </Suspense>
+        <LicencaUpozorenje />
+        <ErrorBoundary C={C} naziv="Šifrarnik" onNazad={() => setModul(null)}>
+          <Suspense fallback={<ModulUcitavanje C={C} />}>
+            <SifrarnikModul
+              korisnik={korisnik}
+              onOdjava={odjava}
+              onNazad={() => setModul(null)}
+              onOtvoriModul={setModul}
+              C={C}
+              onToggleTema={toggleTema}
+              temaTamna={C.naziv === "tamna"}
+            />
+          </Suspense>
+        </ErrorBoundary>
       </>,
     ) : (
       <div style={{
@@ -466,21 +516,23 @@ export default function App() {
     return wrapSaTabletom(
       <>
         {globalToastEl}
-        <Suspense fallback={<ModulUcitavanje C={C} />}>
-          <GlavnaForma
-            korisnik={korisnik}
-            onOdjava={odjava}
-            onNazad={() => izadjiIzModula("atributivne")}
-            C={C}
-            setC={setC}
-            rezimRada={aktivniRezim}
-            onPromeniRezim={promeniRezim}
-            onOtvori8D={otvori8dIzvana}
-            nav8dTick={nav8dTick}
-            licenca={licenca}
-            listaPotvrdena={listaOk}
-          />
-        </Suspense>
+        <ErrorBoundary C={C} naziv="Atributivne" onNazad={() => izadjiIzModula("atributivne")}>
+          <Suspense fallback={<ModulUcitavanje C={C} />}>
+            <GlavnaForma
+              korisnik={korisnik}
+              onOdjava={odjava}
+              onNazad={() => izadjiIzModula("atributivne")}
+              C={C}
+              setC={setC}
+              rezimRada={aktivniRezim}
+              onPromeniRezim={promeniRezim}
+              onOtvori8D={otvori8dIzvana}
+              nav8dTick={nav8dTick}
+              licenca={licenca}
+              listaPotvrdena={listaOk}
+            />
+          </Suspense>
+        </ErrorBoundary>
       </>,
     );
   }
@@ -489,25 +541,35 @@ export default function App() {
     return wrapSaTabletom(
       <>
         {globalToastEl}
-        <Suspense fallback={<ModulUcitavanje C={C} />}>
-          <VarijabilneForma
-            korisnik={korisnik}
-            onOdjava={odjava}
-            onNazad={() => izadjiIzModula("varijabilne")}
-            C={C}
-            onToggleTema={() => setC((p) => (p.naziv === "tamna" ? TEME.svetla : TEME.tamna))}
-            temaTamna={C.naziv === "tamna"}
-            rezimRada={aktivniRezim}
-            onPromeniRezim={promeniRezim}
-            unosRezim={sessionStorage.getItem("spc_mer_unos_rezim") === "digital" ? "digital" : "rucni"}
-            onOtvori8D={otvori8dIzvana}
-            nav8dTick={nav8dTick}
-            licenca={licenca}
-          />
-        </Suspense>
+        <ErrorBoundary C={C} naziv="Merljive" onNazad={() => izadjiIzModula("varijabilne")}>
+          <Suspense fallback={<ModulUcitavanje C={C} />}>
+            <VarijabilneForma
+              korisnik={korisnik}
+              onOdjava={odjava}
+              onNazad={() => izadjiIzModula("varijabilne")}
+              C={C}
+              onToggleTema={toggleTema}
+              temaTamna={C.naziv === "tamna"}
+              rezimRada={aktivniRezim}
+              onPromeniRezim={promeniRezim}
+              unosRezim={safeSessionGet("spc_mer_unos_rezim") === "digital" ? "digital" : "rucni"}
+              onOtvori8D={otvori8dIzvana}
+              nav8dTick={nav8dTick}
+              licenca={licenca}
+            />
+          </Suspense>
+        </ErrorBoundary>
       </>,
     );
   }
 
   return null;
+}
+
+export default function App() {
+  return (
+    <TemaProvider>
+      <AppSadrzaj />
+    </TemaProvider>
+  );
 }

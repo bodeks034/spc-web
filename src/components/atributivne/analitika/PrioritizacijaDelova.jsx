@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../lib/supabaseClient.js";
 import { statAtributivneRedovi } from "../../../lib/atributivneAgregacija.js";
 import { useOfflineCache } from "./useOfflineCache.js";
+import { LAB_FPY_KRATKO } from "../../../lib/rtyFpy.js";
 
 export default function PrioritizacijaDelova({ C, addToast }) {
   const [podaci, setPodaci] = useState([]);

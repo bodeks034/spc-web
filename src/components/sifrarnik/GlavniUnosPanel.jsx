@@ -24,7 +24,8 @@ import { validirajRedovePrePropagacije } from "../../lib/glavniUnosValidacija.js
 import { dodajSablonGresaka } from "../../lib/greskaSablon.js";
 import { zavrsiSifrarnikOnboarding } from "../../lib/sifrarnikOnboarding.js";
 import { previewPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
-import { sacuvajGuUndoSnapshot, ucitajGuUndoSnapshot, obrisiGuUndoSnapshot, preostaloUndoMs, formatUndoPreostalo } from "../../lib/guXlsxUndo.js";
+import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
+import { sacuvajGuUndoSnapshot, ucitajGuUndoSnapshot, obrisiGuUndoSnapshot, preostaloUndoMs, formatUndoPreostalo, labelGuUndo } from "../../lib/guXlsxUndo.js";
 import { useSifrarnikOpcije } from "./useSifrarnikOpcije.js";
 import {
   stampAuditPolja,
@@ -37,6 +38,7 @@ import {
   granicaZaPrikaz,
 } from "../../lib/glavniUnosGranice.js";
 import { jePunIdDeo, normalizujIdDeo } from "../../lib/idDeoUtil.js";
+import { idDeoviIzKonteksta } from "../../lib/sifrarnikRadniTok.js";
 import {
   brojDimenzijaZaDeo,
   nadjiSablonZaDeo,
@@ -115,9 +117,9 @@ const FIELD_META = {
   linija: { type: "select", opcijeKey: "linija" },
   operacija: { type: "operacija" },
   masina_id: { type: "masina" },
-  karakteristika: { type: "select", opcijeKey: "karakteristika" },
+  karakteristika: { type: "datalist", opcijeKey: "karakteristika", placeholder: "Upiši npr. Dužina…" },
   jedinica: { type: "select", opcijeKey: "jedinica" },
-  instrument: { type: "select", opcijeKey: "instrument" },
+  instrument: { type: "datalist", opcijeKey: "instrument", placeholder: "Upiši npr. Metar ili izaberi…" },
   tip: { type: "select", opcijeKey: "tip" },
   klasa: { type: "select", opcijeKey: "klasa" },
   kupac: { type: "datalist", opcijeKey: "kupac", placeholder: "Npr. Lokalni servis — dodaje se u Kupci" },
@@ -183,13 +185,24 @@ function normalizujRedZaSnimanje(r, sheetNaziv, redosled) {
 }
 
 function idDeoPoslePropagacije(redovi, filter) {
-  if (jePunIdDeo(filter)) return normalizujIdDeo(filter);
-  const ids = [...new Set((redovi || []).map((r) => normalizujIdDeo(r.id_deo)).filter(Boolean))];
+  const ids = idDeoviIzKonteksta(redovi, jePunIdDeo(filter) ? filter : "");
   if (ids.length === 1) return ids[0];
   return ids[ids.length - 1] || null;
 }
 
-export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, navSignal, tipoviVozilaHub = [], radnaLinija = "" }) {
+function statusKontekstGu(redovi, filter, radnaLinija, akcija) {
+  const ids = idDeoviIzKonteksta(redovi, jePunIdDeo(filter) ? filter : "");
+  return {
+    izvor: "glavni_unos",
+    akcija,
+    idDeo: ids[0] || null,
+    idDeovi: ids,
+    tab: "glavni_unos",
+    linija: radnaLinija || "",
+  };
+}
+
+export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, navSignal, tipoviVozilaHub = [], radnaLinija = "", onDirtyChange }) {
   const { opcije: bazaOpcije } = useSifrarnikOpcije(addToast);
   const [sheetovi, setSheetovi] = useState(DEFAULT_SHEETS);
   const [sheetKonfiguracije, setSheetKonfiguracije] = useState([]);
@@ -232,6 +245,21 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [dirty, formaIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   useEffect(() => {
     if (!imaUndo) return undefined;
@@ -307,32 +335,49 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   useEffect(() => {
     if (!radnaLinija || !sheetovi.length) return;
     const predlog = sheetRadneLinije(radnaLinija, "delovi");
-    if (predlog && sheetovi.includes(predlog)) setAktivniSheet(predlog);
-  }, [radnaLinija, sheetovi]);
+    if (!predlog || !sheetovi.includes(predlog) || predlog === aktivniSheet) return;
+    if (dirty && !window.confirm("Nesačuvane izmene — preći na sheet radne linije?")) return;
+    setAktivniSheet(predlog);
+  }, [radnaLinija, sheetovi]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setChecklistCtx(null);
   }, [aktivniSheet]);
 
   const [concurrentUpozorenje, setConcurrentUpozorenje] = useState(false);
+  const [concurrentStamp, setConcurrentStamp] = useState(null);
 
   useEffect(() => {
     if (!dirty || !sheetRemoteStamp) {
       setConcurrentUpozorenje(false);
+      setConcurrentStamp(null);
       return undefined;
     }
     const poll = async () => {
       try {
         const trenutni = await fetchSheetMaxUpdatedAt(aktivniSheet);
-        setConcurrentUpozorenje(!!(trenutni && trenutni !== sheetRemoteStamp));
+        const konflikt = !!(trenutni && trenutni !== sheetRemoteStamp);
+        setConcurrentUpozorenje(konflikt);
+        setConcurrentStamp(konflikt ? trenutni : null);
       } catch {
         /* polling opciono */
       }
     };
     poll();
-    const t = window.setInterval(poll, 20000);
+    const t = window.setInterval(poll, 12000);
     return () => window.clearInterval(t);
   }, [dirty, sheetRemoteStamp, aktivniSheet]);
+
+  const osveziSheetSaServera = async () => {
+    if (dirty && !window.confirm("Odbaciti lokalne nesačuvane izmene i učitati sheet sa servera?")) {
+      return;
+    }
+    await ucitajRedove(aktivniSheet);
+    setDirty(false);
+    setConcurrentUpozorenje(false);
+    setConcurrentStamp(null);
+    addToast?.("✓ Sheet osvežen sa servera", "uspeh");
+  };
 
   useEffect(() => {
     if (tipoviVozilaHub.length) {
@@ -393,7 +438,14 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       const vozilo = checklistCtx?.analiza?.tip === GLAVNI_UNOS_SHEET_TIP.FINAL;
       const n = await dodajSablonGresaka(idDeo, { vozilo });
       addToast?.(`✓ Dodato ${n} grešaka u katalog`, "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "greske_sablon", idDeo });
+      obavestiPromenuStatusaSifrarnika({
+          izvor: "glavni_unos",
+          akcija: "greske_sablon",
+          idDeo,
+          idDeovi: idDeo ? [idDeo] : [],
+          tab: "greske",
+          linija: radnaLinija || "",
+        });
       onNavigate?.("greske", { idDeo, vozilo });
     } catch (e) {
       addToast?.(e.message, "greska");
@@ -409,11 +461,24 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       .some((s) => String(s || "").toLowerCase().includes(q));
   });
 
-  const sacuvajSheet = async ({ propagirajPosle = true } = {}) => {
+  const sacuvajSheet = async ({ propagirajPosle = true, forsiraConcurrent = false } = {}) => {
     if (propagirajPosle && !potvrdiPrePropagacije()) return;
-    if (!(await proveriConcurrentEdit())) return;
+    if (!forsiraConcurrent && !(await proveriConcurrentEdit())) return;
     setSnima(true);
     try {
+      if (concurrentUpozorenje || forsiraConcurrent) {
+        try {
+          const remote = await fetchGlavniUnosRedovi(aktivniSheet);
+          sacuvajGuUndoSnapshot({
+            poSheetu: { [aktivniSheet]: remote.map(formatRedZaFormu) },
+            imeFajla: aktivniSheet,
+            razlog: "snimanje",
+          });
+          setImaUndo(true);
+          setUndoPreostalo(preostaloUndoMs(ucitajGuUndoSnapshot()));
+        } catch { /* undo opciono */ }
+      }
+
       const payload = redovi.map((r, i) => normalizujRedZaSnimanje(
         stampAuditPolja(r, korisnik),
         aktivniSheet,
@@ -423,6 +488,8 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       setRedovi(saved.map(formatRedZaFormu));
       setSheetRemoteStamp(await fetchSheetMaxUpdatedAt(aktivniSheet).catch(() => new Date().toISOString()));
       setDirty(false);
+      setConcurrentUpozorenje(false);
+      setConcurrentStamp(null);
       if (propagirajPosle) {
         const res = await propagirajGlavniUnos();
         const derivedCount = (res.derived || []).reduce((s, r) => s + (r.count || 0), 0);
@@ -435,10 +502,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
           "uspeh",
         );
         zavrsiSifrarnikOnboarding();
-        obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "objavi" });
+        obavestiPromenuStatusaSifrarnika(statusKontekstGu(redovi, filter, radnaLinija, "objavi"));
         return res;
       }
       addToast?.(`✓ ${aktivniSheet}: ${saved.length} redova`, "uspeh");
+      obavestiPromenuStatusaSifrarnika(statusKontekstGu(redovi, filter, radnaLinija, "snimi"));
       return { redova: saved.length };
     } catch (e) {
       const msg = e?.message || String(e);
@@ -470,7 +538,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         "uspeh",
       );
       zavrsiSifrarnikOnboarding();
-      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "propagiraj" });
+      obavestiPromenuStatusaSifrarnika(statusKontekstGu(redovi, filter, radnaLinija, "propagiraj"));
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -501,10 +569,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
   const vratiXlsxUndo = async () => {
     const snap = ucitajGuUndoSnapshot();
     if (!snap?.poSheetu) {
-      addToast?.("Nema snimka pre importa", "info");
+      addToast?.("Nema snimka za undo", "info");
       return;
     }
-    if (!window.confirm(`Vratiti stanje pre importa${snap.imeFajla ? ` (${snap.imeFajla})` : ""}?`)) return;
+    const tip = snap.razlog === "snimanje" ? "prepisivanja sheet-a" : "importa";
+    if (!window.confirm(`Vratiti stanje pre ${tip}${snap.imeFajla ? ` (${snap.imeFajla})` : ""}?`)) return;
     setSnima(true);
     try {
       for (const [sheet, rows] of Object.entries(snap.poSheetu)) {
@@ -540,7 +609,14 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
         : `✓ ${id}: ${res.karakteristike} dimenzija iz Osnovnog`
           + (derivedCount ? `, ${derivedCount} zavisnih` : "");
       addToast?.(msg, "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "propagiraj_deo", idDeo: id });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "glavni_unos",
+        akcija: "propagiraj_deo",
+        idDeo: id,
+        idDeovi: id ? [id] : [],
+        tab: "glavni_unos",
+        linija: radnaLinija || "",
+      });
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -731,7 +807,14 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
       setFilter(rez.cilj);
       setKlonCilj("");
       await ucitajRedove(aktivniSheet);
-      obavestiPromenuStatusaSifrarnika({ izvor: "glavni_unos", akcija: "kloniraj", idDeo: rez.cilj });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "glavni_unos",
+        akcija: "kloniraj",
+        idDeo: rez.cilj,
+        idDeovi: rez.cilj ? [rez.cilj] : [],
+        tab: "glavni_unos",
+        linija: radnaLinija || "",
+      });
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -755,8 +838,34 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
             lineHeight: 1.45,
           }}
         >
-          <strong>Concurrent edit:</strong> drugi inženjer je možda izmenio sheet „{aktivniSheet}“.
-          {" "}Osveži pre snimanja ili nastavi svesno (prepisuješ tuđe izmene).
+          <div style={{ marginBottom: 8 }}>
+            <strong>Konflikt izmene:</strong> drugi korisnik je izmenio sheet „{aktivniSheet}”
+            {concurrentStamp ? (
+              <span style={{ color: C.sivi }}>
+                {" "}(server: {new Date(concurrentStamp).toLocaleString("sr-RS")})
+              </span>
+            ) : null}
+            . Osveži da vidiš njihove izmene, ili snimi svesno (prepisuješ — moći ćeš Undo).
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              data-testid="gu-concurrent-osvezi"
+              onClick={osveziSheetSaServera}
+              style={btnStyle(C, C.plava, { fontSize: 9 })}
+            >
+              Osveži sheet
+            </button>
+            <button
+              type="button"
+              data-testid="gu-concurrent-snimi"
+              disabled={snima}
+              onClick={() => sacuvajSheet({ propagirajPosle: false, forsiraConcurrent: true })}
+              style={btnStyle(C, C.crvena || "#dc2626", { fontSize: 9 })}
+            >
+              Snimi ipak (prepiši)
+            </button>
+          </div>
         </div>
       )}
       {dirty && (
@@ -983,7 +1092,7 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
           <>
           <button type="button" data-testid="gu-xlsx-undo" onClick={vratiXlsxUndo} disabled={snima}
             style={btnStyle(C, C.hover, { disabled: snima, fontSize: 10 })}>
-            ↩ Undo import
+            {labelGuUndo(ucitajGuUndoSnapshot())}
           </button>
           {undoPreostalo > 0 && (
             <span data-testid="gu-xlsx-undo-ttl" style={{ color: C.sivi, fontSize: 9, alignSelf: "center" }}>
@@ -1149,8 +1258,37 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
             })}
             {!loading && !prikaz.length && (
               <tr>
-                <td colSpan={GRID_KOLONE.length + 1} style={{ padding: 24, textAlign: "center", color: C.sivi }}>
-                  Nema redova — dodaj ručno ili uvezi iz glavni unos.xlsx
+                <td colSpan={GRID_KOLONE.length + 1} style={{ padding: 28, textAlign: "center", color: C.sivi }}>
+                  <div style={{ marginBottom: 10 }}>
+                    {radnaLinija
+                      ? `Nema redova na sheetu za liniju ${radnaLinija}`
+                      : "Nema redova na ovom sheetu"}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      data-testid="gu-empty-wizard"
+                      onClick={() => {
+                        setWizardPreset({
+                          linija: radnaLinija || null,
+                          tip: GLAVNI_UNOS_SHEET_TIP.PROJEKAT,
+                          autoPotvrdi: !!radnaLinija,
+                          ts: Date.now(),
+                        });
+                        setWizardOtvoren(true);
+                      }}
+                      style={btnStyle(C, C.zelena, { fontSize: 10 })}
+                    >
+                      + Novi deo (čarobnjak)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => otvoriGrupniUnos()}
+                      style={btnStyle(C, C.plava, { fontSize: 10 })}
+                    >
+                      + Grupni unos
+                    </button>
+                  </div>
                 </td>
               </tr>
             )}

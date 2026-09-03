@@ -96,7 +96,7 @@ export default function MerljiveExcelPanel({ C, addToast }) {
     setBusy("izvoz");
     try {
       const book = await exportMerljiveMasterWorkbook(supabase);
-      downloadWorkbook(book, `SPC_merljive_${dISO()}.xlsx`);
+      await downloadWorkbook(book, `SPC_merljive_${dISO()}.xlsx`);
       addToast("✓ Merljive tabele preuzete", "uspeh");
     } catch (err) {
       addToast(err.message, "greska");

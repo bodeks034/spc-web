@@ -12,6 +12,7 @@ import { ensureDeoMasterMinimal, syncMerljiviSifrarnikZaDeo } from "./importDeri
 import { normalizujIdDeo, jePunIdDeo } from "./idDeoUtil.js";
 import { logSifrarnikAudit } from "./sifrarnikAudit.js";
 import { ucitajRedovePoIdDeo } from "./idDeoQuery.js";
+import { primeniFilterLinijeNaQuery } from "./linijaProizvoda.js";
 
 function greskaNedostajeTabela(error) {
   const m = (error?.message || "").toLowerCase();
@@ -115,13 +116,24 @@ export async function deleteDefektVozilo(id) {
   if (error) throw error;
 }
 
-export async function fetchDelovi({ tipKontrole = null, voziloKatalogId = null, samoAktivni = false, limit = null, offset = 0 } = {}) {
+/** Filter po radnoj liniji: katalog / šifra / prefiks id_deo (npr. VOZ-03-…). */
+export async function fetchDelovi({
+  tipKontrole = null,
+  voziloKatalogId = null,
+  linijaKod = null,
+  samoAktivni = false,
+  limit = null,
+  offset = 0,
+} = {}) {
   let q = supabase.from("delovi")
     .select("id,id_deo,naziv_dela,karakteristika,tip_kontrole,vozilo_katalog_id,sifra_vozila,broj_crteza,revizija,slika_naziv,aktivan,napomena,kom_za_kontrolu,greska_katalog_id,linija_id,masina_id")
     .order("id_deo");
   if (samoAktivni) q = q.eq("aktivan", true);
   if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
-  if (voziloKatalogId) q = q.eq("vozilo_katalog_id", String(voziloKatalogId).trim().toUpperCase());
+  if (voziloKatalogId && !linijaKod) {
+    q = q.eq("vozilo_katalog_id", String(voziloKatalogId).trim().toUpperCase());
+  }
+  q = primeniFilterLinijeNaQuery(q, linijaKod);
   if (limit != null) q = q.range(offset, offset + limit - 1);
   const { data, error } = await q;
   if (error) throw error;
@@ -130,10 +142,11 @@ export async function fetchDelovi({ tipKontrole = null, voziloKatalogId = null, 
 
 export const DELOVI_PAGE_SIZE = 100;
 
-export async function countDelovi({ tipKontrole = null, samoAktivni = false } = {}) {
+export async function countDelovi({ tipKontrole = null, linijaKod = null, samoAktivni = false } = {}) {
   let q = supabase.from("delovi").select("*", { count: "exact", head: true });
   if (samoAktivni) q = q.eq("aktivan", true);
   if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
+  q = primeniFilterLinijeNaQuery(q, linijaKod);
   const { count, error } = await q;
   if (error) throw error;
   return count || 0;
@@ -463,6 +476,27 @@ export async function deleteKontrolnaStavka(id) {
   if (error) throw error;
 }
 
+/** Poslednji zapisi završene kontrolne liste (admin pregled). */
+export async function fetchKontrolnaListaLog({ limit = 40, datum = null, smena = null } = {}) {
+  let q = supabase
+    .from("kontrolna_lista_log")
+    .select("id,radnik_id,smena,datum,zavrsena,created_at,stavke_json,radnici(ime,prezime,broj_zaposlenog)")
+    .eq("zavrsena", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (datum) q = q.eq("datum", datum);
+  if (smena != null && smena !== "") q = q.eq("smena", Number(smena));
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    ...r,
+    radnik_ime: [r.radnici?.ime, r.radnici?.prezime].filter(Boolean).join(" ")
+      || r.radnici?.broj_zaposlenog
+      || (r.radnik_id != null ? `#${r.radnik_id}` : "—"),
+    modul: r.stavke_json?.modul || null,
+  }));
+}
+
 // ——— Merljive: SOP + karakteristike ———
 function primeniIdFilter(q, idDeo) {
   const id = normalizujIdDeo(idDeo);
@@ -528,7 +562,9 @@ export async function upsertSopMerljive(row) {
   try {
     await syncMerljiviSifrarnikZaDeo(supabase, data.id_deo);
   } catch (syncErr) {
-    console.warn("syncMerljiviSifrarnikZaDeo (SOP):", syncErr?.message || syncErr);
+    const poruka = syncErr?.message || String(syncErr);
+    console.warn("syncMerljiviSifrarnikZaDeo (SOP):", poruka);
+    return { ...data, _syncUpozorenje: poruka };
   }
   return data;
 }
@@ -596,7 +632,9 @@ export async function upsertKarakteristikaMerljiva(row) {
   try {
     await syncMerljiviSifrarnikZaDeo(supabase, data.id_deo);
   } catch (syncErr) {
-    console.warn("syncMerljiviSifrarnikZaDeo:", syncErr?.message || syncErr);
+    const poruka = syncErr?.message || String(syncErr);
+    console.warn("syncMerljiviSifrarnikZaDeo:", poruka);
+    return { ...data, _syncUpozorenje: poruka };
   }
   return data;
 }

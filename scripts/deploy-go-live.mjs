@@ -55,7 +55,7 @@ async function main() {
   const imaDb = !!(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY));
   if (imaDb) {
     if (!runStep("Provera šeme", () => npmRun("db:verify"))) fail += 1;
-    if (!runStep("Go-live RPC (77–79)", () => npmRun("db:verify:go-live"))) fail += 1;
+    if (!runStep("Go-live šema (77–94)", () => npmRun("db:verify:go-live"))) fail += 1;
   } else {
     console.log("\n── Provera šeme ──\n⚠ Preskočeno (nema SUPABASE u .env.local)");
     rezultati.push({ naziv: "Provera šeme", ok: null });

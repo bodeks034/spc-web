@@ -10,7 +10,8 @@ import {
   trendKvalitetaPoDanu, agregatKvaliteta, nokPoPozicijiDashboard,
   SIGMA_BENCH, yDomainSpc, yDomainRangeChart, sigmaProcesa,
 } from "./lib/varijabilneSpcStats.js";
-import { kreirajAutoEskalaciju, WE_MIN_PODGRUPA_OBRAZAC, calcPPM } from "./lib/spcStats.js";
+import { WE_MIN_PODGRUPA_OBRAZAC, calcPPM } from "./lib/spcStats.js";
+import { kreirajAlarmWesternElectric } from "./lib/spcAlarmWorkflow.js";
 import { downloadWorkbook, exportMerenjaVarijabilnaExcel } from "./lib/excelSync.js";
 import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi } from "./lib/varijabilneUtils.js";
 import { uniqueDeloviIzSop } from "./lib/pogonSop.js";
@@ -402,16 +403,24 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
     const tipKarte = { xbar: "Xbar", r: "R", i: "I", mr: "MR" }[tip] || tip;
     (async () => {
       try {
-        await kreirajAutoEskalaciju(supabase, {
-          id_deo: idDeo,
-          opis: `Merljiva ${tipKarte}-karta (${pozicija || "sve"}): ${upozoreniZaEskalaciju.length} SPC upozorenje`,
-          prioritet: "kriticno",
-          kreirao_id: korisnik.radnikId,
-          prefiks: "AUTO-VAR",
+        const zadnji = upozoreniZaEskalaciju[upozoreniZaEskalaciju.length - 1];
+        await kreirajAlarmWesternElectric(supabase, {
+          idDeo,
+          tipKarte,
+          pozicija: pozicija || null,
+          brojUpozorenja: upozoreniZaEskalaciju.length,
+          radnikId: korisnik.radnikId,
+          vrednost: zadnji?.val,
+          ucl: zadnji?.ucl,
+          lcl: zadnji?.lcl,
+          modul: "merljive",
         });
-        addToast(`⚠ SPC (${tipKarte}): ${upozoreniZaEskalaciju.length} upozorenje — ne blokira liniju`, "greska");
+        addToast(
+          `⛔ SPC (${tipKarte}): ${upozoreniZaEskalaciju.length} upozorenje — linija blokirana dok se alarm ne potvrdi`,
+          "greska",
+        );
       } catch (e) {
-        addToast(`SPC eskalacija nije snimljena: ${e.message || "greška"}`, "greska");
+        addToast(`SPC alarm nije snimljen: ${e.message || "greška"}`, "greska");
       }
     })();
   }, [upozoreniZaEskalaciju, idDeo, pozicija, tip, korisnik?.radnikId, addToast]);
@@ -429,7 +438,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
     try {
       const wb = await exportMerenjaVarijabilnaExcel(supabase, idDeo, pozicija || null, datumOd, datumDo);
       if (!wb) { addToast("Nema podataka za export", "greska"); return; }
-      downloadWorkbook(wb, `merenja_${idDeo}_${dISO()}.xlsx`);
+      await downloadWorkbook(wb, `merenja_${idDeo}_${dISO()}.xlsx`);
       addToast("✓ Exportovano u Excel", "uspeh");
     } catch (e) {
       addToast(e.message, "greska");

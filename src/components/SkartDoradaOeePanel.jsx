@@ -43,7 +43,7 @@ function KpiBrojPolje({ label, value, boja, C, onChange, readOnly = false }) {
 
   return (
     <label style={{ display: "block" }}>
-      <span style={{ color: C.sivi, fontSize: 8, display: "block", marginBottom: 3 }}>{label}</span>
+      <span style={{ color: C.sivi, fontSize: 10, display: "block", marginBottom: 3 }}>{label}</span>
       <input
         type="text"
         inputMode="numeric"
@@ -120,7 +120,7 @@ export default function SkartDoradaOeePanel({
               );
             })}
           </div>
-          <div style={{ color: C.sivi, fontSize: 8, marginBottom: 8 }}>
+          <div style={{ color: C.sivi, fontSize: 10, marginBottom: 8 }}>
             {jeAtributivne
               ? "Ručni unos dorade/škarta za tekuću kontrolu:"
               : "Ručni unos za tekuću seriju (sabira se u ukupno iznad):"}
@@ -194,7 +194,7 @@ export default function SkartDoradaOeePanel({
           </div>
         ))}
       </div>
-      <div style={{ color: C.sivi, fontSize: 8, marginTop: 10, lineHeight: 1.55 }}>
+      <div style={{ color: C.sivi, fontSize: 10, marginTop: 10, lineHeight: 1.55 }}>
         {samoPregled
           ? "Pregled KPI — FPY i stopa škarta/dorade izračunati automatski."
           : "Iz merenja (read-only): ukupno kom, ispravno iz prve, neusaglašeno · Unos: dorada, škart, OK posle dorade."}

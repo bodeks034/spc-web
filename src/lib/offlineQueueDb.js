@@ -2,7 +2,9 @@
 
 const DB_NAME = "spc_offline_v1";
 const STORE = "jobs";
-const DB_VERSION = 1;
+/** Nacrti radnih listi — ono što operater unese pre klika na "Zapiši u bazu". */
+const STORE_NACRTI = "nacrti";
+const DB_VERSION = 2;
 
 function txDone(tx) {
   return new Promise((resolve, reject) => {
@@ -31,8 +33,43 @@ export function openOfflineDb() {
         os.createIndex("createdAt", "createdAt", { unique: false });
         os.createIndex("type", "type", { unique: false });
       }
+      if (!db.objectStoreNames.contains(STORE_NACRTI)) {
+        db.createObjectStore(STORE_NACRTI, { keyPath: "kljuc" });
+      }
     };
   });
+}
+
+export async function idbSnimiNacrt(kljuc, podaci) {
+  const db = await openOfflineDb();
+  const tx = db.transaction(STORE_NACRTI, "readwrite");
+  tx.objectStore(STORE_NACRTI).put({ kljuc, podaci, snimljeno: new Date().toISOString() });
+  await txDone(tx);
+  db.close();
+}
+
+export async function idbUcitajNacrt(kljuc) {
+  const db = await openOfflineDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NACRTI, "readonly");
+    const req = tx.objectStore(STORE_NACRTI).get(kljuc);
+    req.onsuccess = () => {
+      db.close();
+      resolve(req.result || null);
+    };
+    req.onerror = () => {
+      db.close();
+      reject(req.error);
+    };
+  });
+}
+
+export async function idbObrisiNacrt(kljuc) {
+  const db = await openOfflineDb();
+  const tx = db.transaction(STORE_NACRTI, "readwrite");
+  tx.objectStore(STORE_NACRTI).delete(kljuc);
+  await txDone(tx);
+  db.close();
 }
 
 export async function idbUcitajSve() {

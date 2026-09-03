@@ -1,5 +1,33 @@
 /** Provera da li su migracije primenjene (Admin panel). */
 
+/** Go-live blok 77–95 — koristi `npm run db:verify:go-live`. */
+export const GO_LIVE_IDS = new Set([
+  "ocisti_operativu_rpc",
+  "obrisi_deo_rpc",
+  "obrisi_demo_delove_rpc",
+  "sifrarnik_audit",
+  "sifrarnik_audit_rls",
+  "sifrarnik_filter_rpc",
+  "sifrarnik_audit_roles",
+  "sifrarnik_deo_status_mv",
+  "sifrarnik_audit_retention",
+  "sifrarnik_mv_scale",
+  "tipovi_linije_privremene",
+  "obrisi_deo_kaskadno",
+  "sifrarnik_linija_mv",
+  "dashboard_agregati",
+  "arhiviranje_audit",
+  "bezbednost_rls_pin",
+  "rls_uloge_upisa",
+  "broj_zapisa_po_delu",
+  "obrisi_deo_eskalacije_fk",
+  "error_log",
+]);
+
+/** Poruka kada produkcijski RPC nije na bazi (bezbedni fallback je ukinut). */
+export const GO_LIVE_RPC_PORUKA =
+  "Nedostaje go-live RPC (migracije 88–95). Pokreni: npm run db:migrate:go-live";
+
 export const MIGRACIJE_LISTA = [
   { id: "notifikacije", naziv: "Obaveštenja (Teams, log)", fajl: "17_notifikacije.sql" },
   { id: "kar_revizija", naziv: "Revizija granica merljivih", fajl: "18_karakteristike_revizija.sql" },
@@ -60,6 +88,15 @@ export const MIGRACIJE_LISTA = [
   { id: "sifrarnik_audit_retention", naziv: "Audit arhiva", fajl: "85_sifrarnik_audit_retention.sql" },
   { id: "sifrarnik_mv_scale", naziv: "MV skala 10k+ RPC", fajl: "86_sifrarnik_mv_scale.sql" },
   { id: "tipovi_linije_privremene", naziv: "VOZ/PRO privremene linije", fajl: "87_tipovi_linije_privremene.sql" },
+  { id: "obrisi_deo_kaskadno", naziv: "Brisanje dela — kaskadne zavisnosti", fajl: "88_obrisi_deo_kaskadno.sql" },
+  { id: "sifrarnik_linija_mv", naziv: "Filter po liniji + auto-refresh MV", fajl: "89_sifrarnik_linija_i_mv_refresh.sql" },
+  { id: "dashboard_agregati", naziv: "Dashboard agregacija u bazi", fajl: "90_dashboard_agregati.sql" },
+  { id: "arhiviranje_audit", naziv: "Arhiviranje dela + audit trigger", fajl: "91_arhiviranje_i_audit_trigger.sql" },
+  { id: "bezbednost_rls_pin", naziv: "Bezbednost: RLS radnici + PIN u bazi", fajl: "92_bezbednost_rls_i_pin.sql" },
+  { id: "rls_uloge_upisa", naziv: "Uloge na nivou baze (write politike)", fajl: "93_rls_uloge_upisa.sql" },
+  { id: "broj_zapisa_po_delu", naziv: "Grupno brojanje zapisa po delu", fajl: "94_broj_zapisa_po_delu.sql" },
+  { id: "obrisi_deo_eskalacije_fk", naziv: "Brisanje dela — eskalacije/SPC alarm FK", fajl: "95_obrisi_deo_eskalacije_fk.sql" },
+  { id: "error_log", naziv: "Error log (ErrorBoundary)", fajl: "97_error_log.sql" },
 ];
 
 const PROBES = [
@@ -131,9 +168,11 @@ const PROBES = [
   { id: "foto_atr", table: "kontrolni_log", select: "id,foto,client_id" },
   { id: "client_id_mer", table: "merenja_varijabilna", select: "id,client_id" },
   { id: "radnici_pin", table: "radnici", select: "id,pin_hash" },
+  { id: "radnici_ima_pin", table: "radnici", select: "id,ima_pin" },
   { id: "sifrarnik_audit_tbl", table: "sifrarnik_audit", select: "id,akcija,created_at" },
   { id: "sifrarnik_audit_arhiva", table: "sifrarnik_audit_arhiva", select: "id,akcija" },
   { id: "mv_delovi_status", table: "mv_delovi_sifrarnik_status", select: "id_deo,status_sifrarnik" },
+  { id: "error_log_tbl", table: "error_log", select: "id,modul,poruka,pregledano" },
 ];
 
 function greskaNedostaje(error) {
@@ -221,11 +260,12 @@ export async function proveriGreskeKatalogUpsert(supabase) {
 /** Provera da RPC funkcija postoji (pogrešna potvrda ≠ nedostaje funkcija). */
 export async function proveriRpcPostoji(supabase, fnName, args) {
   const { error } = await supabase.rpc(fnName, args);
-  if (!error) return { ok: true, poruka: "OK" };
+  if (!error) return { id: fnName, ok: true, poruka: "OK" };
   if (/function.*does not exist|could not find the function/i.test(error.message || "")) {
-    return { ok: false, poruka: `Nedostaje RPC ${fnName}` };
+    return { id: fnName, ok: false, poruka: `Nedostaje RPC ${fnName}` };
   }
-  return { ok: true, poruka: "OK" };
+  // Svaka druga greška (RLS, pogrešna potvrda, prazan rezultat) znači da funkcija postoji.
+  return { id: fnName, ok: true, poruka: `OK (${error.message})` };
 }
 
 export async function proveriGoLiveRpc(supabase) {
@@ -233,10 +273,13 @@ export async function proveriGoLiveRpc(supabase) {
     p_zadrzi_qms: false,
     p_potvrdi: "__SCHEMA_PROBE__",
   });
-  const obrisi = await proveriRpcPostoji(supabase, "obrisi_deo_iz_sifrarnika", {
+  // Posle 88_ 2-arg potpis je DROPovan — provera ide samo sa p_sa_operativom.
+  const obrisiKaskadno = await proveriRpcPostoji(supabase, "obrisi_deo_iz_sifrarnika", {
     p_id_deo: "__PROBE__",
     p_potvrdi: "__SCHEMA_PROBE__",
+    p_sa_operativom: false,
   });
+  const obrisi = obrisiKaskadno;
   const obrisiDemo = await proveriRpcPostoji(supabase, "obrisi_demo_delove_iz_sifrarnika", {
     p_id_deo_list: ["__PROBE__"],
     p_potvrdi: "__SCHEMA_PROBE__",
@@ -250,20 +293,71 @@ export async function proveriGoLiveRpc(supabase) {
     p_offset: 0,
   });
   const refreshMv = await proveriRpcPostoji(supabase, "refresh_sifrarnik_deo_status_mv", {});
+  const zavisnosti = await proveriRpcPostoji(supabase, "deo_zavisnosti", { p_id_deo: "__PROBE__" });
+  const arhiviraj = await proveriRpcPostoji(supabase, "arhiviraj_deo", {
+    p_id_deo: "__PROBE__",
+    p_razlog: null,
+    p_korisnik: null,
+  });
+  const dashAgg = await proveriRpcPostoji(supabase, "dashboard_agregat_attr", {
+    p_od: "2000-01-01",
+    p_id_deo: "__PROBE__",
+    p_linija: null,
+    p_smena: null,
+  });
+  const linijaMv = await proveriRpcPostoji(supabase, "sifrarnik_broj_delovi", {
+    p_tip_kontrole: null,
+    p_linija: null,
+    p_q: "__PROBE__",
+  });
   const auditArhiva = await proveriRpcPostoji(supabase, "sifrarnik_audit_arhiviraj", { p_meseci: 12 });
+  const ulogaFn = await proveriRpcPostoji(supabase, "uloga_korisnika", {});
+  const rlsUloge = await proveriRpcPostoji(supabase, "sme_menjati_sifrarnik", {});
+  const brojPoDelu = await proveriRpcPostoji(supabase, "broj_merenja_po_delu", { p_ids: [] });
+  const pinFn = await proveriRpcPostoji(supabase, "proveri_pin_radnika", {
+    p_radnik_id: -1,
+    p_pin: "0000",
+  });
   const kompletnost = await proveriRpcPostoji(supabase, "sifrarnik_kompletnost_stat", {});
   const listaDelovi = await proveriRpcPostoji(supabase, "sifrarnik_lista_delovi", {
     p_tip_kontrole: null,
     p_limit: 1,
     p_offset: 0,
   });
+  const eskalacijeFkRaw = await supabase.rpc("obrisi_deo_eskalacije_fk_ok");
+  let eskalacijeFk;
+  if (eskalacijeFkRaw.error
+    && /function.*does not exist|could not find the function/i.test(eskalacijeFkRaw.error.message || "")) {
+    eskalacijeFk = { ok: false, poruka: "Nedostaje 95_obrisi_deo_eskalacije_fk.sql" };
+  } else if (eskalacijeFkRaw.error) {
+    eskalacijeFk = { ok: false, poruka: eskalacijeFkRaw.error.message };
+  } else if (eskalacijeFkRaw.data === true) {
+    eskalacijeFk = { ok: true, poruka: "OK" };
+  } else {
+    eskalacijeFk = {
+      ok: false,
+      poruka: "spc_alarmi.eskalacija_id nije ON DELETE SET NULL — pokreni 95",
+    };
+  }
   return {
     ocisti_operativu_rpc: ocisti,
     obrisi_deo_rpc: obrisi,
+    obrisi_deo_kaskadno: obrisiKaskadno,
+    sifrarnik_linija_mv: linijaMv,
+    dashboard_agregati: dashAgg,
+    arhiviranje_audit: zavisnosti.ok && arhiviraj.ok
+      ? { ok: true, poruka: "OK" }
+      : { ok: false, poruka: "Nedostaje deo_zavisnosti / arhiviraj_deo — pokreni 91" },
     obrisi_demo_delove_rpc: obrisiDemo,
     sifrarnik_filter_rpc: filterDelovi,
     sifrarnik_deo_status_mv: refreshMv,
     sifrarnik_audit_retention: auditArhiva,
+    bezbednost_rls_pin: ulogaFn.ok && pinFn.ok
+      ? { ok: true, poruka: "OK" }
+      : { ok: false, poruka: "Nedostaje uloga_korisnika / proveri_pin_radnika — pokreni 92" },
+    rls_uloge_upisa: rlsUloge,
+    broj_zapisa_po_delu: brojPoDelu,
+    obrisi_deo_eskalacije_fk: eskalacijeFk,
     sifrarnik_mv_scale: kompletnost.ok && listaDelovi.ok ? { ok: true, poruka: "OK" } : { ok: false, poruka: "Nedostaje RPC skale 86" },
   };
 }
@@ -312,9 +406,9 @@ export async function proveriTipoviLinijePrivremene(supabase) {
 
 export async function proveriSemu(supabase) {
   const byId = {};
-  for (const p of PROBES) {
-    byId[p.id] = await proveriStavku(supabase, p);
-  }
+  // Sekvencijalno je bilo ~40 uzastopnih upita pri svakom otvaranju panela.
+  const rezultati = await Promise.all(PROBES.map((p) => proveriStavku(supabase, p)));
+  PROBES.forEach((p, i) => { byId[p.id] = rezultati[i]; });
   byId.erp_uvoz_constraints = await proveriErpUvozConstraints(supabase);
   byId.greske_katalog_erp = await proveriGreskeKatalogUpsert(supabase);
   const goLiveRpc = await proveriGoLiveRpc(supabase);
@@ -325,6 +419,14 @@ export async function proveriSemu(supabase) {
   byId.sifrarnik_deo_status_mv_fn = goLiveRpc.sifrarnik_deo_status_mv;
   byId.sifrarnik_audit_retention_fn = goLiveRpc.sifrarnik_audit_retention;
   byId.sifrarnik_mv_scale_fn = goLiveRpc.sifrarnik_mv_scale;
+  byId.obrisi_deo_kaskadno_fn = goLiveRpc.obrisi_deo_kaskadno;
+  byId.sifrarnik_linija_mv_fn = goLiveRpc.sifrarnik_linija_mv;
+  byId.dashboard_agregati_fn = goLiveRpc.dashboard_agregati;
+  byId.arhiviranje_audit_fn = goLiveRpc.arhiviranje_audit;
+  byId.bezbednost_rls_pin_fn = goLiveRpc.bezbednost_rls_pin;
+  byId.rls_uloge_upisa_fn = goLiveRpc.rls_uloge_upisa;
+  byId.broj_zapisa_po_delu_fn = goLiveRpc.broj_zapisa_po_delu;
+  byId.obrisi_deo_eskalacije_fk_fn = goLiveRpc.obrisi_deo_eskalacije_fk;
   byId.tipovi_linije_privremene = await proveriTipoviLinijePrivremene(supabase);
 
   const mapUser = {
@@ -390,6 +492,15 @@ export async function proveriSemu(supabase) {
     sifrarnik_audit_retention: byId.sifrarnik_audit_arhiva?.ok && byId.sifrarnik_audit_retention_fn?.ok,
     sifrarnik_mv_scale: byId.sifrarnik_mv_scale_fn?.ok,
     tipovi_linije_privremene: byId.tipovi_linije_privremene?.ok,
+    obrisi_deo_kaskadno: byId.obrisi_deo_kaskadno_fn?.ok,
+    sifrarnik_linija_mv: byId.sifrarnik_linija_mv_fn?.ok,
+    dashboard_agregati: byId.dashboard_agregati_fn?.ok,
+    arhiviranje_audit: byId.arhiviranje_audit_fn?.ok,
+    bezbednost_rls_pin: byId.bezbednost_rls_pin_fn?.ok && byId.radnici_ima_pin?.ok,
+    rls_uloge_upisa: byId.rls_uloge_upisa_fn?.ok,
+    broj_zapisa_po_delu: byId.broj_zapisa_po_delu_fn?.ok,
+    obrisi_deo_eskalacije_fk: byId.obrisi_deo_eskalacije_fk_fn?.ok,
+    error_log: byId.error_log_tbl?.ok,
   };
 
   return MIGRACIJE_LISTA.map(m => ({
@@ -461,6 +572,11 @@ export async function proveriSemu(supabase) {
       m.id === "prijemna_veza_mer" && byId.prijemna_veza_mer,
       m.id === "erp_glavni_sheetovi" && byId.erp_glavni_sheetovi,
       m.id === "tipovi_linije_privremene" && byId.tipovi_linije_privremene,
+      m.id === "obrisi_deo_kaskadno" && byId.obrisi_deo_kaskadno_fn,
+      m.id === "obrisi_deo_eskalacije_fk" && byId.obrisi_deo_eskalacije_fk_fn,
+      m.id === "sifrarnik_linija_mv" && byId.sifrarnik_linija_mv_fn,
+      m.id === "dashboard_agregati" && byId.dashboard_agregati_fn,
+      m.id === "arhiviranje_audit" && byId.arhiviranje_audit_fn,
     ].filter(Boolean),
   }));
 }

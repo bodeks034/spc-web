@@ -1,5 +1,10 @@
 // Service Worker — TRI-CORE QC PWA (offline shell)
-const CACHE = "tri-core-qc-v10";
+// BUILD_ID i PRECACHE_BUILD popunjava scripts/generisi-sw-precache.mjs posle `vite build`.
+// Bez toga (dev) ostaju podrazumevane vrednosti i keš se puni tek kroz fetch.
+const BUILD_ID = "dev";
+const PRECACHE_BUILD = [];
+
+const CACHE = `tri-core-qc-${BUILD_ID}`;
 const PRECACHE = [
   "/",
   "/index.html",
@@ -7,13 +12,17 @@ const PRECACHE = [
   "/favicon-32.png",
   "/icon-192.png",
   "/icon-512.png",
+  ...PRECACHE_BUILD,
 ];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE).catch(() => {})),
+    // addAll je sve-ili-ništa; pojedinačni put sprečava da jedan 404 obori ceo precache.
+    caches.open(CACHE).then((c) =>
+      Promise.all(PRECACHE.map((u) => c.add(u).catch(() => {}))),
+    ),
   );
-  self.skipWaiting();
+  // Ne skipWaiting odmah — čeka korisnika (baner) ili SKIP_WAITING poruku.
 });
 
 self.addEventListener("activate", (e) => {
@@ -25,9 +34,16 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+self.addEventListener("message", (e) => {
+  if (e.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", (e) => {
   const url = e.request.url;
   if (url.includes("supabase.co") || e.request.method !== "GET") return;
+
+  const jeNavigacija = e.request.mode === "navigate"
+    || (e.request.headers.get("accept") || "").includes("text/html");
 
   e.respondWith(
     fetch(e.request)
@@ -38,12 +54,28 @@ self.addEventListener("fetch", (e) => {
         }
         return res;
       })
-      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/index.html"))),
+      .catch(() =>
+        caches.match(e.request).then((hit) => {
+          if (hit) return hit;
+          // Samo navigacija sme da padne na index.html (inače pogrešan MIME za JS/CSS).
+          if (jeNavigacija) return caches.match("/index.html");
+          return Response.error();
+        }),
+      ),
   );
 });
 
 self.addEventListener("push", (e) => {
-  const data = e.data?.json() || {};
+  let data = {};
+  try {
+    data = e.data?.json?.() || {};
+  } catch {
+    try {
+      data = { body: e.data?.text?.() || "" };
+    } catch {
+      data = {};
+    }
+  }
   e.waitUntil(
     self.registration.showNotification(data.title || "SPC alarm", {
       body: data.body || "Proveri SPC kartu",

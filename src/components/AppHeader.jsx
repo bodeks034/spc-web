@@ -4,6 +4,7 @@ import { useTabletSmena } from "../lib/TabletSmenaContext.jsx";
 import { jeLinijaUloga } from "../lib/uloge.js";
 import { useOfflineQueue } from "../lib/offlineQueue.js";
 import { supabase } from "../lib/supabaseClient.js";
+import OfflineZaglavljenBanner from "./ui/OfflineZaglavljenBanner.jsx";
 
 const SKRACENA_ULOGA = {
   kontrolor: "KON",
@@ -42,7 +43,10 @@ export default function AppHeader({
   const smenaFn = (onSmena || smenaIzCtx) && linijaUloga
     ? (onSmena || smenaIzCtx)
     : null;
-  const { online, counts: offlineCounts, flushQueue } = useOfflineQueue(supabase);
+  const { online, counts: offlineCounts, flushQueue, zaglavljeni } = useOfflineQueue(supabase);
+  const imaOffline = offlineCounts.total > 0;
+  const imaZaglavljen = (zaglavljeni?.length || 0) > 0;
+  const prikaziSync = linijaUloga || imaOffline || imaZaglavljen;
   const podstrana = Boolean(onNazad) && (ekran.mob || ekran.tablet);
   const kompakt = ekran.mob || ekran.tablet;
   const padX = podstrana ? 10 : kompakt ? 12 : 20;
@@ -132,40 +136,51 @@ export default function AppHeader({
       }}>Smena</button>
   ) : null;
 
-  const statusMreza = linijaUloga ? (
+  const statusMreza = prikaziSync ? (
     <>
       <span
-        title={online ? "Online" : `Offline (${offlineCounts.total})`}
+        data-testid="header-mreza-status"
+        title={online
+          ? (imaZaglavljen ? "Zaglavljeni paketi" : imaOffline ? `Offline red: ${offlineCounts.total}` : "Online")
+          : `Offline (${offlineCounts.total})`}
         style={{
           flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
           fontSize: podstrana || kompakt ? 8 : 9,
-          color: online ? C.zelena : C.crvena, fontWeight: 700,
+          color: !online || imaZaglavljen ? C.crvena : imaOffline ? (C.zuta || C.narandzasta) : C.zelena,
+          fontWeight: 700,
         }}
       >
         <span style={{
           width: 7, height: 7, borderRadius: "50%",
-          background: online ? C.zelena : C.crvena, display: "inline-block",
+          background: !online || imaZaglavljen ? C.crvena : imaOffline ? (C.zuta || C.narandzasta) : C.zelena,
+          display: "inline-block",
         }} />
-        {online ? "Online" : "Offline"}
+        {!online ? "Offline" : imaZaglavljen ? "Zaglavljen" : imaOffline ? "Sync" : "Online"}
       </span>
       <button
         type="button"
+        data-testid="header-sync-btn"
         onClick={() => flushQueue()}
-        title="Sinhronizuj offline red"
+        title={imaZaglavljen
+          ? "Pokušaj ponovo za zaglavljene pakete"
+          : "Sinhronizuj offline red"}
         style={{
-          background: offlineCounts.total ? C.zuta : C.hover,
+          background: imaZaglavljen ? C.crvena : imaOffline ? (C.zuta || C.narandzasta) : C.hover,
           border: `1px solid ${C.border}`,
           borderRadius: 5,
-          color: offlineCounts.total ? C.onZuta : C.sivi,
+          color: imaZaglavljen || imaOffline ? (C.onAkcent || "#fff") : C.sivi,
           fontSize: podstrana || kompakt ? 8 : 9,
           padding: podstrana || kompakt ? "2px 6px" : "3px 8px",
           cursor: "pointer",
           fontWeight: 700,
           flexShrink: 0,
           whiteSpace: "nowrap",
+          minHeight: 28,
         }}
       >
-        ↻ Sync{offlineCounts.total ? ` (${offlineCounts.total})` : ""}
+        ↻ Sync{imaZaglavljen
+          ? ` !${zaglavljeni.length}`
+          : imaOffline ? ` (${offlineCounts.total})` : ""}
       </button>
     </>
   ) : null;
@@ -185,13 +200,13 @@ export default function AppHeader({
     </div>
   );
 
-  const prikaziTrakuIspod = trakaIspod && !podstrana;
+  const prikaziTrakuIspod = Boolean(trakaIspod);
 
   return (
     <>
       <div style={{
         background: C.panel,
-        borderBottom: prikaziTrakuIspod ? "none" : `1px solid ${C.border}`,
+        borderBottom: (prikaziTrakuIspod || imaZaglavljen) ? "none" : `1px solid ${C.border}`,
         padding: `0 ${padX}px`, height: 52,
         display: "flex", alignItems: "center", justifyContent: "space-between", gap,
         overflow: "hidden",
@@ -204,6 +219,22 @@ export default function AppHeader({
         </div>
         {desnoAkcije}
       </div>
+      {imaZaglavljen && (
+        <div
+          data-testid="header-zaglavljen-banner"
+          style={{
+            padding: `6px ${padX}px 8px`,
+            background: C.panel,
+            borderBottom: prikaziTrakuIspod ? "none" : `1px solid ${C.border}`,
+          }}
+        >
+          <OfflineZaglavljenBanner
+            zaglavljeni={zaglavljeni}
+            onPokusaj={() => flushQueue()}
+            C={C}
+          />
+        </div>
+      )}
       {prikaziTrakuIspod}
     </>
   );

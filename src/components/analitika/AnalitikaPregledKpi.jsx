@@ -1,41 +1,34 @@
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient.js";
-import { fetchZajednickiDashboard } from "../../lib/zajednickiDashboard.js";
 import { useAnalitikaFilter } from "../../lib/AnalitikaFilterContext.jsx";
+import { useDashboardPodaci } from "../../lib/useDashboardPodaci.js";
 import AnalitikaKpiSestPolja from "./AnalitikaKpiSestPolja.jsx";
 
 /** Učitava i prikazuje 6 KPI polja u punoj širini forme. */
 export default function AnalitikaPregledKpi({ C, modul, onNavigacija }) {
   const filter = useAnalitikaFilter();
-  const [podaci, setPodaci] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { podaci, loading, greska, osvezi } = useDashboardPodaci({
+    period: Number(filter?.period || 7),
+    idDeo: filter?.idDeo || "",
+    linija: filter?.linija || "",
+    smena: filter?.smena ?? "",
+  });
 
-  const ucitaj = useCallback(async () => {
-    setLoading(true);
-    try {
-      const d = await fetchZajednickiDashboard(supabase, {
-        period: Number(filter?.period || 7),
-        idDeo: filter?.idDeo || undefined,
-        linija: filter?.linija || undefined,
-        smena: filter?.smena || undefined,
-      });
-      setPodaci(d);
-    } catch {
-      setPodaci(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [filter?.period, filter?.idDeo, filter?.linija, filter?.smena]);
-
-  useEffect(() => { ucitaj(); }, [ucitaj]);
-
-  useEffect(() => {
-    const ch = supabase.channel("analitika_pregled_kpi")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" }, ucitaj)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "merenja_varijabilna" }, ucitaj)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [ucitaj]);
+  if (greska && !podaci) {
+    return (
+      <div role="alert" style={{
+        color: C.crvena, fontSize: 10, width: "100%", padding: "4px 0",
+        display: "flex", gap: 8, alignItems: "center",
+      }}>
+        <span>{greska}</span>
+        <button type="button" onClick={osvezi}
+          style={{
+            background: "transparent", border: `1px solid ${C.crvena}60`, borderRadius: 6,
+            color: C.crvena, fontSize: 9, padding: "2px 8px", cursor: "pointer",
+          }}>
+          Pokušaj ponovo
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -21,6 +21,9 @@ const GRACE_DANA = Number(viteEnv("VITE_LICENCA_GRACE_DANA", "7"));
 
 const GRACE_MS = GRACE_DANA * 24 * 60 * 60 * 1000;
 
+/** Keš bez potpisa (nema license.json) dobija znatno kraći grace. */
+const KRATKI_GRACE_MS = 24 * 60 * 60 * 1000;
+
 
 
 const MODULI_DEFAULT = {
@@ -199,6 +202,10 @@ function sacuvajKes(r) {
 
       slojevi: r.slojevi,
 
+      potpisanPayload: r.potpisanPayload || null,
+
+      potpis: r.potpis || null,
+
       sacuvano: Date.now(),
 
     }));
@@ -213,7 +220,18 @@ function sacuvajKes(r) {
 
 
 
-function procitajKes() {
+/**
+ * Offline keš licence.
+ *
+ * Ranije je keš bio običan JSON kome se verovalo na reč, pa je jedan red u
+ * konzoli davao neograničen pristup. Sada se, kad postoji potpisan
+ * license.json, potpis ponovo verifikuje i ključna polja moraju da se poklope
+ * s potpisanim sadržajem. Bez potpisa keš i dalje radi, ali sa kratkim gracom.
+ *
+ * Ovo je otežavanje, ne garancija — pravo mesto za proveru licence je baza
+ * (RLS/RPC); klijentska provera se uvek može zaobići u browseru.
+ */
+async function procitajKes() {
 
   try {
 
@@ -225,9 +243,21 @@ function procitajKes() {
 
     if (!parsed?.ok || !parsed.sacuvano) return null;
 
-    if (Date.now() - parsed.sacuvano > GRACE_MS) return null;
-
     if (parsed.vazi_do && new Date(parsed.vazi_do) < new Date()) return null;
+
+    const starost = Date.now() - parsed.sacuvano;
+
+    const potpisan = await kesPotpisValidan(parsed);
+
+    if (!potpisan) {
+
+      if (starost > KRATKI_GRACE_MS) return null;
+
+      return { ...parsed, nepotvrdjen: true };
+
+    }
+
+    if (starost > GRACE_MS) return null;
 
     return parsed;
 
@@ -236,6 +266,37 @@ function procitajKes() {
     return null;
 
   }
+
+}
+
+
+
+/** Potpis iz license.json mora da važi i da pokriva keširana polja. */
+async function kesPotpisValidan(parsed) {
+
+  const payload = parsed?.potpisanPayload;
+
+  if (!payload || !parsed?.potpis || !imaJavniKljuc()) return false;
+
+  try {
+
+    if (!(await verifikujPotpis(payload, parsed.potpis))) return false;
+
+  } catch {
+
+    return false;
+
+  }
+
+  if (parsed.vazi_do && parsed.vazi_do !== payload.vazi_do) return false;
+
+  if (parsed.tenant_id && payload.tenant_id && parsed.tenant_id !== payload.tenant_id) return false;
+
+  const izPotpisa = JSON.stringify(normalizujModuli(payload.moduli));
+
+  const izKesa = JSON.stringify(normalizujModuli(parsed.moduli));
+
+  return izPotpisa === izKesa;
 
 }
 
@@ -376,6 +437,13 @@ export async function proveriLicencuFajl() {
 
       max_uredjaja: payload.max_uredjaja ?? null,
 
+      // Potpisani original ide u offline keš da se pri čitanju može ponovo
+      // proveriti — inače je dovoljno upisati {ok:true} u localStorage.
+
+      potpisanPayload: payload,
+
+      potpis,
+
     };
 
   } catch (e) {
@@ -477,7 +545,9 @@ function spojiSlojeve(server, fajl) {
 
 export async function proveriLicencuKomplet() {
 
-  if (import.meta.env.VITE_LICENCA_ISKLJUCENA === "1") {
+  // Prekidač važi samo u dev buildu — dokumentacija je do sada bila jedina
+  // prepreka da produkcioni build izađe sa isključenom licencom.
+  if (import.meta.env.DEV && import.meta.env.VITE_LICENCA_ISKLJUCENA === "1") {
 
     return {
 
@@ -509,7 +579,7 @@ export async function proveriLicencuKomplet() {
 
   if (!server.ok) {
 
-    const kes = procitajKes();
+    const kes = await procitajKes();
 
     if (kes) {
 
@@ -518,6 +588,8 @@ export async function proveriLicencuKomplet() {
         ok: true,
 
         offlineGrace: true,
+
+        nepotvrdjen: !!kes.nepotvrdjen,
 
         vazi_do: kes.vazi_do,
 
@@ -535,7 +607,9 @@ export async function proveriLicencuKomplet() {
 
         slojevi: kes.slojevi,
 
-        poruka: `Offline grace (${GRACE_DANA} dana)`,
+        poruka: kes.nepotvrdjen
+          ? "Offline grace (1 dan — licenca nije potpisana)"
+          : `Offline grace (${GRACE_DANA} dana)`,
 
       };
 

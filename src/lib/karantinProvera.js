@@ -58,8 +58,19 @@ export async function proveriAktivanKarantin(supabase, { idDeo, radniNalog = nul
   const alarmRes = rezultati[1];
   const lotRnRes = rn ? rezultati[2] : null;
 
-  if (lotRes.error && alarmRes.error && (!lotRnRes || lotRnRes.error)) {
-    return { aktivan: false, greska: lotRes.error?.message || alarmRes.error?.message, zapisi: [], alarmi: [] };
+  // Ranije je bilo fail-open: greška je vraćala aktivan=false, pa je deo pod
+  // HOLD-om mogao proći kontrolu. Sada se neuspela provera jasno prijavljuje,
+  // a odluku o blokadi donosi UI (KarantinBlokada).
+  const greske = [lotRes.error, alarmRes.error, lotRnRes?.error].filter(Boolean);
+  if (greske.length) {
+    return {
+      aktivan: false,
+      neproveren: true,
+      greska: greske[0]?.message || "Provera karantina nije uspela",
+      zapisi: [],
+      alarmi: [],
+      idDeo: id || null,
+    };
   }
 
   const lotMap = new Map();
@@ -89,8 +100,25 @@ export async function proveriAktivanKarantin(supabase, { idDeo, radniNalog = nul
   };
 }
 
+/** Stanje za bačenu grešku (mreža, RLS) — koristi se u catch granama. */
+export function karantinNeuspeh(e) {
+  return {
+    aktivan: false,
+    neproveren: true,
+    greska: e?.message || "Provera karantina nije uspela",
+    zapisi: [],
+    alarmi: [],
+  };
+}
+
+/** Greška u proveri je zasebno stanje — ni „čisto" ni „karantin". */
+export function karantinNeproveren(karantin) {
+  return !!karantin?.neproveren;
+}
+
 /** Tekst za polje „Karantin“ u formi (prazan ili HOLD opis). */
 export function tekstKarantinPolja(karantin) {
+  if (karantin?.neproveren) return "provera nije uspela";
   if (!karantin?.aktivan) return "prazan";
   const z = karantin.zapisi?.[0];
   const a = karantin.alarmi?.[0];

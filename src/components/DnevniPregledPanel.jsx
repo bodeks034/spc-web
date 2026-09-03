@@ -12,14 +12,16 @@ export default function DnevniPregledPanel({
 }) {
   const [pod, setPod] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [greska, setGreska] = useState(null);
 
   const osvezi = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchSefSmenaPregled(supabase, { period: 1 });
       setPod(data);
-    } catch {
-      setPod(null);
+      setGreska(null);
+    } catch (e) {
+      setGreska(e?.message || "Greška pri učitavanju dnevnog pregleda");
     } finally {
       setLoading(false);
     }
@@ -87,6 +89,23 @@ export default function DnevniPregledPanel({
           {loading ? "…" : "↻"}
         </button>
       </div>
+
+      {greska && (
+        <div role="alert" style={{
+          marginBottom: 10, padding: "6px 10px", borderRadius: 8, fontSize: 10,
+          display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between",
+          background: C.crvena + "18", color: C.crvena, border: `1px solid ${C.crvena}40`,
+        }}>
+          <span>{pod ? `Osvežavanje nije uspelo: ${greska}` : greska}</span>
+          <button type="button" onClick={osvezi} disabled={loading}
+            style={{
+              background: "transparent", border: `1px solid ${C.crvena}60`, borderRadius: 6,
+              color: C.crvena, fontSize: 9, padding: "2px 8px", cursor: "pointer", whiteSpace: "nowrap",
+            }}>
+            Pokušaj ponovo
+          </button>
+        </div>
+      )}
 
       <SmenaPogonaPanel
         C={C}

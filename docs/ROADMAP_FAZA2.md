@@ -25,14 +25,18 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/obuka-paket/UPUTSTVO_FIRMI
 | Stavka | Fajlovi / alati | Checklist |
 |--------|-----------------|-----------|
 | Server + Docker Supabase | `docs/obuka-paket/UPUTSTVO_FIRMINSKI_SERVER.md` | [ ] |
-| SQL migracije 01–21 | `docs/MIGRACIJE.md`, `21_licenca_gate.sql` | [ ] |
+| SQL migracije **01–95** (go-live **77–95**) | `docs/MIGRACIJE.md`, `npm run db:migrate:go-live` | [ ] |
 | `.env.production` + build | `deploy/env.production.example` | [ ] |
 | Nginx + HTTPS | `deploy/nginx-spc.conf.example` | [ ] |
 | Backup noćni | `deploy/backup-server-linux.sh` | [ ] |
 | IT A4 list | `deploy/IT_A4_POKRETANJE.md` | [ ] |
 | Licenca aktivna | `scripts/postavi-licencu.mjs`, `scripts/generisi-licencu.mjs` | [ ] |
+| Verify gate | `npm run db:verify:go-live` + Admin → Go-live → Proveri šemu 77–95 | [ ] |
 
 **Procena:** 40–80 h (zavisi od IT)
+
+> **Napomena (2026-09):** klijentski fallback za PIN/brisanje/arhivu je ukinut.
+> Bez 88–95 aplikacija hard-fail-uje te operacije — namerno, da se ne radi „produkcija“ na nesigurnoj šemi.
 
 ---
 
@@ -127,8 +131,10 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/obuka-paket/UPUTSTVO_FIRMI
 - [x] Provera iz baze po smeni (`src/lib/kontrolaLista.js`)
 - [x] Merljive: blok koraka 3 + ponovna lista pri promeni smene (`VarijabilneForma.jsx`)
 - [x] Atributivne: `kontrolnaListaOk` iz baze (`GlavnaForma` u `App.jsx`)
-- [ ] Min. 5 stavki kontrolne liste u bazi (seed `04_kontrolna_lista_policies.sql`)
-- [ ] Log kontrolne liste vidljiv adminu (opciono tab)
+- [x] Min. 5 stavki kontrolne liste u bazi (seed `04_kontrolna_lista_policies.sql` — 8 stavki)
+- [x] Nema soft-bypass putanje kad nema stavki (hard block + `KontrolnaListaGate`)
+- [x] Log kontrolne liste vidljiv adminu (`KontrolnaListaPanel` — Log završenih lista)
+- [ ] Opciono: `app_podesavanja.kontrolna_lista_obavezna` (trenutno hardkodirano `true`)
 
 **Procena:** 8–12 h
 
@@ -169,21 +175,24 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/obuka-paket/UPUTSTVO_FIRMI
 **Šta već postoji:**
 - `spc_alarmi` — `07_spc_views_and_alarms.sql`
 - `upisiSpcAlarm`, `kreirajAutoEskalaciju` — `src/lib/spcStats.js`
-- Western Electric u grafikonima — `App.jsx`, `MerljiveSpcKarte.jsx`
+- Western Electric u grafikonima — `MerljiveSpcKarte.jsx`, `SpcKarteAtributivne.jsx`
+- WE → `spc_alarmi` + eskalacija + blokada linije — `kreirajAlarmWesternElectric` u `spcAlarmWorkflow.js`
+- Gate na unosu — `useSpcAlarmGate` u `VarijabilneForma` / `GlavnaForma`
 - Zahtev prekid serije — `prekidi_zahtevi`, `ZahtevPrekid` u `kontrolaSesije.jsx`
 
-**Šta dodati:**
+**Šta dodati / doraditi:**
 
 | # | Zadatak | Fajlovi |
 |---|---------|---------|
 | 1 | SQL: `spc_reakcije` ili proširi `spc_alarmi` status + `obavezna_akcija` | `23_spc_reakcije.sql` (novi) |
-| 2 | Modal na liniji kad otvoren alarm za aktivan `id_deo` | `src/components/SpcAlarmBlokada.jsx` (novi), hook u `VarijabilneForma.jsx` / `App.jsx` |
+| 2 | ~~Modal na liniji~~ — gate + overlay već postoje | `useSpcAlarmGate`, SpcAlarm UI |
 | 3 | Akcije: „Potvrdi“, „Karantin“, „Zahtev prekid“ (već postoji) | povezati sa `eskalacije` |
 | 4 | Notifikacija adminu (browser + Teams) | `notifikacije.js`, `useAdminZahtevNotifikacije.js` proširiti za `spc_alarmi` INSERT |
-| 5 | Ukloniti tihi catch `/* spc_alarmi možda nije migriran */` — log u toast | `App.jsx`, `MerljiveSpcKarte.jsx` |
+| 5 | ~~Tihi catch~~ — toast pri grešci snimanja WE alarma | `MerljiveSpcKarte.jsx`, `SpcKarteAtributivne.jsx` |
 
 **Checklist:**
-- [ ] Simuliran alarm → operater vidi blokadu ili obavezan dialog
+- [x] Western Electric / van kontrole → `spc_alarmi` + blokada linije (merljive + atributivne)
+- [ ] Simuliran alarm → operater vidi blokadu ili obavezan dialog (ručni smoke)
 - [ ] Admin vidi alarm u panelu + notifikaciju
 - [ ] Zatvaranje alarma zahteva komentar
 
@@ -193,14 +202,14 @@ Povezano: `docs/INVESTICIONI_PREGLED_FIRMA.md`, `docs/obuka-paket/UPUTSTVO_FIRMI
 
 | # | Zadatak | Fajlovi |
 |---|---------|---------|
-| 1 | Ispraviti „Reset smene“ (implementirati ili ukloniti dugme) | `App.jsx` ~4387 `resetSmenu` |
+| 1 | Uklonjen „Reset smene“ — statistika iz baze po datumu/smeni | `AdminPanel.jsx`, `PocetniEkran.jsx` |
 | 2 | Health endpoint / admin stranica „status servera“ | `src/components/StatusServera.jsx` (novi) — ping RPC + licence |
 | 3 | Proširiti `schemaCheck.js` na sve 22 migracije | `schemaCheck.js`, `MIGRACIJE_LISTA` |
 | 4 | Smoke test skripta | `scripts/smoke-test.mjs` (novi) — login, select, rpc |
 | 5 | Cron backup dokumentovan | `deploy/backup-server-linux.sh` |
 
 **Checklist:**
-- [ ] Nema zbunjujućih admin dugmadi
+- [x] Nema zbunjujućih admin dugmadi (reset smene uklonjen; copy ažuriran)
 - [ ] Smoke test prolazi posle svakog deploy-a
 - [ ] Mesečni test restore dokumentovan
 

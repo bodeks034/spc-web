@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import { fetchZajednickiDashboard } from "../lib/zajednickiDashboard.js";
-import { queueCounts, loadQueue, ensureQueueReady } from "../lib/offlineQueue.js";
+import { useDashboardPodaci } from "../lib/useDashboardPodaci.js";
+import { preuzmiDashboardCsv } from "../lib/dashboardCsvIzvoz.js";
 import OperativniAlarmiStrip from "./OperativniAlarmiStrip.jsx";
 import SefSmenaDashboard from "./SefSmenaDashboard.jsx";
 import StaUradiTiSadaPanel from "./StaUradiTiSadaPanel.jsx";
@@ -25,8 +25,14 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
   const [period, setPeriod] = useState(filterPeriod ?? (kompakt ? "1" : "7"));
   const [idDeo, setIdDeo] = useState(filterIdDeo ?? "");
   const [modulDeo, setModulDeo] = useState(modul || "merljive");
-  const [podaci, setPodaci] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    podaci, loading, greska, osvezavaSe, osvezi: ucitaj,
+  } = useDashboardPodaci({
+    period: Number(period),
+    idDeo: idDeo || "",
+    linija: filterLinija || "",
+    smena: filterSmena ?? "",
+  });
   const [sakrijAlarme, setSakrijAlarme] = useState(false);
   const [sviDelovi, setSviDelovi] = useState([]);
   const [lokalniToast, setLokalniToast] = useState(null);
@@ -41,6 +47,8 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
         if (d?.id_deo) mapa.set(d.id_deo, d);
       });
       setSviDelovi([...mapa.values()].sort((a, b) => String(a.id_deo).localeCompare(String(b.id_deo))));
+    }).catch(() => {
+      setSviDelovi([]);
     });
   }, []);
 
@@ -50,29 +58,6 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
     setLokalniToast({ msg, tip });
     setTimeout(() => setLokalniToast(null), 4000);
   });
-
-  const ucitaj = useCallback(async () => {
-    setLoading(true);
-    try {
-      await ensureQueueReady();
-      const offline = queueCounts(loadQueue());
-      const d = await fetchZajednickiDashboard(supabase, {
-        period: Number(period),
-        offlinePaketi: offline.total,
-        idDeo: idDeo || undefined,
-        linija: filterLinija || undefined,
-        smena: filterSmena || undefined,
-      });
-      setPodaci(d);
-    } catch (e) {
-      addToast?.(e.message, "greska");
-      setPodaci(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [period, idDeo, filterLinija, filterSmena, addToast]);
-
-  useEffect(() => { ucitaj(); }, [ucitaj]);
 
   useEffect(() => {
     if (filterPeriod !== undefined) setPeriod(filterPeriod);
@@ -91,6 +76,8 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
     let otkaz = false;
     odrediModulZaDeo(supabase, id).then((m) => {
       if (!otkaz) setModulDeo(m);
+    }).catch(() => {
+      if (!otkaz) setModulDeo(modul || "merljive");
     });
     return () => { otkaz = true; };
   }, [idDeo, modul]);
@@ -127,14 +114,6 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
     onNavigacija: onNavigacija || onWorkflow?.onNavigacija,
   };
 
-  useEffect(() => {
-    const ch = supabase.channel("dash_unified")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" }, () => ucitaj())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "merenja_varijabilna" }, () => ucitaj())
-      .subscribe();
-    return () => supabase.removeChannel(ch);
-  }, [ucitaj]);
-
   const pad = kompakt ? 0 : 0;
 
   return (
@@ -156,18 +135,25 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {!sakrijFilterTraku && (
             <>
-          <select value={idDeo} onChange={e => setIdDeo(e.target.value)}
-            title="Filter po ID dela"
+          {/* Lista delova zna da bude u stotinama — datalist daje pretragu bez nove zavisnosti. */}
+          <input
+            list="dashboard-delovi"
+            value={idDeo}
+            onChange={e => setIdDeo(e.target.value.toUpperCase())}
+            placeholder="Svi delovi"
+            aria-label="Filter po ID dela"
+            title="Filter po ID dela — kucaj za pretragu"
             style={{
               background: C.input, border: `1px solid ${idDeo ? C.plava : C.border}`, borderRadius: 6,
-              color: C.tekst, fontSize: 10, padding: "6px 10px", cursor: "pointer", fontFamily: "inherit",
+              color: C.tekst, fontSize: 10, padding: "6px 10px", fontFamily: "inherit",
               maxWidth: kompakt ? 120 : 160,
-            }}>
-            <option value="">Svi delovi</option>
+            }}
+          />
+          <datalist id="dashboard-delovi">
             {sviDelovi.map(d => (
-              <option key={d.id_deo} value={d.id_deo}>{d.id_deo}</option>
+              <option key={d.id_deo} value={d.id_deo}>{d.naziv_dela || ""}</option>
             ))}
-          </select>
+          </datalist>
           <select value={period} onChange={e => setPeriod(e.target.value)}
             style={{
               background: C.input, border: `1px solid ${C.border}`, borderRadius: 6,
@@ -177,7 +163,22 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
             <option value="7">7 dana</option>
             <option value="30">30 dana</option>
           </select>
-          <button type="button" onClick={ucitaj} disabled={loading}
+          {podaci?.osvezeno && (
+            <span style={{ color: C.sivi, fontSize: 9 }} title="Poslednje osveženo">
+              {new Date(podaci.osvezeno).toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          {!ugradi && podaci && (
+            <button type="button" onClick={() => preuzmiDashboardCsv(podaci, idDeo ? `dashboard-${idDeo}` : "dashboard")}
+              title="Izvezi prikazane KPI i TOP NOK u CSV" aria-label="Izvezi u CSV"
+              style={{
+                background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6,
+                color: C.sivi, fontSize: 10, padding: "6px 10px", cursor: "pointer",
+              }}>
+              CSV
+            </button>
+          )}
+          <button type="button" onClick={ucitaj} disabled={osvezavaSe} aria-label="Osveži podatke"
             style={{
               background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6,
               color: C.sivi, fontSize: 10, padding: "6px 10px", cursor: "pointer",
@@ -257,8 +258,44 @@ export default function ZajednickiDashboard({ C, addToast, kompakt, onIzborModul
         </div>
       )}
 
-      {loading ? (
-        <div style={{
+      {greska && (
+        <div role="alert" style={{
+          marginBottom: 10, padding: "8px 12px", borderRadius: 8, fontSize: 11,
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+          background: C.crvena + "18", color: C.crvena, border: `1px solid ${C.crvena}40`,
+        }}>
+          <span>{podaci ? `Osvežavanje nije uspelo: ${greska} (prikazani raniji podaci)` : greska}</span>
+          <button type="button" onClick={ucitaj} disabled={osvezavaSe}
+            style={{
+              background: "transparent", border: `1px solid ${C.crvena}60`, borderRadius: 6,
+              color: C.crvena, fontSize: 10, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap",
+            }}>
+            Pokušaj ponovo
+          </button>
+        </div>
+      )}
+
+      {!ugradi && podaci?.odsecen?.length > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="dashboard-odsecen-upozorenje"
+          style={{
+          marginBottom: 10, padding: "8px 12px", borderRadius: 8, fontSize: 10,
+          background: C.narandzasta + "18", color: C.narandzasta, border: `1px solid ${C.narandzasta}40`,
+        }}>
+          Prikazan je odsečen skup podataka ({podaci.odsecen.join(", ")}) — KPI za ovaj period
+          mogu biti nepotpuni. Suzi period ili filtriraj po delu/liniji. Za punu skalu: migracija 90.
+        </div>
+      )}
+
+      {loading && !podaci ? (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          data-testid="dashboard-ucitavanje"
+          style={{
           color: C.sivi,
           fontSize: ugradi ? 10 : 12,
           padding: ugradi ? "2px 0 0" : 24,

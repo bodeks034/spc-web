@@ -8,7 +8,7 @@ import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent
 
 const PRAZAN = { kategorija: "", podkategorija: "", defekt: "", opis: "", id_deo: "", pogon_kod: "" };
 
-export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniNavTs, voziloSablon }) {
+export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniNavTs, voziloSablon, radnaLinija = "" }) {
   const { format: formatPogon, opcije: pogonOpcije } = usePogonOznake(addToast);
   const [redovi, setRedovi] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +51,13 @@ export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniN
     try {
       const n = await dodajSablonGresaka(id, { vozilo: !!voziloSablon, pogonKod: pogonFilter || "A" });
       addToast?.(`✓ Dodato ${n} stavki`, "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "greske", akcija: "sablon", idDeo: id });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "greske",
+        akcija: "sablon",
+        idDeo: id,
+        tab: "greske",
+        linija: radnaLinija || "",
+      });
       await ucitaj();
     } catch (e) {
       addToast?.(e.message, "greska");
@@ -69,7 +75,13 @@ export default function GreskeKatalogPanel({ C, addToast, pocetniIdDeo, pocetniN
     try {
       await upsertGreskaKatalog(forma);
       addToast?.("✓ Greška sačuvana", "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "greske", akcija: "snimi", idDeo: forma?.id_deo });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "greske",
+        akcija: "snimi",
+        idDeo: forma?.id_deo,
+        tab: "greske",
+        linija: radnaLinija || "",
+      });
       setForma(null);
       await ucitaj();
     } catch (e) {

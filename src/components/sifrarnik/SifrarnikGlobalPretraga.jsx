@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { navigacijaZaIdDeo, STATUS_DEO_LABEL } from "../../lib/sifrarnikOdrzavanje.js";
 import { deoPripadaLiniji } from "../../lib/linijaProizvoda.js";
+import SifrarnikIdDeoPicker, { zapamtiRecentIdDeo } from "./SifrarnikIdDeoPicker.jsx";
 
-/** Globalna pretraga dela po ID u Modulu 0. */
-export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radnaLinija = "" }) {
+/** Globalna pretraga dela (typeahead) u Modulu 0. */
+export default function SifrarnikGlobalPretraga({
+  C,
+  onNavigate,
+  addToast,
+  radnaLinija = "",
+  kompakt = false,
+}) {
   const [upit, setUpit] = useState("");
   const [trazi, setTrazi] = useState(false);
 
-  const pretrazi = async () => {
-    const id = upit.trim().toUpperCase();
+  const idiNaDeo = async (idRaw) => {
+    const id = String(idRaw || upit).trim().toUpperCase();
     if (!id) {
       addToast?.("Unesi ID dela", "greska");
       return;
@@ -20,6 +27,7 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radna
         addToast?.(`Deo ${id} nije u šifrarniku`, "greska");
         return;
       }
+      zapamtiRecentIdDeo(id);
       if (radnaLinija && !deoPripadaLiniji(rez.deo, radnaLinija)) {
         const vk = rez.deo?.vozilo_katalog_id || rez.deo?.sifra_vozila || "?";
         addToast?.(
@@ -29,11 +37,11 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radna
       }
       const korak = rez.nav || rez.koraci?.[0];
       if (korak) {
-        onNavigate?.(korak.tab, korak.ctx);
+        onNavigate?.(korak.tab, { ...korak.ctx, idDeo: id });
         const st = STATUS_DEO_LABEL[rez.status]?.label || rez.status;
         addToast?.(`${id} · ${st}${rez.nedostaje?.length ? ` → ${korak.label || korak.tab}` : ""}`, "uspeh");
       } else {
-        onNavigate?.("delovi");
+        onNavigate?.("delovi", { idDeo: id });
         addToast?.(`${id} — otvoren pregled delova`, "info");
       }
     } catch (e) {
@@ -43,17 +51,6 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radna
     }
   };
 
-  const INP = {
-    background: C.input,
-    border: `1px solid ${C.border}`,
-    borderRadius: 6,
-    color: C.tekst,
-    fontSize: 10,
-    padding: "6px 10px",
-    fontFamily: "inherit",
-    width: 140,
-  };
-
   return (
     <div
       data-testid="sifrarnik-global-pretraga"
@@ -61,24 +58,28 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radna
         display: "flex",
         gap: 6,
         alignItems: "center",
-        marginBottom: 8,
+        marginBottom: kompakt ? 0 : 8,
         flexShrink: 0,
         flexWrap: "wrap",
+        marginLeft: kompakt ? "auto" : undefined,
       }}
     >
-      <span style={{ color: C.sivi, fontSize: 9, fontWeight: 700 }}>ID DELO:</span>
-      <input
+      {!kompakt && <span style={{ color: C.sivi, fontSize: 9, fontWeight: 700 }}>ID DELO:</span>}
+      <SifrarnikIdDeoPicker
+        C={C}
         value={upit}
-        onChange={(e) => setUpit(e.target.value.toUpperCase())}
-        onKeyDown={(e) => { if (e.key === "Enter") pretrazi(); }}
-        placeholder="HAM-NM-001"
-        style={INP}
-        data-testid="sifrarnik-global-pretraga-input"
+        onChange={setUpit}
+        onPick={(id) => idiNaDeo(id)}
+        linijaKod={radnaLinija}
+        placeholder={kompakt ? "Nađi ID…" : "HAM-NM… (min 2)"}
+        width={kompakt ? 130 : 160}
+        testId="sifrarnik-global-pretraga-picker"
+        inputTestId="sifrarnik-global-pretraga-input"
       />
       <button
         type="button"
         disabled={trazi}
-        onClick={pretrazi}
+        onClick={() => idiNaDeo(upit)}
         data-testid="sifrarnik-global-pretraga-go"
         style={{
           background: C.plava,
@@ -87,13 +88,13 @@ export default function SifrarnikGlobalPretraga({ C, onNavigate, addToast, radna
           color: C.onAkcent,
           fontSize: 10,
           fontWeight: 700,
-          padding: "6px 12px",
+          padding: kompakt ? "5px 10px" : "6px 12px",
           cursor: trazi ? "wait" : "pointer",
         }}
       >
         {trazi ? "…" : "Nađi"}
       </button>
-      {radnaLinija && (
+      {!kompakt && radnaLinija && (
         <span style={{ color: C.sivi, fontSize: 9 }} title="Upozorenje ako deo nije na izabranoj liniji">
           fokus: {radnaLinija}
         </span>

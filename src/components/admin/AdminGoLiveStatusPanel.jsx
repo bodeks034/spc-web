@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { formatErpUvozVreme } from "../../lib/erpUvozLog.js";
-import { proveriSemu, proveriGoLiveRpc, MIGRACIJE_LISTA } from "../../lib/schemaCheck.js";
+import { proveriSemu, proveriGoLiveRpc, MIGRACIJE_LISTA, GO_LIVE_IDS } from "../../lib/schemaCheck.js";
 import {
   fetchKompletnostStatistika,
   fetchDeloviBezGlavnogUnosa,
@@ -26,11 +26,11 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
       ]);
 
       const demoBroj = (deloviRes.data || []).filter((d) => jeDemoIdDeo(d.id_deo)).length;
-      const goLiveMigracije = MIGRACIJE_LISTA.filter((m) =>
-        /^(77|78|79|80|81|82|83|84|85|86|87)_/.test(m.fajl || ""),
-      );
+      const goLiveMigracije = MIGRACIJE_LISTA.filter((m) => GO_LIVE_IDS.has(m.id));
       const goLiveOk = goLiveMigracije.every((m) => stavke.find((s) => s.id === m.id)?.ok);
       const auditOk = !!stavke.find((s) => s.id === "sifrarnik_audit")?.ok;
+      const bezbednostOk = !!stavke.find((s) => s.id === "bezbednost_rls_pin")?.ok
+        && !!stavke.find((s) => s.id === "rls_uloge_upisa")?.ok;
 
       setPodaci({
         schemaOk: stavke.every((s) => s.ok),
@@ -39,6 +39,9 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
         rpc,
         goLiveMigracijeOk: goLiveOk,
         auditOk,
+        bezbednostOk,
+        goLiveBroj: goLiveMigracije.filter((m) => stavke.find((s) => s.id === m.id)?.ok).length,
+        goLiveUkupno: goLiveMigracije.length,
         komplet,
         bezGu,
         demoBroj,
@@ -59,12 +62,26 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
     && podaci.schemaOk
     && podaci.goLiveMigracijeOk
     && podaci.auditOk
+    && podaci.bezbednostOk
     && Object.values(podaci.rpc).every((r) => r?.ok)
     && podaci.komplet.procenat >= 80
     && podaci.bezGu.broj === 0
     && podaci.demoBroj === 0;
 
   const otvoriSemu = () => onSkrolujDo?.("admin-schema-status");
+
+  const erp = podaci?.erpPoslednji;
+  const erpStale = !!(erp?.uspeh && erp.created_at
+    && (Date.now() - new Date(erp.created_at).getTime() > 36 * 60 * 60 * 1000));
+  const erpOk = !!(erp?.uspeh && !erpStale);
+  const erpLabel = !erp
+    ? "ERP uvoz: nema zapisa"
+    : !erp.uspeh
+      ? `ERP uvoz neuspeo: ${formatErpUvozVreme(erp.created_at)} · ${erp.izvor || "—"}`
+      : erpStale
+        ? `ERP uvoz zastareo (>36h): ${formatErpUvozVreme(erp.created_at)} · ${erp.izvor || "—"}`
+        : `Poslednji ERP uvoz: ${formatErpUvozVreme(erp.created_at)} · ${erp.izvor || "—"}`;
+  const erpAkcija = !erp ? "Otvori ERP" : (!erp.uspeh ? "Reši ERP" : (erpStale ? "Osveži ERP" : null));
 
   return (
     <div
@@ -124,9 +141,16 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
           <Stavka
             C={C}
             ok={podaci.goLiveMigracijeOk}
-            label="Go-live SQL (77–87)"
+            label={`Go-live SQL 77–95 (${podaci.goLiveBroj}/${podaci.goLiveUkupno})`}
             akcijaLabel={!podaci.goLiveMigracijeOk ? "Otvori šemu" : undefined}
             onAkcija={!podaci.goLiveMigracijeOk ? otvoriSemu : undefined}
+          />
+          <Stavka
+            C={C}
+            ok={podaci.bezbednostOk}
+            label="Bezbednost RLS + PIN (92–93)"
+            akcijaLabel={!podaci.bezbednostOk ? "Otvori šemu" : undefined}
+            onAkcija={!podaci.bezbednostOk ? otvoriSemu : undefined}
           />
           <Stavka
             C={C}
@@ -176,14 +200,10 @@ export default function AdminGoLiveStatusPanel({ C, addToast, onOtvoriSifrarnik,
           />
           <Stavka
             C={C}
-            ok={!!podaci.erpPoslednji?.uspeh}
-            label={podaci.erpPoslednji
-              ? `Poslednji ERP uvoz: ${formatErpUvozVreme(podaci.erpPoslednji.created_at)} · ${podaci.erpPoslednji.izvor || "—"}`
-              : "ERP uvoz: nema zapisa"}
-            akcijaLabel={!podaci.erpPoslednji ? "Otvori ERP" : undefined}
-            onAkcija={!podaci.erpPoslednji
-              ? () => onOtvoriSifrarnik?.("erp")
-              : undefined}
+            ok={erpOk}
+            label={erpLabel}
+            akcijaLabel={erpAkcija || undefined}
+            onAkcija={erpAkcija ? () => onOtvoriSifrarnik?.("erp") : undefined}
           />
           {podaci.erpIstorija.length > 0 && (
             <div

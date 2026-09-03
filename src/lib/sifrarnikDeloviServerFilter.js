@@ -12,16 +12,24 @@ import {
 const SKEN_BATCH = 200;
 
 async function fetchDeloviPoRpcFilteru(opts) {
-  const { data, error } = await supabase.rpc("sifrarnik_filter_delovi", {
+  const args = {
     p_nedostaje: opts.nedostajeFilter || null,
     p_samo_delimicni: !!opts.samoDelimicni,
     p_samo_demo: !!opts.samoDemo,
     p_tip_kontrole: opts.tipKontrole || null,
     p_limit: opts.limit,
     p_offset: opts.offset,
+  };
+  let { data, error } = await supabase.rpc("sifrarnik_filter_delovi", {
+    ...args,
+    p_linija: opts.linija || null,
   });
+  // Migracija 89 uvodi p_linija; na starijoj bazi probaj bez njega.
+  if (error && /p_linija|no function matches/i.test(error.message || "") && !opts.linija) {
+    ({ data, error } = await supabase.rpc("sifrarnik_filter_delovi", args));
+  }
   if (error) {
-    if (/function.*does not exist|could not find/i.test(error.message)) return null;
+    if (/function.*does not exist|could not find|p_linija|no function matches/i.test(error.message)) return null;
     throw error;
   }
   const delovi = (data || []).map((row) => {
@@ -41,18 +49,21 @@ export async function fetchDeloviPoServerFilteru({
   samoDemo = false,
   samoDelimicni = false,
   tipKontrole = null,
+  linijaKod = null,
   limit = 100,
   offset = 0,
 } = {}) {
   const key = String(nedostajeFilter || "").trim();
+  const linija = String(linijaKod || "").trim().toUpperCase();
   const trebaFilter = key || samoDemo || samoDelimicni;
-  if (!trebaFilter) return null;
+  if (!trebaFilter && !linija) return null;
 
   const rpcRes = await fetchDeloviPoRpcFilteru({
     nedostajeFilter: key,
     samoDemo,
     samoDelimicni,
     tipKontrole,
+    linija,
     limit,
     offset,
   });
@@ -76,6 +87,10 @@ export async function fetchDeloviPoServerFilteru({
       .order("id_deo")
       .range(dbOffset, dbOffset + SKEN_BATCH - 1);
     if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
+    if (linija) {
+      const esc = linija.replace(/,/g, "");
+      q = q.or(`vozilo_katalog_id.eq.${esc},sifra_vozila.eq.${esc},id_deo.ilike.${esc}-%`);
+    }
 
     const { data, error } = await q;
     if (error) throw error;
@@ -94,7 +109,7 @@ export async function fetchDeloviPoServerFilteru({
       };
       if (samoDemo && !jeDemoIdDeo(d.id_deo)) continue;
       if (samoDelimicni && statusDeoUSifrarniku(d, rowOpts) === "kompletan") continue;
-      if (!deoOdgovaraNedostajeFilter(d, rowOpts, key)) continue;
+      if (key && !deoOdgovaraNedostajeFilter(d, rowOpts, key)) continue;
 
       if (preskoceno < offset) {
         preskoceno += 1;

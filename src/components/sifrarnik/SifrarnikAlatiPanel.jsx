@@ -6,11 +6,12 @@ import { exportujDeoJson, preuzmiDeoJson } from "../../lib/sifrarnikExportJson.j
 import { exportujDeloviZip } from "../../lib/sifrarnikExportZip.js";
 import { previewPropagacije } from "../../lib/sifrarnikPropagacijaPreview.js";
 import { btnStyle, inpStyle } from "./sifrarnikPanelStyle.js";
+import SifrarnikIdDeoPicker, { zapamtiRecentIdDeo } from "./SifrarnikIdDeoPicker.jsx";
 
 const AUDIT_PAGE = 40;
 
 /** Audit, upoređivanje, validacija — alati za inženjere. */
-export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
+export default function SifrarnikAlatiPanel({ C, addToast, onNavigate, radnaLinija = "" }) {
   const [auditFilter, setAuditFilter] = useState("");
   const [auditAkcija, setAuditAkcija] = useState("");
   const [auditOd, setAuditOd] = useState("");
@@ -30,7 +31,20 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
   const [auditArhiva, setAuditArhiva] = useState(false);
   const [previewId, setPreviewId] = useState("");
   const [preview, setPreview] = useState(null);
+  const [zipPick, setZipPick] = useState("");
   const INP = inpStyle(C);
+
+  const dodajUZip = (id) => {
+    const clean = String(id || "").trim().toUpperCase();
+    if (!clean) return;
+    zapamtiRecentIdDeo(clean);
+    setZipIds((prev) => {
+      const set = new Set(String(prev || "").split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean));
+      set.add(clean);
+      return [...set].join("\n");
+    });
+    setZipPick("");
+  };
 
   const ucitajAudit = useCallback(async (offset = 0, append = false) => {
     setAuditLoading(true);
@@ -145,12 +159,14 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
         <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Audit log šifrarnika</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-          <input
-            data-testid="audit-filter-id"
+          <SifrarnikIdDeoPicker
+            C={C}
             value={auditFilter}
-            onChange={(e) => setAuditFilter(e.target.value.toUpperCase())}
+            onChange={setAuditFilter}
+            linijaKod={radnaLinija}
             placeholder="ID dela"
-            style={{ ...INP, width: 120 }}
+            width={120}
+            testId="audit-filter-id"
           />
           <input
             data-testid="audit-filter-akcija"
@@ -222,11 +238,11 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <span style={{ color: C.sivi, fontSize: 9 }}>DELO A</span>
-            <input value={idA} onChange={(e) => setIdA(e.target.value.toUpperCase())} style={{ ...INP, width: 120 }} />
+            <SifrarnikIdDeoPicker C={C} value={idA} onChange={setIdA} linijaKod={radnaLinija} width={120} testId="uporedi-a" />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <span style={{ color: C.sivi, fontSize: 9 }}>DELO B</span>
-            <input value={idB} onChange={(e) => setIdB(e.target.value.toUpperCase())} style={{ ...INP, width: 120 }} />
+            <SifrarnikIdDeoPicker C={C} value={idB} onChange={setIdB} linijaKod={radnaLinija} width={120} testId="uporedi-b" />
           </label>
           <button type="button" data-testid="uporedi-dela-btn" disabled={uporediBusy} onClick={pokreniUporedi}
             style={btnStyle(C, C.plava, { fontSize: 9 })}>
@@ -297,12 +313,14 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
         <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>JSON export dela</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            data-testid="json-export-id"
+          <SifrarnikIdDeoPicker
+            C={C}
             value={exportId}
-            onChange={(e) => setExportId(e.target.value.toUpperCase())}
+            onChange={setExportId}
+            linijaKod={radnaLinija}
             placeholder="ID dela"
-            style={{ ...INP, width: 140 }}
+            width={140}
+            testId="json-export-id"
           />
           <button type="button" data-testid="json-export-btn" disabled={exportBusy} onClick={izveziJson}
             style={btnStyle(C, C.zelena, { fontSize: 9 })}>
@@ -314,6 +332,19 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
 
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
         <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>ZIP export (više delova)</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8, alignItems: "center" }}>
+          <SifrarnikIdDeoPicker
+            C={C}
+            value={zipPick}
+            onChange={setZipPick}
+            onPick={dodajUZip}
+            linijaKod={radnaLinija}
+            placeholder="+ ID u ZIP"
+            width={140}
+            testId="zip-export-pick"
+          />
+          <span style={{ color: C.sivi, fontSize: 9 }}>ili nalepi listu ispod</span>
+        </div>
         <textarea
           data-testid="zip-export-ids"
           value={zipIds}
@@ -331,7 +362,15 @@ export default function SifrarnikAlatiPanel({ C, addToast, onNavigate }) {
       <section style={{ padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
         <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Preview propagacije (po delu)</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input value={previewId} onChange={(e) => setPreviewId(e.target.value.toUpperCase())} placeholder="ID dela" style={{ ...INP, width: 140 }} />
+          <SifrarnikIdDeoPicker
+            C={C}
+            value={previewId}
+            onChange={setPreviewId}
+            linijaKod={radnaLinija}
+            placeholder="ID dela"
+            width={140}
+            testId="propagacija-preview-id"
+          />
           <button type="button" data-testid="propagacija-preview-btn" onClick={pokreniPreview} style={btnStyle(C, C.plava, { fontSize: 9 })}>
             Preview
           </button>

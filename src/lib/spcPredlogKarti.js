@@ -8,6 +8,7 @@ function odgovaraVoziloKod(raw) {
   if (!u) return false;
   if (u.startsWith("AUTO") || u.startsWith("NTV") || u.startsWith("MRAP")) return true;
   if (u === "HAM" || u.startsWith("HAM-") || u.startsWith("HAMER")) return true;
+  if (u === "KUH" || u.startsWith("KUH-") || u === "VRATA" || u.startsWith("VRATA-")) return true;
   return ["SUV", "DZIP", "KOMBI", "KAMION", "LIMUZINA", "FINAL"]
     .some((p) => u === p || u.startsWith(`${p}-`));
 }

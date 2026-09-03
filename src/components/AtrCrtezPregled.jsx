@@ -18,7 +18,8 @@ export default function AtrCrtezPregled({
 
   useEffect(() => {
     const imaSliku = String(slikaNaziv || "").trim();
-    if (!imaSliku && !idDeo) {
+    const deo = String(idDeo || "").trim().toUpperCase();
+    if (!imaSliku && !deo) {
       setUrl(null);
       setStatus("idle");
       return;
@@ -27,12 +28,10 @@ export default function AtrCrtezPregled({
     setStatus("loading");
     setUrl(null);
     (async () => {
-      let u = null;
-      if (imaSliku) {
-        u = await ucitajPrikazSliku(supabase, "atributivne", slikaNaziv, idDeo);
-      }
-      if (!u && idDeo) {
-        const altSrc = dijagramSrcZaDeo({ id_deo: idDeo, vozilo_katalog_id: idDeo.split("-")[0] });
+      // Uvek prođi idDeo — lokalni public/slike/atributivne/{ID}.png radi i bez polja u bazi
+      let u = await ucitajPrikazSliku(supabase, "atributivne", imaSliku || null, deo || null);
+      if (!u && deo) {
+        const altSrc = dijagramSrcZaDeo({ id_deo: deo, vozilo_katalog_id: deo.split("-")[0] });
         if (altSrc) u = await dijagramUrlZaPrikaz(altSrc, supabase);
       }
       if (!ok) return;
@@ -69,7 +68,7 @@ export default function AtrCrtezPregled({
         textAlign: "center",
         letterSpacing: 0.5,
       }}>
-        Crtež dela · zoom · ⛶ ceo ekran
+        Crtež / zone · zoom · ⛶
       </div>
       <div style={{
         flex: 1,

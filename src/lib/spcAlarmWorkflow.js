@@ -45,17 +45,33 @@ export function normalizujIdDeo(idDeo) {
 
 const BLOKIRAJUCI_STATUSI = ["otvoren", "karantin"];
 
-/** Samo alarmi nastali pri snimanju serije na liniji (NOK prag) blokiraju proizvodnju. */
+const WE_TIP_KARTE = new Set(["Xbar", "R", "I", "MR", "p", "np", "c", "u"]);
+
+/** Prefix pravila za Western Electric alarme sa grafikona. */
+export const WE_PRAVILO_PREFIKS = "WE ·";
+
+/** Linijski / WE alarmi blokiraju unos dok su otvoreni ili u karantinu. */
 export function jeLinijskiSpcAlarm(alarm) {
   if (!alarm) return false;
   const tip = String(alarm.tip_karte || "").trim();
   if (tip === "Linija") return true;
-  return String(alarm.pravilo || "").startsWith("NOK ≥");
+  if (WE_TIP_KARTE.has(tip)) return true;
+  const pravilo = String(alarm.pravilo || "");
+  if (pravilo.startsWith("NOK ≥")) return true;
+  if (pravilo.startsWith(WE_PRAVILO_PREFIKS) || pravilo.startsWith("WE ")) return true;
+  return false;
 }
 
-/** Alarmi iz pregleda SPC grafikona (Western Electric) — eskalacija, ne blokiraju liniju. */
+/** Stari alarmi sa grafikona bez WE prefiksa (pre migracije ponašanja) — ne blokiraju. */
 export function jeAnalitickiSpcAlarm(alarm) {
   return !!alarm && !jeLinijskiSpcAlarm(alarm);
+}
+
+export function jeWesternElectricAlarm(alarm) {
+  if (!alarm) return false;
+  const pravilo = String(alarm.pravilo || "");
+  return pravilo.startsWith(WE_PRAVILO_PREFIKS) || pravilo.startsWith("WE ")
+    || WE_TIP_KARTE.has(String(alarm.tip_karte || "").trim());
 }
 
 async function ucitajAlarmPoId(supabase, alarmId) {
@@ -91,7 +107,14 @@ export async function ucitajBlokirajuciSpcAlarm(supabase, idDeo) {
     .select("*")
     .eq("id_deo", deo)
     .in("status", BLOKIRAJUCI_STATUSI)
-    .or("tip_karte.eq.Linija,pravilo.ilike.NOK%")
+    .or(
+      [
+        "tip_karte.eq.Linija",
+        "pravilo.ilike.NOK%",
+        "pravilo.ilike.WE%",
+        "tip_karte.in.(Xbar,R,I,MR,p,np,c,u)",
+      ].join(","),
+    )
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -313,8 +336,96 @@ export function pozicijeSaPotpunimNok(rows) {
 }
 
 /**
+ * Western Electric / van UCL-LCL na kontrolnoj karti → spc_alarmi + eskalacija + blokada linije.
+ * Dedupe: isti id_deo + tip_karte + pravilo dok je otvoren.
+ */
+export async function kreirajAlarmWesternElectric(supabase, {
+  idDeo,
+  tipKarte,
+  pozicija = null,
+  brojUpozorenja,
+  radnikId,
+  vrednost = null,
+  ucl = null,
+  lcl = null,
+  modul = "merljive",
+}) {
+  const deo = normalizujIdDeo(idDeo);
+  const tip = String(tipKarte || "").trim() || "SPC";
+  const n = Number(brojUpozorenja) || 0;
+  if (!deo || n < 1) return null;
+
+  const pozTxt = pozicija ? ` · ${pozicija}` : "";
+  const pravilo = `${WE_PRAVILO_PREFIKS}${tip}: ${n} tač(aka) van kontrole${pozTxt}`;
+
+  const { data: otvoren } = await supabase
+    .from("spc_alarmi")
+    .select("*")
+    .eq("id_deo", deo)
+    .eq("tip_karte", tip)
+    .eq("pravilo", pravilo)
+    .eq("status", "otvoren")
+    .limit(1);
+  if (otvoren?.length) return otvoren[0];
+
+  // Isti dan već potvrđen/zatvoren sa istim tipom — ne spamuj.
+  const { data: obradjen } = await supabase
+    .from("spc_alarmi")
+    .select("id")
+    .eq("id_deo", deo)
+    .eq("tip_karte", tip)
+    .eq("datum", dISO())
+    .in("status", ["potvrden", "zatvoren"])
+    .ilike("pravilo", `${WE_PRAVILO_PREFIKS}${tip}%`)
+    .limit(1);
+  if (obradjen?.length) return null;
+
+  const alarm = await upisiSpcAlarm(supabase, {
+    id_deo: deo,
+    datum: dISO(),
+    tip_karte: tip,
+    pozicija: pozicija || null,
+    pravilo,
+    vrednost: vrednost != null && Number.isFinite(Number(vrednost)) ? Number(vrednost) : null,
+    ucl: ucl != null && Number.isFinite(Number(ucl)) ? Number(ucl) : null,
+    lcl: lcl != null && Number.isFinite(Number(lcl)) ? Number(lcl) : null,
+  });
+
+  const prefiks = modul === "atributivne" ? "AUTO-SPC" : "AUTO-VAR";
+  const esk = await kreirajAutoEskalaciju(supabase, {
+    id_deo: deo,
+    opis: `${tip}-karta${pozTxt}: ${n} tačka van kontrole (Western Electric) — blokada linije`,
+    prioritet: "kriticno",
+    kreirao_id: radnikId,
+    prefiks,
+    korektivna_akcija: "Zaustaviti seriju, potvrditi SPC alarm na liniji, utvrditi uzrok (Western Electric).",
+  });
+
+  if (alarm?.id && esk?.id) {
+    await supabase.from("spc_alarmi").update({
+      eskalacija_id: esk.id,
+      updated_at: new Date().toISOString(),
+    }).eq("id", alarm.id);
+  }
+
+  if (alarm?.id) {
+    const { data: pun } = await supabase.from("spc_alarmi").select("*").eq("id", alarm.id).maybeSingle();
+    const rezultat = pun || alarm;
+    obavestiNoviSpcAlarm(supabase, rezultat);
+    try {
+      const { autoNcrIzSpcAlarma } = await import("./autoSpcAlarm.js");
+      await autoNcrIzSpcAlarma(supabase, rezultat, { kreiraoId: radnikId });
+    } catch (e) {
+      console.warn("[spcAlarmWorkflow] auto-NCR iz WE alarma nije kreiran", e);
+    }
+    return rezultat;
+  }
+
+  return alarm;
+}
+
+/**
  * Alarm na liniji kad NOK u seriji pređe prag (podrazumevano ≥20%).
- * Pregled SPC grafikona (Western Electric) samo kreira eskalaciju — ne upisuje spc_alarmi i ne blokira liniju.
  */
 export async function kreirajAlarmNokSerije(supabase, {
   idDeo,
@@ -403,7 +514,9 @@ export async function kreirajAlarmNokSerije(supabase, {
     try {
       const { autoNcrIzSpcAlarma } = await import("./autoSpcAlarm.js");
       await autoNcrIzSpcAlarma(supabase, rezultat, { kreiraoId: radnikId });
-    } catch { /* */ }
+    } catch (e) {
+      console.warn("[spcAlarmWorkflow] auto-NCR iz alarma nije kreiran", e);
+    }
     return rezultat;
   }
 
@@ -466,7 +579,9 @@ export async function kreirajAlarmNokAtributivne(supabase, {
     try {
       const { autoNcrIzSpcAlarma } = await import("./autoSpcAlarm.js");
       await autoNcrIzSpcAlarma(supabase, rezultat, { kreiraoId: radnikId });
-    } catch { /* */ }
+    } catch (e) {
+      console.warn("[spcAlarmWorkflow] auto-NCR iz NOK alarma nije kreiran", e);
+    }
     return rezultat;
   }
   return null;

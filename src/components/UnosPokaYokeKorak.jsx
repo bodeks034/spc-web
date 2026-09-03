@@ -60,8 +60,8 @@ export default function UnosPokaYokeKorak({
   const stekPortrait = stekListaDugmeSlika && uspravnoMobTab;
   const stavke = modul === "atributivne" ? STAVKE_ATRIBUTIVNE : STAVKE_MERLJIVE;
   const boja = akcent || (modul === "merljive" ? C.zelena : C.plava);
-  /** Atributivne: crtež samo u levom panelu, ne u poka koraku */
-  const prikaziCrtez = modul !== "atributivne" && urlSlike;
+  /** Crtež/zone kad postoji url (merljive SOP ili atributivne zone) */
+  const prikaziCrtez = !!urlSlike;
   const [checks, setChecks] = useState(() => initChecks(stavke));
   const [zoomSlika, setZoomSlika] = useState(false);
 

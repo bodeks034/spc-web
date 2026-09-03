@@ -14,7 +14,7 @@ import { previewBatchPropagacije } from "../../lib/sifrarnikPropagacijaPreview.j
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 import { fetchPredlogDuplikata, primeniPredlogDuplikata, primeniSvePredlogeDuplikata } from "../../lib/sifrarnikDuplikatiPredlog.js";
 import { formatBatchObjavaDigest } from "../../lib/sifrarnikBatchDigest.js";
-import { ucitajBatchSnap, preuzmiBatchSnapJson } from "../../lib/sifrarnikBatchRollback.js";
+import { ucitajBatchSnap, preuzmiBatchSnapJson, obrisiBatchSnap, uspesniIdoviIzSnap } from "../../lib/sifrarnikBatchRollback.js";
 import { btnStyle } from "./sifrarnikPanelStyle.js";
 import SifrarnikAlatiPanel from "./SifrarnikAlatiPanel.jsx";
 import SifrarnikLinijeCrteziPanel from "./SifrarnikLinijeCrteziPanel.jsx";
@@ -63,20 +63,22 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
   const [batchProgress, setBatchProgress] = useState(null);
   const [batchRezultati, setBatchRezultati] = useState(null);
   const [duplikatPredlozi, setDuplikatPredlozi] = useState([]);
+  const [batchSnap, setBatchSnap] = useState(() => ucitajBatchSnap());
   const [primeniBusy, setPrimeniBusy] = useState(null);
   const [primeniSveBusy, setPrimeniSveBusy] = useState(false);
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
     try {
+      const linija = String(radnaLinija || "").trim().toUpperCase() || null;
       const [delovi, rnAktivni, merila, karakteristike, dups, delim, kompletStat] = await Promise.all([
         countTable("delovi"),
         countTable("radni_nalozi", { status: "aktivan" }),
         countTable("merila"),
         countTable("karakteristike_merljive"),
         fetchDuplikatiKarakteristike(),
-        fetchDelimicniDeloviPreview({ limit: 12 }),
-        fetchKompletnostStatistika(),
+        fetchDelimicniDeloviPreview({ limit: 12, linijaKod: linija }),
+        fetchKompletnostStatistika({ linijaKod: linija }),
       ]);
       setPodaci({ delovi, rnAktivni, merila, karakteristike });
       setDuplikati(dups.slice(0, 15));
@@ -84,26 +86,27 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
       setDuplikatPredlozi(predlozi.filter(Boolean));
       setDelimicni(delim);
       setKomplet(kompletStat);
-      setSpremniBroj((await fetchDeloviSpremniZaObjavu()).length);
+      setSpremniBroj((await fetchDeloviSpremniZaObjavu({ linijaKod: linija })).length);
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, radnaLinija]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
 
   const izveziCsv = async () => {
     setCsvBusy(true);
     try {
-      const svi = await fetchDelimicniDeloviSvi();
+      const linija = String(radnaLinija || "").trim().toUpperCase() || null;
+      const svi = await fetchDelimicniDeloviSvi({ linijaKod: linija });
       if (!svi.length) {
         addToast?.("Nema delimičnih delova za izvoz", "info");
         return;
       }
-      preuzmiDelimicniCsv(svi);
-      addToast?.(`✓ CSV: ${svi.length} delova`, "uspeh");
+      preuzmiDelimicniCsv(svi, linija ? { imeFajla: `sifrarnik_delimicni_${linija}_${new Date().toISOString().slice(0, 10)}.csv` } : undefined);
+      addToast?.(`✓ CSV: ${svi.length} delova${linija ? ` (${linija})` : ""}`, "uspeh");
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -116,15 +119,17 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
       addToast?.("Nema delova sa GU + greškama + crtežom", "info");
       return;
     }
+    const linija = String(radnaLinija || "").trim().toUpperCase() || null;
     let previewMsg = "";
     try {
-      const ids = await fetchDeloviSpremniZaObjavu();
+      const ids = await fetchDeloviSpremniZaObjavu({ linijaKod: linija });
       const preview = await previewBatchPropagacije(ids);
       previewMsg = preview.poruka ? `\n\nPreview: ${preview.poruka}` : "";
     } catch {
       /* preview opciono */
     }
-    if (!window.confirm(`Propagirati ${spremniBroj} del(a) u dimenzije/SOP?\n\nSamo delovi sa GU + greškama + crtežom.${previewMsg}`)) {
+    const scopeMsg = linija ? `\n\nSamo linija ${linija}.` : "";
+    if (!window.confirm(`Propagirati ${spremniBroj} del(a) u dimenzije/SOP?\n\nSamo delovi sa GU + greškama + crtežom.${scopeMsg}${previewMsg}`)) {
       return;
     }
     setBatchBusy(true);
@@ -133,9 +138,18 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
     try {
       const rez = await objaviSpremneDelove({
         onProgress: (p) => setBatchProgress(p),
+        linijaKod: linija,
       });
       setBatchRezultati(rez.rezultati);
-      obavestiPromenuStatusaSifrarnika({ izvor: "odrzavanje", akcija: "batch_objavi" });
+      setBatchSnap(ucitajBatchSnap());
+      const okIds = (rez.rezultati || []).filter((r) => r.ok).map((r) => r.idDeo || r.id_deo).filter(Boolean);
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "odrzavanje",
+        akcija: "batch_objavi",
+        idDeovi: okIds,
+        tab: "odrzavanje",
+        linija: linija || "",
+      });
       addToast?.(`✓ Objavljeno ${rez.uspeh}/${rez.rezultati.length} delova`, rez.neuspelo ? "info" : "uspeh");
       if (rez.rezultati?.length && !rez.digest?.preskoceno) {
         addToast?.(formatBatchObjavaDigest(rez.rezultati).split("\n").slice(0, 3).join(" · "), "info");
@@ -204,6 +218,24 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 12, lineHeight: 1.5 }}>
         Mesečna provera šifrarnika — brojevi, duplikati dimenzija i prečice ka tabovima.
       </div>
+
+      {radnaLinija && (
+        <div
+          data-testid="odrzavanje-radna-linija"
+          style={{
+            marginBottom: 10,
+            padding: "8px 10px",
+            borderRadius: 6,
+            border: `1px solid ${C.plava}55`,
+            background: `${C.plava}12`,
+            fontSize: 9,
+            color: C.tekst,
+            lineHeight: 1.45,
+          }}
+        >
+          Scope: radna linija <strong>{radnaLinija}</strong> — kompletnost, delimični, CSV i batch objava samo za tu liniju.
+        </div>
+      )}
 
       {loading ? (
         <div style={{ color: C.sivi, fontSize: 11 }}>Učitavanje…</div>
@@ -282,18 +314,94 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
                 ? (batchProgress ? `Objavljujem ${batchProgress.trenutni}/${batchProgress.ukupno}…` : "Objavljujem…")
                 : `Objavi sve spremne (${spremniBroj})`}
             </button>
-            {ucitajBatchSnap() && (
+            {batchSnap && (
               <button
                 type="button"
                 data-testid="odrzavanje-batch-snap"
-                onClick={() => preuzmiBatchSnapJson()}
+                onClick={() => preuzmiBatchSnapJson(batchSnap)}
                 style={btnStyle(C, C.hover, { fontSize: 9 })}
-                title="Pre-batch snapshot (audit)"
+                title="Pre/posle batch snapshot (JSON audit)"
               >
-                Pre-batch snap
+                Preuzmi snap
               </button>
             )}
           </div>
+          {batchSnap?.faza === "posle" && (
+            <div
+              data-testid="odrzavanje-batch-undo"
+              style={{
+                marginTop: 10,
+                padding: 8,
+                borderRadius: 6,
+                border: `1px solid ${C.plava}44`,
+                background: `${C.plava}10`,
+                fontSize: 9,
+                lineHeight: 1.45,
+              }}
+            >
+              <div style={{ color: C.tekst, fontWeight: 700, marginBottom: 4 }}>
+                Poslednja batch objava
+                {batchSnap.linijaKod ? ` · ${batchSnap.linijaKod}` : ""}
+                {": "}
+                {batchSnap.uspeh ?? 0} OK
+                {(batchSnap.neuspelo || 0) > 0 ? ` · ${batchSnap.neuspelo} greška` : ""}
+              </div>
+              <div style={{ color: C.sivi, marginBottom: 6 }}>
+                Snap čuva listu ID-ova (audit). Pun rollback dimenzija nije automatski —
+                otvori Delove ili preuzmi JSON.
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  data-testid="odrzavanje-batch-otvori-delove"
+                  onClick={() => {
+                    const ids = uspesniIdoviIzSnap(batchSnap);
+                    onNavigate?.("delovi", { idDeo: ids[0] || null, samoDelimicni: false });
+                  }}
+                  style={btnStyle(C, C.plava, { fontSize: 9 })}
+                >
+                  Otvori u Delovima
+                </button>
+                <button
+                  type="button"
+                  data-testid="odrzavanje-batch-odbaci-snap"
+                  onClick={() => {
+                    if (!window.confirm("Odbaciti batch snap iz sesije?")) return;
+                    obrisiBatchSnap();
+                    setBatchSnap(null);
+                  }}
+                  style={btnStyle(C, C.hover, { fontSize: 9 })}
+                >
+                  Odbaci snap
+                </button>
+              </div>
+              {!!batchSnap.rezultati?.length && (
+                <div style={{ marginTop: 6, maxHeight: 80, overflow: "auto", color: C.sivi }}>
+                  {batchSnap.rezultati.slice(0, 20).map((r) => (
+                    <button
+                      key={r.idDeo}
+                      type="button"
+                      onClick={() => onNavigate?.("delovi", { idDeo: r.idDeo })}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: "1px 4px",
+                        cursor: "pointer",
+                        color: r.ok ? C.plava : (C.crvena || "#dc2626"),
+                        fontWeight: 700,
+                        fontSize: 9,
+                      }}
+                    >
+                      {r.idDeo}{r.ok ? "" : "!"}
+                    </button>
+                  ))}
+                  {batchSnap.rezultati.length > 20 && (
+                    <span> …+{batchSnap.rezultati.length - 20}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {neuspeli.length > 0 && (
             <div
               data-testid="odrzavanje-batch-greske"
@@ -479,7 +587,7 @@ export default function SifrarnikOdrzavanjePanel({ C, addToast, onNavigate, jeAd
         <SifrarnikLinijeCrteziPanel C={C} addToast={addToast} radnaLinija={radnaLinija} />
       )}
 
-      <SifrarnikAlatiPanel C={C} addToast={addToast} onNavigate={onNavigate} />
+      <SifrarnikAlatiPanel C={C} addToast={addToast} onNavigate={onNavigate} radnaLinija={radnaLinija} />
     </div>
   );
 }

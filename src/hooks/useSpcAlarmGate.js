@@ -5,15 +5,18 @@ import { normalizujIdDeo, ucitajBlokirajuciSpcAlarm, alarmBlokiraLiniju } from "
 export function useSpcAlarmGate(supabase, { idDeo, enabled = false }) {
   const [alarm, setAlarm] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [greska, setGreska] = useState(null);
 
   const osvezi = useCallback(async () => {
     if (!enabled || !supabase) {
       setAlarm(null);
+      setGreska(null);
       return;
     }
     const deo = normalizujIdDeo(idDeo);
     if (deo.length < 3) {
       setAlarm(null);
+      setGreska(null);
       return;
     }
 
@@ -21,8 +24,10 @@ export function useSpcAlarmGate(supabase, { idDeo, enabled = false }) {
     try {
       const row = await ucitajBlokirajuciSpcAlarm(supabase, deo);
       setAlarm(row);
-    } catch {
-      setAlarm(null);
+      setGreska(null);
+    } catch (e) {
+      // Fail-closed: zadrži prethodni alarm — mrežna greška ne sme da „odblokira“ liniju.
+      setGreska(e?.message || "SPC alarm provera nije uspela");
     } finally {
       setLoading(false);
     }
@@ -49,5 +54,13 @@ export function useSpcAlarmGate(supabase, { idDeo, enabled = false }) {
     return () => { supabase.removeChannel(ch); };
   }, [supabase, idDeo, enabled, osvezi]);
 
-  return { alarm, blokira: alarmBlokiraLiniju(alarm), loading, osvezi, postaviAlarm: setAlarm, ocistiAlarm: () => setAlarm(null) };
+  return {
+    alarm,
+    blokira: alarmBlokiraLiniju(alarm),
+    loading,
+    greska,
+    osvezi,
+    postaviAlarm: setAlarm,
+    ocistiAlarm: () => setAlarm(null),
+  };
 }

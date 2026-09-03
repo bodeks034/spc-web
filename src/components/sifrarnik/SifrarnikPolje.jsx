@@ -77,12 +77,14 @@ export function OperacijaPolje({
     ? linijaOperacija[l]
     : sveOperacije;
   return (
-    <SelectPolje
+    <DatalistPolje
       C={C}
+      id={`operacija-${l || "sve"}`}
       label={l ? `${label} (${l})` : label}
       value={value}
       onChange={onChange}
       opcije={opcije}
+      placeholder={l ? `Upiši operaciju za ${l}…` : "Upiši ili izaberi operaciju…"}
     />
   );
 }
@@ -188,9 +190,18 @@ export function SlikaPolje({
         ? await dijagramUrlZaPrikaz(ime, supabase)
         : await ucitajPrikazSliku(supabase, modul, ime, refId);
       setPreview(url);
-      addToast?.("✓ Slika uvezena", "uspeh");
+      addToast?.("✓ Slika uvezena — obavezno Sačuvaj formu", "uspeh");
     } catch (e) {
-      addToast?.(e.message, "greska");
+      const msg = String(e?.message || e || "Greška uploada");
+      const low = msg.toLowerCase();
+      if (low.includes("bucket") || low.includes("not found") || low.includes("row-level") || low.includes("policy") || low.includes("jwt") || low.includes("unauthorized")) {
+        addToast?.(
+          `Storage blokiran: ${msg}. Proveri bucket spc-crtezi + RLS, ili stavi fajl u public/slike/${modul}/${refId}.png i u polje upiši ${refId}.png`,
+          "greska",
+        );
+      } else {
+        addToast?.(msg, "greska");
+      }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

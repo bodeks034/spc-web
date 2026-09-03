@@ -52,7 +52,7 @@ export const PODRAZUMEVANI_REAKCIONI_PLAN_SPC = [
     id: "we_obrazac",
     kategorija: "spc",
     situacija: "Western Electric obrazac (trend, serija, alternacija)",
-    akcija: "Analiza uzroka — korektivna mera pre nastavka",
+    akcija: "Blokada linije — potvrditi SPC alarm, utvrditi uzrok, korektivna mera pre nastavka",
   },
   {
     id: "trend_6",

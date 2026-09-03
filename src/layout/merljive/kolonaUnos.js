@@ -27,12 +27,12 @@ export const DIM_KOLONA_UNOS_DESKTOP = {
     vrednostFontWeight: 500,
   },
   plausibilnost: {
-    fontSize: 8,
+    fontSize: 10,
     marginTop: 2,
     marginBottom: 1,
   },
   labelUnos: {
-    fontSize: 8,
+    fontSize: 10,
     marginTop: 4,
     marginBottom: 4,
     letterSpacing: 0.4,
@@ -96,12 +96,12 @@ export const DIM_KOLONA_UNOS_MOB = {
     vrednostFontWeight: 500,
   },
   plausibilnost: {
-    fontSize: 7,
+    fontSize: 9,
     marginTop: 1,
     marginBottom: 1,
   },
   labelUnos: {
-    fontSize: 7,
+    fontSize: 9,
     marginTop: 2,
     marginBottom: 2,
     letterSpacing: 0.3,

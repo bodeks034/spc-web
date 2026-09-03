@@ -15,7 +15,9 @@ const VOZILO_FIELD_META = {
   dijagram_src: { type: "slika", modul: "atributivne", idKey: "kod", voziloDijagram: true },
 };
 
-export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVozilo }) {
+export default function TipoviVozilaPanel({
+  C, addToast, voziloKod, onIzaberiVozilo, onTipoviPromenjeni, otvoriIzmenuZa = "",
+}) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [forma, setForma] = useState(null);
@@ -24,15 +26,27 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
   const ucitaj = useCallback(async () => {
     setLoading(true);
     try {
-      setLista(await fetchTipoviVozila());
+      const rows = await fetchTipoviVozila();
+      setLista(rows);
+      return rows;
     } catch (e) {
       addToast?.(e.message, "greska");
+      return [];
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  // Preimenuj liniju → odmah otvori formu za taj kod
+  useEffect(() => {
+    const kod = String(otvoriIzmenuZa || "").trim().toUpperCase();
+    if (!kod || loading || !lista.length) return;
+    const t = lista.find((x) => String(x.kod || "").trim().toUpperCase() === kod);
+    if (!t) return;
+    setForma((prev) => (prev?.kod === t.kod ? prev : { ...t, _postojeci: true }));
+  }, [otvoriIzmenuZa, lista, loading]);
 
   const snimi = async () => {
     if (!forma?.kod?.trim()) {
@@ -43,7 +57,7 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
     try {
       await upsertTipVozila(forma);
       resetTipoviVozilaCache();
-      addToast?.("✓ Tip vozila sačuvan", "uspeh");
+      addToast?.("✓ Tip linije sačuvan", "uspeh");
       if (forma?.kod && (jeLinijaVozila(forma.kod) || jeLinijaProizvod(forma.kod))) {
         try {
           await syncLinijeCrteziApi(forma.kod);
@@ -54,6 +68,7 @@ export default function TipoviVozilaPanel({ C, addToast, voziloKod, onIzaberiVoz
       }
       setForma(null);
       await ucitaj();
+      onTipoviPromenjeni?.();
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {

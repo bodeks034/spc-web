@@ -182,8 +182,10 @@ export default function SmenaIdUnosRed({
     const v = e.target.value;
     setSmena?.(v);
     onSmenaChange?.(v);
-    localStorage.setItem("spc_smena", String(v));
-    sessionStorage.setItem("spc_smena", String(v));
+    try {
+      localStorage.setItem("spc_smena", String(v));
+      sessionStorage.setItem("spc_smena", String(v));
+    } catch { /* private mode / quota */ }
   };
 
   const imaCrtez = prikaziCrtez && (urlCrtez || slikaNaziv || onCrtezClick);

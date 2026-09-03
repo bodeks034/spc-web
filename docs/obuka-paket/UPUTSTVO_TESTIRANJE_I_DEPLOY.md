@@ -21,7 +21,7 @@ Brze provere **čiste logike** u kodu — bez browsera i bez žive baze:
 | Komanda | Šta radi |
 |---------|----------|
 | `npm test` | Jednom pokrene sve testove i završi |
-| `npm test:watch` | Ostaje uključen; ponavlja test kad sačuvaš fajl (za razvoj) |
+| `npm run test:watch` | Ostaje uključen; ponavlja test kad sačuvaš fajl (za razvoj) |
 | `npm run deploy:check` | Pre puštanja: unit + smoke + šema pilot + E2E login + email |
 | `npm run deploy:check:firma` | + build + puna šema + Docker + pun E2E |
 | `npm run db:verify:pilot` | Samo migracije 54–59 (moment + NCR) |
@@ -69,6 +69,17 @@ $env:E2E_EMAIL="operater@firma.rs"
 $env:E2E_PASSWORD="tvoja-lozinka"
 npm run e2e
 ```
+
+**Ili u `.env.local` (Playwright učitava automatski):**
+
+```env
+E2E_EMAIL=operater@firma.rs
+E2E_PASSWORD=tvoja-lozinka
+E2E_EMAIL_KVALITET=kvalitet@firma.rs
+E2E_PASSWORD_KVALITET=tvoja-lozinka
+```
+
+Ne koristi `$env:` sintaksu unutar `.env.local` — samo `KEY=VALUE`.
 
 **Windows (CMD):**
 

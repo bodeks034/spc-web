@@ -1,4 +1,5 @@
 import { AnalitikaMetrika } from "./AnalitikaMetrika.jsx";
+import { deltaTrenda } from "./Sparkline.jsx";
 
 /** Šest KPI polja u jednom redu — puna širina roditelja (kao ostatak forme). */
 export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }) {
@@ -7,9 +8,12 @@ export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }
   const skart = podaci.kpi?.skart ?? 0;
   const dorada = podaci.kpi?.dorada ?? 0;
 
+  const trendAttr = podaci.trend || [];
+  const trendMer = podaci.trendMer || [];
+
   const kartice = [
-    { id: "atr", label: "FPY ATR", value: `${podaci.attr.fpy ?? podaci.attr.rty}%`, boja: C.plava, sub: `DPMO ${podaci.attr.dpmo.toLocaleString()}` },
-    { id: "mer", label: "FPY MER", value: `${podaci.merljive.fpy ?? podaci.merljive.rty}%`, boja: C.zelena, sub: `${podaci.merljive.merenja} mer.` },
+    { id: "atr", label: "FPY ATR", value: `${podaci.attr.fpy ?? podaci.attr.rty}%`, boja: C.plava, sub: `DPMO ${podaci.attr.dpmo.toLocaleString()}`, trend: trendAttr, delta: deltaTrenda(trendAttr) },
+    { id: "mer", label: "FPY MER", value: `${podaci.merljive.fpy ?? podaci.merljive.rty}%`, boja: C.zelena, sub: `${podaci.merljive.merenja} mer.`, trend: trendMer, delta: deltaTrenda(trendMer) },
     { id: "rty", label: "RTY", value: podaci.rtyPogon != null ? `${podaci.rtyPogon}%` : "—", boja: C.narandzasta, sub: podaci.fazeKvaliteta?.length > 1 ? "pogon" : "ukupno" },
     { id: "skart", label: "ŠKART", value: String(skart), boja: skart > 0 ? C.crvena : C.tekst, sub: dorada > 0 ? `Dor. ${dorada}` : (podaci.kpi?.imaKpi ? `${podaci.kpi.kpiBroj} KPI` : "—") },
     { id: "esk", label: "ESK", value: podaci.eskalacije.otvorene, boja: C.zuta, sub: podaci.eskalacije.auto > 0 ? `${podaci.eskalacije.auto} auto` : "otv." },
@@ -45,9 +49,12 @@ export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }
 
   return (
     <div
+      role="group"
+      aria-label="Ključni pokazatelji"
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+        // auto-fit umesto tvrdih 6 kolona — na telefonu se prelama u 2-3 kolone.
+        gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
         gap: 6,
         width: "100%",
         minWidth: 0,
@@ -66,6 +73,8 @@ export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }
             C={C}
             sub={k.sub}
             uRedu
+            trend={k.trend}
+            delta={k.delta}
             onClick={nav(k.id)}
             title={titleMap[id]}
           />

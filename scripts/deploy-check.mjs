@@ -111,7 +111,7 @@ if (firma) {
   console.log("✓ dist/index.html postoji");
 
   opcionoDb("Provera šeme (puna)", () => nodeR(path.join(ROOT, "scripts/verify-schema.mjs")));
-  opcionoDb("Go-live RPC (77–79)", () => nodeR(path.join(ROOT, "scripts/verify-schema.mjs"), ["--go-live"]));
+  opcionoDb("Go-live šema (77–94)", () => nodeR(path.join(ROOT, "scripts/verify-schema.mjs"), ["--go-live"]));
   // Docker build je spor/težak za CI — obavezan samo u strict modu.
   opcionoDb("Docker build check", () => nodeR(path.join(ROOT, "scripts/docker-build-check.mjs")), strict);
 

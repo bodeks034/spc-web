@@ -1,6 +1,12 @@
+import useAppStore from "../lib/appStore.js";
+
 /** Traka upozorenja kad licence radi iz keša (offline grace). */
-export default function LicencaUpozorenje({ licenca, C }) {
-  if (!licenca?.offlineGrace) return null;
+export default function LicencaUpozorenje({ licenca: licencaProp, C: CProp }) {
+  const storeLicenca = useAppStore((s) => s.licenca);
+  const storeC = useAppStore((s) => s.temaC);
+  const licenca = licencaProp ?? storeLicenca;
+  const C = CProp ?? storeC;
+  if (!licenca?.offlineGrace || !C) return null;
 
   return (
     <div style={{

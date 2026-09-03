@@ -91,6 +91,9 @@ export function najslabijaFaza(faze = []) {
 
 /** OEE kvalitet faktor iz RTY (%). */
 export function kvalitetFaktorIzRty(rty) {
+  // Number(null) i Number("") daju 0, pa je nedostajuć RTY ranije prolazio kao
+  // 0 % kvaliteta i OEE se prikazivao kao 0 umesto kao „nema podatka".
+  if (rty == null || rty === "") return null;
   const r = Number(rty);
   return Number.isFinite(r) && r >= 0 ? Math.max(0, Math.min(1, r / 100)) : null;
 }

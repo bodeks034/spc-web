@@ -1,8 +1,11 @@
 /**
  * null = ugrađeni vektorski crtež (oštar na svim ekranima).
  * Za sopstvenu fotografiju: "/vozilo/vehicle_photo.png" (preporuka 1364×1040 px).
- * Folder "sifarnik celo vozilo" se NE koristi u runtime — samo za referencu dizajna.
  */
+import { VRATA_ZONE, jeVrataZonaDeo } from "./vrataZoneConfig.js";
+
+export { VRATA_ZONE, jeVrataZonaDeo };
+
 export const VOZILO_DIAGRAM_SRC = null;
 
 /** @typedef {{ id: string, kratko: string, naziv: string, boja: string, bojaPozadina: string, bojaTekst: string, hotspot: { cx: number, cy: number, r: number }, legenda: { x: number, y: number, w: number, h: number, strana: "levo"|"desno" }, linijaDo: { x: number, y: number }, odgovaraKategorija: (kat: string) => boolean, odgovaraPodkategorija: (kat: string, pod: string) => boolean }} VoziloZona */
@@ -97,18 +100,23 @@ export const VOZILO_ZONE = [
   },
 ];
 
-export function zonaPoId(id) {
-  return VOZILO_ZONE.find(z => z.id === id) || null;
+export function zoneZaDeo(deo) {
+  return jeVrataZonaDeo(deo) ? VRATA_ZONE : VOZILO_ZONE;
 }
 
-/**
- * Filtrira katalog grešaka (gr + df) prema izabranoj zoni vozila.
- * @param {Record<string, string[]>} gr
- * @param {Record<string, Record<string, string[]>>} df
- * @param {string|null} zonaId
- */
-export function filtrirajKatalogPoZoni(gr, df, zonaId) {
-  const zona = zonaPoId(zonaId);
+export function naslovZonaZaDeo(deo) {
+  return jeVrataZonaDeo(deo)
+    ? "KONTROLA VRATA — izaberi zonu"
+    : "KONTROLA CELOG VOZILA — izaberi zonu";
+}
+
+export function zonaPoId(id, zoneLista = VOZILO_ZONE) {
+  const lista = zoneLista?.length ? zoneLista : VOZILO_ZONE;
+  return lista.find((z) => z.id === id) || VOZILO_ZONE.find((z) => z.id === id) || null;
+}
+
+export function filtrirajKatalogPoZoni(gr, df, zonaId, zoneLista = VOZILO_ZONE) {
+  const zona = zonaPoId(zonaId, zoneLista);
   if (!zona) return { gr: gr || {}, df: df || {} };
 
   const newGr = {};
@@ -116,7 +124,7 @@ export function filtrirajKatalogPoZoni(gr, df, zonaId) {
 
   for (const [kat, pods] of Object.entries(gr || {})) {
     if (!zona.odgovaraKategorija(kat)) continue;
-    const filtered = (pods || []).filter(p => zona.odgovaraPodkategorija(kat, p));
+    const filtered = (pods || []).filter((p) => zona.odgovaraPodkategorija(kat, p));
     if (filtered.length) newGr[kat] = filtered;
   }
 
@@ -133,12 +141,6 @@ export function filtrirajKatalogPoZoni(gr, df, zonaId) {
   return { gr: newGr, df: newDf };
 }
 
-/**
- * Novi katalog (9 sheetova po komponentama): svaki red ima vozilo_id = KAROS-001, MOTOR-001…
- * Stari katalog (1 sheet): svi redovi imaju vozilo_id = FINAL-001 → filtrira se po kategoriji.
- * @param {{ vozilo_id?: string, kategorija: string, podkategorija: string }[]} rows
- * @param {string|null} zonaId
- */
 export function voziloIdOdgovaraZoni(voziloId, zonaId) {
   const vid = (voziloId || "").toUpperCase();
   const zid = (zonaId || "").toUpperCase();
@@ -147,8 +149,8 @@ export function voziloIdOdgovaraZoni(voziloId, zonaId) {
   return vid.endsWith(`-${zid}`) || vid.endsWith(`_${zid}`);
 }
 
-export function filtrirajVoziloRedove(rows, zonaId) {
-  const zona = zonaPoId(zonaId);
+export function filtrirajVoziloRedove(rows, zonaId, zoneLista = VOZILO_ZONE) {
+  const zona = zonaPoId(zonaId, zoneLista);
   if (!zona) return rows || [];
 
   return (rows || []).filter((r) => {

@@ -5,9 +5,9 @@
  * Zahteva DATABASE_URL ili SUPABASE_DB_URL u .env.local, npr.:
  *   postgresql://postgres.[ref]:[PASS]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
  *
- * npm run db:migrate              — primeni pilot 54–59 + kvalitet 75–76 + go-live 77–78
+ * npm run db:migrate              — primeni pilot 54–59 + kvalitet 75–76 + go-live 77–97
  * npm run db:migrate -- --kvalitet — samo 75_ncr_registar_obrazac + 76_osmd_pfmea_cp_brojevi
- * npm run db:migrate -- --go-live  — 77–82 go-live (RPC + audit + filter)
+ * npm run db:migrate -- --go-live  — 77–97 go-live (RPC + audit + MV + RLS/PIN + agregati + error_log)
  * npm run db:migrate -- --all     — svi .sql fajlovi 01–59 po broju (oprezno na postojećoj bazi)
  * npm run db:migrate -- --file 59_ncr_capa.sql
  * npm run db:migrate -- --dry-run — samo lista
@@ -31,6 +31,16 @@ const GO_LIVE_BLOK = [
   "85_sifrarnik_audit_retention.sql",
   "86_sifrarnik_mv_scale.sql",
   "87_tipovi_linije_privremene.sql",
+  "88_obrisi_deo_kaskadno.sql",
+  "89_sifrarnik_linija_i_mv_refresh.sql",
+  "90_dashboard_agregati.sql",
+  "91_arhiviranje_i_audit_trigger.sql",
+  "92_bezbednost_rls_i_pin.sql",
+  "93_rls_uloge_upisa.sql",
+  "94_broj_zapisa_po_delu.sql",
+  "95_obrisi_deo_eskalacije_fk.sql",
+  "96_storage_crtezi.sql",
+  "97_error_log.sql",
 ];
 
 const PILOT_BLOK = [

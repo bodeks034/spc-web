@@ -10,11 +10,56 @@ export default function KarantinBlokada({
   onOsvezi,
   podnaslov = "",
 }) {
-  if (!karantin?.aktivan) return null;
+  const neproveren = !!karantin?.neproveren;
+  if (!karantin?.aktivan && !neproveren) return null;
 
   const z = karantin.zapisi?.[0];
   const a = karantin.alarmi?.[0];
   const tekst = tekstKarantinPolja(karantin);
+  const boja = neproveren ? (C.zuta || "#f59e0b") : C.crvena;
+
+  if (neproveren) {
+    return (
+      <div
+        role="alert"
+        aria-live="assertive"
+        data-testid="karantin-neproveren"
+        style={{
+          background: `${boja}1e`,
+          border: `1px solid ${boja}88`,
+          borderRadius: 8,
+          padding: "10px 12px",
+          margin: "0 0 10px",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 220, fontSize: 12, lineHeight: 1.5, color: C.tekst }}>
+          <strong style={{ color: boja }}>Karantin nije proveren</strong>
+          <div style={{ color: C.sivi, fontSize: 11 }}>
+            {karantin.greska || "Upit nije uspeo"} — ne zna se da li je deo pod HOLD-om.
+          </div>
+          <div style={{ color: C.sivi, fontSize: 11 }}>
+            Pre nastavka proveri sa kvalitetom ili pokušaj ponovo.
+          </div>
+        </div>
+        {typeof onOsvezi === "function" && (
+          <button
+            type="button"
+            onClick={onOsvezi}
+            style={{
+              background: boja, border: "none", borderRadius: 6, color: "#111",
+              fontSize: 12, fontWeight: 700, padding: "10px 16px", cursor: "pointer", minHeight: 40,
+            }}
+          >
+            Proveri ponovo
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

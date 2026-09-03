@@ -10,7 +10,7 @@ const PRAZAN = {
 };
 
 export default function DeloviCrtezPanel({
-  C, addToast, pocetniIdDeo, pocetniNavTs, otvoriFormu,
+  C, addToast, pocetniIdDeo, pocetniNavTs, otvoriFormu, radnaLinija = "",
 }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +53,13 @@ export default function DeloviCrtezPanel({
     try {
       await upsertDeo({ ...forma, tip_kontrole: "deo" });
       addToast?.("✓ Crtež dela sačuvan", "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "crtez", akcija: "snimi", idDeo: forma?.id_deo });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "crtez",
+        akcija: "snimi",
+        idDeo: forma?.id_deo,
+        tab: "delovi_atr",
+        linija: radnaLinija || "",
+      });
       setForma(null);
       await ucitaj();
     } catch (e) {
@@ -86,8 +92,11 @@ export default function DeloviCrtezPanel({
       onAdd={() => setForma({ ...PRAZAN })}
       addLabel="+ Deo"
     >
-      <div style={{ color: C.sivi, fontSize: 9, marginBottom: 8 }}>
-        Crtež za atributivnu kontrolu — fajl u Storage <code>atributivne/</code>, polje <code>slika_naziv</code>.
+      <div style={{ color: C.sivi, fontSize: 9, marginBottom: 8, lineHeight: 1.5 }}>
+        Crtež za atributivnu kontrolu — Storage <code>spc-crtezi/atributivne/</code> ili lokalno
+        {" "}<code>public/slike/atributivne/ID.png</code>.
+        {" "}1) Deo mora postojati (Objavi / Delovi). 2) ✎ Izmeni. 3) <strong>Uvezi sliku</strong>. 4) <strong>Sačuvaj</strong>.
+        {" "}Ako Storage ne radi: u polje upiši npr. <code>KUH-VRATA-600-L.png</code> (fajl već može biti u public folderu).
       </div>
       <input
         value={filter}

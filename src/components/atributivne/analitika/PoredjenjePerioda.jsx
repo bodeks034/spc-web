@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../lib/supabaseClient.js";
 import { aggregateLogRows } from "../../../lib/spcStats.js";
 import { statAtributivneRedovi } from "../../../lib/atributivneAgregacija.js";
+import { LAB_FPY_PCT } from "../../../lib/rtyFpy.js";
 
 export default function PoredjenjePerioda({ idDeo, C, addToast }) {
   const [podaci, setPodaci] = useState(null);

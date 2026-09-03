@@ -14,14 +14,14 @@ U aplikaciji: **Početni ekran → 📘 Uputstvo → Obuka paket**.
 | **Inženjer / kvalitet — Modul 0** | **`UPUTSTVO_MODUL_SIFARNIK.md`** | Markdown — **glavno uputstvo** |
 | **Isti sadržaj — štampa A4** | `OBUKA_MODUL_SIFARNIK.html` | auto iz MD §X (SYNC blokovi) |
 | **Novi deo korak-po-korak** | `UPUTSTVO_NOVI_DEO_SIFARNIK.md` | procedura |
-| **Linije VOZ / PRO** | `UPUTSTVO_LINIJE_VOZ_PRO.md` | **Radim na liniji**, Brzi start, folderi crteža |
+| **Linije VOZ / PRO** | `UPUTSTVO_LINIJE_VOZ_PRO.md` | **Radni režim** (dnevni sto), Hub fokus, Brzi start, folderi crteža |
 | **Operater — Modul 1** | `OBUKA_OPERATER_MODUL1.html` | HTML |
 
 ### Struktura `UPUTSTVO_MODUL_SIFARNIK.md`
 
 | Deo | Šta čitaš |
 |-----|-----------|
-| **I–III** | Brzi start, načini unosa, pregled tabova |
+| **I–III** | Brzi start · **Radni režim**, načini unosa, pregled tabova |
 | **IV** | Referenca — svaki tab (detaljno) |
 | **V** | Puštanje, go-live, održavanje |
 | **VI–VIII** | Uticaj na module, FAQ, linkovi |

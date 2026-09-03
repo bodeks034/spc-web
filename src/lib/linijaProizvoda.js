@@ -63,8 +63,15 @@ export function deoPripadaLiniji(deo, kodLinije) {
   if (vk === k || sv === k) return true;
   const id = normalizujKodLinije(deo.id_deo);
   if (id.startsWith(`${k}-`)) return true;
-  const pref = k.split("-")[0];
-  return pref.length >= 2 && id.startsWith(`${pref}-`);
+  return false;
+}
+
+/** PostgREST `.or(...)` za fetch/count po radnoj liniji. */
+export function primeniFilterLinijeNaQuery(q, linijaKod) {
+  const k = normalizujKodLinije(linijaKod);
+  if (!k || !q) return q;
+  const esc = k.replace(/,/g, "");
+  return q.or(`vozilo_katalog_id.eq.${esc},sifra_vozila.eq.${esc},id_deo.ilike.${esc}-%`);
 }
 
 export function predlogSheetaZaLiniju(kod, vrsta = "delovi") {

@@ -7,6 +7,7 @@ vi.mock("../src/lib/glavniUnosApi.js", () => ({
 
 vi.mock("../src/lib/sifrarnikBatchRollback.js", () => ({
   snapBatchPreObjave: vi.fn(),
+  sacuvajBatchRezultat: vi.fn(),
 }));
 
 vi.mock("../src/lib/sifrarnikBatchDigest.js", () => ({

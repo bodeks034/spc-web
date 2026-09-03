@@ -5,15 +5,24 @@ import {
   agregirajKpiUnos,
   agregirajKvalitetDashboardAttr,
   agregirajKvalitetDashboardMer,
+  agregirajKvalitetDashboardMerIzAgregata,
   trendKvalitetaDashboardAttr,
   trendKvalitetaDashboardMer,
+  trendKvalitetaDashboardMerIzAgregata,
 } from "./kpiUnos.js";
+import { fetchDashboardAgregate } from "./dashboardAgregatRpc.js";
 import { izracunajKpiSerije, izracunajKpiPogon } from "./kpiKvalitet.js";
 import { fazeKvalitetaPogona, najslabijaFaza } from "./rtyFpy.js";
 import { evaluirajAlarme } from "./operativniAlarmi.js";
 import { planiranoKomIzReda, ucitajAktivniRadniNalog } from "./radniNalog.js";
 import { analizirajProces } from "./spcInteligencija.js";
 import { idDeloviZaLinijuFilter, merenjeNaLiniji } from "./analitikaFilterData.js";
+
+const PRAZAN_REZ = { data: [], error: null };
+
+const LIMIT_LOG = 4000;
+const LIMIT_MER = 4000;
+const LIMIT_MER_DANAS = 2000;
 
 function datumOd(dana) {
   const od = new Date();
@@ -46,15 +55,15 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   const logQ = supabase.from("kontrolni_log")
     .select("datum,status,ok_kolicina,nok_kolicina,ukupno_merenja,kom_nok,greska_naziv,smena,id_deo,inspekcija_id,sesija_id,created_at,id")
     .gte("datum", od)
-    .limit(4000);
+    .limit(LIMIT_LOG);
   const merQ = supabase.from("merenja_varijabilna")
     .select("datum,status,id_deo,pozicija,smena,linija")
     .gte("datum", od)
-    .limit(4000);
+    .limit(LIMIT_MER);
   const merDanasQ = supabase.from("merenja_varijabilna")
     .select("datum,status,id_deo,linija")
     .eq("datum", danas)
-    .limit(2000);
+    .limit(LIMIT_MER_DANAS);
   const eskQ = supabase.from("eskalacije")
     .select("id,id_deo,opis,prioritet,status,created_at,rok")
     .order("created_at", { ascending: false })
@@ -71,8 +80,17 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     merQ.eq("smena", smenaFilter);
   }
 
+  // Prvo pokušaj agregaciju u bazi (migracija 90). Ako RPC-ovi ne postoje,
+  // pada se na staru putanju sa sirovim redovima i tvrdim limitima.
+  const agregati = await fetchDashboardAgregate(supabase, {
+    od,
+    idDeo: deoFilter,
+    linija: linijaFilter,
+    smena: smenaFilter,
+  }).catch(() => null);
+
   let idDelovaLinija = null;
-  if (linijaFilter && !deoFilter) {
+  if (!agregati && linijaFilter && !deoFilter) {
     idDelovaLinija = await idDeloviZaLinijuFilter(linijaFilter);
     if (idDelovaLinija?.length) {
       logQ.in("id_deo", idDelovaLinija);
@@ -85,9 +103,9 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
   const [
     logRes, merRes, merDanasRes, kpiRes, eskRes, merilaRes, msaRes, nalogRes,
   ] = await Promise.all([
-    logQ,
-    merQ,
-    merDanasQ,
+    agregati ? PRAZAN_REZ : logQ,
+    agregati ? PRAZAN_REZ : merQ,
+    agregati ? PRAZAN_REZ : merDanasQ,
     fetchKpiUnos(supabase, { datumOd: od, idDeo: deoFilter || undefined, limit: 300 }).catch(() => []),
     eskQ,
     supabase.from("merila")
@@ -106,10 +124,10 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
         .eq("status", "aktivan"),
   ]);
 
-  let logData = logRes.data || [];
+  let logData = agregati ? agregati.attrRedovi : (logRes.data || []);
   let merData = merRes.data || [];
   let merDanas = merDanasRes.data || [];
-  if (linijaFilter && !deoFilter) {
+  if (!agregati && linijaFilter && !deoFilter) {
     const idSet = idDelovaLinija?.length ? new Set(idDelovaLinija) : null;
     if (idSet) {
       logData = logData.filter((r) => idSet.has(String(r.id_deo || "").toUpperCase()));
@@ -124,6 +142,16 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
       || (idSet?.has(String(r.id_deo || "").toUpperCase()) ?? false),
     );
   }
+  // Samo legacy putanja može biti odsečena — RPC agregati nemaju limit.
+  const odsecen = agregati ? [] : [
+    (logRes.data || []).length >= LIMIT_LOG && "kontrolni_log",
+    (merRes.data || []).length >= LIMIT_MER && "merenja_varijabilna",
+    (merDanasRes.data || []).length >= LIMIT_MER_DANAS && "merenja (danas)",
+  ].filter(Boolean);
+
+  const merGrupe = agregati?.merGrupe || null;
+  const merGrupeDanas = merGrupe ? merGrupe.filter((r) => r.datum === danas) : null;
+
   const kpiRows = kpiRes || [];
   const eskalacije = eskRes.data || [];
   const kpiAttrRows = kpiRows.filter((r) => r.modul === "atributivne");
@@ -131,15 +159,24 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
 
   const attrAgg = aggregateLogRows(logData) || {};
 
-  const merDanasNok = merDanas.filter(r => (r.status || "").toUpperCase() === "NOK").length;
+  const merDanasUk = merGrupeDanas
+    ? merGrupeDanas.reduce((s, r) => s + r.n, 0)
+    : merDanas.length;
+  const merDanasNok = merGrupeDanas
+    ? merGrupeDanas.reduce((s, r) => s + r.nok, 0)
+    : merDanas.filter(r => (r.status || "").toUpperCase() === "NOK").length;
 
   const attrKval = agregirajKvalitetDashboardAttr(logData, kpiAttrRows);
-  const merKval = agregirajKvalitetDashboardMer(merData, kpiMerRows);
+  const merKval = merGrupe
+    ? agregirajKvalitetDashboardMerIzAgregata(merGrupe, kpiMerRows)
+    : agregirajKvalitetDashboardMer(merData, kpiMerRows);
   const { faze: fazeKvaliteta, rty: rtyPogon } = fazeKvalitetaPogona({ attr: attrKval, merljive: merKval });
   const najslabija = najslabijaFaza(fazeKvaliteta);
 
   const trend = trendKvalitetaDashboardAttr(logData, kpiAttrRows);
-  const trendMer = trendKvalitetaDashboardMer(merData, kpiMerRows);
+  const trendMer = merGrupe
+    ? trendKvalitetaDashboardMerIzAgregata(merGrupe, kpiMerRows)
+    : trendKvalitetaDashboardMer(merData, kpiMerRows);
 
   const kpiAgg = agregirajKpiUnos(kpiRows);
   let kpiAgregat = null;
@@ -163,25 +200,30 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     });
   }
 
-  const paretoMer = {};
-  merData.forEach(r => {
-    if ((r.status || "").toUpperCase() === "NOK") {
-      const k = r.pozicija || "?";
-      paretoMer[k] = (paretoMer[k] || 0) + 1;
-    }
-  });
-  const paretoMerArr = Object.entries(paretoMer)
-    .map(([naziv, count]) => ({ naziv, count, izvor: "merljive" }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
+  let topNok;
+  if (agregati) {
+    topNok = [...agregati.pareto].sort((a, b) => b.count - a.count).slice(0, 50);
+  } else {
+    const paretoMer = {};
+    merData.forEach(r => {
+      if ((r.status || "").toUpperCase() === "NOK") {
+        const k = r.pozicija || "?";
+        paretoMer[k] = (paretoMer[k] || 0) + 1;
+      }
+    });
+    const paretoMerArr = Object.entries(paretoMer)
+      .map(([naziv, count]) => ({ naziv, count, izvor: "merljive" }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
 
-  const paretoAttr = (attrAgg.pareto || []).slice(0, 8).map(p => ({
-    ...p, izvor: "atributivne",
-  }));
+    const paretoAttr = (attrAgg.pareto || []).slice(0, 8).map(p => ({
+      ...p, izvor: "atributivne",
+    }));
 
-  const topNok = [...paretoAttr, ...paretoMerArr]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 50);
+    topNok = [...paretoAttr, ...paretoMerArr]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 50);
+  }
 
   const otvoreniStatusi = ["otvoren", "u_toku", "aktivan", "open"];
   const eskOtvorene = eskalacije.filter(e =>
@@ -204,11 +246,21 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     const st = statAtributivneRedovi(rows);
     deoNok[idDeo] = { id_deo: idDeo, n: st.n, nok: st.nok, modul: "atributivne" };
   }
-  merDanas.forEach(r => {
+  const merDanasZaDeo = merGrupeDanas
+    ? merGrupeDanas.map(r => ({ id_deo: r.id_deo, n: r.n, nok: r.nok }))
+    : merDanas.reduce((acc, r) => {
+      if (!r.id_deo) return acc;
+      const p = acc.find(x => x.id_deo === r.id_deo);
+      const nok = (r.status || "").toUpperCase() === "NOK" ? 1 : 0;
+      if (p) { p.n += 1; p.nok += nok; } else { acc.push({ id_deo: r.id_deo, n: 1, nok }); }
+      return acc;
+    }, []);
+
+  merDanasZaDeo.forEach(r => {
     if (!r.id_deo) return;
     if (!deoNok[r.id_deo]) deoNok[r.id_deo] = { id_deo: r.id_deo, n: 0, nok: 0, modul: "merljive" };
-    deoNok[r.id_deo].n += 1;
-    if ((r.status || "").toUpperCase() === "NOK") deoNok[r.id_deo].nok += 1;
+    deoNok[r.id_deo].n += r.n;
+    deoNok[r.id_deo].nok += r.nok;
     if (deoNok[r.id_deo].modul === "atributivne") deoNok[r.id_deo].modul = "oba";
     else deoNok[r.id_deo].modul = deoNok[r.id_deo].modul || "merljive";
   });
@@ -264,6 +316,8 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
     period,
     od,
     danas,
+    osvezeno: new Date().toISOString(),
+    odsecen,
     idDeoFilter: deoFilter || null,
     attr: {
       ukN: attrKval.ukupno,
@@ -278,7 +332,7 @@ export async function fetchZajednickiDashboard(supabase, { period = 7, offlinePa
       fpy: merKval.fpy,
       rty: merKval.fpy,
       dpmo: merKval.dpmo,
-      danasUk: merDanas.length,
+      danasUk: merDanasUk,
       danasNok: merDanasNok,
     },
     rtyPogon,

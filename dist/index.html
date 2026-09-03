@@ -33,6 +33,23 @@
       min-height: 100dvh;
       min-height: -webkit-fill-available;
     }
+    /* Tekst samo za čitače ekrana — kad boja nosi značenje u vizuelnom prikazu */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    /* Vidljiv fokus na tastaturi — ranije se oslanjalo samo na miš */
+    :focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.85; }
@@ -45,40 +62,42 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/assets/index-q7xDQGCj.js"></script>
+  <script type="module" crossorigin src="/assets/index-DkwgG5Ni.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-aKtaBQYM.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-Dy4yuZa1.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-react-CI5MSOcl.js">
   <link rel="modulepreload" crossorigin href="/assets/pfmeaControlPlan-W5g1xeME.js">
-  <link rel="modulepreload" crossorigin href="/assets/varijabilneUtils-BNam-PfH.js">
+  <link rel="modulepreload" crossorigin href="/assets/varijabilneUtils-gLBqanDy.js">
   <link rel="modulepreload" crossorigin href="/assets/kvalitetFolderStruktura-CR9waqov.js">
   <link rel="modulepreload" crossorigin href="/assets/ncrObrazacPolja-is9dwqSr.js">
   <link rel="modulepreload" crossorigin href="/assets/atributivneAgregacija-BH-s4jS1.js">
-  <link rel="modulepreload" crossorigin href="/assets/supabaseConfig-FNuO1KxL.js">
-  <link rel="modulepreload" crossorigin href="/assets/notifikacije-BdOnTIqN.js">
-  <link rel="modulepreload" crossorigin href="/assets/spcStats-BQPFlBxn.js">
-  <link rel="modulepreload" crossorigin href="/assets/spcAlarmWorkflow-Cq-dbE2j.js">
-  <link rel="modulepreload" crossorigin href="/assets/eskalacijeHelper-DSnVgm8J.js">
+  <link rel="modulepreload" crossorigin href="/assets/supabaseConfig-BYgO9aaX.js">
+  <link rel="modulepreload" crossorigin href="/assets/notifikacije-YGYydc7m.js">
+  <link rel="modulepreload" crossorigin href="/assets/spcStats-B2ZVvN1m.js">
+  <link rel="modulepreload" crossorigin href="/assets/spcAlarmWorkflow-BhHRsJ5a.js">
+  <link rel="modulepreload" crossorigin href="/assets/eskalacijeHelper-BdaDqorO.js">
   <link rel="modulepreload" crossorigin href="/assets/sifrarnikListeSeed-DhT6NSz-.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-xlsx-Ba7xMI6d.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-qrcode-5etWzcqw.js">
-  <link rel="modulepreload" crossorigin href="/assets/importDerivedSifrarnik-BkyEGZLT.js">
-  <link rel="modulepreload" crossorigin href="/assets/supabaseClient-CkoQ8ZGO.js">
-  <link rel="modulepreload" crossorigin href="/assets/sifrarnikApi-JkBtl2qs.js">
-  <link rel="modulepreload" crossorigin href="/assets/slikePaths-BNG_0Ipw.js">
-  <link rel="modulepreload" crossorigin href="/assets/glavniUnosApi-Mw0UU_hX.js">
-  <link rel="modulepreload" crossorigin href="/assets/kpiUnos-TTd8FSVo.js">
+  <link rel="modulepreload" crossorigin href="/assets/importDerivedSifrarnik-6MNly_wp.js">
+  <link rel="modulepreload" crossorigin href="/assets/supabaseClient-C_e52PKI.js">
+  <link rel="modulepreload" crossorigin href="/assets/sifrarnikApi-XmGz8zBy.js">
+  <link rel="modulepreload" crossorigin href="/assets/slikePaths-CxGNUkWq.js">
+  <link rel="modulepreload" crossorigin href="/assets/sifrarnikSlikeApi-BQNF8ei7.js">
+  <link rel="modulepreload" crossorigin href="/assets/glavniUnosApi-BLttKr-5.js">
+  <link rel="modulepreload" crossorigin href="/assets/kpiUnos-sqtykyGm.js">
   <link rel="modulepreload" crossorigin href="/assets/msaKalendar-B5uKEE1m.js">
-  <link rel="modulepreload" crossorigin href="/assets/radniNalog-yHyDR4DP.js">
-  <link rel="modulepreload" crossorigin href="/assets/varijabilneSpcStats-BYD-b9VR.js">
-  <link rel="modulepreload" crossorigin href="/assets/spcInteligencija-BUQP7VMa.js">
-  <link rel="modulepreload" crossorigin href="/assets/zajednickiDashboard-DEx9UCLY.js">
+  <link rel="modulepreload" crossorigin href="/assets/radniNalog-e2WwHgmI.js">
+  <link rel="modulepreload" crossorigin href="/assets/varijabilneSpcStats-Ck-oyqem.js">
+  <link rel="modulepreload" crossorigin href="/assets/spcInteligencija-n2qJ8BpQ.js">
+  <link rel="modulepreload" crossorigin href="/assets/zajednickiDashboard-YW7wYuvE.js">
   <link rel="modulepreload" crossorigin href="/assets/autoPodesavanja-4WGlNP6E.js">
   <link rel="modulepreload" crossorigin href="/assets/pdfFontSr-6zfi4cCC.js">
   <link rel="modulepreload" crossorigin href="/assets/pdfBrending-D_rSIgcL.js">
-  <link rel="modulepreload" crossorigin href="/assets/ncrCapa-DRXZGirz.js">
-  <link rel="modulepreload" crossorigin href="/assets/workflowAkcije-DPQfvvCd.js">
-  <link rel="modulepreload" crossorigin href="/assets/uloge-Cme5iy-m.js">
+  <link rel="modulepreload" crossorigin href="/assets/offlineQueue-BjexxafE.js">
+  <link rel="modulepreload" crossorigin href="/assets/ncrCapa-DObQ1Pfy.js">
+  <link rel="modulepreload" crossorigin href="/assets/workflowAkcije-BGmMXFuP.js">
+  <link rel="modulepreload" crossorigin href="/assets/uloge-DtB3Bj-L.js">
 </head>
 <body>
   <div id="root"></div>

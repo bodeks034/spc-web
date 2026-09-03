@@ -1,6 +1,6 @@
 # Linije vozila (VOZ-XX) i proizvoda (PRO-XX)
 
-Uputstvo za **privremene linije** u Modulu 0 — radni režim, unos delova, preimenovanje, folderi za crteže.
+Uputstvo za **privremene linije** u Modulu 0 — **Radni režim** (dnevni sto), Hub fokus, unos delova, preimenovanje, folderi za crteže.
 
 Povezano: [UPUTSTVO_MODUL_SIFARNIK.md](./UPUTSTVO_MODUL_SIFARNIK.md) · [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md) · [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md)
 
@@ -21,9 +21,44 @@ Migracija `87_tipovi_linije_privremene.sql` unosi **VOZ-01…10** i **PRO-01…1
 
 ---
 
-## II. Radni režim — „Radim na liniji“
+## II. Radni režim (dnevni sto)
 
-Na vrhu Modula 0 (ispod migracionog bannera za admina):
+**Podrazumevani ulaz** u Modul 0 — ekran za dnevni rad inženjera / kvaliteta. Pun Hub (svi tabovi) otvaraš preko **Svi tabovi →**.
+
+### Tipičan tok
+
+```
+Izaberi liniju → Sledeći korak → uradi (GU / greške / crtež…) → Snimi/Objavi
+  → Gotovo → sledeći → ponovi
+```
+
+| Element | Šta radi |
+|---------|----------|
+| **Pločice / Linija** | Izbor `VOZ-XX` / `PRO-XX` za danas (pamti se u browseru) |
+| **+ Novi deo** | Čarobnjak Glavnog unosa za tu liniju |
+| **Sledeći korak** | Prvi delimični deo na liniji + CTA (npr. Greške →) |
+| **Delimični** | Lista rupa; filter **Svi / GU / Greške / Crtež / Barkod** |
+| **Danas zatvoreno** | Broj kompletiranih delova danas (timski iz audit loga + lokalno) |
+| **% kompletno** | Udeo kompletiranih na izabranoj liniji |
+| **Nastavi gde si stao** | Banner sa poslednjim ID-om na kome si radio |
+| **Obuka** | 3-korak uvod (jednom); dugme **Obuka** ponovo prikazuje |
+| **Svi tabovi →** | Pun Hub (ERP, Održavanje, svi tabovi) |
+
+**Tastatura** (kad nisi u polju za unos): `Enter` = sledeći korak · `N` = novi deo · `R` = osveži.
+
+**Tablet / telefon:** radi u Radnom režimu. Pun Hub traži potvrdu (namenjen desktopu).
+
+### Gotovo → sledeći
+
+Posle snimanja / objave u Hubu pojavi se zeleni bar **Gotovo → sledeći**:
+
+1. Ako je deo kompletan — beleži se u „Danas zatvoreno“.
+2. Ako sheet ima **više ID-eva** — otvara se prvi još nekompletan; ostali idu u **red** (banner **Sledeći u redu →**).
+3. Ako nema više koraka u seriji — vraća na Radni režim i otvara sledeći delimični sa linije.
+
+### Hub — „Radim na liniji“ (fokus traka)
+
+Kad si u **Svi tabovi**, na vrhu i dalje postoji traka:
 
 ```
 Radim na liniji: [ VOZ-03 ▼ ]   + Novi deo   Preimenuj liniju
@@ -31,18 +66,14 @@ Radim na liniji: [ VOZ-03 ▼ ]   + Novi deo   Preimenuj liniju
 
 | Izbor | Efekat |
 |-------|--------|
-| **— sve linije —** | Puni pregled (Brzi start, svi sheetovi) |
-| **VOZ-03 / PRO-02…** | Fokus na jednu liniju |
+| **— sve linije —** / prazno | Širi pregled (Brzi start kad nema linije) |
+| **VOZ-03 / PRO-02…** | Fokus: GU sheet, Delovi, Održavanje/batch, Nastavi banner |
 
-Kad izabereš liniju:
+- **Glavni unos** — predlaže sheet `voz-03_delovi` / `pro-02_delovi`
+- **Delovi / Održavanje** — filter / scope po liniji
+- **← Radni režim** — povratak na dnevni sto
 
-- **Glavni unos** — automatski otvara sheet `voz-03_delovi` / `pro-02_delovi`
-- **Brzi start** — prikazuje samo tu liniju
-- **Delovi (pregled)** — filter po `vozilo_katalog_id` / šifri / prefiksu ID dela
-- **Globalna pretraga ID** — upozorenje ako deo pripada drugoj liniji
-- Izbor se **pamti** u browseru (`localStorage`) do sledeće promene
-
-**Tipičan radni dan:** izaberi liniju → **+ Novi deo** → popuni → **Objavi u šifrarnik** → prati checklist.
+**Tipičan radni dan:** Radni režim → linija → sledeći korak → snimi → Gotovo → sledeći. ERP / audit / batch → **Svi tabovi**.
 
 ---
 
@@ -191,7 +222,7 @@ Dugme **+ Šablon grešaka (5 tipičnih)** dodaje starter NOK kodove za taj deo.
 
 1. **Linije proizvoda → Tipovi linija → + Novi tip** → `VOZ-11`
 2. Admin: **Održavanje → Kreiraj folder VOZ-11** (ili `npm run sync:linije-crtezi -- --kod VOZ-11`)
-3. **Radim na liniji: VOZ-11** → **+ Novi deo**
+3. **Radni režim** → linija `VOZ-11` → **+ Novi deo**
 
 ---
 
@@ -201,7 +232,7 @@ Dugme **+ Šablon grešaka (5 tipičnih)** dodaje starter NOK kodove za taj deo.
 - [ ] Folder crteža (API ili sync skripta)
 - [ ] Tehnički crteži u `tehnicki/`
 - [ ] (VOZ final) silueta u `dijagram/` + polje Dijagram u Tipovima linija
-- [ ] Prvi deo: radna linija → čarobnjak → Objavi
+- [ ] Prvi deo: Radni režim → linija → čarobnjak → Objavi → Gotovo → sledeći
 - [ ] Checklist: greške · crtež · barkod · test Modul 1
 
 ---
@@ -215,5 +246,5 @@ Kolona `product_group` / `SifraVozila` mapira se na **kod linije** (`VOZ-02`, `P
 ## XII. SYNC (HTML obuka)
 
 <!-- SYNC:linije-voz-pro -->
-**Sažetak:** VOZ = vozilo, PRO = proizvod; **Radim na liniji** fokusira unos; grupe **Linije proizvoda** + **Napredno** (admin); folderi `public/sifrarnik/linije/`; sync `npm run linije-crtezi:api` + Održavanje.
+**Sažetak:** VOZ = vozilo, PRO = proizvod; **Radni režim** = dnevni sto (linija → sledeći korak → Gotovo → sledeći); Hub = Svi tabovi + **Radim na liniji**; folderi `public/sifrarnik/linije/`; sync `npm run linije-crtezi:api` + Održavanje.
 <!-- /SYNC:linije-voz-pro -->

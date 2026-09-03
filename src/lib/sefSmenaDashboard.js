@@ -1,6 +1,6 @@
 /** Pregled za šefa smene — FPY, RTY, alarmi, TOP NOK. */
 
-import { fetchZajednickiDashboard } from "./zajednickiDashboard.js";
+import { ucitajZaFilter } from "./dashboardStore.js";
 
 const danasIso = () => new Date().toISOString().split("T")[0];
 
@@ -26,11 +26,12 @@ export async function fetchSefSmenaPregled(supabase, {
   const danas = danasIso();
   const deo = String(idDeo || "").trim().toUpperCase();
 
-  const dash = await fetchZajednickiDashboard(supabase, {
+  // Ide kroz deljeni keš da se ne ponavlja isti set upita koji već radi dashboard.
+  const dash = await ucitajZaFilter({
     period: Number(period) || 1,
-    idDeo: deo || undefined,
-    linija: linija || undefined,
-    smena: smena ?? undefined,
+    idDeo: deo,
+    linija,
+    smena: smena ?? "",
   });
 
   let spcQ = supabase.from("spc_alarmi")

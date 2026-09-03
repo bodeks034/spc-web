@@ -120,6 +120,54 @@ export function agregirajKvalitetDashboardAttr(logData = [], kpiRows = []) {
   return saberiKvalitetPoDelovima(deos, logStat, kpiPoDeo);
 }
 
+/**
+ * Ista logika kao agregirajKvalitetDashboardMer, ali nad redovima koje je već
+ * sažela baza: [{ datum, id_deo, n, nok }] umesto pojedinačnih merenja.
+ */
+export function agregirajKvalitetDashboardMerIzAgregata(grupe = [], kpiRows = []) {
+  const logPoDeo = new Map();
+  for (const r of grupe) {
+    const deo = String(r.id_deo || "").toUpperCase() || "?";
+    if (!logPoDeo.has(deo)) logPoDeo.set(deo, { ok: 0, nok: 0, n: 0 });
+    const g = logPoDeo.get(deo);
+    const n = Number(r.n) || 0;
+    const nok = Number(r.nok) || 0;
+    g.n += n;
+    g.nok += nok;
+    g.ok += Math.max(0, n - nok);
+  }
+  const kpiPoDeo = new Map();
+  for (const r of kpiRows) {
+    if (r.modul !== "merljive") continue;
+    const deo = String(r.id_deo || "").toUpperCase() || "?";
+    kpiPoDeo.set(deo, saberiKpiVrednosti(kpiPoDeo.get(deo) || {}, kpiVrednostiIzDb(r)));
+  }
+  const deos = new Set([...logPoDeo.keys(), ...kpiPoDeo.keys()]);
+  return saberiKvalitetPoDelovima(deos, logPoDeo, kpiPoDeo);
+}
+
+export function trendKvalitetaDashboardMerIzAgregata(grupe = [], kpiRows = []) {
+  const datumi = new Set();
+  grupe.forEach((r) => r.datum && datumi.add(r.datum));
+  (kpiRows || []).forEach((r) => r.datum && datumi.add(r.datum));
+  return [...datumi].sort().map((datum) => {
+    const k = agregirajKvalitetDashboardMerIzAgregata(
+      grupe.filter((r) => r.datum === datum),
+      (kpiRows || []).filter((r) => r.datum === datum),
+    );
+    return {
+      datum,
+      label: datum?.substring?.(5) || datum,
+      ok: k.ispravnoIzPrve,
+      nok: k.neusaglaseno,
+      n: k.ukupno,
+      fpy: k.fpy,
+      rty: k.fpy,
+      p: k.p,
+    };
+  });
+}
+
 /** Dashboard RTY merljive — KPI komadi + log merenja po delu. */
 export function agregirajKvalitetDashboardMer(merData = [], kpiRows = []) {
   const logPoDeo = new Map();
@@ -451,7 +499,8 @@ export async function fetchKpiUnos(supabase, {
   limit = 200,
   radniNalog,
 }) {
-  let q = supabase.from("kpi_unos").select("*").eq("modul", modul);
+  let q = supabase.from("kpi_unos").select("*");
+  if (modul) q = q.eq("modul", modul);
   if (datum) q = q.eq("datum", datum);
   if (datumOd) q = q.gte("datum", datumOd);
   if (datumDo) q = q.lte("datum", datumDo);

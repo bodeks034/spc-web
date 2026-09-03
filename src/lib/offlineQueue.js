@@ -7,9 +7,10 @@ import {
   idbUcitajSve,
   idbSnimiSve,
 } from "./offlineQueueDb.js";
-import { jeDupliClientId } from "./dbGreske.js";
+import { jeDupliClientId, jeMreznaGreska } from "./dbGreske.js";
 import { proveriIKreirajAlarmeNokSerije } from "./spcAlarmWorkflow.js";
 
+const PERIODICNI_RETRY_MS = 60_000;
 const STORAGE_KEY = "spc_q_v2";
 const LEGACY_KEY = "spc_q";
 
@@ -17,6 +18,12 @@ const LEGACY_KEY = "spc_q";
 let cache = [];
 let initPromise = null;
 let storageMode = "indexedDB";
+
+/** Jedan flush u isto vreme — sprečava gubitak enqueue-a i dupli KPI. */
+let flushPromise = null;
+/** Jobovi dodati tokom aktivnog flush-a (spajaju se posle save). */
+let pendingTokomFlush = [];
+let flushAktivan = false;
 
 function uuid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -201,6 +208,32 @@ export function opisPosla(job) {
   return job.type;
 }
 
+/** Posle ovoliko neuspeha posao se prijavljuje operateru, ne ćuti dalje. */
+export const ZAGLAVLJEN_PRAG = 3;
+const BACKOFF_MS = [0, 15_000, 60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000];
+
+function backoffZa(failCount) {
+  return BACKOFF_MS[Math.min(failCount, BACKOFF_MS.length - 1)];
+}
+
+/** Je li vreme za sledeći pokušaj (sprečava vrtešku na trajnoj grešci). */
+export function spremanZaPokusaj(job, sada = Date.now()) {
+  const n = job?.failCount || 0;
+  if (!n || !job.lastFailAt) return true;
+  const proteklo = sada - new Date(job.lastFailAt).getTime();
+  if (!Number.isFinite(proteklo)) return true;
+  return proteklo >= backoffZa(n);
+}
+
+/**
+ * Poslovi koje mreža neće rešiti — operater misli da je snimljeno,
+ * a nije. Ovo puni upozorenje u UI-ju.
+ */
+export function zaglavljeniPoslovi(queue) {
+  const q = queue ?? cache;
+  return q.filter((j) => (j.failCount || 0) >= ZAGLAVLJEN_PRAG || j.trajnaGreska);
+}
+
 export function queueCounts(queue) {
   const q = queue ?? cache;
   const counts = { total: q.length, kontrolni_log: 0, merljive_serija: 0, atributivne_batch: 0 };
@@ -223,6 +256,10 @@ export function enqueueJob(job) {
   // Zameni postojeći job sa istim id (retry istog paketa)
   const bez = cache.filter((j) => j.id !== entry.id);
   cache = [...bez, entry];
+  if (flushAktivan) {
+    pendingTokomFlush = pendingTokomFlush.filter((j) => j.id !== entry.id);
+    pendingTokomFlush.push(entry);
+  }
   persistCache(cache);
   return entry;
 }
@@ -286,16 +323,18 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
   }
 
   if (job.type === "atributivne_batch") {
-    const { logRows = [], kpi } = job.payload || {};
+    const { logRows = [], kpi, _logSynced, _kpiSynced } = job.payload || {};
     const batch = stampajClientIdNaRedove(logRows).map((r) => ({
       ...stripMeta(r),
       sesija_id: sid,
     }));
-    if (batch.length) {
+    if (batch.length && !_logSynced) {
       await insertRowsIdempotent(supabase, "kontrolni_log", batch);
       if (mirrorKontrolniLog) await mirrorKontrolniLog(supabase, batch).catch(() => {});
+      // Ako KPI padne posle uspešnog loga, retry ne re-insertuje log (client_id).
+      job.payload = { ...(job.payload || {}), _logSynced: true, logRows: batch };
     }
-    if (kpi) {
+    if (kpi && !_kpiSynced) {
       let kpiId = null;
       let kpiZaSnimanje = kpi.kpi || kpi;
       const postojeci = await pronadjiAgregiraniKpiAtributivne(supabase, {
@@ -314,6 +353,7 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
         kpi: kpiZaSnimanje,
       }, kpiId);
       if (eK) throw eK;
+      job.payload = { ...(job.payload || {}), _kpiSynced: true };
     }
     return batch.length + (kpi ? 1 : 0);
   }
@@ -350,42 +390,81 @@ async function insertJob(supabase, job, { mirrorKontrolniLog }) {
   return 0;
 }
 
-export async function flushOfflineQueue(supabase, options = {}) {
-  const { mirrorKontrolniLog, onJobError, samoSaGreskom = false } = options;
-  await ensureQueueReady();
-  const queue = loadQueue();
-  if (!queue.length || !navigator.onLine) {
-    return { syncedJobs: 0, syncedRows: 0, failed: 0, remaining: queue.length };
-  }
+export function flushOfflineQueue(supabase, options = {}) {
+  if (flushPromise) return flushPromise;
 
-  const remaining = [];
-  let syncedJobs = 0;
-  let syncedRows = 0;
-  let failed = 0;
-
-  for (const job of queue) {
-    if (samoSaGreskom && !job.lastError) {
-      remaining.push(job);
-      continue;
+  flushPromise = (async () => {
+    const { mirrorKontrolniLog, onJobError, samoSaGreskom = false } = options;
+    await ensureQueueReady();
+    const queue = loadQueue();
+    if (!queue.length || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      return { syncedJobs: 0, syncedRows: 0, failed: 0, remaining: queue.length };
     }
+
+    flushAktivan = true;
+    pendingTokomFlush = [];
+    const remaining = [];
+    let syncedJobs = 0;
+    let syncedRows = 0;
+    let failed = 0;
+
+    const sada = Date.now();
     try {
-      const n = await insertJob(supabase, job, { mirrorKontrolniLog });
-      syncedJobs += 1;
-      syncedRows += n;
-    } catch (e) {
-      failed += 1;
-      remaining.push({
-        ...job,
-        lastError: e?.message || String(e),
-        lastFailAt: new Date().toISOString(),
-        failCount: (job.failCount || 0) + 1,
-      });
-      onJobError?.(job, e);
-    }
-  }
+      for (const job of queue) {
+        if (samoSaGreskom && !job.lastError) {
+          remaining.push(job);
+          continue;
+        }
+        if (!samoSaGreskom && !spremanZaPokusaj(job, sada)) {
+          remaining.push(job);
+          continue;
+        }
+        try {
+          const n = await insertJob(supabase, job, { mirrorKontrolniLog });
+          syncedJobs += 1;
+          syncedRows += n;
+        } catch (e) {
+          failed += 1;
+          const brojac = (job.failCount || 0) + 1;
+          remaining.push({
+            ...job,
+            lastError: e?.message || String(e),
+            lastFailAt: new Date().toISOString(),
+            failCount: brojac,
+            trajnaGreska: !jeMreznaGreska(e) && brojac >= ZAGLAVLJEN_PRAG,
+          });
+          onJobError?.(job, e);
+        }
+      }
 
-  await saveQueueAsync(remaining);
-  return { syncedJobs, syncedRows, failed, remaining: remaining.length };
+      const remainingIds = new Set(remaining.map((j) => j.id));
+      for (const j of pendingTokomFlush) {
+        if (!remainingIds.has(j.id)) {
+          remaining.push(j);
+          remainingIds.add(j.id);
+        } else {
+          const idx = remaining.findIndex((r) => r.id === j.id);
+          if (idx >= 0) remaining[idx] = j;
+        }
+      }
+      await saveQueueAsync(remaining);
+      return { syncedJobs, syncedRows, failed, remaining: remaining.length };
+    } finally {
+      flushAktivan = false;
+      pendingTokomFlush = [];
+    }
+  })().finally(() => {
+    flushPromise = null;
+  });
+
+  return flushPromise;
+}
+
+/** Test hook — reset mutex stanja između unit testova. */
+export function _resetFlushStateZaTest() {
+  flushPromise = null;
+  flushAktivan = false;
+  pendingTokomFlush = [];
 }
 
 export function useOfflineQueue(supabase, options = {}) {
@@ -438,6 +517,16 @@ export function useOfflineQueue(supabase, options = {}) {
     }
   }, [online, ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Posao dodat dok je uređaj online nije imao ko da pokrene do sledećeg
+  // offline→online prelaza; zato periodični pokušaj dok red nije prazan.
+  useEffect(() => {
+    if (!ready || !online || queue.length === 0) return;
+    const t = setInterval(() => {
+      if (navigator.onLine) flushQueue();
+    }, PERIODICNI_RETRY_MS);
+    return () => clearInterval(t);
+  }, [ready, online, queue.length, flushQueue]);
+
   const addKontrolniLog = useCallback((rows, sesija_id) => {
     enqueueKontrolniLog(rows, sesija_id);
     refresh();
@@ -454,11 +543,13 @@ export function useOfflineQueue(supabase, options = {}) {
   }, [refresh]);
 
   const counts = queueCounts(queue);
+  const zaglavljeni = zaglavljeniPoslovi(queue);
 
   return {
     online,
     queue,
     counts,
+    zaglavljeni,
     ready,
     storageMode: getStorageMode(),
     refresh,

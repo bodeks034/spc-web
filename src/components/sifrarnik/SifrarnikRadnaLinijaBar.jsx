@@ -11,6 +11,7 @@ export default function SifrarnikRadnaLinijaBar({
   onPromeni,
   onNoviDeo,
   onPreimenuj,
+  desnoExtra = null,
 }) {
   const { vozila, proizvodi, ostalo } = useMemo(
     () => grupisiLinije(tipoviVozila),
@@ -127,6 +128,7 @@ export default function SifrarnikRadnaLinijaBar({
           </button>
         </>
       )}
+      {desnoExtra}
     </div>
   );
 }

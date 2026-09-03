@@ -87,6 +87,7 @@ export default function SefSmenaDashboard({
 
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [greska, setGreska] = useState(null);
   const [smenaPogon, setSmenaPogon] = useState(null);
 
   const ucitaj = useCallback(async () => {
@@ -108,6 +109,7 @@ export default function SefSmenaDashboard({
       });
 
       setPodaci(d);
+      setGreska(null);
 
       if (smena) {
         try {
@@ -120,10 +122,9 @@ export default function SefSmenaDashboard({
         setSmenaPogon(null);
       }
 
-    } catch {
+    } catch (e) {
 
-      setPodaci(null);
-      setSmenaPogon(null);
+      setGreska(e?.message || "Greška pri učitavanju pregleda smene");
 
     } finally {
 
@@ -155,10 +156,6 @@ export default function SefSmenaDashboard({
 
       .on("postgres_changes", { event: "*", schema: "public", table: "ncr_capa" }, () => ucitaj())
 
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" }, () => ucitaj())
-
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "merenja_varijabilna" }, () => ucitaj())
-
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
@@ -171,7 +168,7 @@ export default function SefSmenaDashboard({
 
     return (
 
-      <div data-testid="sef-smena-dashboard" style={{ color: C.sivi, fontSize: 11, padding: 12 }}>
+      <div data-testid="sef-smena-dashboard" role="status" aria-live="polite" aria-busy="true" style={{ color: C.sivi, fontSize: 11, padding: 12 }}>
 
         Učitavam pregled smene…
 
@@ -181,7 +178,25 @@ export default function SefSmenaDashboard({
 
   }
 
-  if (!podaci) return null;
+  if (!podaci) {
+    if (!greska) return null;
+    return (
+      <div data-testid="sef-smena-dashboard" role="alert" style={{
+        marginBottom: 16, padding: "8px 12px", borderRadius: 8, fontSize: 11,
+        display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between",
+        background: C.crvena + "18", color: C.crvena, border: `1px solid ${C.crvena}40`,
+      }}>
+        <span>Pregled smene nije učitan: {greska}</span>
+        <button type="button" onClick={ucitaj} disabled={loading}
+          style={{
+            background: "transparent", border: `1px solid ${C.crvena}60`, borderRadius: 6,
+            color: C.crvena, fontSize: 10, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap",
+          }}>
+          Pokušaj ponovo
+        </button>
+      </div>
+    );
+  }
 
 
 

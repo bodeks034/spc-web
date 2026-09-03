@@ -86,7 +86,7 @@ export default function InzenjerExcelPanel({
         ? await exportMerljiveMasterWorkbook(supabase)
         : await exportMasterWorkbook(supabase);
       const pref = jeMerljive ? "SPC_merljive" : "SPC_master";
-      downloadWorkbook(book, `${pref}_${dISO()}.xlsx`);
+      await downloadWorkbook(book, `${pref}_${dISO()}.xlsx`);
       addToast(`✓ ${jeMerljive ? "Merljive tabele" : "Master šifrarnik"} preuzet`, "uspeh");
     } catch (err) {
       addToast(err.message, "greska");
@@ -111,7 +111,7 @@ export default function InzenjerExcelPanel({
           return;
         }
         const suf = idDeo ? `_${idDeo}` : "";
-        downloadWorkbook(book, `merenja_varijabilna${suf}_${dISO()}.xlsx`);
+        await downloadWorkbook(book, `merenja_varijabilna${suf}_${dISO()}.xlsx`);
         addToast("✓ Merenja preuzeta", "uspeh");
         return;
       }
@@ -126,7 +126,7 @@ export default function InzenjerExcelPanel({
         return;
       }
       const suf = idDeo ? `_${idDeo}` : "";
-      downloadWorkbook(book, `kontrolni_log${suf}_${dISO()}.xlsx`);
+      await downloadWorkbook(book, `kontrolni_log${suf}_${dISO()}.xlsx`);
       addToast("✓ Kontrolni log preuzet", "uspeh");
     } catch (err) {
       addToast(err.message, "greska");

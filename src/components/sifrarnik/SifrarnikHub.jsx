@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 
 import ListeVrednostiPanel from "./ListeVrednostiPanel.jsx";
 
-import GlavniUnosPanel from "./GlavniUnosPanel.jsx";
+// Teški tabovi se učitavaju tek kad se otvore — inače su svi u početnom bundle-u.
+const GlavniUnosPanel = lazy(() => import("./GlavniUnosPanel.jsx"));
 import PogonMapaPanel from "./PogonMapaPanel.jsx";
 import LinijaDeoMapaPanel from "./LinijaDeoMapaPanel.jsx";
 
@@ -38,18 +39,19 @@ import KarakteristikeMerljivePanel from "./KarakteristikeMerljivePanel.jsx";
 import SopMerljivePanel from "./SopMerljivePanel.jsx";
 
 import MerilaSifrarnikPanel from "./MerilaSifrarnikPanel.jsx";
-import MomentKljucHub from "./MomentKljucHub.jsx";
+const MomentKljucHub = lazy(() => import("./MomentKljucHub.jsx"));
 
-import BarkodStampaPanel from "./BarkodStampaPanel.jsx";
+const BarkodStampaPanel = lazy(() => import("./BarkodStampaPanel.jsx"));
 
 import SifrarnikIzvozPanel from "./SifrarnikIzvozPanel.jsx";
 import SifrarnikOdrzavanjePanel from "./SifrarnikOdrzavanjePanel.jsx";
-import ErpUvozPanel from "./ErpUvozPanel.jsx";
+const ErpUvozPanel = lazy(() => import("./ErpUvozPanel.jsx"));
 import SifrarnikNastaviBanner from "./SifrarnikNastaviBanner.jsx";
 import SifrarnikMigracijeBanner from "./SifrarnikMigracijeBanner.jsx";
 import SifrarnikGlobalPretraga from "./SifrarnikGlobalPretraga.jsx";
 import SifrarnikQuickStart from "./SifrarnikQuickStart.jsx";
 import SifrarnikRadnaLinijaBar from "./SifrarnikRadnaLinijaBar.jsx";
+import SifrarnikRadniRezim from "./SifrarnikRadniRezim.jsx";
 import SpcAlarmPragoviPanel from "../SpcAlarmPragoviPanel.jsx";
 
 import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
@@ -70,6 +72,23 @@ import {
   sacuvajRadnuLiniju,
   ucitajRadnuLiniju,
 } from "../../lib/sifrarnikRadnaLinija.js";
+import {
+  SIFRARNIK_POGLED,
+  ucitajSifrarnikPogled,
+  sacuvajSifrarnikPogled,
+} from "../../lib/sifrarnikPogled.js";
+import { citajDeepLink, upisiDeepLink } from "../../lib/sifrarnikDeepLink.js";
+import {
+  ucitajGotovoSledeci,
+  obrisiGotovoSledeci,
+  beleziZatvorenDeoAsync,
+  ucitajGotovoRed,
+  postaviGotovoRed,
+  obrisiGotovoRed,
+  podeliGotovoRed,
+} from "../../lib/sifrarnikRadniTok.js";
+import { SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
+import { navigacijaZaIdDeo } from "../../lib/sifrarnikOdrzavanje.js";
 import { normalizujKodLinije } from "../../lib/linijaProizvoda.js";
 import { mozeSifrarnikNapredno } from "../../lib/uloge.js";
 
@@ -215,11 +234,12 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
   const { mob, linijaUredjaj } = useEkran();
 
-  const [podtab, setPodtab] = useState("glavni_unos");
+  const [podtab, setPodtab] = useState(() => citajDeepLink()?.tab || "glavni_unos");
 
-  const [voziloKod, setVoziloKod] = useState(() => ucitajRadnuLiniju() || "MRAP");
+  const [voziloKod, setVoziloKod] = useState(() => ucitajRadnuLiniju() || "");
 
-  const [radnaLinija, setRadnaLinija] = useState(() => ucitajRadnuLiniju());
+  const [radnaLinija, setRadnaLinija] = useState(() => citajDeepLink()?.linija || ucitajRadnuLiniju());
+  const [quickStartOtvoren, setQuickStartOtvoren] = useState(false);
 
   const [izabraniDeo, setIzabraniDeo] = useState(null);
 
@@ -229,10 +249,78 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
   const [deloviZaRn, setDeloviZaRn] = useState([]);
   const [tipoviVozila, setTipoviVozila] = useState([]);
+  const [pogled, setPogled] = useState(() => ucitajSifrarnikPogled());
+  const [gotovoBanner, setGotovoBanner] = useState(() => ucitajGotovoSledeci());
+  const [gotovoRed, setGotovoRed] = useState(() => ucitajGotovoRed());
+  const [autoOtvoriSledeci, setAutoOtvoriSledeci] = useState(false);
+  const guDirtyRef = useRef(false);
 
+  const setGuDirtySafe = useCallback((v) => {
+    guDirtyRef.current = !!v;
+  }, []);
 
+  // Tab, deo i linija se drže u URL-u da refresh i Back ne izgube kontekst.
+  useEffect(() => {
+    upisiDeepLink({
+      tab: podtab,
+      idDeo: navCtx?.idDeo || izabraniDeo?.id_deo || null,
+      linija: radnaLinija || null,
+    });
+  }, [podtab, navCtx?.idDeo, izabraniDeo?.id_deo, radnaLinija]);
+
+  useEffect(() => {
+    const naPromenuHasha = () => {
+      const link = citajDeepLink();
+      if (link?.tab && link.tab !== podtab) setPodtab(link.tab);
+    };
+    window.addEventListener("popstate", naPromenuHasha);
+    return () => window.removeEventListener("popstate", naPromenuHasha);
+  }, [podtab]);
+
+  const forsiraHub = useCallback(() => {
+    setPogled(SIFRARNIK_POGLED.HUB);
+    sacuvajSifrarnikPogled(SIFRARNIK_POGLED.HUB);
+  }, []);
+
+  // Link ka konkretnom tabu podrazumeva pun Hub, ne Radni režim.
+  useEffect(() => {
+    if (citajDeepLink()?.tab) forsiraHub();
+  }, [forsiraHub]);
+
+  const otvoriHub = useCallback(() => {
+    if (linijaUredjaj) {
+      const ok = window.confirm(
+        "Pun Hub je namenjen desktopu. Na tabletu/telefonu koristi Radni režim.\n\nIpak otvoriti sve tabove?",
+      );
+      if (!ok) return;
+    }
+    forsiraHub();
+  }, [linijaUredjaj, forsiraHub]);
+
+  const potvrdiNapustanjeGu = useCallback((ciljniTab) => {
+    if (!guDirtyRef.current) return true;
+    if (ciljniTab === "glavni_unos") return true;
+    return window.confirm("Nesačuvane izmene u Glavnom unosu — napustiti tab bez snimanja?");
+  }, []);
+
+  const otvoriRadniRezim = useCallback(() => {
+    if (guDirtyRef.current && !window.confirm("Nesačuvane izmene u Glavnom unosu — nazad na Radni režim?")) {
+      return;
+    }
+    setPogled(SIFRARNIK_POGLED.RADNI);
+    sacuvajSifrarnikPogled(SIFRARNIK_POGLED.RADNI);
+  }, []);
+
+  const promeniPodtab = useCallback((tab) => {
+    if (!potvrdiNapustanjeGu(tab)) return;
+    forsiraHub();
+    setPodtab(tab);
+  }, [potvrdiNapustanjeGu, forsiraHub]);
 
   const idiNaTab = useCallback((tab, ctx = {}) => {
+    if (!potvrdiNapustanjeGu(tab)) return;
+
+    forsiraHub();
 
     setNavCtx({
       otvoriWizard: false,
@@ -259,56 +347,137 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
     setPodtab(tab);
 
-  }, []);
+  }, [potvrdiNapustanjeGu, forsiraHub]);
 
+  const klikGotovoSledeci = useCallback(async () => {
+    const g = ucitajGotovoSledeci();
+    const ids = (g?.idDeovi?.length
+      ? g.idDeovi
+      : (g?.idDeo ? [g.idDeo] : [])
+    ).map((x) => String(x).trim().toUpperCase()).filter(Boolean);
 
+    obrisiGotovoSledeci();
+    setGotovoBanner(null);
+    if (guDirtyRef.current) guDirtyRef.current = false;
 
-  const promeniRadnuLiniju = useCallback((kod) => {
-
-    const k = normalizujKodLinije(kod);
-
-    setRadnaLinija(k);
-
-    sacuvajRadnuLiniju(k);
-
-    if (k) {
-
-      setVoziloKod(k);
-
-      setPodtab("glavni_unos");
-
+    if (!ids.length) {
+      obrisiGotovoRed();
+      setGotovoRed([]);
+      setAutoOtvoriSledeci(true);
+      setPogled(SIFRARNIK_POGLED.RADNI);
+      sacuvajSifrarnikPogled(SIFRARNIK_POGLED.RADNI);
+      return;
     }
 
+    const navLista = [];
+    for (const id of ids) {
+      try {
+        const nav = await navigacijaZaIdDeo(id);
+        if (!nav?.pronadjen) continue;
+        navLista.push({ id, status: nav.status, koraci: nav.koraci });
+      } catch { /* ignore */ }
+    }
+
+    const { kompletirani, pending } = podeliGotovoRed(navLista);
+    for (const id of kompletirani) {
+      await beleziZatvorenDeoAsync(id);
+    }
+
+    if (!pending.length) {
+      obrisiGotovoRed();
+      setGotovoRed([]);
+      setAutoOtvoriSledeci(true);
+      setPogled(SIFRARNIK_POGLED.RADNI);
+      sacuvajSifrarnikPogled(SIFRARNIK_POGLED.RADNI);
+      addToast?.(
+        kompletirani.length
+          ? `✓ Zatvoreno ${kompletirani.length} — otvaram sledeći delimični`
+          : "Nema koraka u seriji — otvaram sledeći delimični",
+        "uspeh",
+      );
+      return;
+    }
+
+    const [first, ...rest] = pending;
+    const restIds = rest.map((p) => p.id);
+    postaviGotovoRed(restIds);
+    setGotovoRed(restIds);
+
+    addToast?.(
+      restIds.length
+        ? `Sledeći u seriji: ${first.id} · još ${restIds.length} u redu`
+        : `Sledeći u seriji: ${first.id}`,
+      "info",
+    );
+
+    idiNaTab(first.korak.tab, {
+      ...(first.korak.ctx || {}),
+      idDeo: first.id,
+    });
+  }, [idiNaTab, addToast]);
+
+  const klikSledeciURedu = useCallback(async () => {
+    const ids = ucitajGotovoRed();
+    if (!ids.length) {
+      setGotovoRed([]);
+      return;
+    }
+    const navLista = [];
+    for (const id of ids) {
+      try {
+        const nav = await navigacijaZaIdDeo(id);
+        if (!nav?.pronadjen) continue;
+        navLista.push({ id, status: nav.status, koraci: nav.koraci });
+      } catch { /* ignore */ }
+    }
+    const { kompletirani, pending } = podeliGotovoRed(navLista);
+    for (const id of kompletirani) {
+      await beleziZatvorenDeoAsync(id);
+    }
+    if (!pending.length) {
+      obrisiGotovoRed();
+      setGotovoRed([]);
+      setAutoOtvoriSledeci(true);
+      setPogled(SIFRARNIK_POGLED.RADNI);
+      sacuvajSifrarnikPogled(SIFRARNIK_POGLED.RADNI);
+      return;
+    }
+    const [first, ...rest] = pending;
+    const restIds = rest.map((p) => p.id);
+    postaviGotovoRed(restIds);
+    setGotovoRed(restIds);
+    idiNaTab(first.korak.tab, {
+      ...(first.korak.ctx || {}),
+      idDeo: first.id,
+    });
+  }, [idiNaTab]);
+
+  const promeniRadnuLiniju = useCallback((kod) => {
+    const k = normalizujKodLinije(kod);
+    setRadnaLinija(k);
+    sacuvajRadnuLiniju(k);
+    if (k) setVoziloKod(k);
   }, []);
 
-
-
   const otvoriNoviDeoNaLiniji = useCallback((linijaKod) => {
-
     promeniRadnuLiniju(linijaKod);
-
     idiNaTab("glavni_unos", {
-
       otvoriWizard: true,
-
       wizardLinija: linijaKod || null,
-
       wizardTip: GLAVNI_UNOS_SHEET_TIP.PROJEKAT,
-
       wizardAutoPotvrdi: true,
-
     });
-
   }, [idiNaTab, promeniRadnuLiniju]);
 
 
 
   const preimenujRadnuLiniju = useCallback((linijaKod) => {
-
-    if (linijaKod) promeniRadnuLiniju(linijaKod);
-
+    const k = String(linijaKod || "").trim().toUpperCase();
+    if (k) {
+      promeniRadnuLiniju(k);
+      setVoziloKod(k);
+    }
     idiNaTab("vozila");
-
   }, [idiNaTab, promeniRadnuLiniju]);
 
 
@@ -322,6 +491,19 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
   }, [idiNaTab, promeniRadnuLiniju]);
 
 
+
+  useEffect(() => {
+    const handler = (e) => {
+      setGotovoBanner(ucitajGotovoSledeci());
+      const id = e?.detail?.idDeo;
+      if (!id) return;
+      navigacijaZaIdDeo(id).then((nav) => {
+        if (nav?.status === "kompletan") beleziZatvorenDeoAsync(id);
+      }).catch(() => {});
+    };
+    window.addEventListener(SIFRARNIK_STATUS_EVENT, handler);
+    return () => window.removeEventListener(SIFRARNIK_STATUS_EVENT, handler);
+  }, []);
 
   useEffect(() => {
     setSifrarnikAuditKorisnik(korisnik);
@@ -390,18 +572,18 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
     if (!onboarding) return;
 
-    if (!ONBOARDING_TABOVI.has(podtab)) setPodtab("glavni_unos");
+    if (!ONBOARDING_TABOVI.has(podtab) && potvrdiNapustanjeGu("glavni_unos")) {
+      setPodtab("glavni_unos");
+    }
 
-  }, [onboarding, podtab]);
+  }, [onboarding, podtab, potvrdiNapustanjeGu]);
 
 
 
   const iskljuciOnboarding = () => {
-
     zavrsiSifrarnikOnboarding();
-
     setOnboarding(false);
-
+    otvoriHub();
   };
 
 
@@ -424,18 +606,23 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
   useEffect(() => { ucitajDeloveRn(); }, [ucitajDeloveRn]);
 
-  useEffect(() => {
+  const osveziTipoveLinija = useCallback(() => {
     fetchTipoviVozila().then(setTipoviVozila).catch(() => setTipoviVozila([]));
   }, []);
+
+  useEffect(() => { osveziTipoveLinija(); }, [osveziTipoveLinija]);
+
+  // Posle Preimenuj / Tipovi linija — dropdown „Radim na liniji“ vidi novi naziv
+  useEffect(() => {
+    if (podtab === "vozila") osveziTipoveLinija();
+  }, [podtab, osveziTipoveLinija]);
 
 
 
   const otvoriBarkod = (deo) => {
-
+    if (!potvrdiNapustanjeGu("barkod")) return;
     setIzabraniDeo(deo);
-
     setPodtab("barkod");
-
   };
 
 
@@ -468,26 +655,133 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
     }}>
 
       {linijaUredjaj && (
-
-        <div style={{
-
+        <div
+          data-testid="sifrarnik-tablet-warn"
+          style={{
           marginBottom: 10, padding: "8px 10px", borderRadius: 8, flexShrink: 0,
-
           border: `1px solid ${C.zuta || "#b45309"}55`,
-
           background: `${C.zuta || "#b45309"}12`,
-
           color: C.tekst, fontSize: 10, lineHeight: 1.4,
-
-        }}>
-
-          Šifrarnik je namenjen desktop/laptop unosu. Na tabletu/telefonu liste se mogu pomerati horizontalno;
-
-          za masovan unos koristi širi ekran.
-
+        }}
+        >
+          {pogled === SIFRARNIK_POGLED.HUB
+            ? (
+              <>
+                Tablet/telefon: pun Hub je zbijen. Preferiraj{" "}
+                <button
+                  type="button"
+                  onClick={otvoriRadniRezim}
+                  style={{ background: "none", border: "none", color: C.plava, cursor: "pointer", fontWeight: 700, padding: 0, fontSize: 10 }}
+                >
+                  Radni režim
+                </button>
+                {" "}za dnevni unos.
+              </>
+            )
+            : "Na tabletu/telefonu radi u Radnom režimu. Pun Hub je za širi ekran."}
         </div>
-
       )}
+
+      {jeAdminSifrarnik && <SifrarnikMigracijeBanner C={C} />}
+
+      {gotovoRed.length > 0 && (
+        <div
+          data-testid="sifrarnik-gotovo-red"
+          style={{
+            marginBottom: 8,
+            flexShrink: 0,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.plava}55`,
+            background: `${C.plava}10`,
+          }}
+        >
+          <span style={{ color: C.tekst, fontSize: 10 }}>
+            U redu još <strong style={{ color: C.plava }}>{gotovoRed.length}</strong>
+            {": "}
+            {gotovoRed.slice(0, 4).join(", ")}
+            {gotovoRed.length > 4 ? "…" : ""}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              data-testid="sifrarnik-gotovo-red-dismiss"
+              onClick={() => {
+                obrisiGotovoRed();
+                setGotovoRed([]);
+              }}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                color: C.sivi,
+                fontSize: 9,
+                padding: "5px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Otkaži red
+            </button>
+            <button
+              type="button"
+              data-testid="sifrarnik-gotovo-red-cta"
+              onClick={klikSledeciURedu}
+              style={{
+                background: C.plava,
+                border: "none",
+                borderRadius: 6,
+                color: C.onAkcent || "#fff",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "5px 12px",
+                cursor: "pointer",
+              }}
+            >
+              Sledeći u redu →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pogled === SIFRARNIK_POGLED.RADNI ? (
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
+          {onboarding && (
+            <div style={{
+              marginBottom: 10, padding: "10px 12px", borderRadius: 8,
+              border: `1px solid ${C.plava}55`, background: `${C.plava}12`,
+              color: C.tekst, fontSize: 10, lineHeight: 1.45,
+            }}
+            >
+              <strong>Prvi korak:</strong> izaberi liniju → <strong>+ Novi deo</strong> → popuni → Objavi.
+              {" "}
+              <button type="button" onClick={iskljuciOnboarding}
+                style={{ background: "none", border: "none", color: C.plava, cursor: "pointer", fontWeight: 700, padding: 0 }}>
+                Prikaži sve tabove
+              </button>
+            </div>
+          )}
+          <SifrarnikRadniRezim
+            C={C}
+            tipoviVozila={tipoviVozila}
+            radnaLinija={radnaLinija}
+            onPromeniLiniju={promeniRadnuLiniju}
+            onNoviDeo={otvoriNoviDeoNaLiniji}
+            onNavigate={idiNaTab}
+            onOtvoriHub={otvoriHub}
+            addToast={addToast}
+            prikaziTehnicko={jeAdminSifrarnik}
+            autoOtvoriSledeci={autoOtvoriSledeci}
+            onAutoSledeciPotrosen={() => setAutoOtvoriSledeci(false)}
+            sakrijHub={false}
+          />
+        </div>
+      ) : (
+        <>
 
       {onboarding && (
 
@@ -523,7 +817,117 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
       )}
 
-      {jeAdminSifrarnik && <SifrarnikMigracijeBanner C={C} />}
+      <div style={{
+        marginBottom: 8,
+        flexShrink: 0,
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 8,
+        alignItems: "center",
+        padding: "8px 10px",
+        borderRadius: 8,
+        border: `1px solid ${C.plava}44`,
+        background: `${C.plava}0d`,
+      }}
+      >
+        <button
+          type="button"
+          data-testid="sifrarnik-nazad-radni"
+          onClick={otvoriRadniRezim}
+          style={{
+            background: C.plava,
+            border: "none",
+            borderRadius: 6,
+            color: C.onAkcent,
+            fontSize: 10,
+            fontWeight: 700,
+            padding: "6px 12px",
+            cursor: "pointer",
+          }}
+        >
+          ← Radni režim
+        </button>
+        <span style={{ color: C.sivi, fontSize: 9, lineHeight: 1.35 }}>
+          Pun hub · tab{" "}
+          <strong style={{ color: C.tekst }}>
+            {SVI_TABOVI.find(([id]) => id === podtab)?.[1] || podtab}
+          </strong>
+          {radnaLinija ? ` · linija ${radnaLinija}` : ""}
+          {" — "}posle koraka vrati se na dnevni sto
+        </span>
+      </div>
+
+      {gotovoBanner && (
+        <div
+          data-testid="sifrarnik-gotovo-sledeci"
+          style={{
+            marginBottom: 8,
+            flexShrink: 0,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: `1px solid ${(C.zelena || "#22c55e")}66`,
+            background: `${C.zelena || "#22c55e"}14`,
+          }}
+        >
+          <span style={{ color: C.tekst, fontSize: 11, fontWeight: 700 }}>
+            Snimljeno
+            {gotovoBanner.idDeovi?.length > 1 ? (
+              <span style={{ color: C.plava }}> · {gotovoBanner.idDeovi.length} dela</span>
+            ) : gotovoBanner.idDeo ? (
+              <>
+                {" · "}
+                <span style={{ color: C.plava }}>{gotovoBanner.idDeo}</span>
+              </>
+            ) : null}
+            {gotovoBanner.akcija ? (
+              <span style={{ color: C.sivi, fontWeight: 400 }}> ({gotovoBanner.akcija})</span>
+            ) : null}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              data-testid="sifrarnik-gotovo-dismiss"
+              onClick={() => {
+                obrisiGotovoSledeci();
+                setGotovoBanner(null);
+              }}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                color: C.sivi,
+                fontSize: 9,
+                padding: "6px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Ostani ovde
+            </button>
+            <button
+              type="button"
+              data-testid="sifrarnik-gotovo-cta"
+              onClick={klikGotovoSledeci}
+              style={{
+                background: C.zelena || "#22c55e",
+                border: "none",
+                borderRadius: 6,
+                color: C.onAkcent || "#fff",
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "6px 14px",
+                cursor: "pointer",
+              }}
+            >
+              Gotovo → sledeći
+            </button>
+          </div>
+        </div>
+      )}
 
       {!onboarding && (
         <SifrarnikRadnaLinijaBar
@@ -533,35 +937,102 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
           onPromeni={promeniRadnuLiniju}
           onNoviDeo={otvoriNoviDeoNaLiniji}
           onPreimenuj={preimenujRadnuLiniju}
+          desnoExtra={(
+            <SifrarnikGlobalPretraga
+              C={C}
+              addToast={addToast}
+              onNavigate={idiNaTab}
+              radnaLinija={radnaLinija}
+              kompakt
+            />
+          )}
         />
       )}
 
-      <SifrarnikQuickStart
-        C={C}
-        onNavigate={quickStartNavigate}
-        tipoviVozila={tipoviVozila}
-        skriveno={onboarding}
-        radnaLinija={radnaLinija}
-        prikaziTehnicko={jeAdminSifrarnik}
-      />
+      {!onboarding && !radnaLinija && (
+        <SifrarnikQuickStart
+          C={C}
+          onNavigate={quickStartNavigate}
+          tipoviVozila={tipoviVozila}
+          skriveno={onboarding}
+          radnaLinija={radnaLinija}
+          prikaziTehnicko={jeAdminSifrarnik}
+        />
+      )}
 
-      <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={onboarding} />
+      {!onboarding && radnaLinija && (
+        <div
+          data-testid="sifrarnik-fokus-traka"
+          style={{
+            marginBottom: 8,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <button
+            type="button"
+            data-testid="sifrarnik-quick-start-toggle"
+            onClick={() => setQuickStartOtvoren((v) => !v)}
+            style={{
+              background: C.panel,
+              border: `1px solid ${C.border}`,
+              borderRadius: 6,
+              padding: "5px 10px",
+              cursor: "pointer",
+              fontSize: 9,
+              color: C.sivi,
+            }}
+          >
+            {quickStartOtvoren ? "Sakrij brzi start" : "Brzi start…"}
+          </button>
+          <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={false} radnaLinija={radnaLinija} kompakt />
+        </div>
+      )}
 
-      <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} radnaLinija={radnaLinija} />
+      {radnaLinija && quickStartOtvoren && (
+        <SifrarnikQuickStart
+          C={C}
+          onNavigate={quickStartNavigate}
+          tipoviVozila={tipoviVozila}
+          skriveno={onboarding}
+          radnaLinija={radnaLinija}
+          prikaziTehnicko={jeAdminSifrarnik}
+        />
+      )}
 
-      <div style={{ marginBottom: 12, flexShrink: 0 }}>
+      {!radnaLinija && (
+        <SifrarnikNastaviBanner C={C} onNavigate={idiNaTab} skriveno={onboarding} radnaLinija={radnaLinija} />
+      )}
 
-        <div style={{ color: C.tekst, fontSize: 15, fontWeight: 700, letterSpacing: 0.5 }}>
+      {!radnaLinija && !onboarding && (
+        <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} radnaLinija={radnaLinija} />
+      )}
+
+      {onboarding && (
+        <SifrarnikGlobalPretraga C={C} addToast={addToast} onNavigate={idiNaTab} radnaLinija={radnaLinija} />
+      )}
+
+      <div style={{ marginBottom: radnaLinija ? 8 : 12, flexShrink: 0 }}>
+
+        <div style={{ color: C.tekst, fontSize: radnaLinija ? 13 : 15, fontWeight: 700, letterSpacing: 0.5 }}>
 
           MODUL 0 — ŠIFRARNIK
+          {radnaLinija ? (
+            <span style={{ color: C.plava, fontSize: 11, fontWeight: 700, marginLeft: 8 }}>{radnaLinija}</span>
+          ) : null}
 
         </div>
 
-        <div style={{ color: C.sivi, fontSize: 10, marginTop: 4, lineHeight: 1.45 }}>
+        {!radnaLinija && (
+          <div style={{ color: C.sivi, fontSize: 10, marginTop: 4, lineHeight: 1.45 }}>
 
-          Unos master podataka u aplikaciji. Glavni unos puni dimenzije i zavisne šifrarnike — ostali tabovi su pregled ili dopuna.
+            Unos master podataka u aplikaciji. Glavni unos puni dimenzije i zavisne šifrarnike — ostali tabovi su pregled ili dopuna.
 
-        </div>
+          </div>
+        )}
 
       </div>
 
@@ -579,7 +1050,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
             data-testid={`sifrarnik-grupa-${g.id}`}
 
-            onClick={() => setPodtab(g.tabovi[0][0])}
+            onClick={() => promeniPodtab(g.tabovi[0][0])}
 
             style={{
 
@@ -627,7 +1098,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
             data-testid={`sifrarnik-tab-${id}`}
 
-            onClick={() => setPodtab(id)}
+            onClick={() => promeniPodtab(id)}
 
             style={{
 
@@ -657,6 +1128,8 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
       <div style={{ flex: 1, minHeight: 0, overflow: "auto", WebkitOverflowScrolling: "touch" }}>
 
+        <Suspense fallback={<div style={{ color: C.sivi, fontSize: 11, padding: 16 }}>Učitavanje panela…</div>}>
+
         {podtab === "glavni_unos" && (
           <GlavniUnosPanel
             C={C}
@@ -666,6 +1139,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             navSignal={navCtx}
             tipoviVozilaHub={tipoviVozila}
             radnaLinija={radnaLinija}
+            onDirtyChange={setGuDirtySafe}
           />
         )}
 
@@ -685,6 +1159,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             navSignal={navCtx}
             onBulkBarkod={(ids) => idiNaTab("barkod", { bulkIds: ids })}
             radnaLinija={radnaLinija}
+            korisnik={korisnik}
           />
         )}
 
@@ -722,6 +1197,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             pocetniIdDeo={navCtx?.idDeo}
             pocetniNavTs={navCtx?.ts}
             voziloSablon={navCtx?.vozilo}
+            radnaLinija={radnaLinija}
           />
         )}
 
@@ -732,6 +1208,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             pocetniIdDeo={navCtx?.idDeo}
             pocetniNavTs={navCtx?.ts}
             otvoriFormu={navCtx?.otvoriCrtezForm}
+            radnaLinija={radnaLinija}
           />
         )}
 
@@ -752,9 +1229,14 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
         {podtab === "moment_kljucevi" && <MerilaSifrarnikPanel C={C} addToast={addToast} korisnik={korisnik} />}
 
         {podtab === "vozila" && (
-
-          <TipoviVozilaPanel C={C} addToast={addToast} voziloKod={voziloKod} onIzaberiVozilo={setVoziloKod} />
-
+          <TipoviVozilaPanel
+            C={C}
+            addToast={addToast}
+            voziloKod={voziloKod}
+            onIzaberiVozilo={setVoziloKod}
+            onTipoviPromenjeni={osveziTipoveLinija}
+            otvoriIzmenuZa={voziloKod}
+          />
         )}
 
         {podtab === "defekti" && (
@@ -776,6 +1258,7 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
             addToast={addToast}
             pocetniDeo={izabraniDeo || (navCtx?.idDeo ? { id_deo: navCtx.idDeo } : null)}
             bulkIds={navCtx?.bulkIds}
+            radnaLinija={radnaLinija}
           />
 
         )}
@@ -784,7 +1267,12 @@ export default function SifrarnikHub({ C, addToast, korisnik, onOtvoriModul }) {
 
         {podtab === "backup" && <SifrarnikIzvozPanel C={C} addToast={addToast} />}
 
+        </Suspense>
+
       </div>
+
+        </>
+      )}
 
     </div>
 

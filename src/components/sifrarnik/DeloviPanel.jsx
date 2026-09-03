@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { fetchDelovi, upsertDeo, countDelovi, DELOVI_PAGE_SIZE } from "../../lib/sifrarnikApi.js";
+import { upsertDeo, countDelovi, DELOVI_PAGE_SIZE } from "../../lib/sifrarnikApi.js";
 import {
   fetchGreskeBrojeviPoDeo,
   fetchBarkodProfiliSet,
@@ -15,16 +15,14 @@ import {
   deoOdgovaraNedostajeFilter,
 } from "../../lib/sifrarnikOdrzavanje.js";
 import { ucitajStatusAgregate, invalidirajStatusAgregate } from "../../lib/sifrarnikStatusCache.js";
-import {
-  fetchDeloviSaMv,
-  pretraziDeloviSaMv,
-  countDeloviSaMv,
-  optsIzMvReda,
-  statusIzMvReda,
-} from "../../lib/sifrarnikDeloviMv.js";
+import { fetchDeloviSaMv, pretraziDeloviSaMv, countDeloviSaMv, optsIzMvReda, statusIzMvReda, osveziMvAkoTreba } from "../../lib/sifrarnikDeloviMv.js";
 import { obavestiPromenuStatusaSifrarnika, SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
 import { fetchDeloviPoServerFilteru } from "../../lib/sifrarnikDeloviServerFilter.js";
-import { deoPripadaLiniji } from "../../lib/linijaProizvoda.js";
+import { arhivirajDeo, fetchZavisnostiDela } from "../../lib/sifrarnikOdrzavanje.js";
+import { mozeBrisanjeSifrarnik, jeAdmin } from "../../lib/uloge.js";
+import { dupilrajDeo } from "../../lib/sifrarnikDupliranje.js";
+import { preuzmiDeloviCsv } from "../../lib/sifrarnikCsvIzvoz.js";
+import { useEkran } from "../../layout/useEkran.js";
 
 const PRAZAN = {
   id_deo: "", naziv_dela: "", karakteristika: "", tip_kontrole: "deo",
@@ -32,7 +30,14 @@ const PRAZAN = {
   kom_za_kontrolu: 30, aktivan: true, napomena: "",
 };
 
-export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal, onBulkBarkod, radnaLinija = "" }) {
+export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos, onNavigacijaStatus, navSignal, onBulkBarkod, radnaLinija = "", korisnik = null }) {
+  const smeBrisati = mozeBrisanjeSifrarnik(korisnik?.uloga);
+  const smeTvrdoBrisati = jeAdmin(korisnik?.uloga);
+  const { mob } = useEkran();
+  // Na telefonu se sporedne kolone izostavljaju umesto horizontalnog skrola.
+  const GRID_KOLONE = mob
+    ? "24px 84px 1fr 60px 62px"
+    : "28px 100px 1fr 72px 80px 70px 80px 56px 70px";
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guBrojevi, setGuBrojevi] = useState({});
@@ -52,12 +57,15 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   const [snima, setSnima] = useState(false);
   const [brise, setBrise] = useState(false);
   const [statusMenuId, setStatusMenuId] = useState(null);
+  const [zavisnosti, setZavisnosti] = useState(null);
 
   const [serverFiltered, setServerFiltered] = useState(false);
   const [serverPretraga, setServerPretraga] = useState(false);
+  const [highlightId, setHighlightId] = useState(null);
 
   const imaServerFiltera = !!(nedostajeFilter || samoDemo || samoDelimicni);
   const imaTekstPretrage = filter.trim().length >= 2;
+  const linija = String(radnaLinija || "").trim().toUpperCase();
 
   const optsZaDeo = useCallback((d) => {
     if (d?._mv) return optsIzMvReda(d._mv);
@@ -69,18 +77,23 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     };
   }, [guBrojevi, greskeBrojevi, barkodSet]);
 
+  // Offset se čita iz ref-a da `ucitaj` ne bi menjao identitet posle svake strane.
+  const listaRef = useRef([]);
+  useEffect(() => { listaRef.current = lista; }, [lista]);
+
   const ucitaj = useCallback(async ({ reset = true } = {}) => {
     if (reset) setLoading(true);
     else setUcitavaJos(true);
     try {
       const tip = tipFilter === "svi" ? null : tipFilter;
       if (imaServerFiltera) {
-        const offset = reset ? 0 : lista.length;
+        const offset = reset ? 0 : listaRef.current.length;
         const res = await fetchDeloviPoServerFilteru({
           nedostajeFilter,
           samoDemo,
           samoDelimicni,
           tipKontrole: tip,
+          linijaKod: linija || null,
           limit: DELOVI_PAGE_SIZE,
           offset,
         });
@@ -92,26 +105,29 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
         return;
       }
       if (imaTekstPretrage) {
-        const offset = reset ? 0 : lista.length;
+        const offset = reset ? 0 : listaRef.current.length;
         const res = await pretraziDeloviSaMv({
           q: filter.trim(),
           tipKontrole: tip,
+          linijaKod: linija || null,
           limit: DELOVI_PAGE_SIZE,
           offset,
         });
         setServerFiltered(false);
         setServerPretraga(true);
         setLista((prev) => (reset ? res.delovi : [...prev, ...res.delovi]));
-        setUkupnoUBazi(offset + res.delovi.length);
+        setUkupnoUBazi(offset + res.delovi.length + (res.hasMore ? 1 : 0));
         setHasMore(res.hasMore);
         return;
       }
       setServerFiltered(false);
       setServerPretraga(false);
-      const offset = reset ? 0 : lista.length;
+      const offset = reset ? 0 : listaRef.current.length;
       const [pageRes, total] = await Promise.all([
-        fetchDeloviSaMv({ tipKontrole: tip, limit: DELOVI_PAGE_SIZE, offset }),
-        countDeloviSaMv({ tipKontrole: tip }).catch(() => countDelovi({ tipKontrole: tip })),
+        fetchDeloviSaMv({ tipKontrole: tip, linijaKod: linija || null, limit: DELOVI_PAGE_SIZE, offset }),
+        countDeloviSaMv({ tipKontrole: tip, linijaKod: linija || null }).catch(() =>
+          countDelovi({ tipKontrole: tip, linijaKod: linija || null }),
+        ),
       ]);
       setLista((prev) => (reset ? pageRes.delovi : [...prev, ...pageRes.delovi]));
       setUkupnoUBazi(total);
@@ -122,40 +138,62 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       setLoading(false);
       setUcitavaJos(false);
     }
-  }, [addToast, tipFilter, imaServerFiltera, imaTekstPretrage, filter, nedostajeFilter, samoDemo, samoDelimicni, lista.length]);
+  }, [addToast, tipFilter, imaServerFiltera, imaTekstPretrage, filter, nedostajeFilter, samoDemo, samoDelimicni, linija]);
 
-  useEffect(() => { ucitaj({ reset: true }); }, [tipFilter, nedostajeFilter, samoDemo, samoDelimicni, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { ucitaj({ reset: true }); }, [tipFilter, nedostajeFilter, samoDemo, samoDelimicni, filter, linija]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const t = setTimeout(() => setFilter(filterDraft), 300);
     return () => clearTimeout(t);
   }, [filterDraft]);
 
+  // MV redovi već nose gu/gr/barkod brojeve. Skupe agregate (do 20k redova po
+  // upitu) učitavamo samo ako je lista došla legacy putanjom, bez `_mv`.
+  const trebajuAgregati = useMemo(() => lista.some((d) => !d?._mv), [lista]);
+
   useEffect(() => {
-    const osveziAgregate = () => {
-      ucitajStatusAgregate({ force: true })
-        .then(({ gu, gr, bk }) => {
-          setGuBrojevi(gu);
-          setGreskeBrojevi(gr);
-          setBarkodSet(bk);
-        })
-        .catch((e) => addToast?.(e.message, "greska"));
-    };
-    osveziAgregate();
+    if (!trebajuAgregati) return;
+    let otkaz = false;
+    ucitajStatusAgregate()
+      .then(({ gu, gr, bk }) => {
+        if (otkaz) return;
+        setGuBrojevi(gu);
+        setGreskeBrojevi(gr);
+        setBarkodSet(bk);
+      })
+      .catch((e) => addToast?.(e.message, "greska"));
+    return () => { otkaz = true; };
+  }, [trebajuAgregati, addToast]);
+
+  useEffect(() => {
     const handler = () => {
       invalidirajStatusAgregate();
-      osveziAgregate();
+      osveziMvAkoTreba()
+        .catch(() => null)
+        .finally(() => ucitaj({ reset: true }));
     };
     window.addEventListener(SIFRARNIK_STATUS_EVENT, handler);
     return () => window.removeEventListener(SIFRARNIK_STATUS_EVENT, handler);
-  }, [addToast]);
+  }, [ucitaj]);
 
   useEffect(() => {
     if (!navSignal?.ts) return;
     if (navSignal.nedostajeFilter != null) setNedostajeFilter(String(navSignal.nedostajeFilter));
     if (navSignal.samoDemo != null) setSamoDemo(!!navSignal.samoDemo);
     if (navSignal.samoDelimicni != null) setSamoDelimicni(!!navSignal.samoDelimicni);
-  }, [navSignal?.ts, navSignal?.nedostajeFilter, navSignal?.samoDemo, navSignal?.samoDelimicni]);
+    if (navSignal.idDeo) {
+      const id = String(navSignal.idDeo).trim().toUpperCase();
+      setFilterDraft(id);
+      setFilter(id);
+      setHighlightId(id);
+    }
+  }, [navSignal?.ts, navSignal?.nedostajeFilter, navSignal?.samoDemo, navSignal?.samoDelimicni, navSignal?.idDeo]);
+
+  useEffect(() => {
+    if (!highlightId) return undefined;
+    const t = window.setTimeout(() => setHighlightId(null), 8000);
+    return () => window.clearTimeout(t);
+  }, [highlightId]);
 
   useEffect(() => {
     if (!statusMenuId) return undefined;
@@ -165,22 +203,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   }, [statusMenuId]);
 
   const loadMore = async () => {
-    if (serverFiltered || serverPretraga) {
-      await ucitaj({ reset: false });
-      return;
-    }
-    setUcitavaJos(true);
-    try {
-      const tip = tipFilter === "svi" ? null : tipFilter;
-      const offset = lista.length;
-      const page = await fetchDelovi({ tipKontrole: tip, limit: DELOVI_PAGE_SIZE, offset });
-      setLista((prev) => [...prev, ...page]);
-      setHasMore(offset + page.length < ukupnoUBazi);
-    } catch (e) {
-      addToast?.(e.message, "greska");
-    } finally {
-      setUcitavaJos(false);
-    }
+    await ucitaj({ reset: false });
   };
 
   const resetFiltere = () => {
@@ -223,24 +246,39 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
   };
 
   const prikaz = useMemo(() => {
-    if (serverPretraga || serverFiltered) {
-      return radnaLinija
-        ? lista.filter((d) => deoPripadaLiniji(d, radnaLinija))
-        : lista;
+    // Linija je već na serveru; ostali filteri samo u legacy (ne-server) putu.
+    if (serverPretraga || serverFiltered || linija) {
+      if (serverPretraga || serverFiltered) return lista;
+      return lista.filter((d) => {
+        const opts = optsZaDeo(d);
+        if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
+        if (samoDelimicni && statusIzMvReda({ ...d, ...d._mv }) === "kompletan") return false;
+        if (!deoOdgovaraNedostajeFilter(d, opts, nedostajeFilter)) return false;
+        if (!filter.trim()) return true;
+        const q = filter.toLowerCase();
+        return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
+          (s) => String(s || "").toLowerCase().includes(q),
+        );
+      });
     }
     return lista.filter((d) => {
-    if (radnaLinija && !deoPripadaLiniji(d, radnaLinija)) return false;
-    const opts = optsZaDeo(d);
-    if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
-    if (samoDelimicni && statusIzMvReda({ ...d, ...d._mv }) === "kompletan") return false;
-    if (!deoOdgovaraNedostajeFilter(d, opts, nedostajeFilter)) return false;
-    if (!filter.trim()) return true;
-    const q = filter.toLowerCase();
-    return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
-      (s) => String(s || "").toLowerCase().includes(q),
-    );
-  });
-  }, [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, serverPretraga, serverFiltered, optsZaDeo, radnaLinija]);
+      const opts = optsZaDeo(d);
+      if (samoDemo && !jeDemoIdDeo(d.id_deo)) return false;
+      if (samoDelimicni && statusIzMvReda({ ...d, ...d._mv }) === "kompletan") return false;
+      if (!deoOdgovaraNedostajeFilter(d, opts, nedostajeFilter)) return false;
+      if (!filter.trim()) return true;
+      const q = filter.toLowerCase();
+      return [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza].some(
+        (s) => String(s || "").toLowerCase().includes(q),
+      );
+    });
+  }, [lista, filter, samoDemo, samoDelimicni, nedostajeFilter, serverPretraga, serverFiltered, optsZaDeo, linija]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = document.querySelector(`[data-testid="delovi-red-${highlightId}"]`);
+    el?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }, [highlightId, prikaz]);
 
   const demoNaPrikazu = useMemo(
     () => prikaz.filter((d) => jeDemoIdDeo(d.id_deo)).map((d) => d.id_deo),
@@ -260,7 +298,89 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     setIzabrani(new Set(demoNaPrikazu));
   };
 
+  const arhivirajIzabrane = async () => {
+    const ids = [...izabrani];
+    if (!ids.length) {
+      addToast?.("Izaberi delove za arhiviranje", "greska");
+      return;
+    }
+    const razlog = window.prompt(
+      `Arhiviranje ${ids.length} del(a) — deo izlazi iz aktivnog šifrarnika, podaci ostaju.\n\nRazlog (opciono):`,
+      "",
+    );
+    if (razlog === null) return;
+
+    setBrise(true);
+    try {
+      for (const id of ids) {
+        await arhivirajDeo(id, { razlog, korisnik: korisnik?.ime || korisnik?.email || "" });
+      }
+      addToast?.(`✓ Arhivirano ${ids.length} del(a)`, "uspeh");
+      obavestiPromenuStatusaSifrarnika({ izvor: "delovi", akcija: "arhiviraj" });
+      setIzabrani(new Set());
+      await ucitaj({ reset: true });
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setBrise(false);
+    }
+  };
+
+  const dupliraj = async (izvorId) => {
+    const ciljId = window.prompt(
+      `Dupliranje dela ${izvorId}\n\nKopira se master, Glavni unos, greške i barkod profil.\n\nID novog dela:`,
+      "",
+    );
+    if (!ciljId?.trim()) return;
+
+    setBrise(true);
+    try {
+      const rez = await dupilrajDeo(izvorId, ciljId.trim());
+      const delovi = [
+        rez.gu ? `${rez.gu} GU redova` : null,
+        rez.greske ? `${rez.greske} grešaka` : null,
+        rez.barkod ? `${rez.barkod} barkod profila` : null,
+      ].filter(Boolean).join(", ");
+      addToast?.(`✓ Kreiran ${rez.cilj}${delovi ? ` — ${delovi}` : ""}`, "uspeh");
+      if (rez.upozorenja.length) addToast?.(rez.upozorenja.join(" · "), "greska");
+      obavestiPromenuStatusaSifrarnika({ izvor: "delovi", akcija: "dupliraj" });
+      setIzabrani(new Set());
+      await ucitaj({ reset: true });
+    } catch (e) {
+      addToast?.(e.message, "greska");
+    } finally {
+      setBrise(false);
+    }
+  };
+
+  const izveziCsv = () => {
+    const broj = preuzmiDeloviCsv(
+      prikaz,
+      {
+        statusFn: (d) => (d?._mv ? statusIzMvReda({ ...d, ...d._mv }) : statusDeoUSifrarniku(d, optsZaDeo(d))),
+        optsFn: optsZaDeo,
+      },
+      linija ? `delovi-${linija.toLowerCase()}` : "delovi",
+    );
+    addToast?.(`✓ Izvezeno ${broj} del(ova) u CSV`, "uspeh");
+  };
+
+  const prikaziZavisnosti = async (idDeo) => {
+    setZavisnosti({ idDeo, ucitava: true, stavke: null });
+    try {
+      const stavke = await fetchZavisnostiDela(idDeo);
+      setZavisnosti({ idDeo, ucitava: false, stavke });
+    } catch (e) {
+      addToast?.(e.message, "greska");
+      setZavisnosti(null);
+    }
+  };
+
   const obrisiIzabrane = async () => {
+    if (!smeTvrdoBrisati) {
+      addToast?.("Trajno brisanje je dozvoljeno samo adminu — koristi Arhiviraj", "greska");
+      return;
+    }
     const ids = [...izabrani];
     if (!ids.length) {
       addToast?.("Izaberi delove za brisanje", "greska");
@@ -286,7 +406,12 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       const saOperativom = ids.filter((id) => operativa[String(id).toUpperCase()]?.ukupno > 0);
       if (saOperativom.length) {
         const ukupno = saOperativom.reduce((s, id) => s + (operativa[String(id).toUpperCase()]?.ukupno || 0), 0);
-        if (!window.confirm(`Upozorenje: ${saOperativom.length} del(a) ima ${ukupno} operativnih unosa (ostaju u bazi). Nastaviti?`)) {
+        if (!window.confirm(
+          `Upozorenje: ${saOperativom.length} del(a) ima ${ukupno} operativnih unosa `
+          + `(merenja, log, alarmi…).\n\n`
+          + `Prvo se briše samo šifrarnik — ako baza odbije, pitaće se posebno za kaskadu.\n`
+          + `Preporuka: Arhiviraj (podaci ostaju).\n\nNastaviti?`,
+        )) {
           return;
         }
       }
@@ -298,7 +423,26 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
     try {
       if (demoIds.length) await obrisiDemoDelove(demoIds);
       for (const id of prodIds) {
-        await obrisiDeoIzSifrarnika(id);
+        try {
+          await obrisiDeoIzSifrarnika(id);
+        } catch (e) {
+          if (e?.kod !== "zavisnosti") throw e;
+          const spisak = (e.blokade || [])
+            .map((b) => `• ${b.tabela}: ${b.redova}`)
+            .join("\n");
+          const potvrda = window.prompt(
+            `${e.message}\n\n${spisak}\n\n`
+            + `Kaskada TRAJNO briše i ove unose.\n`
+            + `Bezbednije: Otkaži i koristi Arhiviraj.\n\n`
+            + `Za kaskadu unesi: OBRISI_OPERATIVU`,
+          );
+          if (potvrda !== "OBRISI_OPERATIVU") {
+            throw new Error(
+              `Brisanje dela ${id} otkazano — postoje povezani unosi (koristi Arhiviraj ili potvrdi OBRISI_OPERATIVU)`,
+            );
+          }
+          await obrisiDeoIzSifrarnika(id, { saOperativom: true });
+        }
       }
       addToast?.(`✓ Obrisano ${ids.length} delova`, "uspeh");
       obavestiPromenuStatusaSifrarnika({ izvor: "delovi", akcija: "obrisi" });
@@ -306,7 +450,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       await ucitaj({ reset: true });
     } catch (e) {
       const hint = /function.*does not exist|obrisi_deo/i.test(e.message)
-        ? " Pokreni 78/79 RPC ili npm run db:migrate:go-live"
+        ? " Pokreni 88+95 (npm run db:migrate:go-live)"
         : "";
       addToast?.(e.message + hint, "greska");
     } finally {
@@ -335,7 +479,7 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
           <select value={tipFilter} onChange={(e) => setTipFilter(e.target.value)} style={{ ...INP, cursor: "pointer" }}>
             <option value="svi">Svi</option>
             <option value="deo">Delovi (komponente)</option>
-            <option value="vozilo">Celo vozilo</option>
+            <option value="vozilo">Linija / VOZ-PRO final</option>
           </select>
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 140 }}>
@@ -363,9 +507,30 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
           <input type="checkbox" checked={samoDelimicni} onChange={(e) => setSamoDelimicni(e.target.checked)} />
           Samo delimični
         </label>
-        <button type="button" onClick={() => setForma({ ...PRAZAN })}
-          style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}>
-          + Deo
+        <button
+          type="button"
+          data-testid="delovi-novi-deo-gu"
+          onClick={() => {
+            if (onOtvoriGlavniUnos) {
+              onOtvoriGlavniUnos(null, { otvoriWizard: true });
+              return;
+            }
+            setForma({ ...PRAZAN });
+          }}
+          style={{ background: C.zelena, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer" }}
+          title="Novi deo ide kroz Glavni unos (čarobnjak) — sprečava master bez GU"
+        >
+          + Deo (GU)
+        </button>
+        <button
+          type="button"
+          data-testid="delovi-izvoz-csv"
+          onClick={izveziCsv}
+          disabled={!prikaz.length}
+          title="Izvozi tačno ono što je trenutno prikazano, sa aktivnim filterima"
+          style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6, color: C.tekst, fontSize: 10, fontWeight: 700, padding: "8px 12px", cursor: "pointer", opacity: prikaz.length ? 1 : 0.5 }}
+        >
+          Izvezi CSV ({prikaz.length})
         </button>
       </div>
 
@@ -377,18 +542,127 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
               Izaberi sve DEMO ({demoNaPrikazu.length})
             </button>
           )}
-          <button type="button" disabled={brise || !izabrani.size} onClick={obrisiIzabrane}
-            data-testid="delovi-obrisi-izabrane"
-            style={{ background: `${C.crvena || "#dc2626"}22`, border: `1px solid ${C.crvena || "#dc2626"}55`, borderRadius: 6, color: C.crvena || "#dc2626", fontSize: 10, fontWeight: 700, padding: "6px 10px", cursor: "pointer", opacity: brise || !izabrani.size ? 0.5 : 1 }}>
-            {brise ? "…" : `Obriši izabrane (${izabrani.size})`}
-          </button>
-          <span style={{ color: C.sivi, fontSize: 9 }}>DEMO automatski · produkcija traži OBRISI_DEO</span>
+          {smeBrisati && (
+            <button type="button" disabled={brise || !izabrani.size} onClick={arhivirajIzabrane}
+              data-testid="delovi-arhiviraj-izabrane"
+              title="Deo izlazi iz aktivnog šifrarnika, ali ostaje u bazi sa svim podacima"
+              style={{ background: `${C.narandzasta || "#f59e0b"}22`, border: `1px solid ${C.narandzasta || "#f59e0b"}55`, borderRadius: 6, color: C.narandzasta || "#f59e0b", fontSize: 10, fontWeight: 700, padding: "6px 10px", cursor: "pointer", opacity: brise || !izabrani.size ? 0.5 : 1 }}>
+              {brise ? "…" : `Arhiviraj (${izabrani.size})`}
+            </button>
+          )}
+          {izabrani.size === 1 && (
+            <>
+              <button type="button" onClick={() => prikaziZavisnosti([...izabrani][0])}
+                data-testid="delovi-gde-se-koristi"
+                style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6, color: C.tekst, fontSize: 10, padding: "6px 10px", cursor: "pointer" }}>
+                Gde se koristi?
+              </button>
+              <button type="button" disabled={brise} onClick={() => dupliraj([...izabrani][0])}
+                data-testid="delovi-dupliraj"
+                title="Kopira master, Glavni unos, greške i barkod profil na novi ID"
+                style={{ background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6, color: C.tekst, fontSize: 10, padding: "6px 10px", cursor: "pointer", opacity: brise ? 0.5 : 1 }}>
+                Dupliraj
+              </button>
+            </>
+          )}
+          {smeTvrdoBrisati && (
+            <button type="button" disabled={brise || !izabrani.size} onClick={obrisiIzabrane}
+              data-testid="delovi-obrisi-izabrane"
+              style={{ background: `${C.crvena || "#dc2626"}22`, border: `1px solid ${C.crvena || "#dc2626"}55`, borderRadius: 6, color: C.crvena || "#dc2626", fontSize: 10, fontWeight: 700, padding: "6px 10px", cursor: "pointer", opacity: brise || !izabrani.size ? 0.5 : 1 }}>
+              {brise ? "…" : `Obriši trajno (${izabrani.size})`}
+            </button>
+          )}
+          <span style={{ color: C.sivi, fontSize: 9 }}>
+            {smeTvrdoBrisati
+              ? "Arhiviranje je povratno · trajno brisanje traži OBRISI_DEO"
+              : "Arhiviranje je povratno · trajno brisanje može samo admin"}
+          </span>
           {onBulkBarkod && izabrani.size > 0 && (
             <button type="button" data-testid="delovi-bulk-barkod"
               onClick={() => onBulkBarkod([...izabrani])}
               style={{ background: C.plava, border: "none", borderRadius: 6, color: C.onAkcent, fontSize: 10, fontWeight: 700, padding: "6px 10px", cursor: "pointer" }}>
               Barkod ({izabrani.size})
             </button>
+          )}
+        </div>
+      )}
+
+      {zavisnosti && (
+        <div data-testid="delovi-zavisnosti-panel"
+          style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <strong style={{ color: C.tekst, fontSize: 11 }}>
+              Gde se koristi {zavisnosti.idDeo}
+            </strong>
+            <button type="button" onClick={() => setZavisnosti(null)}
+              style={{ background: "transparent", border: "none", color: C.sivi, fontSize: 14, cursor: "pointer" }}>
+              ×
+            </button>
+          </div>
+          {zavisnosti.ucitava ? (
+            <div style={{ color: C.sivi, fontSize: 10 }}>Učitavanje…</div>
+          ) : zavisnosti.stavke === null ? (
+            <div style={{ color: C.sivi, fontSize: 10 }}>
+              Nedostaje RPC <code>deo_zavisnosti</code> — pokreni 91_arhiviranje_i_audit_trigger.sql
+            </div>
+          ) : !zavisnosti.stavke.length ? (
+            <div style={{ color: C.zelena, fontSize: 10 }}>
+              Deo se ne koristi ni u jednoj tabeli — može se bezbedno obrisati.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {zavisnosti.stavke.map((s) => (
+                <div key={`${s.tabela}.${s.kolona}`}
+                  style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.tekst }}>
+                  <span>
+                    {s.tabela}
+                    {s.kaskadno && <span style={{ color: C.sivi }}> (kaskadno briše)</span>}
+                  </span>
+                  <strong style={{ fontVariantNumeric: "tabular-nums" }}>{s.redova}</strong>
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                <button
+                  type="button"
+                  data-testid="delovi-zavisnosti-arhiviraj"
+                  disabled={brise}
+                  onClick={async () => {
+                    setIzabrani(new Set([zavisnosti.idDeo]));
+                    const razlog = window.prompt(
+                      `Arhiviranje ${zavisnosti.idDeo} — podaci ostaju, deo izlazi iz aktivnog šifrarnika.\n\nRazlog (opciono):`,
+                      "",
+                    );
+                    if (razlog === null) return;
+                    setBrise(true);
+                    try {
+                      await arhivirajDeo(zavisnosti.idDeo, {
+                        razlog,
+                        korisnik: korisnik?.ime || korisnik?.email || "",
+                      });
+                      addToast?.(`✓ Arhiviran ${zavisnosti.idDeo}`, "uspeh");
+                      obavestiPromenuStatusaSifrarnika({ izvor: "delovi", akcija: "arhiviraj" });
+                      setZavisnosti(null);
+                      setIzabrani(new Set());
+                      await ucitaj({ reset: true });
+                    } catch (err) {
+                      addToast?.(err.message, "greska");
+                    } finally {
+                      setBrise(false);
+                    }
+                  }}
+                  style={{
+                    background: C.zelena, border: "none", borderRadius: 6,
+                    color: C.onAkcent, fontSize: 10, fontWeight: 700,
+                    padding: "6px 10px", cursor: brise ? "wait" : "pointer",
+                  }}
+                >
+                  Arhiviraj (preporučeno)
+                </button>
+                <span style={{ color: C.sivi, fontSize: 9, alignSelf: "center" }}>
+                  Trajno brisanje + operativa: označi deo i Obriši (potvrda OBRISI_OPERATIVU)
+                </span>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -411,11 +685,11 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
               </select>
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <span style={{ color: C.sivi, fontSize: 9 }}>VOZILO KATALOG ID</span>
-              <input value={forma.vozilo_katalog_id || ""} onChange={(e) => setForma((p) => ({ ...p, vozilo_katalog_id: e.target.value }))} style={INP} />
+              <span style={{ color: C.sivi, fontSize: 9 }}>LINIJA (VOZ/PRO)</span>
+              <input value={forma.vozilo_katalog_id || ""} onChange={(e) => setForma((p) => ({ ...p, vozilo_katalog_id: e.target.value }))} style={INP} placeholder="npr. VOZ-01" />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <span style={{ color: C.sivi, fontSize: 9 }}>ŠIFRA VOZILA / FAMILIJA</span>
+              <span style={{ color: C.sivi, fontSize: 9 }}>ŠIFRA LINIJE / FAMILIJA</span>
               <input value={forma.sifra_vozila || ""} placeholder="npr. HAM"
                 onChange={(e) => setForma((p) => ({ ...p, sifra_vozila: e.target.value }))} style={INP} />
             </label>
@@ -452,11 +726,13 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflowX: "auto" }}>
           <div style={{
-            display: "grid", gridTemplateColumns: "28px 100px 1fr 72px 80px 70px 80px 56px 70px",
+            display: "grid", gridTemplateColumns: GRID_KOLONE,
             background: C.hover, padding: "8px 10px", fontSize: 9, color: C.sivi, gap: 8,
           }}>
             <span />
-            <span>ID</span><span>NAZIV</span><span>STATUS</span><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span><span />
+            <span>ID</span><span>NAZIV</span><span>STATUS</span>
+            {!mob && (<><span>TIP</span><span>VOZILO</span><span>KOM</span><span>AKT</span></>)}
+            <span />
           </div>
           {!prikaz.length ? (
             <div style={{ padding: 24, textAlign: "center" }} data-testid="delovi-empty">
@@ -514,10 +790,15 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
               setStatusMenuId((prev) => (prev === d.id_deo ? null : d.id_deo));
             };
             return (
-            <div key={d.id_deo} style={{
-              display: "grid", gridTemplateColumns: "28px 100px 1fr 72px 80px 70px 80px 56px 70px",
+            <div
+              key={d.id_deo}
+              data-testid={`delovi-red-${d.id_deo}`}
+              style={{
+              display: "grid", gridTemplateColumns: GRID_KOLONE,
               padding: "8px 10px", borderTop: i ? `1px solid ${C.border}` : "none", fontSize: 11, gap: 8, alignItems: "center",
               opacity: d.aktivan === false ? 0.55 : 1,
+              background: highlightId === d.id_deo ? `${C.plava}18` : undefined,
+              outline: highlightId === d.id_deo ? `1px solid ${C.plava}66` : undefined,
             }}>
               <span>
                 <input
@@ -601,10 +882,14 @@ export default function DeloviPanel({ C, addToast, onStampaj, onOtvoriGlavniUnos
                 </div>
               )}
               </div>
-              <span style={{ color: C.sivi, fontSize: 10 }}>{d.tip_kontrole || "deo"}</span>
-              <span style={{ color: C.sivi, fontSize: 10 }}>{d.sifra_vozila || "—"}</span>
-              <span style={{ color: C.sivi }}>{d.kom_za_kontrolu ?? "—"}</span>
-              <span style={{ color: d.aktivan !== false ? C.zelena : C.crvena, fontSize: 10 }}>{d.aktivan !== false ? "DA" : "NE"}</span>
+              {!mob && (
+                <>
+                  <span style={{ color: C.sivi, fontSize: 10 }}>{d.tip_kontrole || "deo"}</span>
+                  <span style={{ color: C.sivi, fontSize: 10 }}>{d.sifra_vozila || "—"}</span>
+                  <span style={{ color: C.sivi }}>{d.kom_za_kontrolu ?? "—"}</span>
+                  <span style={{ color: d.aktivan !== false ? C.zelena : C.crvena, fontSize: 10 }}>{d.aktivan !== false ? "DA" : "NE"}</span>
+                </>
+              )}
               <div style={{ display: "flex", gap: 4 }}>
                 {onOtvoriGlavniUnos && (
                   <button

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
+import { proveriSemu, GO_LIVE_IDS, sumirajProveruSeme } from "../lib/schemaCheck.js";
 
 const STORAGE_KEY = "spc_go_live_checklist_v1";
 
 const STAVKE = [
   { id: "docker", label: "Docker / Supabase radi (ping baze OK)" },
-  { id: "migracije", label: "SQL migracije primenjene (uključujući 66_linija_pouzdanost)" },
+  { id: "migracije", label: "SQL migracije 77–95 primenjene (go-live blok)" },
   { id: "auth", label: "Auth email ↔ radnici.user_id povezano (nema „nema radnik ID”)" },
   { id: "pin", label: "PIN postavljen za operatere/kontrolore na tabletu (Admin → PIN)" },
   { id: "licenca", label: "Licenca OK (proveri_licencu)" },
@@ -34,10 +35,14 @@ function ucitaj() {
 export default function GoLiveChecklistPanel({ C, addToast }) {
   const [stanje, setStanje] = useState(ucitaj);
   const [busyBackup, setBusyBackup] = useState(false);
+  const [semaGate, setSemaGate] = useState(null);
+  const [busySema, setBusySema] = useState(false);
 
   const snimi = (next) => {
     setStanje(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch { /* */ }
   };
 
   const toggle = (id) => {
@@ -51,19 +56,59 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
 
   const reset = () => {
     snimi({});
+    setSemaGate(null);
     addToast?.("Checklist resetovan", "info");
+  };
+
+  const proveriGoLiveSemu = async () => {
+    setBusySema(true);
+    try {
+      const sve = await proveriSemu(supabase);
+      const goLive = sve.filter((s) => GO_LIVE_IDS.has(s.id));
+      const rezime = sumirajProveruSeme(goLive);
+      const nedostaju = goLive.filter((s) => !s.ok).map((s) => s.fajl || s.id);
+      setSemaGate({
+        ok: rezime.ok,
+        nedostaju,
+        ukupno: goLive.length,
+        prosao: goLive.filter((s) => s.ok).length,
+      });
+      snimi({ ...stanje, migracije: rezime.ok });
+      if (rezime.ok) {
+        addToast?.("✓ Go-live šema 77–95 OK", "uspeh");
+      } else {
+        addToast?.(
+          `Nedostaje ${nedostaju.length} migracija: ${nedostaju.slice(0, 4).join(", ")}${nedostaju.length > 4 ? "…" : ""}`,
+          "greska",
+        );
+      }
+    } catch (e) {
+      addToast?.(e.message || "Provera šeme nije uspela", "greska");
+    } finally {
+      setBusySema(false);
+    }
   };
 
   const eksportJsonBackup = async () => {
     setBusyBackup(true);
     try {
       const tabele = ["delovi", "radnici", "eskalacije", "radni_nalozi", "ciljevi", "kontrolna_lista_stavke"];
+      const LIMIT = 5000;
       const out = { datum: new Date().toISOString(), tabele: {} };
-      for (const t of tabele) {
-        const { data, error } = await supabase.from(t).select("*").limit(5000);
-        if (error) out.tabele[t] = { greska: error.message };
-        else out.tabele[t] = data || [];
-      }
+      const odsecene = [];
+      const rezultati = await Promise.all(
+        tabele.map((t) => supabase.from(t).select("*").limit(LIMIT)),
+      );
+      tabele.forEach((t, i) => {
+        const { data, error } = rezultati[i];
+        if (error) {
+          out.tabele[t] = { greska: error.message };
+          return;
+        }
+        out.tabele[t] = data || [];
+        if ((data || []).length === LIMIT) odsecene.push(t);
+      });
+      out.nepotpune_tabele = odsecene;
       const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -71,7 +116,14 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
       a.click();
       URL.revokeObjectURL(a.href);
       snimi({ ...stanje, backup: true });
-      addToast?.("✓ Light backup preuzet (JSON). Za puni SQL: npm run backup:db", "uspeh");
+      if (odsecene.length) {
+        addToast?.(
+          `⚠ Backup je nepotpun — odsečeno na ${LIMIT} redova: ${odsecene.join(", ")}. Koristi npm run backup:db`,
+          "greska",
+        );
+      } else {
+        addToast?.("✓ Light backup preuzet (JSON). Za puni SQL: npm run backup:db", "uspeh");
+      }
     } catch (e) {
       addToast?.(e.message || "Backup greška", "greska");
     } finally {
@@ -84,13 +136,13 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
       const [lista, rn, radnici] = await Promise.all([
         supabase.from("kontrolna_lista_stavke").select("id", { count: "exact", head: true }).eq("aktivna", true),
         supabase.from("radni_nalozi").select("id", { count: "exact", head: true }).in("status", ["aktivan", "u_toku", "otvoren"]),
-        supabase.from("radnici").select("id,user_id,pin_hash,aktivan").eq("aktivan", true).limit(200),
+        supabase.from("radnici").select("id,user_id,ima_pin,aktivan").eq("aktivan", true).limit(200),
       ]);
       const listaN = lista.count || 0;
       const rnN = rn.count ?? (Array.isArray(rn.data) ? rn.data.length : 0);
       const rs = radnici.data || [];
       const saAuth = rs.filter((r) => r.user_id).length;
-      const saPin = rs.filter((r) => r.pin_hash).length;
+      const saPin = rs.filter((r) => r.ima_pin).length;
       const next = {
         ...stanje,
         lista: listaN >= 5,
@@ -108,8 +160,12 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
     }
   };
 
+  const blokiranProdukcija = semaGate && !semaGate.ok;
+
   return (
-    <div style={{
+    <div
+      data-testid="go-live-checklist"
+      style={{
       background: C.panel,
       border: `1px solid ${C.border}`,
       borderRadius: 12,
@@ -129,6 +185,14 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" onClick={proveriGoLiveSemu} disabled={busySema}
+            data-testid="go-live-proveri-semu"
+            style={{
+              background: C.crvena || "#b91c1c", border: "none", borderRadius: 6,
+              color: "#fff", fontSize: 10, fontWeight: 700, padding: "7px 12px", cursor: "pointer",
+            }}>
+            {busySema ? "Šema…" : "Proveri šemu 77–95"}
+          </button>
           <button type="button" onClick={proveriPilotPodatke}
             style={{
               background: C.hover, border: `1px solid ${C.border}`, borderRadius: 6,
@@ -152,6 +216,49 @@ export default function GoLiveChecklistPanel({ C, addToast }) {
           </button>
         </div>
       </div>
+
+      {semaGate && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="go-live-sema-gate"
+          data-ok={semaGate.ok ? "1" : "0"}
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: `1px solid ${semaGate.ok ? `${C.zelena}60` : `${C.crvena}60`}`,
+            background: semaGate.ok ? `${C.zelena}12` : `${C.crvena}12`,
+            color: C.tekst,
+            fontSize: 11,
+            lineHeight: 1.45,
+          }}
+        >
+          {semaGate.ok
+            ? `Go-live šema OK (${semaGate.ukupno} stavki). Produkcijski režim nije blokiran.`
+            : (
+              <>
+                <strong>Produkcija blokirana:</strong> nedostaje {semaGate.nedostaju.length} go-live
+                migracija. Pokreni <code>npm run db:migrate:go-live</code>.
+                {semaGate.nedostaju.length > 0 && (
+                  <div style={{ marginTop: 4, color: C.sivi }}>
+                    {semaGate.nedostaju.slice(0, 8).join(", ")}
+                    {semaGate.nedostaju.length > 8 ? "…" : ""}
+                  </div>
+                )}
+              </>
+            )}
+        </div>
+      )}
+
+      {blokiranProdukcija && (
+        <div style={{
+          marginBottom: 12, fontSize: 11, color: C.crvena, fontWeight: 600,
+        }}>
+          Dok šema 88–95 nije na bazi, PIN/brisanje/arhiva hard-fail-uju (nema nestabilnog fallback-a).
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 8 }}>
         {STAVKE.map((s) => (
           <label key={s.id} style={{

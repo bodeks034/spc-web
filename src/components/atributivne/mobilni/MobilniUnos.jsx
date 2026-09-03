@@ -15,11 +15,14 @@ import { dp } from "../../../layout/dp.js";
 import { TELEFON } from "../../../layout/tokens/telefon.js";
 import { TABLET } from "../../../layout/tokens/tablet.js";
 import { useVoziloDijagramSrc } from "../../../lib/useVoziloDijagramSrc.js";
-import { idBarkodInputHandleri } from "../../../lib/barkod.js";
+import { idBarkodInputHandleri, ATRIBUTI_TASTATURE_SIFRA } from "../../../lib/barkod.js";
 import { mozeAdminLokalno as mozeAdmin } from "../../../lib/atributivneUnosHelper.js";
 import { labelPogona } from "../../../lib/pogonSop.js";
 import { UnosCiljBanner, UnosAqlPanel } from "../UnosAqlBlok.jsx";
 import FotoNokUnos from "../../FotoNokUnos.jsx";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { ucitajPrikazSliku } from "../../../lib/slikePaths.js";
+import { zoneZaDeo, naslovZonaZaDeo } from "../../../lib/voziloZoneConfig.js";
 
 function MobilniUnos({
   linijaMode = false,
@@ -70,6 +73,8 @@ function MobilniUnos({
 }) {
   const ekran = useEkran();
   const { url: voziloDijagramSrc, loading: voziloDijagramUcitava } = useVoziloDijagramSrc(deoInfo);
+  const zoneZaUnos = useMemo(() => zoneZaDeo(deoInfo), [deoInfo]);
+  const naslovZonaUnos = useMemo(() => naslovZonaZaDeo(deoInfo), [deoInfo]);
   const [korak, setKorak] = useState(1);
   const ukupnoKoraka = 4;
   const korakPoka = 2;
@@ -80,7 +85,10 @@ function MobilniUnos({
   const idBarkodPolje = useMemo(
     () => (onBarkodSken
       ? idBarkodInputHandleri(onBarkodSken, { postaviId: setIdDeo, upperCase: true })
-      : { onChange: (e) => setIdDeo(e.target.value.toUpperCase()) }),
+      : {
+        ...ATRIBUTI_TASTATURE_SIFRA,
+        onChange: (e) => setIdDeo(e.target.value.toUpperCase()),
+      }),
     [onBarkodSken, setIdDeo],
   );
 
@@ -98,7 +106,37 @@ function MobilniUnos({
     : null;
 
   const analitikaKompakt = !linijaMode && (ekran.mob || ekran.tablet);
-  const prikaziCrtezMob = ekran.mob || ekran.tablet || ekran.linijaUredjaj;
+  // Linija + tablet/telefon: zone/crtež uvek na unosu (kao merljive)
+  const prikaziCrtezMob = linijaMode || ekran.mob || ekran.tablet || ekran.linijaUredjaj;
+  const crtezVisina = ekran.tablet || ekran.linijaUredjaj
+    ? dp(TABLET.crtezVisinaDno, ekran)
+    : dp(TELEFON.crtezVisinaDno, ekran);
+
+  const [crtezUrl, setCrtezUrl] = useState(null);
+  useEffect(() => {
+    const id = String(idDeo || "").trim().toUpperCase();
+    const naziv = deoInfo?.slika_naziv;
+    if (!id && !naziv) {
+      setCrtezUrl(null);
+      return undefined;
+    }
+    let ok = true;
+    ucitajPrikazSliku(supabase, "atributivne", naziv || null, id || null).then((u) => {
+      if (ok) setCrtezUrl(u);
+    });
+    return () => { ok = false; };
+  }, [idDeo, deoInfo?.slika_naziv]);
+
+  const panelZonaCrtez = deoInfo && prikaziCrtezMob && !voziloMode ? (
+    <AtrCrtezPregled
+      slikaNaziv={deoInfo.slika_naziv}
+      idDeo={String(idDeo || "").toUpperCase()}
+      C={C}
+      kompakt
+      visina={crtezVisina}
+    />
+  ) : null;
+
   const unosIdKompakt = analitikaKompakt || (linijaMode && prikaziCrtezMob);
   const analitikaInpStil = {
     borderRadius: unosIdKompakt && linijaMode ? 12 : 10,
@@ -305,6 +343,7 @@ function MobilniUnos({
       <label style={LBL}>Radni nalog
         <input
           value={radniNalog}
+          {...ATRIBUTI_TASTATURE_SIFRA}
           onChange={e => setRadniNalog?.(e.target.value.toUpperCase())}
           onFocus={onFocusTastatura}
           placeholder="RN-2026-NM001-B"
@@ -405,17 +444,7 @@ function MobilniUnos({
         </div>
       ) : null}
 
-      {deoInfo && prikaziCrtezMob && (
-        <AtrCrtezPregled
-          slikaNaziv={deoInfo.slika_naziv}
-          idDeo={String(idDeo || "").toUpperCase()}
-          C={C}
-          kompakt
-          visina={ekran.tablet
-            ? dp(TABLET.crtezVisinaDno, ekran)
-            : dp(TELEFON.crtezVisinaDno, ekran)}
-        />
-      )}
+      {deoInfo && prikaziCrtezMob && panelZonaCrtez}
 
       {upoz && (
         <div style={{ color: C.crvena, fontSize: unosIdKompakt ? 11 : 12, padding: unosIdKompakt ? "8px 10px" : "10px 12px",
@@ -468,6 +497,7 @@ function MobilniUnos({
         masina={masinaNaziv}
         kontrolor={korisnikIme}
         kontrolnaListaOk={kontrolnaListaOk}
+        urlSlike={crtezUrl || undefined}
         onDalje={() => { setUnosKorakAtr?.("forma"); setKorak(korakUnos); }}
         daljeLabel="Unos OK/NOK →"
       />
@@ -510,6 +540,8 @@ function MobilniUnos({
         <LinijaWizardNav korak="unos" koraci={wizardKoraci} C={C} akcent={C.plava} kompakt />
       )}
 
+      {panelZonaCrtez}
+
       {analitikaKompakt && deoInfo && analitikaUnosRed({ bezRef: true })}
 
       {/* Progres + navigacija */}
@@ -538,6 +570,8 @@ function MobilniUnos({
             diagramLoading={voziloDijagramUcitava}
             velicina="veliki"
             C={C}
+            zone={zoneZaUnos}
+            naslov={naslovZonaUnos}
           />
         </div>
       )}
@@ -738,7 +772,7 @@ function MobilniUnos({
         overflow:"auto", maxHeight:320}}>
         {!listaG.length ? (
           <div style={{padding:28,textAlign:"center",color:C.border,fontSize:13}}>
-            Lista je prazna — idi na Korak 2
+            Lista je prazna — idi na Korak {korakUnos}
           </div>
         ) : listaG.map((s,i) => (
           <div key={i} style={{display:"flex",alignItems:"center",padding:"14px 16px",
@@ -853,7 +887,7 @@ function MobilniUnos({
         overflow:"auto", maxHeight:320}}>
         {!listaG.length ? (
           <div style={{padding:28,textAlign:"center",color:C.border,fontSize:13}}>
-            Lista je prazna — idi na Korak 2
+            Lista je prazna — idi na Korak {korakUnos}
           </div>
         ) : listaG.map((s,i) => (
           <div key={i} style={{display:"flex",alignItems:"center",padding:"14px 16px",

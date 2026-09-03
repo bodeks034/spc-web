@@ -26,11 +26,27 @@ export default function ErpMonitoringStrip({ C, addToast, onOtvoriPanel }) {
 
   const poslednji = logovi[0];
   const greske = logovi.filter((l) => !l.uspeh).length;
+  const poslednjiUspeh = logovi.find((l) => l.uspeh);
+  const staleMs = 36 * 60 * 60 * 1000;
+  const stale = !poslednjiUspeh
+    || (Date.now() - new Date(poslednjiUspeh.created_at).getTime() > staleMs);
+  const zdravlje = loading
+    ? "…"
+    : !poslednji
+      ? "nema podataka"
+      : greske > 0
+        ? "greske"
+        : stale
+          ? "zastareo"
+          : "ok";
 
   return (
-    <div style={{
+    <div
+      role="region"
+      aria-label="ERP monitoring"
+      style={{
       background: C.panel,
-      border: `1px solid ${C.border}`,
+      border: `1px solid ${zdravlje === "greske" || zdravlje === "zastareo" ? `${C.crvena}50` : C.border}`,
       borderRadius: 8,
       padding: "10px 14px",
       marginBottom: 12,
@@ -44,7 +60,23 @@ export default function ErpMonitoringStrip({ C, addToast, onOtvoriPanel }) {
         marginBottom: logovi.length ? 8 : 0,
       }}>
         <div>
-          <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700 }}>ERP monitoring</div>
+          <div style={{ color: C.tekst, fontSize: 11, fontWeight: 700 }}>
+            ERP zdravlje
+            <span style={{
+              marginLeft: 8,
+              fontSize: 9,
+              fontWeight: 700,
+              color: zdravlje === "ok" ? C.zelena
+                : zdravlje === "…" ? C.sivi
+                  : C.crvena,
+            }}>
+              {zdravlje === "ok" ? "OK"
+                : zdravlje === "greske" ? "GREŠKE"
+                  : zdravlje === "zastareo" ? "ZASTAREO (>36h)"
+                    : zdravlje === "nema podataka" ? "NEMA LOGA"
+                      : "…"}
+            </span>
+          </div>
           <div style={{ color: C.sivi, fontSize: 9, marginTop: 2 }}>
             {loading ? "…" : poslednji
               ? `Poslednji: ${formatErpUvozVreme(poslednji.created_at)} · ${poslednji.izvor || "—"}`
@@ -59,9 +91,10 @@ export default function ErpMonitoringStrip({ C, addToast, onOtvoriPanel }) {
         {onOtvoriPanel && (
           <button
             type="button"
+            data-testid="erp-zdravlje-otvori"
             onClick={onOtvoriPanel}
             style={{
-              background: C.plava,
+              background: zdravlje === "ok" ? C.plava : (C.crvena || C.plava),
               border: "none",
               borderRadius: 6,
               color: C.onAkcent,
@@ -69,9 +102,10 @@ export default function ErpMonitoringStrip({ C, addToast, onOtvoriPanel }) {
               fontWeight: 700,
               padding: "6px 12px",
               cursor: "pointer",
+              minHeight: 36,
             }}
           >
-            Otvori ERP uvoz
+            {zdravlje === "ok" ? "Otvori ERP uvoz" : "Reši ERP"}
           </button>
         )}
       </div>

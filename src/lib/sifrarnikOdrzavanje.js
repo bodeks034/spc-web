@@ -2,10 +2,32 @@
 import { supabase } from "./supabaseClient.js";
 import { fetchGlavniUnosBrojeviPoDeo, fetchGlavniUnosBrojZaDeo } from "./glavniUnosApi.js";
 import { fetchDuplikatiIzMv, fetchKompletnostIzMv, fetchSpremniBatchIzMv, fetchDelimicniIzMv } from "./sifrarnikDeloviMv.js";
-import { logSifrarnikAudit } from "./sifrarnikAudit.js";
+import { getSifrarnikAuditKorisnik } from "./sifrarnikAuditKorisnik.js";
+import { deoPripadaLiniji, normalizujKodLinije, primeniFilterLinijeNaQuery } from "./linijaProizvoda.js";
+import { GO_LIVE_RPC_PORUKA } from "./schemaCheck.js";
 
 /** Maks. broj aktivnih delova u jednom skenu statusa (kompletnost, batch). */
 export const SIFRARNIK_STATUS_SCAN_LIMIT = 2000;
+
+function filtrirajPoLiniji(stavke, linijaKod) {
+  const k = normalizujKodLinije(linijaKod);
+  if (!k) return stavke || [];
+  return (stavke || []).filter((s) => deoPripadaLiniji(s.deo || s, k));
+}
+
+async function filtrirajIdovePoLiniji(ids, linijaKod) {
+  const k = normalizujKodLinije(linijaKod);
+  if (!k || !ids?.length) return ids || [];
+  const { data, error } = await supabase
+    .from("delovi")
+    .select("id_deo,vozilo_katalog_id,sifra_vozila")
+    .in("id_deo", ids);
+  if (error) throw error;
+  const dozvoljeni = new Set(
+    (data || []).filter((d) => deoPripadaLiniji(d, k)).map((d) => String(d.id_deo || "").trim().toUpperCase()),
+  );
+  return ids.filter((id) => dozvoljeni.has(String(id || "").trim().toUpperCase()));
+}
 
 async function countAktivnihDelova() {
   const { count, error } = await supabase
@@ -200,22 +222,47 @@ export function navigacijaIzStatusDeo(deo, opts = {}) {
   return { tab: prvi.tab, ctx: prvi.ctx };
 }
 
-export async function fetchMerenjaBrojeviPoDeo(idDeoLista) {
-  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
-  if (!ids.length) return {};
+/** Normalizuje listu ID-eva dela na jedinstvene velike bez razmaka. */
+function normalizujIdListu(idDeoLista) {
+  return [...new Set(
+    (idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean),
+  )];
+}
 
-  const { data, error } = await supabase
-    .from("merenja_varijabilna")
+/**
+ * Broji zapise po delu preko RPC agregata (migracija 94).
+ *
+ * Fallback povlači redove i broji u JS-u — radi i pre nego što migracija
+ * bude primenjena, ali je odsečen na limitu, pa se koristi samo kao rezerva.
+ */
+async function brojPoDelu({ rpc, tabela, ids }) {
+  const { data, error } = await supabase.rpc(rpc, { p_ids: ids });
+  if (!error) {
+    const map = {};
+    for (const r of data || []) {
+      const id = String(r.id_deo || "").trim().toUpperCase();
+      if (id) map[id] = Number(r.broj) || 0;
+    }
+    return map;
+  }
+  if (!/does not exist|not find|schema cache/i.test(error.message || "")) throw error;
+
+  const LIMIT = 50000;
+  const { data: redovi, error: e2 } = await supabase
+    .from(tabela)
     .select("id_deo")
     .in("id_deo", ids)
-    .limit(50000);
-  if (error) {
-    if (/does not exist|relation/i.test(error.message)) return {};
-    throw error;
+    .limit(LIMIT);
+  if (e2) {
+    if (/does not exist|relation/i.test(e2.message)) return {};
+    throw e2;
+  }
+  if ((redovi || []).length === LIMIT) {
+    console.warn(`[sifrarnikOdrzavanje] ${tabela}: odsečeno na ${LIMIT} — primeni migraciju 94 za tačan broj.`);
   }
 
   const map = {};
-  for (const r of data || []) {
+  for (const r of redovi || []) {
     const id = String(r.id_deo || "").trim().toUpperCase();
     if (!id) continue;
     map[id] = (map[id] || 0) + 1;
@@ -223,32 +270,21 @@ export async function fetchMerenjaBrojeviPoDeo(idDeoLista) {
   return map;
 }
 
-export async function fetchKontrolniLogBrojeviPoDeo(idDeoLista) {
-  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+export async function fetchMerenjaBrojeviPoDeo(idDeoLista) {
+  const ids = normalizujIdListu(idDeoLista);
   if (!ids.length) return {};
+  return brojPoDelu({ rpc: "broj_merenja_po_delu", tabela: "merenja_varijabilna", ids });
+}
 
-  const { data, error } = await supabase
-    .from("kontrolni_log")
-    .select("id_deo")
-    .in("id_deo", ids)
-    .limit(50000);
-  if (error) {
-    if (/does not exist|relation/i.test(error.message)) return {};
-    throw error;
-  }
-
-  const map = {};
-  for (const r of data || []) {
-    const id = String(r.id_deo || "").trim().toUpperCase();
-    if (!id) continue;
-    map[id] = (map[id] || 0) + 1;
-  }
-  return map;
+export async function fetchKontrolniLogBrojeviPoDeo(idDeoLista) {
+  const ids = normalizujIdListu(idDeoLista);
+  if (!ids.length) return {};
+  return brojPoDelu({ rpc: "broj_kontrolni_log_po_delu", tabela: "kontrolni_log", ids });
 }
 
 /** Merenja + atributivni log po delu (upozorenje pre brisanja šifrarnika). */
 export async function fetchOperativniBrojeviPoDeo(idDeoLista) {
-  const ids = [...new Set((idDeoLista || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean))];
+  const ids = normalizujIdListu(idDeoLista);
   if (!ids.length) return {};
 
   const [merenja, log] = await Promise.all([
@@ -291,17 +327,29 @@ export function izracunajKompletnostDelova(delovi, gu, gr, barkodSet) {
   return { ukupno, kompletno, delimicno, samoMaster, procenat };
 }
 
-export async function fetchKompletnostStatistika() {
-  const mv = await fetchKompletnostIzMv();
-  if (mv) return mv;
+export async function fetchKompletnostStatistika({ linijaKod = null } = {}) {
+  const linija = normalizujKodLinije(linijaKod);
+  if (!linija) {
+    const mv = await fetchKompletnostIzMv();
+    if (mv) return mv;
+  }
+
+  let q = supabase
+    .from("delovi")
+    .select("id_deo,slika_naziv,vozilo_katalog_id,sifra_vozila")
+    .eq("aktivan", true)
+    .limit(SIFRARNIK_STATUS_SCAN_LIMIT);
+  q = primeniFilterLinijeNaQuery(q, linija);
 
   const [ukupnoAktivnih, deloviRes] = await Promise.all([
-    countAktivnihDelova(),
-    supabase
-      .from("delovi")
-      .select("id_deo,slika_naziv")
-      .eq("aktivan", true)
-      .limit(SIFRARNIK_STATUS_SCAN_LIMIT),
+    (async () => {
+      let cq = supabase.from("delovi").select("*", { count: "exact", head: true }).eq("aktivan", true);
+      cq = primeniFilterLinijeNaQuery(cq, linija);
+      const { count, error } = await cq;
+      if (error) throw error;
+      return count || 0;
+    })(),
+    q,
   ]);
   if (deloviRes.error) throw deloviRes.error;
   const delovi = deloviRes.data || [];
@@ -347,14 +395,24 @@ export function pickPrviDelimicniDeo(delovi, gu, gr, barkodSet, { preskociIdDeo 
   return null;
 }
 
-export async function fetchAktivniDeloviSaStatusom() {
+export async function fetchAktivniDeloviSaStatusom({ linijaKod = null } = {}) {
+  const linija = normalizujKodLinije(linijaKod);
+  let q = supabase
+    .from("delovi")
+    .select("id_deo,naziv_dela,slika_naziv,aktivan,vozilo_katalog_id,sifra_vozila")
+    .eq("aktivan", true)
+    .limit(SIFRARNIK_STATUS_SCAN_LIMIT);
+  q = primeniFilterLinijeNaQuery(q, linija);
+
   const [ukupnoAktivnih, deloviRes] = await Promise.all([
-    countAktivnihDelova(),
-    supabase
-      .from("delovi")
-      .select("id_deo,naziv_dela,slika_naziv,aktivan")
-      .eq("aktivan", true)
-      .limit(SIFRARNIK_STATUS_SCAN_LIMIT),
+    (async () => {
+      let cq = supabase.from("delovi").select("*", { count: "exact", head: true }).eq("aktivan", true);
+      cq = primeniFilterLinijeNaQuery(cq, linija);
+      const { count, error } = await cq;
+      if (error) throw error;
+      return count || 0;
+    })(),
+    q,
   ]);
   if (deloviRes.error) throw deloviRes.error;
   const delovi = deloviRes.data || [];
@@ -392,8 +450,8 @@ export function jeSpremanZaBatchObjavu(deo, { guBroj = 0, greskeBroj = 0 } = {})
     && !!String(deo?.slika_naziv || "").trim();
 }
 
-export async function fetchNastaviChecklist({ preskociIdDeo = null } = {}) {
-  const delimicni = await fetchDelimicniDeloviSvi();
+export async function fetchNastaviChecklist({ preskociIdDeo = null, linijaKod = null } = {}) {
+  const delimicni = await fetchDelimicniDeloviSvi({ linijaKod });
   return nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo });
 }
 
@@ -419,21 +477,25 @@ export function nastaviChecklistIzDelimicnih(delimicni, { preskociIdDeo = null }
   };
 }
 
-export async function fetchDelimicniDeloviSvi({ maxScan = 15000 } = {}) {
+export async function fetchDelimicniDeloviSvi({ maxScan = 15000, linijaKod = null } = {}) {
+  const linija = normalizujKodLinije(linijaKod);
   const rez = [];
   let offset = 0;
   const batch = 500;
+  let mvOk = false;
   while (offset < maxScan) {
     const chunk = await fetchDelimicniIzMv({ limit: batch, offset });
-    if (chunk?.length) {
-      rez.push(...chunk);
+    if (chunk == null) break;
+    mvOk = true;
+    if (chunk.length) {
+      rez.push(...filtrirajPoLiniji(chunk, linija));
       if (chunk.length < batch) break;
       offset += batch;
       continue;
     }
     break;
   }
-  if (rez.length) return rez;
+  if (mvOk) return rez;
 
   const [gu, gr, bk] = await Promise.all([
     fetchGlavniUnosBrojeviPoDeo(),
@@ -445,12 +507,14 @@ export async function fetchDelimicniDeloviSvi({ maxScan = 15000 } = {}) {
   let legacyOffset = 0;
 
   while (legacyOffset < maxScan) {
-    const { data, error } = await supabase
+    let q = supabase
       .from("delovi")
-      .select("id_deo,naziv_dela,slika_naziv,aktivan")
+      .select("id_deo,naziv_dela,slika_naziv,aktivan,vozilo_katalog_id,sifra_vozila")
       .eq("aktivan", true)
       .order("id_deo")
       .range(legacyOffset, legacyOffset + batch - 1);
+    q = primeniFilterLinijeNaQuery(q, linija);
+    const { data, error } = await q;
     if (error) throw error;
     const delovi = data || [];
     if (!delovi.length) break;
@@ -515,7 +579,7 @@ export async function navigacijaZaIdDeo(idDeo) {
 
   const { data: deo, error } = await supabase
     .from("delovi")
-    .select("id_deo,naziv_dela,slika_naziv,aktivan")
+    .select("id_deo,naziv_dela,slika_naziv,aktivan,vozilo_katalog_id,sifra_vozila")
     .eq("id_deo", id)
     .maybeSingle();
   if (error) throw error;
@@ -558,12 +622,15 @@ export async function fetchDeloviBezGlavnogUnosa({ limit = 500 } = {}) {
 }
 
 /** Delovi sa statusom ≠ kompletan (pregled u Održavanju). */
-export async function fetchDelimicniDeloviPreview({ limit = 12 } = {}) {
-  const { data: delovi, error } = await supabase
+export async function fetchDelimicniDeloviPreview({ limit = 12, linijaKod = null } = {}) {
+  const linija = normalizujKodLinije(linijaKod);
+  let q = supabase
     .from("delovi")
-    .select("id_deo,naziv_dela,slika_naziv,aktivan")
+    .select("id_deo,naziv_dela,slika_naziv,aktivan,vozilo_katalog_id,sifra_vozila")
     .eq("aktivan", true)
-    .limit(400);
+    .limit(linija ? 800 : 400);
+  q = primeniFilterLinijeNaQuery(q, linija);
+  const { data: delovi, error } = await q;
   if (error) throw error;
 
   const [gu, gr, bk] = await Promise.all([
@@ -581,11 +648,19 @@ export async function fetchDelimicniDeloviPreview({ limit = 12 } = {}) {
     };
     const st = statusDeoUSifrarniku(d, opts);
     if (st === "kompletan") continue;
-    rez.push({ deo: d, opts, status: st, koraci: koraciNavigacijeIzStatusDeo(d, opts) });
+    rez.push({
+      deo: d,
+      opts,
+      status: st,
+      nedostaje: nedostajeZaDeo(d, opts),
+      koraci: koraciNavigacijeIzStatusDeo(d, opts),
+    });
     if (rez.length >= limit) break;
   }
   return rez.sort((a, b) => a.deo.id_deo.localeCompare(b.deo.id_deo));
 }
+
+export { filtrirajIdovePoLiniji };
 
 const DEMO_ID_RE = /^(DEMO|TEST|SAMPLE|XXX)[-_]/i;
 
@@ -593,42 +668,106 @@ export function jeDemoIdDeo(idDeo) {
   return DEMO_ID_RE.test(String(idDeo || "").trim());
 }
 
-async function obrisiPoIdDeo(tabela, idDeo) {
-  const { error } = await supabase.from(tabela).delete().eq("id_deo", idDeo);
-  if (error && !/does not exist|relation/i.test(error.message)) throw error;
-}
-
 function rpcNedostaje(error) {
   return error && /function.*does not exist|could not find/i.test(error.message);
 }
 
-/** Briše deo i povezane šifrarnik redove (ne merenja — operativa ostaje). */
-export async function obrisiDeoIzSifrarnika(idDeo) {
+/** Greška brisanja kada deo ima povezane (operativne) unose. */
+export class ZavisnostiDelaError extends Error {
+  constructor(poruka, { idDeo, blokade } = {}) {
+    super(poruka);
+    this.name = "ZavisnostiDelaError";
+    this.kod = "zavisnosti";
+    this.idDeo = idDeo;
+    this.blokade = blokade || [];
+  }
+}
+
+/**
+ * Briše deo i povezane šifrarnik redove.
+ * Bez `saOperativom` RPC odbija brisanje ako postoje operativni unosi (merenja,
+ * kontrolni_log…) umesto da padne na foreign key violation.
+ * Zahteva migraciju 88+ (klijentski fallback je ukinut zbog uloga/kaskade).
+ */
+export async function obrisiDeoIzSifrarnika(idDeo, { saOperativom = false } = {}) {
   const id = String(idDeo || "").trim().toUpperCase();
   if (!id) throw new Error("ID dela je obavezan");
 
   const { data: rpcData, error: rpcErr } = await supabase.rpc("obrisi_deo_iz_sifrarnika", {
     p_id_deo: id,
     p_potvrdi: "OBRISI_DEO",
+    p_sa_operativom: saOperativom,
   });
   if (!rpcErr && rpcData?.ok) {
-    logSifrarnikAudit({ idDeo: id, akcija: "obrisi_deo", izvor: "rpc" });
-    return { idDeo: id, rpc: true };
+    // DB trigger (91) već piše audit — ne dupliramo semantički log.
+    return { idDeo: id, rpc: true, obrisano: rpcData.obrisano || {} };
   }
-  if (rpcErr && !rpcNedostaje(rpcErr)) throw rpcErr;
+  if (!rpcErr && rpcData && rpcData.ok === false) {
+    if (rpcData.kod === "zavisnosti") {
+      throw new ZavisnostiDelaError(rpcData.poruka || `Deo ${id} ima povezane unose`, {
+        idDeo: id,
+        blokade: rpcData.blokade,
+      });
+    }
+    throw new Error(rpcData.poruka || `Brisanje dela ${id} odbijeno`);
+  }
+  if (rpcErr && rpcNedostaje(rpcErr)) {
+    throw new Error(`${GO_LIVE_RPC_PORUKA} (brisanje: 88 + 95_obrisi_deo_eskalacije_fk.sql)`);
+  }
+  throw rpcErr || new Error(`Brisanje dela ${id} nije uspelo`);
+}
 
-  await obrisiPoIdDeo("glavni_unos_redovi", id);
-  await obrisiPoIdDeo("greske_katalog", id);
-  await obrisiPoIdDeo("karakteristike_merljive", id);
-  await obrisiPoIdDeo("sop_deo_varijabilni", id);
-  await obrisiPoIdDeo("delovi_atributivni_pogon", id);
-  await obrisiPoIdDeo("barkod_profili", id);
-  await obrisiPoIdDeo("radni_nalozi", id);
-  await obrisiPoIdDeo("ciljevi", id);
-  const { error } = await supabase.from("delovi").delete().eq("id_deo", id);
-  if (error) throw error;
-  logSifrarnikAudit({ idDeo: id, akcija: "obrisi_deo", izvor: "fallback" });
-  return { idDeo: id };
+/** Meko brisanje — deo ostaje u bazi, izlazi iz aktivnog šifrarnika. */
+export async function arhivirajDeo(idDeo, { razlog = "", korisnik = "" } = {}) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) throw new Error("ID dela je obavezan");
+
+  const { data, error } = await supabase.rpc("arhiviraj_deo", {
+    p_id_deo: id,
+    p_razlog: razlog || null,
+    p_korisnik: korisnik || getSifrarnikAuditKorisnik() || null,
+  });
+  if (!error) {
+    if (data && data.ok === false) throw new Error(data.poruka || `Arhiviranje dela ${id} odbijeno`);
+    return { idDeo: id, arhiviran: true };
+  }
+  if (rpcNedostaje(error)) {
+    throw new Error(`${GO_LIVE_RPC_PORUKA} (arhiva: 91/92)`);
+  }
+  throw error;
+}
+
+export async function vratiDeoIzArhive(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) throw new Error("ID dela je obavezan");
+
+  const { data, error } = await supabase.rpc("vrati_deo_iz_arhive", { p_id_deo: id });
+  if (!error) {
+    if (data && data.ok === false) throw new Error(data.poruka || `Vraćanje dela ${id} odbijeno`);
+    return { idDeo: id, arhiviran: false };
+  }
+  if (rpcNedostaje(error)) {
+    throw new Error(`${GO_LIVE_RPC_PORUKA} (arhiva: 91/92)`);
+  }
+  throw error;
+}
+
+/** Gde se deo koristi — broj redova po tabeli sa stranim ključem na `delovi`. */
+export async function fetchZavisnostiDela(idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return [];
+
+  const { data, error } = await supabase.rpc("deo_zavisnosti", { p_id_deo: id });
+  if (error) {
+    if (rpcNedostaje(error)) return null;
+    throw error;
+  }
+  return (data || []).map((r) => ({
+    tabela: r.tabela,
+    kolona: r.kolona,
+    redova: Number(r.redova) || 0,
+    kaskadno: !!r.kaskadno,
+  }));
 }
 
 /** Bulk brisanje — samo DEMO/TEST/SAMPLE/XXX prefiks. */
@@ -649,13 +788,9 @@ export async function obrisiDemoDelove(idDeoLista) {
   if (!bulkErr && bulk && bulk.ok === false) {
     throw new Error(bulk.poruka || "Bulk brisanje demo delova odbijeno");
   }
-  if (bulkErr && !rpcNedostaje(bulkErr)) {
-    throw bulkErr;
+  if (bulkErr && rpcNedostaje(bulkErr)) {
+    throw new Error(`${GO_LIVE_RPC_PORUKA} (demo bulk: 79/88)`);
   }
-
-  const rez = [];
-  for (const id of ids) {
-    rez.push(await obrisiDeoIzSifrarnika(id));
-  }
-  return { obrisano: rez.length, ids: rez.map((r) => r.idDeo) };
+  if (bulkErr) throw bulkErr;
+  throw new Error("Bulk brisanje demo delova nije uspelo");
 }

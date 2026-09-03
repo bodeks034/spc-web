@@ -10,7 +10,7 @@
 
 | Deo | Tema |
 |-----|------|
-| **I** | Brzi start |
+| **I** | Brzi start · **Radni režim** |
 | **II** | Načini unosa (app / Glavni unos / ERP CSV) |
 | **III** | Pregled grupa |
 | **IV** | Referenca tabova |
@@ -24,6 +24,14 @@
 
 Centralna baza **pre proizvodnje**: delovi, dimenzije, greške, RN, linije, merila, barkod. Bez šifrarnika nema skeniranja dela ni SPC karata na liniji.
 
+**Ulaz:** Modul 0 otvara **Radni režim** (dnevni sto). Pun Hub: **Svi tabovi →**.
+
+**Preporučeni tok (dnevni rad):**
+
+```
+Radni režim → linija VOZ/PRO → Sledeći korak → snimi/objavi → Gotovo → sledeći
+```
+
 **Preporučeni tok (novi deo):**
 
 ```
@@ -32,9 +40,19 @@ Centralna baza **pre proizvodnje**: delovi, dimenzije, greške, RN, linije, meri
 
 Detalj: [UPUTSTVO_NOVI_DEO_SIFARNIK.md](./UPUTSTVO_NOVI_DEO_SIFARNIK.md).
 
-**Linije VOZ / PRO:** [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md) — **Radim na liniji**, Brzi start, Tipovi linija, folderi crteža.
+**Linije VOZ / PRO + Radni režim:** [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md) — dnevni sto, **Gotovo → sledeći**, filteri, Hub **Radim na liniji**, Brzi start, Tipovi linija, folderi crteža.
 
-**Radni režim:** padajući meni **Radim na liniji** na vrhu Modula 0 — fokusira Glavni unos, Brzi start, Delovi (pregled) i globalnu pretragu na jednu `VOZ-XX` / `PRO-XX` liniju.
+**Radni režim (kratko):**
+
+| | |
+|--|--|
+| **Sledeći korak** | Prvi delimični na liniji |
+| **Filteri** | GU / Greške / Crtež / Barkod |
+| **Gotovo → sledeći** | Posle snimanja u Hubu; više ID-eva = red |
+| **Danas zatvoreno** | Timski brojač kompletiranih |
+| **Obuka** | 3 koraka (jednom); dugme Obuka = ponovo |
+| **Tastatura** | Enter · N · R |
+| **Svi tabovi** | ERP, Održavanje, svi tabovi (+ traka Radim na liniji) |
 
 **Onboarding:** dok nema 5+ dimenzija prikazani su samo **Glavni unos**, **Pogon mapa**, **Liste**. Posle **Objavi u šifrarnik** otvaraju se sve grupe (osim **Napredno** — samo admin).
 
@@ -74,7 +92,7 @@ Detalji: [UPUTSTVO_GLAVNI_UNOS.md](./UPUTSTVO_GLAVNI_UNOS.md) · [UPUTSTVO_ERP_K
 | **Linije proizvoda** | Tipovi linija · Defekti po liniji · Delovi po liniji |
 | **Napredno** *(admin)* | Održavanje · SPC alarm % · Moment JOB · Moment ključevi · ERP uvoz · Backup |
 
-Detaljno VOZ/PRO i radni režim: [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md).
+Detaljno VOZ/PRO i **Radni režim** (dnevni sto): [UPUTSTVO_LINIJE_VOZ_PRO.md](./UPUTSTVO_LINIJE_VOZ_PRO.md).
 
 ---
 
@@ -739,8 +757,9 @@ Neaktivni RN · istekle kalibracije · duplikati dimenzija · brojevi delova/RN/
 
 | Funkcija | Gde |
 |----------|-----|
+| **Radni režim** (dnevni sto, filteri, Gotovo → sledeći) | Ulaz Modula 0 |
 | **Objavi u šifrarnik** + checklist | Glavni unos |
-| **+ Novi deo** (čarobnjak) | Glavni unos |
+| **+ Novi deo** (čarobnjak) | Glavni unos / Radni režim |
 | Pogon audit A–F | Pogon mapa |
 | Validacija pre objave | Glavni unos |
 | **GU (n)** + status badge (klik) + DEMO bulk delete | Delovi |
@@ -824,4 +843,4 @@ Masovni **CSV** uvoz (SAP/Pantheon): preset → Upload → Preview → **dry-run
 
 ---
 
-*Verzija: avg 2026 · Modul 0 — Šifrarnik · SPC Web*
+*Verzija: avg 2026 · Modul 0 — Šifrarnik · Radni režim · SPC Web*

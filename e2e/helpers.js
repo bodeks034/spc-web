@@ -44,11 +44,38 @@ export async function otvoriAdmin(page) {
   await expect(page.getByTestId("admin-spc-alarmi")).toBeVisible({ timeout: 20000 });
 }
 
-export async function otvoriSifrarnik(page, podtab = "delovi") {
-  await page.getByTestId("modul-sifrarnik").click();
+export async function otvoriSifrarnikHub(page) {
   await expect(page.getByTestId("sifrarnik-hub")).toBeVisible({ timeout: 20000 });
+  const radni = page.getByTestId("sifrarnik-radni-rezim");
+  if (await radni.isVisible().catch(() => false)) {
+    await page.getByTestId("sifrarnik-otvori-hub").click();
+    await expect(page.getByTestId("sifrarnik-nazad-radni")).toBeVisible({ timeout: 10000 });
+  }
+}
+
+/**
+ * Kartica Modula 0 je iza prekidača na početnom ekranu — bez ovog klika
+ * `modul-sifrarnik` uopšte nije u DOM-u.
+ */
+export async function otvoriModulSifrarnik(page) {
+  const kartica = page.getByTestId("modul-sifrarnik");
+  if (!(await kartica.isVisible().catch(() => false))) {
+    await page.getByTestId("modul-prekidac-0").click();
+  }
+  await expect(kartica).toBeVisible({ timeout: 15000 });
+  await kartica.click();
+}
+
+export async function otvoriSifrarnik(page, podtab = "delovi") {
+  await otvoriModulSifrarnik(page);
+  await otvoriSifrarnikHub(page);
   if (podtab) {
-    await page.getByTestId(`sifrarnik-tab-${podtab}`).click();
+    const tabEl = page.getByTestId(`sifrarnik-tab-${podtab}`);
+    if (!(await tabEl.isVisible().catch(() => false))) {
+      const napredno = page.getByTestId("sifrarnik-grupa-napredno");
+      if (await napredno.isVisible().catch(() => false)) await napredno.click();
+    }
+    await tabEl.click();
   }
 }
 

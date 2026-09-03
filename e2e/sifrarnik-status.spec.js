@@ -3,6 +3,7 @@ import {
   e2eKredencijali,
   prijaviSe,
   otvoriSifrarnik,
+  otvoriModulSifrarnik,
   otvoriAdmin,
   imaE2EKredencijale,
 } from "./helpers.js";
@@ -13,8 +14,12 @@ function imaSifrarnikE2E() {
 }
 
 async function otvoriSifrarnikTab(page, tab = "delovi") {
-  await page.getByTestId("modul-sifrarnik").click();
+  await otvoriModulSifrarnik(page);
   await expect(page.getByTestId("sifrarnik-hub")).toBeVisible({ timeout: 20000 });
+  const radni = page.getByTestId("sifrarnik-radni-rezim");
+  if (await radni.isVisible().catch(() => false)) {
+    await page.getByTestId("sifrarnik-otvori-hub").click();
+  }
   const tabEl = page.getByTestId(`sifrarnik-tab-${tab}`);
   if (!(await tabEl.isVisible().catch(() => false))) {
     await page.getByTestId("sifrarnik-grupa-napredno").click();
@@ -226,6 +231,10 @@ test.describe("Modul 0 — quick start", () => {
   test("quick start panel je vidljiv ili sakriven", async ({ page }) => {
     await prijaviSe(page, "kvalitet");
     await otvoriSifrarnik(page, "glavni_unos");
+    const toggle = page.getByTestId("sifrarnik-quick-start-toggle");
+    if (await toggle.isVisible().catch(() => false)) {
+      await toggle.click();
+    }
     const qs = page.getByTestId("sifrarnik-quick-start");
     const vidi = await qs.isVisible().catch(() => false);
     if (vidi) {

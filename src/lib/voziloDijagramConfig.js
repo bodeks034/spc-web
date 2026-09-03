@@ -39,6 +39,12 @@ export const VOZILO_DIJAGRAMI = {
   "AUTO-HAM": "/vozilo/dijagrami/ham.png",
   "HAM-001": "/vozilo/dijagrami/ham.png",
 
+  /** Kuhinja / vrata — isti UI zona kao celo vozilo */
+  KUH: "/vozilo/dijagrami/kuh-vrata.png",
+  VRATA: "/vozilo/dijagrami/kuh-vrata.png",
+  "KUH-VRATA-600-L": "/vozilo/dijagrami/kuh-vrata.png",
+  "KUH-001": "/vozilo/dijagrami/kuh-vrata.png",
+
   LIMUZINA: "/vozilo/dijagrami/auto-limuzina.svg",
 };
 
@@ -48,6 +54,8 @@ const PREFIKS_DIJAGRAM = [
   ["NTV", "NTV-001"],
   ["HAMER", "HAM"],
   ["HAM", "HAM"],
+  ["KUH", "KUH"],
+  ["VRATA", "VRATA"],
 ];
 
 function kljucDijagrama(k) {

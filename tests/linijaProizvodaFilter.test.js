@@ -8,6 +8,7 @@ describe("deoPripadaLiniji", () => {
     expect(deoPripadaLiniji({ vozilo_katalog_id: "VOZ-03" }, "VOZ-03")).toBe(true);
     expect(deoPripadaLiniji({ id_deo: "VOZ-03-NM-001" }, "VOZ-03")).toBe(true);
     expect(deoPripadaLiniji({ vozilo_katalog_id: "VOZ-01" }, "VOZ-03")).toBe(false);
+    expect(deoPripadaLiniji({ id_deo: "VOZ-01-NM-001" }, "VOZ-03")).toBe(false);
   });
 
   it("prazan filter propusti sve", () => {

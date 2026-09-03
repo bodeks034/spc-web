@@ -12,3 +12,9 @@ logs/*
 !logs/.gitkeep
 audit-export/
 .cache/
+coverage/
+test-results/
+playwright-report/
+erp-drop/processed/
+erp-drop/outgoing/
+moment-drop/

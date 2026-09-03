@@ -125,7 +125,7 @@ export async function ucitajUrlSlike(supabase, tip, vrednost) {
 
 /**
  * Prvi URL koji stvarno radi (public/slike pa Storage).
- * idDeo — fallback npr. 5502-A.jpg ako Osovina_SOP.jpg ne postoji.
+ * idDeo — fallback npr. KUH-VRATA-600-L.png ako slika_naziv nije u bazi.
  */
 export async function ucitajPrikazSliku(supabase, tip, vrednost, idDeo = null) {
   if (!vrednost && !idDeo) return null;
@@ -141,12 +141,14 @@ export async function ucitajPrikazSliku(supabase, tip, vrednost, idDeo = null) {
     }
   }
 
-  for (const put of storage) {
-    const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
-    if (error || !data?.signedUrl) continue;
-    if (await testUrlSlike(data.signedUrl)) {
-      prikazSlikeCache.set(key, data.signedUrl);
-      return data.signedUrl;
+  if (supabase?.storage) {
+    for (const put of storage) {
+      const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(put, 3600);
+      if (error || !data?.signedUrl) continue;
+      if (await testUrlSlike(data.signedUrl)) {
+        prikazSlikeCache.set(key, data.signedUrl);
+        return data.signedUrl;
+      }
     }
   }
 

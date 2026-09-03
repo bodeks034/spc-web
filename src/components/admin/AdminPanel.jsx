@@ -37,6 +37,8 @@ import AdminPrekidiPanel from "../AdminPrekidiPanel.jsx";
 import AdminSpcAlarmiPanel from "../AdminSpcAlarmiPanel.jsx";
 import GoLiveChecklistPanel from "../GoLiveChecklistPanel.jsx";
 import AdminGoLiveStatusPanel from "./AdminGoLiveStatusPanel.jsx";
+import AdminErrorLogPanel from "./AdminErrorLogPanel.jsx";
+import AdminSifrarnikDanasPanel from "./AdminSifrarnikDanasPanel.jsx";
 import AdminOcistiOperativuPanel from "./AdminOcistiOperativuPanel.jsx";
 import ZdravljeSistemaKartica from "../ZdravljeSistemaKartica.jsx";
 import { Modal } from "../ui/SpcUi.jsx";
@@ -88,7 +90,7 @@ function AdminExcelPanel({ C, addToast }) {
     setBusy("izvoz");
     try {
       const book = await exportMasterWorkbook(supabase);
-      downloadWorkbook(book, `SPC_master_${dISO()}.xlsx`);
+      await downloadWorkbook(book, `SPC_master_${dISO()}.xlsx`);
       addToast("✓ Master Excel preuzet", "uspeh");
     } catch (err) {
       addToast(err.message, "greska");
@@ -193,7 +195,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
   };
 
   useEffect(()=>{
-    supabase.from("radnici").select("id,ime,uloga,user_id,email,aktivan,pin_hash").order("ime")
+    supabase.from("radnici").select("id,ime,uloga,user_id,email,aktivan,ima_pin").order("ime")
       .then(({data})=>{ setRadnici(data||[]); setLoading(false); });
   },[]);
 
@@ -318,7 +320,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
         {licenca && <LicencaStatusPanel licenca={licenca} C={C} />}
         <OProgramuPanel licenca={licenca} C={C} />
 
-        {/* Reset smene — samo pravi admin */}
+        {/* Statistika smene — objašnjenje (nema lokalnog reset dugmeta) */}
         {korisnik.uloga==="admin" && (
         <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:20}}>
           <div style={{color:C.tekst,fontSize:13,fontWeight:700,marginBottom:6,letterSpacing:1}}>
@@ -449,7 +451,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
                         }
                         setRadnici((p) => p.map((x) => (
                           x.id === r.id
-                            ? { ...x, pin_hash: String(pin).trim() ? "set" : null }
+                            ? { ...x, ima_pin: !!String(pin).trim() }
                             : x
                         )));
                       } catch (e) {
@@ -457,12 +459,12 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
                       }
                     }}
                       style={{
-                        background: r.pin_hash ? "#0c2010" : C.hover,
-                        border: `1px solid ${r.pin_hash ? C.zelena + "55" : C.border}`,
-                        borderRadius: 6, color: r.pin_hash ? C.zelena : C.sivi,
+                        background: r.ima_pin ? "#0c2010" : C.hover,
+                        border: `1px solid ${r.ima_pin ? C.zelena + "55" : C.border}`,
+                        borderRadius: 6, color: r.ima_pin ? C.zelena : C.sivi,
                         fontSize: 9, padding: "4px 8px", cursor: "pointer", fontWeight: 700,
                       }}>
-                      {r.pin_hash ? "PIN ✓" : "PIN"}
+                      {r.ima_pin ? "PIN ✓" : "PIN"}
                     </button>
                   )}
                   {korisnik.uloga==="admin" && (
@@ -530,11 +532,17 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
         </div>
 
         <ZdravljeSistemaKartica C={C} korisnik={korisnik} />
+        <AdminErrorLogPanel />
         <AdminGoLiveStatusPanel
           C={C}
           addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
           onOtvoriSifrarnik={onOtvoriSifrarnik}
           onSkrolujDo={skrolujDoAdmin}
+        />
+        <AdminSifrarnikDanasPanel
+          C={C}
+          addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
+          onOtvoriSifrarnik={onOtvoriSifrarnik}
         />
         <GoLiveChecklistPanel
           C={C}
@@ -558,6 +566,7 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
         <ErpMonitoringStrip
           C={C}
           addToast={(t, tip) => setModal({ poruka: t, tip: tip || "info" })}
+          onOtvoriPanel={() => onOtvoriSifrarnik?.("erp")}
         />
         <ErpDiffPanel C={C} />
         <StatusServera C={C} />
@@ -584,17 +593,16 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
 
         {/* SPC alarmi — blokada linije */}
         <AdminSpcAlarmiPanel korisnik={korisnik} C={C} addToast={(t, tip) => {
-          alert(t);
+          setModal({ poruka: t, tip: tip || "info" });
         }} />
 
         {/* Zahtevi za prekid */}
-        <AdminPrekidiPanel korisnik={korisnik} C={C} addToast={(t,tip)=>{
-          // mini toast u admin panelu
-          alert(t);
-        }}/>
+        <AdminPrekidiPanel korisnik={korisnik} C={C} addToast={(t, tip) => {
+          setModal({ poruka: t, tip: tip || "info" });
+        }} />
 
         <AdminKalibracijaPanel korisnik={korisnik} C={C} addToast={(t, tip) => {
-          alert(t);
+          setModal({ poruka: t, tip: tip || "info" });
         }} />
 
         {/* Statistike sistema */}

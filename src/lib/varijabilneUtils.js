@@ -190,7 +190,7 @@ export function koristiUgaoUnosKolone(k) {
 }
 
 import { jeAtributivnaPoInstrumentu, jeMerljivaPoInstrumentu, grupaSerijeKey } from "./karakteristikaMerljive.js";
-import { faiObaveznoIzReda, faiBrojMerenjaIzKolone } from "./faiWorkflow.js";
+import { faiObaveznoIzReda } from "./faiWorkflow.js";
 import { faiBrojMerenjaIzReda } from "./karakteristikaMerljive.js";
 import { labelKlasaSaPragom } from "./spcAlarmPragovi.js";
 import { GLAVNI_UNOS_BROJ_MERENJA_DEFAULT } from "./spcDefaults.js";
@@ -455,7 +455,7 @@ export function unosMerenjaNepotpun(raw, granice = {}) {
   const s = String(raw ?? "").trim();
   if (!s || !s.includes(",")) return false;
 
-  const { lslDec, uslDec, nominalDec, jedinica } = granice;
+  const { lslDec, uslDec, nominalDec } = granice;
   const minDec = brojDecimalaIzGranica(lslDec, uslDec, nominalDec);
   if (minDec <= 0) return false;
 
@@ -657,7 +657,7 @@ export function imaBiloSta(kolone) {
   return kolone.some(k => k.naziv !== "-" && (k.merenja?.length || 0) > 0);
 }
 
-function deoImaVisePogona(karakteristike, idDeo) {
+function _deoImaVisePogona(karakteristike, idDeo) {
   const id = String(idDeo || "").trim().toUpperCase();
   const pogoni = new Set();
   for (const k of karakteristike || []) {

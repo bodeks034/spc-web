@@ -50,18 +50,29 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 85 | `85_sifrarnik_audit_retention.sql` | Arhiva audit loga (12 meseci) |
 | 86 | `86_sifrarnik_mv_scale.sql` | MV skala 10k+ — lista, pretraga, kompletnost, duplikati RPC |
 | 87 | `87_tipovi_linije_privremene.sql` | VOZ-01…10, PRO-01…10 + GU sheetovi |
+| 88 | `88_obrisi_deo_kaskadno.sql` | Brisanje dela — kaskadno čišćenje FK zavisnosti + jasna poruka |
+| 89 | `89_sifrarnik_linija_i_mv_refresh.sql` | Filter po liniji u MV RPC-ovima + auto-osvežavanje MV-a |
+| 90 | `90_dashboard_agregati.sql` | Agregacija dashboarda u bazi + mapa deo↔linija (bez limita 4000) |
+| 91 | `91_arhiviranje_i_audit_trigger.sql` | Arhiviranje dela, „gde se koristi", audit trigger na šifrarniku |
+| 92 | `92_bezbednost_rls_i_pin.sql` | RLS nad `radnici` (kraj eskalacije na admin), PIN u bazi sa bcrypt-om i rate limitom, provera uloge u SECURITY DEFINER funkcijama |
+| 93 | `93_rls_uloge_upisa.sql` | Write politike po ulozi (šifrarnik, NCR, brisanje merenja) — uloge više nisu samo UI |
+| 94 | `94_broj_zapisa_po_delu.sql` | Grupno brojanje merenja i atributivnog loga po delu (umesto povlačenja 50.000 redova u klijent) |
+| 95 | `95_obrisi_deo_eskalacije_fk.sql` | Brisanje dela: `spc_alarmi.eskalacija_id` ON DELETE SET NULL + bezbedan redosled kaskade |
+| 96 | `96_storage_crtezi.sql` | Storage bucket `spc-crtezi` + RLS (upload crteža atributivne/merljive) |
+| 97 | `97_error_log.sql` | Crash log (`error_log`) — insert za ulogovane, čitanje samo admin |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 
 **Automatski (ako imaš DATABASE_URL):**
 
 ```bash
-npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–85
+npm run db:migrate          # pilot 54–59 + NCR/8D 75–76 + go-live 77–97
 npm run db:migrate -- --kvalitet   # samo 75 + 76
-npm run db:migrate:go-live  # samo 77–86 (RPC + audit + filter + MV + skala)
+npm run db:migrate:go-live  # samo 77–97 (RPC + audit + MV + RLS/PIN + agregati + error_log)
 npm run db:migrate -- --file 76_osmd_pfmea_cp_brojevi.sql
 npm run db:migrate:auto     # 61 — telemetrija automatizacije
-npm run db:verify           # provera kao Admin → Status šeme (uključujući RPC 77/78)
+npm run db:verify           # provera kao Admin → Status šeme (uključujući 77–95)
+npm run db:verify:go-live   # obavezni go-live blok 77–95
 ```
 
 **Ručno:** Supabase SQL Editor — redom **75 → 76** (posle 59 i 46/51 za 8D/PFMEA).

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { obavestiAdminZahtev } from "./adminZahtevNotifikacije.js";
 import { supabase } from "./supabaseClient.js";
-import { kontrolnaListaObavezna, normalizujIdDeo, logZaSmenu } from "./kontrolaLista.js";
+import { normalizujIdDeo, logZaSmenu } from "./kontrolaLista.js";
 /** Kontrolna lista pre smene (atributivne i merljive). */
 export function KontrolnaLista({
   korisnik,
@@ -91,11 +91,6 @@ export function KontrolnaLista({
 
   const kategorije = [...new Set(stavke.map(s => s.kategorija))];
 
-  useEffect(() => {
-    if (loading || stavke.length) return;
-    if (!kontrolnaListaObavezna()) onZavrsena?.();
-  }, [loading, stavke.length, onZavrsena]);
-
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
@@ -124,26 +119,16 @@ export function KontrolnaLista({
   }
 
   if (stavke.length === 0) {
-    const obavezna = kontrolnaListaObavezna();
-    if (!obavezna) {
-      return (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
-          minHeight: ugradjen ? "auto" : "24vh", color: C.sivi, fontSize: 12, padding: 16 }}>
-          Nema stavki kontrolne liste — nastavljam…
-        </div>
-      );
-    }
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
         justifyContent: "center", minHeight: "60vh", gap: 16, padding: 24, textAlign: "center" }}>
         <div style={{ fontSize: 48 }}>⛔</div>
         <div style={{ color: C.crvena, fontSize: 16, fontWeight: 700 }}>
-          {obavezna ? "Unos nije dozvoljen" : "Nema stavki u kontrolnoj listi"}
+          Unos nije dozvoljen
         </div>
         <div style={{ color: C.sivi, fontSize: 12, maxWidth: 400, lineHeight: 1.6 }}>
-          {obavezna
-            ? "Kontrolna lista nije podešena u sistemu. Obavestite administratora da uveze stavke (Admin → Excel ili SQL seed `04_kontrolna_lista_policies.sql`), pa osvežite stranicu."
-            : "Uvezi stavke komandom `node scripts/import-all-docs.mjs` ili SQL seed, pa osveži stranicu."}
+          Kontrolna lista nije podešena u sistemu. Obavestite administratora da uveze stavke
+          (Admin → Excel ili SQL seed `04_kontrolna_lista_policies.sql`), pa osvežite stranicu.
         </div>
       </div>
     );

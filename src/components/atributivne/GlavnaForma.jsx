@@ -7,23 +7,18 @@ import MobilniUnos from "./mobilni/MobilniUnos.jsx";
 import MobilneKarte from "./mobilni/MobilneKarte.jsx";
 import MobilniDashboard from "./mobilni/MobilniDashboard.jsx";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
+import useToasts from "../../hooks/useToasts.js";
 import {
-  mirrorKontrolniLogToExcel,
-  exportKontrolniLogExcel,
-  exportMasterWorkbook,
-  importWorkbookToSupabase,
-  previewImport,
-  readWorkbookFromFile,
-  downloadWorkbook,
-  EXCEL_BUCKET,
-  KONTROLNI_LOG_FILE,
-  IMPORT_SHEETS,
-} from "../../lib/excelSync.js";
+  PfmeaCpModul, NcrCapaPanel, OsmDIzvestaj, EskalacijePanel, TrasabilitetPanel,
+  AdminPanel, InzenjerExcelPanel, MerilaMsaHub, KontrolniPlanPanel,
+  RadniNaloziPanel, IzvestajDobavljacPanel, SkartDoradaOeePanel,
+  InteligencijaDeoPanel, AnalitikaPregledPanel, OdobrenjaQAPanel,
+  SpcDashboardAtributivne, PrijemnaKontrolaPanel, TabUcitavanje,
+} from "./AtributivneLazyTabovi.jsx";
+import { mirrorKontrolniLogToExcel } from "../../lib/excelSync.js";
 import {
-  INSPECTION_LEVELS, INSPECTION_TYPES, DEFECT_KLASE, planUzorka, planZaKlasu, aqlOdluka, kombinovanaOdluka,
-  DEFAULT_AQL_LOT_SIZE, ucitajAqlLotVelicina, snimiAqlLotVelicina,
-  ucitajAqlPodesavanja, snimiAqlPodesavanja, lotVelicinaZaAql,
+  ucitajAqlLotVelicina, snimiAqlLotVelicina, lotVelicinaZaAql,
 } from "../../lib/aqlIso2859.js";
 import {
   pendingFromLista, mergeSmenaStat, fetchSmenaStat,
@@ -32,37 +27,21 @@ import { LAB_FPY_PCT, LAB_FPY_KRATKO } from "../../lib/rtyFpy.js";
 import { jeKontrolaCelogVozila } from "../../lib/spcPredlogKarti.js";
 import UnosPokaYokeKorak from "../UnosPokaYokeKorak.jsx";
 import AtrCrtezPregled from "../AtrCrtezPregled.jsx";
-import InzenjerExcelPanel from "../../InzenjerExcelPanel.jsx";
-import SifrarnikModul from "../sifrarnik/SifrarnikModul.jsx";
-import DefinicijaUputstvo from "../DefinicijaUputstvo.jsx";
-import { KontrolnaLista, ZahtevPrekid, ucitajOdobrenPrekid } from "../../lib/kontrolaSesije.jsx";
+import { ZahtevPrekid, ucitajOdobrenPrekid } from "../../lib/kontrolaSesije.jsx";
 import {
   setListaOkSession,
-  clearListaOkSession,
   getListaOkSession,
   procitajSmenuIzStorage,
   proveriKontrolnaListaDanas,
 } from "../../lib/kontrolaLista.js";
-import SkartDoradaOeePanel from "../SkartDoradaOeePanel.jsx";
 import KpiDoradaHub from "../KpiDoradaHub.jsx";
 import { podrazumevaniKpiIzListeP } from "../../lib/kpiKvalitet.js";
-import { porukaKpiGreske, fetchKpiUnos, agregirajKpiUnos, dodajKpiBlokPdf, pronadjiAgregiraniKpiAtributivne, snimiIliAzurirajKpiUnos, kpiVrednostiIzDb, saberiKpiVrednosti } from "../../lib/kpiUnos.js";
-import { generisiPredajaSmenePdf } from "../../lib/predajaSmenePdf.js";
+import { porukaKpiGreske, pronadjiAgregiraniKpiAtributivne, snimiIliAzurirajKpiUnos, kpiVrednostiIzDb, saberiKpiVrednosti } from "../../lib/kpiUnos.js";
 import { useOfflineQueue, stampajClientIdNaRedove } from "../../lib/offlineQueue.js";
-import { ensureSesija, novaSesija, clearSveSesije, getAktivnaSesija } from "../../lib/spcSesija.js";
-import SchemaStatusPanel from "../SchemaStatusPanel.jsx";
-import StatusServera from "../StatusServera.jsx";
+import { ensureSesija, novaSesija } from "../../lib/spcSesija.js";
 import ShopFloorStatusBar from "../ShopFloorStatusBar.jsx";
-import ErpMonitoringStrip from "../ErpMonitoringStrip.jsx";
-import ZajednickiDashboard from "../ZajednickiDashboard.jsx";
-import InteligencijaDeoPanel from "../InteligencijaDeoPanel.jsx";
-import { procitajNavigaciju8d, predloziDodeljenogInzenjera, prefill8dIzEskalacije, normalizujPrefill8d } from "../../lib/eskalacijeHelper.js";
+import { procitajNavigaciju8d, prefill8dIzEskalacije, normalizujPrefill8d } from "../../lib/eskalacijeHelper.js";
 import { procitajSpoljnuNavigacijuTab, peekPendingWorkflowTab, procitajPfmeaNavIdDeo } from "../../lib/workflowAkcije.js";
-import { exportOsmdIzvestajPdf, osmdPayloadIzForme, statusNaziv8d, stampajOsmdIzvestaj } from "../../lib/osmdIzvestajPdf.js";
-import OsmdEditor from "../OsmdEditor.jsx";
-import PfmeaCpModul from "../PfmeaCpModul.jsx";
-import MerilaMsaHub from "../MerilaMsaHub.jsx";
-import KontrolniPlanPanel from "../KontrolniPlanPanel.jsx";
 import SmenaPogonaPanel from "../SmenaPogonaPanel.jsx";
 import LogPregledFilter from "../LogPregledFilter.jsx";
 import {
@@ -72,15 +51,18 @@ import {
   brojOfflineStavki,
 } from "../../lib/logPregledHelper.js";
 import AQLTabela from "../kvalitet/AQLTabela.jsx";
-import EskalacijePanel from "../kvalitet/EskalacijePanel.jsx";
-import NcrCapaPanel from "../kvalitet/NcrCapaPanel.jsx";
 import NcrObrazacLinijaOverlay from "../kvalitet/NcrObrazacLinijaOverlay.jsx";
 import NcrLinijaTraka from "../kvalitet/NcrLinijaTraka.jsx";
 import { prefillNcrIzUnosaLinije } from "../../lib/ncrObrazacPolja.js";
 import { prefill8dIzNcr } from "../../lib/ncrCapa.js";
-import OsmDIzvestaj from "../kvalitet/OsmDIzvestaj.jsx";
 import { fetchPlaniranoKomZaDeo } from "../../lib/zajednickiDashboard.js";
-import { parsiBarkod, primeniParsiraniBarkod, useBarcodeScanner, idBarkodInputHandleri } from "../../lib/barkod.js";
+import {
+  parsiBarkod,
+  primeniParsiraniBarkod,
+  useBarcodeScanner,
+  idBarkodInputHandleri,
+  ATRIBUTI_TASTATURE_SIFRA,
+} from "../../lib/barkod.js";
 import {
   ucitajAktivniRadniNalog,
   ucitajNalogZaDeoIRn,
@@ -88,14 +70,22 @@ import {
   proveriRadniNalogUpozorenje,
   formatNalogToast,
 } from "../../lib/radniNalog.js";
-import { proveriAktivanKarantin } from "../../lib/karantinProvera.js";
+import { proveriAktivanKarantin, karantinNeuspeh } from "../../lib/karantinProvera.js";
 import IdDeoBarkodRed from "../IdDeoBarkodRed.jsx";
 import KarantinBlokada from "../KarantinBlokada.jsx";
-import SmenaIdUnosRed from "../SmenaIdUnosRed.jsx";
 import SmenaAutoPrikaz from "../SmenaAutoPrikaz.jsx";
 import PogonIzborPanel from "../PogonIzborPanel.jsx";
 import { useAutoSmena } from "../../hooks/useAutoSmena.js";
-import { smenaPoSatu } from "../../lib/smena.js";
+import { useNacrtRadneListe } from "../../hooks/useNacrtRadneListe.js";
+import { TEME } from "../../lib/teme.js";
+import { ocistiUnosDraft } from "../../lib/unosDraft.js";
+import LinijaTabTraka from "../ui/LinijaTabTraka.jsx";
+import UnosSesijaBanneri from "../ui/UnosSesijaBanneri.jsx";
+import LinijaHeaderAkcije from "../ui/LinijaHeaderAkcije.jsx";
+import LinijaHeaderChip from "../ui/LinijaHeaderChip.jsx";
+import KontrolnaListaGate from "../ui/KontrolnaListaGate.jsx";
+import IdUnosEmptyState from "../ui/IdUnosEmptyState.jsx";
+import OfflinePendingChip from "../ui/OfflinePendingChip.jsx";
 import {
   pogoniZaDeoAtributivne,
   pogonIzRn,
@@ -107,37 +97,20 @@ import {
 import { kreirajAlarmNokAtributivne } from "../../lib/spcAlarmWorkflow.js";
 import { posleSnimanjaAtributivne } from "../../lib/autoAkcije.js";
 import { predloziDelovaZaTablet, sacuvajTabletPogon } from "../../lib/linijaDeoMapa.js";
-import NotifikacijePodesavanja from "../NotifikacijePodesavanja.jsx";
-import MeriloBarkodUputstvo from "../MeriloBarkodUputstvo.jsx";
-import AdminKalibracijaPanel from "../AdminKalibracijaPanel.jsx";
-import AdminPrekidiPanel from "../AdminPrekidiPanel.jsx";
-import AdminSpcAlarmiPanel from "../AdminSpcAlarmiPanel.jsx";
 import SpcAlarmBlokada from "../SpcAlarmBlokada.jsx";
 import { useSpcAlarmGate } from "../../hooks/useSpcAlarmGate.js";
-import SpcBaselinePanel from "../SpcBaselinePanel.jsx";
-import RadniNaloziPanel from "../RadniNaloziPanel.jsx";
-import PrijemnaKontrolaPanel from "./PrijemnaKontrolaPanel.jsx";
 import PrijemMerenjeKontekst, {
   sacuvajPrijemKontekst,
   ucitajPrijemKontekst,
 } from "../PrijemMerenjeKontekst.jsx";
-import IzvestajDobavljacPanel from "../IzvestajDobavljacPanel.jsx";
 import { syncPrijemnaIzKontrolnogLoga } from "../../lib/dobavljaciApi.js";
-import OfflineSyncPanel from "../OfflineSyncPanel.jsx";
-import TrasabilitetPanel from "../TrasabilitetPanel.jsx";
-import useAdminZahtevNotifikacije from "../../hooks/useAdminZahtevNotifikacije.js";
 import useAnalitikaBadges from "../../hooks/useAnalitikaBadges.js";
 import {
-  mozeTabAtributivne, opisUloge, podrazumevaniRezim, mozePrebacivanjeRezima,
-  mozePrebacivanjeRezimaUTacci,
-  mozeAnalitika, jeLinijaUloga, efektivniRezimRada, jeAdmin, jeKvalitetIliVise,
-  jeKontrolorLinija, pocetniKorakUnosAtr, mozeInzenjerExcel, mozeInzenjerExcelUvoz,
-  mozeSifrarnik, podrazumevaniTabAtributivne, mozeOdobrenjaQA, mozeNcrCapa, mozeNcrUnosLinija,
+  mozeTabAtributivne, mozePrebacivanjeRezimaUTacci, jeKvalitetIliVise,
+  jeKontrolorLinija, pocetniKorakUnosAtr, mozeInzenjerExcel,
+  podrazumevaniTabAtributivne, mozeOdobrenjaQA, mozeNcrCapa, mozeNcrUnosLinija,
 } from "../../lib/uloge.js";
 import AnalitikaHeader from "../analitika/AnalitikaHeader.jsx";
-import AnalitikaPregledPanel from "../analitika/AnalitikaPregledPanel.jsx";
-import SpcDashboardAtributivne from "../spc/SpcDashboardAtributivne.jsx";
-import OdobrenjaQAPanel from "../analitika/OdobrenjaQAPanel.jsx";
 import { AnalitikaFilterProvider, useAnalitikaFilter } from "../../lib/AnalitikaFilterContext.jsx";
 import { spcFilterIzAnalitike } from "../../lib/analitikaFilterUtils.js";
 import { ucitajAnalitikaTab, snimiAnalitikaTab } from "../../lib/analitikaSesija.js";
@@ -147,12 +120,7 @@ import {
   grupeSaDozvoljenimTabovima,
 } from "../../lib/analitikaNav.js";
 import { useEkran } from "../../lib/useEkran.js";
-import { stilOmotLinija, onFocusTastatura } from "../../layout/tastaturaMobil.js";
-import { dp } from "../../layout/dp.js";
-import { TELEFON } from "../../layout/tokens/telefon.js";
-import { TABLET } from "../../layout/tokens/tablet.js";
-import LinijaDonjaTraka, { DugmeTraka } from "../LinijaDonjaTraka.jsx";
-import LinijaWizardNav, { KORACI_ATRIB_LINIJA, KORACI_ATRIB_KONTROLOR } from "../LinijaWizardNav.jsx";
+import LinijaWizardNav, { KORACI_ATRIB_KONTROLOR } from "../LinijaWizardNav.jsx";
 import VoziloZonaNav from "../VoziloZonaNav.jsx";
 import { useVoziloDijagramSrc } from "../../lib/useVoziloDijagramSrc.js";
 import {
@@ -160,15 +128,12 @@ import {
   filtrirajGreskeZaUnos,
   filtrirajKatalogVozilaZaUnos,
 } from "../../lib/katalogFilter.js";
+import { zoneZaDeo, naslovZonaZaDeo, filtrirajKatalogPoZoni, jeVrataZonaDeo } from "../../lib/voziloZoneConfig.js";
 import { porukaDbGreske, jeMreznaGreska, jeDupliClientId } from "../../lib/dbGreske.js";
 import { supabase } from "../../lib/supabaseClient.js";
 import FotoNokUnos from "../FotoNokUnos.jsx";
-import { modulDozvoljen } from "../../lib/licenca.js";
 import AppHeader from "../AppHeader.jsx";
-import BrendingNaslov from "../BrendingNaslov.jsx";
-import OProgramuPanel from "../OProgramuPanel.jsx";
 import { Toast, Modal, AlarmBanner } from "../ui/SpcUi.jsx";
-import AdminPanel from "../admin/AdminPanel.jsx";
 import {
   FotoArhiva,
   KalibracijaMerila,
@@ -176,7 +141,6 @@ import {
   IzvestajKupac,
   OCKriva,
   StabilnostProcesa,
-  useOfflineCache,
   generisiIzvestajSmene,
 } from "./AtrAnalitikaDodaci.jsx";
 
@@ -186,14 +150,16 @@ import {
 
 function Dashboard({ C, addToast, onNavigacija, sviDelovi, korisnik, onOtvori8D }) {
   return (
-    <SpcDashboardAtributivne
-      C={C}
-      addToast={addToast}
-      onNavigacija={onNavigacija}
-      sviDelovi={sviDelovi}
-      korisnik={korisnik}
-      onOtvori8D={onOtvori8D}
-    />
+    <Suspense fallback={<TabUcitavanje C={C} />}>
+      <SpcDashboardAtributivne
+        C={C}
+        addToast={addToast}
+        onNavigacija={onNavigacija}
+        sviDelovi={sviDelovi}
+        korisnik={korisnik}
+        onOtvori8D={onOtvori8D}
+      />
+    </Suspense>
   );
 }
 
@@ -284,7 +250,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const [loadLog,setLoadLog]       = useState(false);
   const [logFilterDatum,setLogFilterDatum] = useState(dISO);
   const [logFilterSmena,setLogFilterSmena] = useState("1");
-  const [toasts,setToasts]         = useState([]);
+  const {toasts, addToast}         = useToasts();
   const [foto,setFoto]             = useState(null);
   const [pokaziZahtev,setPokaziZahtev] = useState(false);
   const [unosKorakAtr, setUnosKorakAtr] = useState("poka");
@@ -311,10 +277,37 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const fotoRef = useRef(null);
   const idRef   = useRef(null);
 
-  const addToast = useCallback((tekst,tip="info")=>{
-    const id=Date.now(); setToasts(p=>[...p,{tekst,tip,id}]);
-    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4500);
-  },[]);
+  // Buffer pre "Zapiši u bazu" je do sada nestajao na refresh — sada se snima trajno.
+  const nacrtPodaci = useMemo(
+    () => ({ listaP, listaG, idDeo, radniNalog, pogonKod }),
+    [listaP, listaG, idDeo, radniNalog, pogonKod],
+  );
+  const nacrtKljuc = `atributivne-${korisnik?.radnikId || korisnik?.email || "anon"}`;
+  const { vraceniNacrt, odbaciNacrt, zatvoriPonudu, ocistiNacrt } = useNacrtRadneListe(
+    nacrtKljuc,
+    nacrtPodaci,
+    { aktivno: tab === "unos" },
+  );
+
+  const vratiNacrt = useCallback(() => {
+    const p = vraceniNacrt?.podaci;
+    if (!p) return;
+    if (Array.isArray(p.listaP)) setListaP(p.listaP);
+    if (Array.isArray(p.listaG)) setListaG(p.listaG);
+    if (p.idDeo) setIdDeo(p.idDeo);
+    if (p.radniNalog) setRadniNalog(p.radniNalog);
+    if (p.pogonKod) setPogonKod(p.pogonKod);
+    zatvoriPonudu();
+  }, [vraceniNacrt, zatvoriPonudu]);
+
+  const nacrtOpis = useMemo(() => {
+    const p = vraceniNacrt?.podaci;
+    if (!p) return "";
+    const n = (p.listaP?.length || 0) + (p.listaG?.length || 0);
+    return `${n} stavki${p.idDeo ? ` · ${p.idDeo}` : ""}`;
+  }, [vraceniNacrt]);
+
+  // addToast dolazi iz useToasts() hook-a iznad
 
   const onFlushed = useCallback((res) => {
     if (res.syncedJobs > 0) {
@@ -329,7 +322,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   }, [addToast]);
 
   const {
-    online, queue, counts: offlineCounts, flushQueue,
+    online, queue, counts: offlineCounts, flushQueue, zaglavljeni,
     addAtributivneBatch,
   } = useOfflineQueue(supabase, {
     mirrorKontrolniLog: mirrorKontrolniLogToExcel,
@@ -464,12 +457,20 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
 
   const voziloKatPoZoni = useMemo(() => {
     if (!voziloMode || !voziloZona) return { gr: {}, df: {} };
+    const zone = zoneZaDeo(deoInfo);
     const rows = filtrirajKatalogVozilaZaUnos(voziloKatalogRows, deoInfo, voziloZona);
-    return buildGreskeKatalog(rows);
-  }, [voziloMode, voziloZona, voziloKatalogRows, deoInfo]);
+    const izVoziloKat = buildGreskeKatalog(rows);
+    // Vrata/namštaj: ako nema kataloga vozila, filtriraj greške dela po zoni (IVICA/POVRŠINA…)
+    if (jeVrataZonaDeo(deoInfo) && !Object.keys(izVoziloKat.gr || {}).length) {
+      return filtrirajKatalogPoZoni(greskeZaDeo.gr, greskeZaDeo.df, voziloZona, zone);
+    }
+    return izVoziloKat;
+  }, [voziloMode, voziloZona, voziloKatalogRows, deoInfo, greskeZaDeo]);
 
   const greskeZaUnos = voziloMode ? voziloKatPoZoni.gr : greskeZaDeo.gr;
   const defektiZaUnos = voziloMode ? voziloKatPoZoni.df : greskeZaDeo.df;
+  const zoneZaUnos = useMemo(() => zoneZaDeo(deoInfo), [deoInfo]);
+  const naslovZonaUnos = useMemo(() => naslovZonaZaDeo(deoInfo), [deoInfo]);
 
   useEffect(() => {
     if (!koristiDefekte) setDefekt("");
@@ -497,21 +498,29 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     prethodniPrekid.current = prekidOdobrenId;
   }, [prekidOdobrenId, addToast]);
 
+  const [prekidiRtOk, setPrekidiRtOk] = useState(false);
+  const prekidHandlerRef = useRef(null);
+  prekidHandlerRef.current = proveriPrekid;
+
   useEffect(() => {
     if (!korisnik?.radnikId) return;
     const ch = supabase.channel("prekidi_kontrolor")
       .on("postgres_changes", { event: "*", schema: "public", table: "prekidi_zahtevi" },
-        () => proveriPrekid())
-      .subscribe();
-    return () => supabase.removeChannel(ch);
-  }, [korisnik?.radnikId, proveriPrekid]);
+        () => prekidHandlerRef.current?.())
+      .subscribe((status) => setPrekidiRtOk(status === "SUBSCRIBED"));
+    return () => {
+      setPrekidiRtOk(false);
+      supabase.removeChannel(ch);
+    };
+  }, [korisnik?.radnikId]);
 
-  /** Ako realtime ne stigne, povremeno proveri odobrenje dok serija nije završena. */
+  /** Rezerva ako realtime ne radi. Kad je pretplata živa, retko; inače na 4 s. */
   useEffect(() => {
     if (!idDeo || idDeo.length < 3 || preostalo <= 0 || prekidOdobrenId) return;
-    const t = setInterval(() => proveriPrekid(), 4000);
+    const razmak = prekidiRtOk ? 30000 : 4000;
+    const t = setInterval(() => prekidHandlerRef.current?.(), razmak);
     return () => clearInterval(t);
-  }, [idDeo, preostalo, prekidOdobrenId, proveriPrekid]);
+  }, [idDeo, preostalo, prekidOdobrenId, prekidiRtOk]);
 
   useEffect(() => {
     const osvezi = () => {
@@ -529,7 +538,6 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   useEffect(() => {
     let cancelled = false;
     let focusTimer = null;
-    let ch = null;
 
     (async () => {
       try {
@@ -562,16 +570,9 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       }
     })();
 
-    ch = supabase.channel("spc_rt")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" }, (payload) => {
-        const r = payload.new;
-        if (r.status === "NOK") addToast(`🔴 NOK: ${r.id_deo} — ${r.greska_naziv} ×${r.nok_kolicina}`, "greska");
-      }).subscribe();
-
     return () => {
       cancelled = true;
       if (focusTimer) clearTimeout(focusTimer);
-      if (ch) supabase.removeChannel(ch);
     };
   }, []);
 
@@ -611,7 +612,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     let ok = true;
     proveriAktivanKarantin(supabase, { idDeo, radniNalog })
       .then((r) => { if (ok) setKarantinInfo(r); })
-      .catch(() => { if (ok) setKarantinInfo(null); });
+      .catch((e) => { if (ok) setKarantinInfo(karantinNeuspeh(e)); });
     return () => { ok = false; };
   }, [idDeo, radniNalog]);
 
@@ -622,16 +623,32 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     }
     proveriAktivanKarantin(supabase, { idDeo, radniNalog })
       .then(setKarantinInfo)
-      .catch(() => setKarantinInfo(null));
+      .catch((e) => setKarantinInfo(karantinNeuspeh(e)));
   }, [idDeo, radniNalog]);
 
+  // Jedan kanal umesto dva (spc_rt + spc_smena_rt), filtriran po smeni na serveru:
+  // ranije je svaki tablet primao svaki INSERT u kontrolni_log iz celog pogona.
+  // Callback-ovi idu kroz ref da promena smenske statistike ne obara pretplatu.
+  const rtHandlerRef = useRef(null);
+  rtHandlerRef.current = (red) => {
+    if (red?.status === "NOK") {
+      addToast(`🔴 NOK: ${red.id_deo} — ${red.greska_naziv} ×${red.nok_kolicina}`, "greska");
+    }
+    osveziSmenaStat();
+  };
+
   useEffect(() => {
-    const ch = supabase.channel("spc_smena_rt")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "kontrolni_log" },
-        () => osveziSmenaStat())
+    const sm = Number(smena);
+    if (!Number.isFinite(sm)) return;
+    const ch = supabase.channel(`kontrolni_log_rt_s${sm}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "kontrolni_log", filter: `smena=eq.${sm}` },
+        (payload) => rtHandlerRef.current?.(payload.new),
+      )
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, [osveziSmenaStat]);
+  }, [smena]);
 
   useEffect(() => {
     if (idDeo.length < 3) return;
@@ -848,7 +865,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       setDeoInfo(null);setUpoz("");setPogonKod("");setPorukaPogon("");
       prethodniIdAtr.current="";
     }
-  },[idDeo,sviDelovi,atributivniPogoni,naloziZaPogon,korisnik?.uloga,rezimRada,ucitajRnZaDeo,pogonKod]); // eslint-disable-line
+  },[idDeo,sviDelovi,atributivniPogoni,naloziZaPogon,korisnik?.uloga,rezimRada,ucitajRnZaDeo,pogonKod]);  
 
   const dodajGresku=()=>{
     if(!deoInfo){setModal({poruka:"ID dela nije pronađen!",tip:"greska"});return;}
@@ -967,7 +984,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     const staviUOfflineRed = (razlog) => {
       addAtributivneBatch({ logRows: redovi, kpi: kpiPayload, sesija_id });
       addToast(`📶 ${razlog}: paket u redu (${redovi.length} stavki + KPI)`,"info");
-      setListaP([]);setListaG([]);noviNalog();
+      setListaP([]);setListaG([]);ocistiNacrt();noviNalog();
     };
     try{
       if(!online){
@@ -1046,7 +1063,14 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             await osveziSpcAlarm();
             addToast("📢 Obaveštenje poslato inženjeru/adminu (visok NOK)", "info");
           }
-        } catch { /* */ }
+        } catch (e) {
+          // Ranije se gutalo — inženjer nije saznao za visok NOK, a operater nije znao da alarm nije otišao.
+          console.error("[GlavnaForma] NOK alarm nije kreiran", e);
+          addToast(
+            `⚠ Visok NOK, ali alarm nije poslat (${e?.message || "greška"}) — javi kvalitetu ručno`,
+            "greska",
+          );
+        }
       }
       try {
         await posleSnimanjaAtributivne(supabase, {
@@ -1081,6 +1105,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       }
       setListaP([]);
       setListaG([]);
+      ocistiNacrt();
       setModal({poruka:`✓ Sačuvano ${redovi.length} stavki u bazu!`,tip:"uspeh",
         onOK:()=>{setModal(null);noviNalog();}});
     }catch(e){
@@ -1270,29 +1295,17 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
 
   if (trebaCekListaAtr) {
     return (
-      <div style={{
-        minHeight: "100dvh",
-        background: C.bg,
-        fontFamily: "'IBM Plex Mono', monospace",
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        <AppHeader
-          korisnik={korisnik}
-          onOdjava={odjava}
-          onNazad={onNazad}
-          C={C}
-          onToggleTema={() => setC(p => p.naziv === "tamna" ? TEME.svetla : TEME.tamna)}
-          temaTamna={C.naziv === "tamna"}
-        />
-        <KontrolnaLista
-          korisnik={korisnik}
-          smena={Number(smena)}
-          naslovModul="Atributivne"
-          onZavrsena={zavrsiKontrolnuListu}
-          C={C}
-        />
-      </div>
+      <KontrolnaListaGate
+        C={C}
+        korisnik={korisnik}
+        onOdjava={odjava}
+        onNazad={onNazad}
+        onToggleTema={() => setC(p => p.naziv === "tamna" ? TEME.svetla : TEME.tamna)}
+        temaTamna={C.naziv === "tamna"}
+        smena={smena}
+        naslovModul="Atributivne"
+        onZavrsena={zavrsiKontrolnuListu}
+      />
     );
   }
 
@@ -1349,7 +1362,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         />
       )}
 
-      {jeLinija && karantinInfo?.aktivan && (
+      {jeLinija && (karantinInfo?.aktivan || karantinInfo?.neproveren) && (
         <KarantinBlokada
           C={C}
           karantin={karantinInfo}
@@ -1381,165 +1394,83 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         onToggleTema={() => setC(p => p.naziv === "tamna" ? TEME.svetla : TEME.tamna)}
         temaTamna={C.naziv === "tamna"}
         desnoExtra={(
-          <>
-            <button
-              type="button"
-              onClick={() => setKpiHubOtvoren(true)}
-              title="KPI dorada i škart po ID delu"
-              style={{
-                background: `${C.zelena}22`,
-                border: `1px solid ${C.zelena}`,
-                borderRadius: 5,
-                color: C.zelena,
-                fontSize: 8,
-                padding: "1px 6px",
-                cursor: "pointer",
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              {(ekran.mob || ekran.tablet) ? "KPI" : "KPI dorada"}
-            </button>
-            {jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga) && (
-              <button
-                type="button"
-                data-testid="ncr-linija-dugme"
-                onClick={otvoriNcrSaLinije}
-                title="Otvori NCR obrazac sa podacima sa linije"
-                style={{
-                  background: `${C.crvena}22`,
-                  border: `1px solid ${C.crvena}`,
-                  borderRadius: 5,
-                  color: C.crvena,
-                  fontSize: 8,
-                  padding: "1px 6px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                NCR
-              </button>
-            )}
+          <LinijaHeaderAkcije
+            C={C}
+            kompakt={ekran.mob || ekran.tablet}
+            jeLinija={jeLinija}
+            onKpi={() => setKpiHubOtvoren(true)}
+            ncr={jeLinija && tab === "unos" && mozeNcrUnosLinija(korisnik?.uloga)
+              ? { onClick: otvoriNcrSaLinije }
+              : null}
+            onPromeniRezim={mozePrebacivanjeRezimaUTacci(korisnik.uloga) ? onPromeniRezim : null}
+          >
             {jeLinija && koristiMobLinija && mozeTabAtributivne("log", korisnik.uloga, rezimRada) && (
-              <button
-                type="button"
+              <LinijaHeaderChip
+                C={C}
+                boja={C.plava}
+                aktivan={tab === "log"}
                 onClick={() => setTab(tab === "log" ? "unos" : "log")}
-                style={{
-                  background: tab === "log" ? `${C.plava}22` : C.hover,
-                  border: `1px solid ${tab === "log" ? C.plava : C.border}`,
-                  borderRadius: 5, color: tab === "log" ? C.plava : C.sivi,
-                  fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                }}
+                stil={{ padding: "1px 5px" }}
               >
                 {tab === "log" ? "←" : "LOG"}
-              </button>
+              </LinijaHeaderChip>
             )}
             {jeLinija && koristiMobLinija && mozeTabAtributivne("prijemna", korisnik.uloga, rezimRada) && (
-              <button
-                type="button"
+              <LinijaHeaderChip
+                C={C}
+                boja={C.plava}
+                aktivan={tab === "prijemna"}
                 onClick={() => setTab(tab === "prijemna" ? "unos" : "prijemna")}
                 title="Prijemna kontrola dobavljača"
-                style={{
-                  background: tab === "prijemna" ? `${C.plava}22` : C.hover,
-                  border: `1px solid ${tab === "prijemna" ? C.plava : C.border}`,
-                  borderRadius: 5, color: tab === "prijemna" ? C.plava : C.sivi,
-                  fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                }}
+                stil={{ padding: "1px 5px" }}
               >
                 {tab === "prijemna" ? "←" : "PRIJEM"}
-              </button>
+              </LinijaHeaderChip>
             )}
             {jeLinija && koristiMobLinija && mozeTabAtributivne("povezi-prijem", korisnik.uloga, rezimRada) && (
-              <button
-                type="button"
+              <LinijaHeaderChip
+                C={C}
+                boja={C.plava}
+                aktivan={tab === "povezi-prijem"}
                 onClick={() => setTab(tab === "povezi-prijem" ? "unos" : "povezi-prijem")}
                 title="Poveži merenja sa prijemom dobavljača"
-                style={{
-                  background: tab === "povezi-prijem" ? `${C.plava}22` : C.hover,
-                  border: `1px solid ${tab === "povezi-prijem" ? C.plava : C.border}`,
-                  borderRadius: 5, color: tab === "povezi-prijem" ? C.plava : C.sivi,
-                  fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                }}
+                stil={{ padding: "1px 5px" }}
               >
                 {tab === "povezi-prijem" ? "←" : "POVEŽI"}
-              </button>
+              </LinijaHeaderChip>
             )}
-            {mozePrebacivanjeRezimaUTacci(korisnik.uloga) && typeof onPromeniRezim === "function" && (
-              <button
-                type="button"
-                onClick={() => onPromeniRezim(jeLinija ? "analitika" : "linija")}
-                title={jeLinija ? "Modul 2 — Analitika" : "Modul 1 — Unos"}
-                style={{
-                  background: jeLinija ? `${C.zelena}22` : `${C.plava}22`,
-                  border: `1px solid ${jeLinija ? C.zelena : C.plava}`,
-                  borderRadius: 5, color: jeLinija ? C.zelena : C.plava,
-                  fontSize: 8, padding: "1px 5px", cursor: "pointer", fontWeight: 700, flexShrink: 0,
-                }}
-              >
-                {(ekran.mob || ekran.tablet) ? (jeLinija ? "📊" : "🏭") : (jeLinija ? "📊 Modul 2 — Analitika" : "🏭 Modul 1 — Unos")}
-              </button>
-            )}
-          </>
+          </LinijaHeaderAkcije>
         )}
         trakaIspod={ekran.telefon ? null : (
-          jeLinija ? (
-            <ShopFloorStatusBar
-              C={C}
-              online={online}
-              offlineTotal={offlineCounts.total}
-              onSync={() => flushQueue()}
-              digitalniUnos={false}
-              idDeo={idDeo}
-              smena={smena}
-              linija={linijaNaziv || ""}
-              modul="atributivne"
-            />
-          ) : (
-            <ShopFloorStatusBar
-              C={C}
-              online={online}
-              offlineTotal={offlineCounts.total}
-              onSync={() => flushQueue()}
-              digitalniUnos={false}
-              idDeo={idDeo}
-              smena={smena}
-              linija={linijaNaziv || ""}
-              modul="atributivne"
-              kompakt
-              onNavigacija={onNavigacijaAnalitika}
-            />
-          )
+          <ShopFloorStatusBar
+            C={C}
+            online={online}
+            offlineTotal={offlineCounts.total}
+            onSync={() => flushQueue()}
+            digitalniUnos={false}
+            idDeo={idDeo}
+            smena={smena}
+            linija={linijaNaziv || ""}
+            modul="atributivne"
+            kompakt={!jeLinija}
+            onNavigacija={jeLinija ? undefined : onNavigacijaAnalitika}
+          />
         )}
       />
 
       {/* TABOVI — linija: ravna traka; analitika: grupisana navigacija */}
       {(punPristupTabovima || !jeLinija || !ekran.linijaUredjaj) && prikazTabovi?.length > 1 && (
       jeLinija ? (
-      <div style={{
-        display: "flex",
-        borderBottom: `1px solid ${C.border}`,
-        background: C.panel,
-        paddingLeft: (ekran.mob || ekran.tablet) ? 6 : 18,
-        flexWrap: "nowrap",
-        overflowX: (ekran.mob || ekran.tablet) ? "auto" : "visible",
-        WebkitOverflowScrolling: "touch",
-      }}>
-        {TABOVI.map(([id,n])=>(
-          <button key={id} type="button" onClick={()=>setTab(id)} style={{
-            background:"none",border:"none", flexShrink: 0,
-            borderBottom:tab===id?`2px solid ${id==="dashboard"?C.zelena:id==="karte"?C.narandzasta:id==="crtez"?C.ljubicasta:id==="stanje"?C.ljubicasta:id==="admin"?C.zuta:C.plava}`:"2px solid transparent",
-            color:tab===id?(id==="dashboard"?C.zelena:id==="karte"?C.narandzasta:id==="crtez"?C.ljubicasta:id==="stanje"?C.ljubicasta:id==="admin"?C.zuta:C.plava):C.sivi,
-            fontSize:(ekran.mob || ekran.tablet) ? 9 : 10,fontWeight:700,padding:(ekran.mob || ekran.tablet) ? "8px 10px" : "10px 14px",cursor:"pointer",letterSpacing:1}}>
-            {n}
-            {id==="unos"&&listaP.length>0&&<span style={{background:C.plava,color: C.onAkcent,fontSize:8,borderRadius:10,padding:"1px 5px",marginLeft:5}}>{listaP.length}</span>}
-          </button>
-        ))}
-        <div style={{flex:1,minWidth:8}}/>
-        {!(ekran.mob || ekran.tablet) && (
-          <span style={{color:C.sivi,fontSize:9,alignSelf:"center",paddingRight:12,flexShrink:0}}>{dPrikaz()}</span>
-        )}
-      </div>
+      <LinijaTabTraka
+        C={C}
+        tab={tab}
+        onTabChange={setTab}
+        tabovi={TABOVI}
+        kompakt={ekran.mob || ekran.tablet}
+        bojaTaba={(id) => (id === "dashboard" ? C.zelena : id === "karte" ? C.narandzasta : id === "crtez" ? C.ljubicasta : id === "stanje" ? C.ljubicasta : id === "admin" ? C.zuta : C.plava)}
+        badgePoTabu={{ unos: listaP.length }}
+        desnoSlot={!(ekran.mob || ekran.tablet) ? dPrikaz() : null}
+      />
       ) : (
         <>
           <AnalitikaHeader
@@ -1711,6 +1642,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                 Radni nalog
                 <input
                   value={radniNalog}
+                  {...ATRIBUTI_TASTATURE_SIFRA}
                   onChange={e => setRadniNalog(e.target.value.toUpperCase())}
                   placeholder="RN-2026-NM001-B"
                   title={[
@@ -1814,33 +1746,43 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
               </div>
             )}
 
-            {deoInfo && (
+            {deoInfo && !voziloMode && (
               <AtrCrtezPregled
                 slikaNaziv={deoInfo.slika_naziv}
                 idDeo={String(idDeo || "").toUpperCase()}
                 C={C}
                 kompakt
-                visina={Math.round(120 * H)}
+                visina={Math.round((jeLinija ? 280 : 220) * H)}
               />
             )}
 
             {upoz&&<div style={{color:C.crvena,fontSize:Math.round(8*H),padding:`${Math.round(4*H)}px ${Math.round(6*H)}px`,background:C.nok,borderRadius:4,lineHeight:1.3}}>{upoz}</div>}
-            <UnosCiljBanner idDeo={idDeo} listaP={[...listaP,...listaG]} C={C}/>
-            {!jeLinija && (
-            <UnosAqlPanel
-              lotVelicina={lotAql}
-              lotIzvor={lotAqlIzvor}
-              radniNalog={radniNalog}
-              idDeo={idDeo}
-              onLotVelicinaChange={promeniLotAql}
-              onOtvoriAqlTab={mozeTabAtributivne("aql", korisnik.uloga, rezimRada) ? () => setTab("aql") : undefined}
-              listaG={listaG}
-              listaP={listaP}
+            <UnosSesijaBanneri
               C={C}
-              kompakt
-              uskiPanel
-            />
-            )}
+              zaglavljeni={zaglavljeni}
+              onPokusaj={flushQueue}
+              nacrt={vraceniNacrt}
+              opis={nacrtOpis}
+              onVrati={vratiNacrt}
+              onOdbaci={odbaciNacrt}
+            >
+              <UnosCiljBanner idDeo={idDeo} listaP={[...listaP,...listaG]} C={C}/>
+              {!jeLinija && (
+              <UnosAqlPanel
+                lotVelicina={lotAql}
+                lotIzvor={lotAqlIzvor}
+                radniNalog={radniNalog}
+                idDeo={idDeo}
+                onLotVelicinaChange={promeniLotAql}
+                onOtvoriAqlTab={mozeTabAtributivne("aql", korisnik.uloga, rezimRada) ? () => setTab("aql") : undefined}
+                listaG={listaG}
+                listaP={listaP}
+                C={C}
+                kompakt
+                uskiPanel
+              />
+              )}
+            </UnosSesijaBanneri>
 
             <button onClick={noviNalog}
               style={{...BTN(C.hover),border:`1px solid ${C.border}`,color:C.sivi,fontSize:Math.round(8*H),padding:`${Math.round(6*H)}px ${Math.round(4*H)}px`,marginTop:"auto"}}>
@@ -1849,34 +1791,14 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           </div>
 
           {!deoSpreman && (
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: Math.round(24 * H),
-              minHeight: 0,
-              textAlign: "center",
-              gap: Math.round(12 * H),
-              background: C.panel,
-              border: `1px dashed ${C.border}`,
-              borderRadius: 10,
-              margin: Math.round(12 * H),
-            }}>
-              <div style={{ fontSize: Math.round(40 * H), opacity: 0.35, lineHeight: 1 }}>📷</div>
-              <div style={{ color: C.tekst, fontSize: Math.round(14 * H), fontWeight: 700 }}>
-                Unesite ID dela
-              </div>
-              <div style={{ color: C.sivi, fontSize: Math.round(11 * H), lineHeight: 1.55, maxWidth: 360 }}>
-                Skenirajte barkod ili unesite šifru u levi panel (npr. 5501-A), zatim Enter.
-                Posle učitavanja sledi POKA-YOKE provera, pa OK/NOK unos.
-              </div>
-              {trebaIzborPogona && (
-                <div style={{ color: C.zuta, fontSize: Math.round(10 * H), maxWidth: 360 }}>
-                  Za ovaj deo prvo izaberite pogon (A–H) u levom panelu.
-                </div>
-              )}
-            </div>
+            <IdUnosEmptyState
+              C={C}
+              H={H}
+              opis="Skenirajte barkod ili unesite šifru u levi panel (npr. 5501-A), zatim Enter. Posle učitavanja sledi POKA-YOKE provera, pa OK/NOK unos."
+              upozorenjePogon={trebaIzborPogona
+                ? "Za ovaj deo prvo izaberite pogon (A–H) u levom panelu."
+                : null}
+            />
           )}
 
           {deoSpreman && unosKorakAtr !== "forma" && (
@@ -1954,6 +1876,8 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                 diagramLoading={voziloDijagramUcitava}
                 velicina="veliki"
                 C={C}
+                zone={zoneZaUnos}
+                naslov={naslovZonaUnos}
               />
             </div>
           )}
@@ -2130,12 +2054,12 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
               ))}
             </div>
 
-            {!online&&offlineCounts.total>0&&(
-              <div style={{background:"#3d2c00",border:`1px solid ${C.zuta}30`,borderRadius:5,
-                padding:"7px 10px",fontSize:10,color:C.zuta}}>
-                📶 {offlineCounts.total} paketa u offline redu ({offlineCounts.stavki} stavki)
-              </div>
-            )}
+            <OfflinePendingChip
+              C={C}
+              online={online}
+              total={offlineCounts.total}
+              stavki={offlineCounts.stavki}
+            />
 
             {preostalo>0 && prekidOdobrenId && (
               <div style={{background:C.ok,border:`1px solid ${C.zelena}`,borderRadius:6,
@@ -2153,14 +2077,16 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             )}
 
             {listaP.length > 0 && (
-              <SkartDoradaOeePanel
-                C={C}
-                kompakt
-                modul="atributivne"
-                vrednosti={kpiSerija}
-                onChange={setKpiSerija}
-                podnaslov="Uz Zapiši u bazu (OK/NOK komadi, ne serije)"
-              />
+              <Suspense fallback={<TabUcitavanje C={C} />}>
+                <SkartDoradaOeePanel
+                  C={C}
+                  kompakt
+                  modul="atributivne"
+                  vrednosti={kpiSerija}
+                  onChange={setKpiSerija}
+                  podnaslov="Uz Zapiši u bazu (OK/NOK komadi, ne serije)"
+                />
+              </Suspense>
             )}
           </div>
           </>
@@ -2168,6 +2094,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         </div>
       )}
 
+      <Suspense fallback={<TabUcitavanje C={C} />}>
       {/* ══ CRTEŽ ══ */}
       {tab==="crtez"&&(
         <div style={{height:"calc(100vh - 89px)"}}>
@@ -2564,6 +2491,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           />
         </div>
       )}
+      </Suspense>
     </div>
 
     <NcrObrazacLinijaOverlay

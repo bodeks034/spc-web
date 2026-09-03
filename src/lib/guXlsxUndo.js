@@ -1,13 +1,14 @@
-/** Snapshot GU redova pre XLSX importa — sessionStorage undo (TTL 2h). */
+/** Snapshot GU redova — sessionStorage undo (TTL 2h): XLSX import ili snimanje. */
 
 const KEY = "spc_gu_xlsx_undo";
 export const GU_UNDO_TTL_MS = 2 * 60 * 60 * 1000;
 
-export function sacuvajGuUndoSnapshot({ poSheetu, imeFajla }) {
+export function sacuvajGuUndoSnapshot({ poSheetu, imeFajla, razlog = "xlsx" } = {}) {
   try {
     const payload = {
       ts: Date.now(),
       imeFajla: imeFajla || "",
+      razlog: razlog === "snimanje" ? "snimanje" : "xlsx",
       poSheetu,
     };
     sessionStorage.setItem(KEY, JSON.stringify(payload));
@@ -41,6 +42,10 @@ export function formatUndoPreostalo(ms) {
   const min = Math.ceil(ms / 60000);
   if (min >= 60) return `${Math.floor(min / 60)}h ${min % 60}min`;
   return `${min} min`;
+}
+
+export function labelGuUndo(snapshot) {
+  return snapshot?.razlog === "snimanje" ? "↩ Undo snimanje" : "↩ Undo import";
 }
 
 export function obrisiGuUndoSnapshot() {

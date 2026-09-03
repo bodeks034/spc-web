@@ -183,8 +183,33 @@ function ZonaLegenda({ zona, aktivan, onClick, jasanOverlay = false }) {
 }
 
 function ZonaHotspot({ zona, aktivan, onClick, jasanOverlay = false }) {
-  const { hotspot, boja, kratko } = zona;
-  const r = hotspot.r + (jasanOverlay ? 3 : 0) + (aktivan ? 3 : 0);
+  const { hotspot, boja, kratko, prsten } = zona;
+  const r = prsten
+    ? hotspot.r + (aktivan ? 4 : 0)
+    : hotspot.r + (jasanOverlay ? 3 : 0) + (aktivan ? 3 : 0);
+
+  // Dijagram već ima ucrtan broj zone — crtamo samo obruč oko njega.
+  if (prsten) {
+    return (
+      <g
+        role="button"
+        tabIndex={0}
+        aria-label={zona.naziv}
+        aria-pressed={aktivan}
+        onClick={() => onClick(zona.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick(zona.id);
+          }
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <circle cx={hotspot.cx} cy={hotspot.cy} r={r} fill="transparent" stroke="#fff" strokeWidth={aktivan ? 5 : 3.5} opacity={0.75} />
+        <circle cx={hotspot.cx} cy={hotspot.cy} r={r} fill="transparent" stroke={boja} strokeWidth={aktivan ? 2.6 : 1.6} opacity={aktivan ? 1 : 0.7} />
+      </g>
+    );
+  }
 
   return (
     <g
@@ -238,7 +263,7 @@ function ZonaHotspot({ zona, aktivan, onClick, jasanOverlay = false }) {
   );
 }
 
-function ZonaChips({ izabranaZona, onZonaChange, C }) {
+function ZonaChips({ izabranaZona, onZonaChange, C, zone = VOZILO_ZONE }) {
   return (
     <div style={{
       display: "flex",
@@ -248,7 +273,7 @@ function ZonaChips({ izabranaZona, onZonaChange, C }) {
       borderTop: `1px solid ${C?.border || "#333"}`,
       background: C?.panel || "#1a1a2e",
     }}>
-      {VOZILO_ZONE.map(z => {
+      {zone.map(z => {
         const aktivan = izabranaZona === z.id;
         return (
           <button
@@ -293,7 +318,11 @@ export default function VoziloZonaNav({
   veliki = false,
   velicina,
   C,
+  zone = VOZILO_ZONE,
+  naslov = null,
 }) {
+  const zoneLista = zone?.length ? zone : VOZILO_ZONE;
+  const naslovTxt = naslov || "KONTROLA CELOG VOZILA — izaberi zonu";
   const size = velicina || (veliki ? "veliki" : kompakt ? "kompakt" : "default");
   const isVeliki = size === "veliki";
   const isKompakt = size === "kompakt";
@@ -334,11 +363,11 @@ export default function VoziloZonaNav({
           fontWeight: 700,
           letterSpacing: 0.6,
         }}>
-          {isVeliki ? "🚗 KONTROLA CELOG VOZILA — izaberi zonu" : "ZONA KONTROLE"}
+          {isVeliki ? naslovTxt : "ZONA KONTROLE"}
         </span>
         {izabranaZona ? (
           <span style={{ color: sivi, fontSize: isVeliki ? 11 : isKompakt ? 9 : 10 }}>
-            {VOZILO_ZONE.find(z => z.id === izabranaZona)?.naziv}
+            {zoneLista.find(z => z.id === izabranaZona)?.naziv}
           </span>
         ) : (
           <span style={{ color: sivi, fontSize: isVeliki ? 11 : isKompakt ? 9 : 10 }}>
@@ -431,7 +460,7 @@ export default function VoziloZonaNav({
             </g>
           )}
 
-          {VOZILO_ZONE.map(z => {
+          {zoneLista.map(z => {
             const aktivna = izabranaZona === z.id;
             const x1 = z.legenda.strana === "levo" ? z.legenda.x + z.legenda.w : z.legenda.x;
             const y1 = z.legenda.y + z.legenda.h / 2;
@@ -469,7 +498,7 @@ export default function VoziloZonaNav({
             );
           })}
 
-          {VOZILO_ZONE.map(z => (
+          {zoneLista.map(z => (
             <ZonaHotspot
               key={`hs-${z.id}`}
               zona={z}
@@ -479,7 +508,7 @@ export default function VoziloZonaNav({
             />
           ))}
 
-          {VOZILO_ZONE.map(z => (
+          {zoneLista.map(z => (
             <ZonaLegenda
               key={`lg-${z.id}`}
               zona={z}
@@ -489,15 +518,17 @@ export default function VoziloZonaNav({
             />
           ))}
 
-          <text x={340} y={30} textAnchor="middle" fill="#3d3d3a" fontSize={isVeliki ? 15 : 13} fontWeight={500}>
-            Kontrola kvaliteta — celo vozilo
-          </text>
+          {!isPhoto && (
+            <text x={340} y={30} textAnchor="middle" fill="#3d3d3a" fontSize={isVeliki ? 15 : 13} fontWeight={500}>
+              Kontrola kvaliteta — celo vozilo
+            </text>
+          )}
         </svg>
         </div>
       </div>
 
       {isVeliki && (
-        <ZonaChips izabranaZona={izabranaZona} onZonaChange={onZonaChange} C={C} />
+        <ZonaChips izabranaZona={izabranaZona} onZonaChange={onZonaChange} C={C} zone={zoneLista} />
       )}
     </div>
   );

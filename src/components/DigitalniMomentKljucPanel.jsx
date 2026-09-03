@@ -13,6 +13,19 @@ import { MOMENT_VENDOR_NAZIV } from "../lib/momentKljuc.js";
 import { PRIKAZ_EKRANA_KLJUCA } from "../lib/momentDijagramHotspot.js";
 import { lokalnaPutanjaMomentDijagram } from "../lib/crtezAssets.js";
 
+function safeLocalGet(key, fallback = "") {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+function safeLocalSet(key, val) {
+  try {
+    localStorage.setItem(key, val);
+  } catch { /* private mode / quota */ }
+}
+
 export default function DigitalniMomentKljucPanel({
   C,
   addToast,
@@ -30,8 +43,8 @@ export default function DigitalniMomentKljucPanel({
   const [sakrijPanel, setSakrijPanel] = useState(suzi);
   const [nacin, setNacin] = useState(() => (kompakt ? "uvoz" : "serial"));
   const [baud, setBaud] = useState(9600);
-  const [wifiUrl, setWifiUrl] = useState(() => localStorage.getItem("moment_wifi_url") || "http://192.168.1.50:8080/torque");
-  const [wifiWsUrl, setWifiWsUrl] = useState(() => localStorage.getItem("moment_wifi_ws") || "ws://192.168.1.50:8080/stream");
+  const [wifiUrl, setWifiUrl] = useState(() => safeLocalGet("moment_wifi_url", "http://192.168.1.50:8080/torque"));
+  const [wifiWsUrl, setWifiWsUrl] = useState(() => safeLocalGet("moment_wifi_ws", "ws://192.168.1.50:8080/stream"));
   const [povezan, setPovezan] = useState(false);
   const [statusTekst, setStatusTekst] = useState("");
   const [paste, setPaste] = useState("");
@@ -97,7 +110,7 @@ export default function DigitalniMomentKljucPanel({
           vendorProfil: vendor,
         });
       } else if (nacin === "wifi") {
-        localStorage.setItem("moment_wifi_url", wifiUrl);
+        safeLocalSet("moment_wifi_url", wifiUrl);
         setPovezan(true);
         onPovezanChange?.(true, "wifi");
         stopWifiRef.current = pokreniWifiPollingMomentKljuc({
@@ -110,7 +123,7 @@ export default function DigitalniMomentKljucPanel({
         });
         return;
       } else if (nacin === "wifi_ws") {
-        localStorage.setItem("moment_wifi_ws", wifiWsUrl);
+        safeLocalSet("moment_wifi_ws", wifiWsUrl);
         setPovezan(true);
         onPovezanChange?.(true, "wifi_ws");
         stopWifiRef.current = pokreniWifiWebSocketMomentKljuc({
@@ -297,7 +310,7 @@ export default function DigitalniMomentKljucPanel({
             alt="Prikaz ekrana digitalnog ključa"
             style={{ width: "100%", borderRadius: 6, border: `1px solid ${C.border}` }}
           />
-          <div style={{ color: C.sivi, fontSize: 8, marginTop: 6, lineHeight: 1.4 }}>
+          <div style={{ color: C.sivi, fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
             JOB + korak, cilj/ostvareno Nm, traka tolerancije, OK/NOK signal. Kod NOK ključ ne dozvoljava sledeći korak (VSK/KSK).
           </div>
         </div>

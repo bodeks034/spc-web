@@ -7,6 +7,7 @@ import {
   pendingFromLista, mergeSmenaStat, fetchAktuelniCilj, fetchDeoStatDanas, nokPoAqlKlasi,
 } from "../../lib/spcStats.js";
 import { LAB_FPY_CILJ, LAB_FPY_KRATKO } from "../../lib/rtyFpy.js";
+import { snimiAqlLotVelicina } from "../../lib/aqlIso2859.js";
 import { fetchKpiUnos, agregirajKpiUnos } from "../../lib/kpiUnos.js";
 import { dISO } from "../../lib/atributivneUnosHelper.js";
 import { supabase } from "../../lib/supabaseClient.js";
@@ -141,7 +142,7 @@ function UnosAqlPanel({
 
   const lotPolje = lotReadonly ? (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>LOT</span>
+      <span style={{ color: C.sivi, fontSize: 10, letterSpacing: 0.8 }}>LOT</span>
       <div style={{
         ...inpAql,
         background: C.panel,
@@ -156,7 +157,7 @@ function UnosAqlPanel({
     </div>
   ) : (
     <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <span style={{ color: C.sivi, fontSize: 8, letterSpacing: 0.8 }}>LOT</span>
+      <span style={{ color: C.sivi, fontSize: 10, letterSpacing: 0.8 }}>LOT</span>
       <input
         type="number"
         min={2}

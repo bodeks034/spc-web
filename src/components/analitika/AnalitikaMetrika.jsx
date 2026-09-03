@@ -1,11 +1,17 @@
+import Sparkline from "./Sparkline.jsx";
+
 /** Kompaktna metrika — zajednički stil za SPC snapshot i KPI pregled. */
-export function AnalitikaMetrika({ label, value, boja, C, onClick, title, sub, uRedu = false, spcVece = false }) {
+export function AnalitikaMetrika({ label, value, boja, C, onClick, title, sub, uRedu = false, spcVece = false, trend = null, delta = null }) {
   const klik = typeof onClick === "function";
   const Tag = klik ? "button" : "div";
+  const opis = [label, value, sub, delta != null ? `promena ${delta > 0 ? "+" : ""}${delta}` : null]
+    .filter(Boolean)
+    .join(", ");
   return (
     <Tag
       type={klik ? "button" : undefined}
       onClick={onClick}
+      aria-label={opis}
       title={title || (sub ? `${label}: ${value} · ${sub}` : undefined)}
       style={{
         background: C.bg,
@@ -46,6 +52,21 @@ export function AnalitikaMetrika({ label, value, boja, C, onClick, title, sub, u
       }}>
         {value ?? "—"}
       </div>
+      {trend?.length > 1 && (
+        <div style={{ marginTop: 3 }} aria-hidden="true">
+          <Sparkline tacke={trend} boja={boja || C.tekst} sirina={spcVece ? 64 : 48} visina={14} />
+        </div>
+      )}
+      {delta != null && delta !== 0 && (
+        <div style={{
+          color: delta > 0 ? C.zelena : C.crvena,
+          fontSize: 7,
+          marginTop: 2,
+          fontVariantNumeric: "tabular-nums",
+        }}>
+          {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
+        </div>
+      )}
       {sub && (
         <div style={{
           color: C.border,

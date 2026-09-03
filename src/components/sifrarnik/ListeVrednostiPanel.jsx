@@ -68,10 +68,10 @@ export default function ListeVrednostiPanel({ C, addToast }) {
       <div style={{ color: C.sivi, fontSize: 10, marginBottom: 12, lineHeight: 1.55 }}>
         <strong style={{ color: C.tekst }}>Kako dopunjavati dropdown liste</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-          <li><strong>Karakteristike, reakcioni plan, instrument, jedinica</strong> — dodaj ovde ili pokreni migraciju <code>41_sifrarnik_liste.sql</code> (seed iz Excela).</li>
+          <li><strong>Karakteristike, reakcioni plan, instrument, jedinica</strong> — dodaj ovde (npr. <em>Metar</em>, <em>Šubler</em>). U Glavnom unosu možeš i samo da <strong>upišeš</strong> novu vrednost.</li>
           <li><strong>Klasa</strong> — fiksno: {KLASE_FIKSNE.join(", ")} (AQL).</li>
           <li><strong>Tip</strong> — fiksno: {TIPOVI_FIKSNI.join(", ")}.</li>
-          <li><strong>Linija + operacija</strong> — povezane u tabu <em>Linije</em> (sheet <code>linije</code> u SPC_atributivne.xlsx). Operacija se filtrira po izabranoj liniji.</li>
+          <li><strong>Linija + operacija</strong> — tab <em>Linije</em>: novi red sa istom linijom (npr. Preseraj) + nova operacija. Operacija se filtrira po izabranoj liniji; u Glavnom unosu možeš i da <strong>upišeš</strong> novu.</li>
           <li><strong>Pogon (slovo — linija)</strong> — tab <em>Pogon mapa</em> (npr. A = Ulazna kontrola, B = Preseraj).</li>
           <li><strong>Mašina</strong> — tab <em>Mašine</em>; filtrira se po liniji u formi glavnog unosa.</li>
           <li>Nove dimenzije iz <em>Glavni unos</em> automatski ulaze u listu posle čuvanja reda.</li>

@@ -187,8 +187,8 @@ export default function GlavniUnosGrupnaForma({
         />
       );
     }
-    if (col.type === "tip" || col.type === "klasa" || col.type === "jedinica" || col.type === "instrument") {
-      const lista = opcije[col.type === "tip" ? "tip" : col.type === "klasa" ? "klasa" : col.type === "jedinica" ? "jedinica" : "instrument"] || [];
+    if (col.type === "tip" || col.type === "klasa" || col.type === "jedinica") {
+      const lista = opcije[col.type] || [];
       return (
         <select value={v} onChange={(e) => onCh(e.target.value)} style={{ ...cellInp, cursor: "pointer" }}>
           <option value="">—</option>
@@ -198,6 +198,27 @@ export default function GlavniUnosGrupnaForma({
             return <option key={String(val)} value={String(val)}>{lab}</option>;
           })}
         </select>
+      );
+    }
+    if (col.type === "instrument") {
+      const lista = opcije.instrument || [];
+      const listId = `gu-instrument-${idx}`;
+      return (
+        <>
+          <input
+            list={listId}
+            value={v}
+            onChange={(e) => onCh(e.target.value)}
+            placeholder="Metar…"
+            style={cellInp}
+          />
+          <datalist id={listId}>
+            {lista.map((o) => {
+              const val = typeof o === "object" ? o.value : o;
+              return <option key={String(val)} value={String(val)} />;
+            })}
+          </datalist>
+        </>
       );
     }
     if (col.type === "number") {
@@ -318,7 +339,7 @@ export default function GlavniUnosGrupnaForma({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ color: C.tekst, fontSize: 12, fontWeight: 700 }}>
-            {finalVozilo ? "Grupni unos — celo vozilo" : "Grupni unos — komponenta (deo)"}
+            {finalVozilo ? "Grupni unos — final linije (vozilo/proizvod)" : "Grupni unos — komponenta (deo)"}
           </div>
           <div style={{ color: C.sivi, fontSize: 10, marginTop: 4, lineHeight: 1.45, maxWidth: 560 }}>
             {finalVozilo ? (

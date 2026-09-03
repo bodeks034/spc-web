@@ -4,7 +4,7 @@ import { SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
 import { bannerDismissed, dismissNastaviBanner } from "../../lib/sifrarnikBanner.js";
 
 /** Banner na vrhu Modula 0 — prvi delimični deo i sledeći korak checkliste. */
-export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false }) {
+export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false, radnaLinija = "", kompakt = false }) {
   const [stavka, setStavka] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sakriveno, setSakriveno] = useState(() => bannerDismissed());
@@ -13,14 +13,17 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
   const osvezi = useCallback(async () => {
     setLoading(true);
     try {
-      setStavka(await fetchNastaviChecklist({ preskociIdDeo: preskociRef.current }));
+      setStavka(await fetchNastaviChecklist({
+        preskociIdDeo: preskociRef.current,
+        linijaKod: radnaLinija || null,
+      }));
     } catch {
       setStavka(null);
     } finally {
       preskociRef.current = null;
       setLoading(false);
     }
-  }, []);
+  }, [radnaLinija]);
 
   useEffect(() => { osvezi(); }, [osvezi]);
 
@@ -44,10 +47,11 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
     <div
       data-testid="sifrarnik-nastavi-banner"
       style={{
-        marginBottom: 10,
-        padding: "10px 12px",
+        marginBottom: kompakt ? 0 : 10,
+        padding: kompakt ? "6px 10px" : "10px 12px",
         borderRadius: 8,
         flexShrink: 0,
+        flex: kompakt ? "1 1 240px" : undefined,
         border: `1px solid ${C.narandzasta || "#f59e0b"}55`,
         background: `${C.narandzasta || "#f59e0b"}12`,
         color: C.tekst,
@@ -61,7 +65,7 @@ export default function SifrarnikNastaviBanner({ C, onNavigate, skriveno = false
       }}
     >
       <div>
-        <strong>Nastavi checklist</strong>
+        <strong>Nastavi{radnaLinija ? ` · ${radnaLinija}` : ""}</strong>
         {ukupnoDelimicnih > 0 && (
           <span
             data-testid="sifrarnik-nastavi-queue"

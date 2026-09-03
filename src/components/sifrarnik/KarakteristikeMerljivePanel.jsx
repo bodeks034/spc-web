@@ -14,6 +14,7 @@ import { ucitajRevizije } from "../../lib/karakteristikeRevizija.js";
 import { fetchPfmeaCpZaDeo } from "../../lib/sifrarnikPfmeaLink.js";
 import { sacuvajPfmeaNav } from "../../lib/workflowAkcije.js";
 import { supabase } from "../../lib/supabaseClient.js";
+import { normalizujIdDeo } from "../../lib/idDeoUtil.js";
 
 const KAR_FIELD_META = {
   pogon_kod: { type: "pogon" },

@@ -1,4 +1,4 @@
-import { filtrirajVoziloRedove } from "./voziloZoneConfig.js";
+import { filtrirajVoziloRedove, zoneZaDeo } from "./voziloZoneConfig.js";
 
 /** @typedef {{ id_deo?: string, greska_katalog_id?: string, vozilo_katalog_id?: string, tip_kontrole?: string, pogon_kod?: string }} DeoInfo */
 
@@ -145,8 +145,9 @@ export function filtrirajKatalogVozilaPoDelu(rows, deo) {
   return legacy.length ? legacy : all;
 }
 
-/** Zona dijagrama + model. */
+/** Zona dijagrama + model (auto ili vrata). */
 export function filtrirajKatalogVozilaZaUnos(rows, deo, zonaId) {
   const poModelu = filtrirajKatalogVozilaPoDelu(rows, deo);
-  return filtrirajVoziloRedove(poModelu, zonaId);
+  const zone = zoneZaDeo(deo);
+  return filtrirajVoziloRedove(poModelu, zonaId, zone);
 }

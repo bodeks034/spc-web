@@ -10,7 +10,7 @@ import {
 import { useEkran } from "../../layout/useEkran.js";
 import { obavestiPromenuStatusaSifrarnika } from "../../lib/sifrarnikStatusEvent.js";
 
-export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) {
+export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds, radnaLinija = "" }) {
   const { linijaUredjaj } = useEkran();
   const [delovi, setDelovi] = useState([]);
   const [idDeo, setIdDeo] = useState(pocetniDeo?.id_deo || "");
@@ -82,7 +82,13 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) 
       }
       stampajEtikete(blokovi, `Barkod bulk (${ids.length})`, { dim: printDim });
       addToast?.(`✓ Štampano ${ids.length} etiketa`, "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "barkod", akcija: "bulk_stampaj" });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "barkod",
+        akcija: "bulk_stampaj",
+        idDeovi: (bulkIds || []).map((x) => String(x || "").trim().toUpperCase()).filter(Boolean),
+        tab: "barkod",
+        linija: radnaLinija || "",
+      });
     } catch (e) {
       addToast?.(e.message, "greska");
     } finally {
@@ -150,7 +156,13 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) 
         sadrzaj_barkoda: sadrzaj,
       }, deo || {});
       addToast?.("✓ Barkod profil sačuvan", "uspeh");
-      obavestiPromenuStatusaSifrarnika({ izvor: "barkod", akcija: "snimi", idDeo });
+      obavestiPromenuStatusaSifrarnika({
+        izvor: "barkod",
+        akcija: "snimi",
+        idDeo,
+        tab: "barkod",
+        linija: radnaLinija || "",
+      });
     } catch (e) {
       addToast?.(e.message, "greska");
     }
@@ -306,7 +318,7 @@ export default function BarkodStampaPanel({ C, addToast, pocetniDeo, bulkIds }) 
             <select value={idDeo} onChange={(e) => izaberiDeo(e.target.value)} style={{ ...INP, cursor: "pointer" }}>
               <option value="">— izaberite —</option>
               {deloviVozilo.length > 0 && (
-                <optgroup label="Celo vozilo">
+                <optgroup label="Linija / final (VOZ·PRO)">
                   {deloviVozilo.map((d) => (
                     <option key={d.id_deo} value={d.id_deo}>{d.id_deo} — {d.naziv_dela || d.id_deo}</option>
                   ))}

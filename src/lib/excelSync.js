@@ -38,7 +38,9 @@ import {
   kpiPoljaIzForme,
 } from "./kpiExcelExport.js";
 import { DELOVI_EXCEL_COLS } from "./excelColumnDefs.js";
-import { downloadStyledWorkbook, workbookToArrayBuffer } from "./excelStil.js";
+// excelStil povlači xlsx-js-style (~870 kB). Statički import ga je uvlačio u
+// chunk glavne forme iako stilizovani izvoz treba samo pri preuzimanju fajla.
+const excelStil = () => import("./excelStil.js");
 
 export { DELOVI_EXCEL_COLS };
 
@@ -395,7 +397,8 @@ function rowsToExportRows(rows, cols) {
   });
 }
 
-export function downloadWorkbook(wb, filename) {
+export async function downloadWorkbook(wb, filename) {
+  const { downloadStyledWorkbook } = await excelStil();
   downloadStyledWorkbook(wb, filename);
 }
 
@@ -915,6 +918,7 @@ export async function exportMerenjaVarijabilnaExcel(supabase, idDeo, pozicija, d
 }
 
 export async function uploadWorkbookToStorage(supabase, wb, path) {
+  const { workbookToArrayBuffer } = await excelStil();
   const buf = workbookToArrayBuffer(wb);
   const { error } = await supabase.storage.from(EXCEL_BUCKET).upload(path, buf, {
     upsert: true,
@@ -976,7 +980,7 @@ export async function mirrorKontrolniLogToExcel(supabase, newRows, { alsoDownloa
       const wb = XLSX.utils.book_new();
       const sheet = XLSX.utils.json_to_sheet(exportRows);
       XLSX.utils.book_append_sheet(wb, sheet, "novi_unos");
-      downloadWorkbook(wb, `SPC_unos_${dISO()}_${Date.now()}.xlsx`);
+      await downloadWorkbook(wb, `SPC_unos_${dISO()}_${Date.now()}.xlsx`);
       downloadOk = true;
     } catch (e) {
       console.warn("Excel download:", e.message);

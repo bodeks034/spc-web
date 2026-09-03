@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "../../../lib/supabaseClient.js";
 import {
   groupSpcRows, buildParetoFromLog, predloziGrupisanjeSpc,
-  kreirajAutoEskalaciju, calcDPMO, calcPPM, calcDPMODefekti, calcRTY, sigmaIzDPMO, kvalitetIzPrve,
+  calcDPMO, calcPPM, calcDPMODefekti, calcRTY, sigmaIzDPMO, kvalitetIzPrve,
 } from "../../../lib/spcStats.js";
+import { kreirajAlarmWesternElectric } from "../../../lib/spcAlarmWorkflow.js";
 import { LAB_FPY_TAB, LAB_FPY_PCT, LAB_FPY_KRATKO } from "../../../lib/rtyFpy.js";
 import {
   jeKontrolaCelogVozila,
@@ -290,16 +291,24 @@ export default function SpcKarteAtributivne({ sviDelovi, C, addToast, korisnik, 
     alarmPoslat.current.add(key);
     (async () => {
       try {
-        await kreirajAutoEskalaciju(supabase, {
-          id_deo: idDeo,
-          opis: `SPC ${tip}-karta: ${upoz.length} tačka van kontrole (Western Electric)`,
-          prioritet: "kriticno",
-          kreirao_id: korisnik.radnikId,
-          prefiks: "AUTO-SPC",
+        const tipKarte = ({ p: "p", np: "np", c: "c", u: "u" }[tip] || tip || "p");
+        const zadnji = upoz[upoz.length - 1];
+        await kreirajAlarmWesternElectric(supabase, {
+          idDeo,
+          tipKarte,
+          brojUpozorenja: upoz.length,
+          radnikId: korisnik.radnikId,
+          vrednost: zadnji?.val,
+          ucl: zadnji?.ucl,
+          lcl: zadnji?.lcl,
+          modul: "atributivne",
         });
-        addToast(`⚠ SPC upozorenje: ${upoz.length} tačka van kontrole — ne blokira liniju`, "greska");
+        addToast(
+          `⛔ SPC (${tip}): ${upoz.length} tačka van kontrole — linija blokirana dok se alarm ne potvrdi`,
+          "greska",
+        );
       } catch (e) {
-        addToast(`SPC eskalacija nije snimljena: ${e.message || "greška"}`, "greska");
+        addToast(`SPC alarm nije snimljen: ${e.message || "greška"}`, "greska");
       }
     })();
   }, [cd, idDeo, tip, korisnik?.radnikId, addToast]);

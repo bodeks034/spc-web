@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import { ucitajAktivneSpcAlarme, zatvoriSpcAlarm, zatvoriAnalitickeSpcAlarme, opisSpcAlarma, jeLinijskiSpcAlarm, jeAnalitickiSpcAlarm } from "../lib/spcAlarmWorkflow.js";
+import { ucitajAktivneSpcAlarme, zatvoriSpcAlarm, zatvoriAnalitickeSpcAlarme, opisSpcAlarma, jeLinijskiSpcAlarm, jeAnalitickiSpcAlarm, jeWesternElectricAlarm } from "../lib/spcAlarmWorkflow.js";
 import { kreirajNcrIzAlarma, fetchNcrPoAlarmu } from "../lib/ncrCapa.js";
 import { sacuvajNavigacijuNcr } from "../lib/eskalacijeHelper.js";
 import { exportSpcAlarmReakcijaPdf } from "../lib/spcAlarmPdf.js";
@@ -126,7 +126,9 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
     }
   };
 
-  const renderAlarm = (a, { analiticki = false } = {}) => (
+  const renderAlarm = (a, { analiticki = false } = {}) => {
+    const jeWestern = jeWesternElectricAlarm(a);
+    return (
     <div key={a.id} style={{
       background: C.bg,
       border: `1px solid ${BOJA_STATUS(C, a.status)}55`,
@@ -154,7 +156,12 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
       <div style={{ color: C.sivi, fontSize: 11, marginBottom: 8, lineHeight: 1.5 }}>
         {analiticki && (
           <div style={{ color: C.plava, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
-            Analitika grafikona — ne blokira liniju
+            Stari grafikon alarm (bez WE) — ne blokira liniju
+          </div>
+        )}
+        {!analiticki && jeWestern && (
+          <div style={{ color: C.crvena, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
+            Western Electric — blokira liniju
           </div>
         )}
         {opisSpcAlarma(a)}
@@ -247,7 +254,8 @@ export default function AdminSpcAlarmiPanel({ korisnik, C, addToast }) {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div data-testid="admin-spc-alarmi" style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>

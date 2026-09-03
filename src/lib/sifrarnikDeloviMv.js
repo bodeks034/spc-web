@@ -28,45 +28,76 @@ function mapDeoRed(r) {
   };
 }
 
-export async function fetchDeloviSaMv({ tipKontrole = null, limit = 100, offset = 0 } = {}) {
-  const { data, error } = await supabase.rpc("sifrarnik_lista_delovi", {
-    p_tip_kontrole: tipKontrole,
-    p_limit: limit,
-    p_offset: offset,
-  });
+/** Stariji RPC (migracija 86) ne poznaje p_linija — prepoznaj to i probaj bez njega. */
+function nemaParametarLinija(err) {
+  return err && /p_linija|without parameters|no function matches/i.test(err.message || "");
+}
+
+export async function fetchDeloviSaMv({ tipKontrole = null, linijaKod = null, limit = 100, offset = 0 } = {}) {
+  const linija = String(linijaKod || "").trim().toUpperCase() || null;
+  const args = { p_tip_kontrole: tipKontrole, p_limit: limit, p_offset: offset };
+
+  let { data, error } = await supabase.rpc("sifrarnik_lista_delovi", { ...args, p_linija: linija });
+  if (error && nemaParametarLinija(error) && !linija) {
+    ({ data, error } = await supabase.rpc("sifrarnik_lista_delovi", args));
+  }
   if (!error) {
     const delovi = (data || []).map(mapDeoRed);
     return { delovi, viaMv: true, hasMore: delovi.length >= limit };
   }
-  if (!rpcNedostaje(error)) throw error;
-  const delovi = await fetchDelovi({ tipKontrole, limit, offset });
+  if (!rpcNedostaje(error) && !nemaParametarLinija(error)) throw error;
+
+  const delovi = await fetchDelovi({ tipKontrole, linijaKod: linija, limit, offset });
   return { delovi, viaMv: false, hasMore: delovi.length >= limit };
 }
 
-export async function pretraziDeloviSaMv({ q, tipKontrole = null, limit = 100, offset = 0 } = {}) {
+export async function pretraziDeloviSaMv({ q, tipKontrole = null, linijaKod = null, limit = 100, offset = 0 } = {}) {
   const tekst = String(q || "").trim();
-  if (!tekst) return fetchDeloviSaMv({ tipKontrole, limit, offset });
+  const linija = String(linijaKod || "").trim().toUpperCase() || null;
+  if (!tekst) return fetchDeloviSaMv({ tipKontrole, linijaKod: linija, limit, offset });
 
-  const { data, error } = await supabase.rpc("sifrarnik_pretrazi_delovi", {
-    p_q: tekst,
-    p_tip_kontrole: tipKontrole,
-    p_limit: limit,
-    p_offset: offset,
-  });
-  if (error) {
-    if (rpcNedostaje(error)) return { delovi: [], viaMv: false, hasMore: false };
-    throw error;
+  const args = { p_q: tekst, p_tip_kontrole: tipKontrole, p_limit: limit, p_offset: offset };
+
+  let { data, error } = await supabase.rpc("sifrarnik_pretrazi_delovi", { ...args, p_linija: linija });
+  if (error && nemaParametarLinija(error) && !linija) {
+    ({ data, error } = await supabase.rpc("sifrarnik_pretrazi_delovi", args));
   }
-  const delovi = (data || []).map(mapDeoRed);
-  return { delovi, viaMv: true, hasMore: delovi.length >= limit };
+  if (!error) {
+    const delovi = (data || []).map(mapDeoRed);
+    return { delovi, viaMv: true, hasMore: delovi.length >= limit };
+  }
+  if (!rpcNedostaje(error) && !nemaParametarLinija(error)) throw error;
+
+  // Fallback bez MV-a: pretraga u okviru linije se radi na klijentu.
+  const delovi = await fetchDelovi({ tipKontrole, linijaKod: linija, limit: Math.max(limit * 3, 300), offset: 0 });
+  const qLower = tekst.toLowerCase();
+  const filtrirani = delovi.filter((d) =>
+    [d.id_deo, d.naziv_dela, d.karakteristika, d.vozilo_katalog_id, d.sifra_vozila, d.broj_crteza]
+      .some((s) => String(s || "").toLowerCase().includes(qLower)),
+  );
+  const page = filtrirani.slice(offset, offset + limit);
+  return { delovi: page, viaMv: false, hasMore: offset + page.length < filtrirani.length };
 }
 
-export async function countDeloviSaMv({ tipKontrole = null } = {}) {
-  let q = supabase.from("delovi").select("*", { count: "exact", head: true }).eq("aktivan", true);
-  if (tipKontrole) q = q.eq("tip_kontrole", tipKontrole);
-  const { count, error } = await q;
-  if (error) throw error;
-  return count || 0;
+export async function countDeloviSaMv({ tipKontrole = null, linijaKod = null, q = null } = {}) {
+  const { data, error } = await supabase.rpc("sifrarnik_broj_delovi", {
+    p_tip_kontrole: tipKontrole,
+    p_linija: String(linijaKod || "").trim().toUpperCase() || null,
+    p_q: String(q || "").trim() || null,
+  });
+  if (!error && data != null) return Number(data) || 0;
+  if (error && !rpcNedostaje(error)) throw error;
+  return countDelovi({ tipKontrole, linijaKod, samoAktivni: true });
+}
+
+/** Osvežava MV ako je triger (migracija 89) označio promenu. Tiho ako RPC ne postoji. */
+export async function osveziMvAkoTreba() {
+  const { data, error } = await supabase.rpc("osvezi_sifrarnik_mv_ako_treba", { p_min_sekundi: 20 });
+  if (error) {
+    if (rpcNedostaje(error)) return null;
+    throw error;
+  }
+  return data || null;
 }
 
 export async function fetchKompletnostIzMv() {

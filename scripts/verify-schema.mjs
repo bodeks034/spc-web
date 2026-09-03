@@ -3,12 +3,13 @@
  * Provera šeme (ista logika kao Admin → Status šeme).
  * npm run db:verify           — sve migracije iz MIGRACIJE_LISTA
  * npm run db:verify:pilot     — samo pilot blok 54–59 (moment + NCR)
+ * npm run db:verify:go-live   — go-live blok 77–95 (RPC, MV, RLS, PIN, agregati)
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { loadEnvZaSkripte } from "../src/lib/loadEnvFile.js";
-import { proveriSemu, MIGRACIJE_LISTA } from "../src/lib/schemaCheck.js";
+import { proveriSemu, MIGRACIJE_LISTA, GO_LIVE_IDS } from "../src/lib/schemaCheck.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -17,12 +18,6 @@ const PILOT_IDS = new Set([
   "moment_unapredjenje",
   "moment_pfmea_link",
   "ncr_capa",
-]);
-
-const GO_LIVE_IDS = new Set([
-  "ocisti_operativu_rpc",
-  "obrisi_deo_rpc",
-  "obrisi_demo_delove_rpc",
 ]);
 
 async function main() {
@@ -39,7 +34,11 @@ async function main() {
   }
 
   const supabase = createClient(url, key);
-  console.log(`Provera šeme${pilot ? " (pilot 54–59)" : goLive ? " (go-live RPC 77–79)" : ""} → ${url}\n`);
+  console.log(
+    `Provera šeme${
+      pilot ? " (pilot 54–59)" : goLive ? " (go-live 77–95)" : ""
+    } → ${url}\n`,
+  );
 
   const rez = await proveriSemu(supabase);
   let lista = rez;
@@ -49,32 +48,22 @@ async function main() {
   let fail = 0;
   for (const r of lista) {
     const mark = r.ok ? "✓" : "✗";
-    console.log(`  ${mark} ${r.fajl} — ${r.naziv}`);
-    if (!r.ok && r.detalji?.length) {
-      for (const d of r.detalji) {
-        if (!d.ok) console.log(`      ${d.poruka}`);
-      }
-    }
+    console.log(`${mark} ${r.fajl || r.id} — ${r.poruka || (r.ok ? "OK" : "nedostaje")}`);
     if (r.ok) ok += 1;
     else fail += 1;
   }
-
-  console.log(`\nRezultat: ${ok}/${lista.length} migracija OK`);
+  console.log(`\n${ok} OK · ${fail} FAIL · ${lista.length} provereno`);
   if (fail > 0) {
     if (goLive) {
-      console.error("\n✗ Nedostaju go-live RPC migracije (77–79)");
+      console.error("\n✗ Nedostaju go-live migracije (77–95)");
       console.error("  Pokreni: npm run db:migrate:go-live");
-      console.error("  ili ručno: 77_ocisti_operativu_rpc.sql, 78_obrisi_deo_iz_sifrarnika_rpc.sql, 79_obrisi_demo_delove_rpc.sql");
-    } else {
-      console.error("\n✗ Nedostaju migracije — pokreni: npm run db:migrate");
-      console.error("  ili ručno u Supabase SQL Editoru (redosled u docs/MIGRACIJE.md)");
+      console.error("  Obavezno: 88–95 (kaskada, eskalacije FK, MV linija, dashboard, arhiva, RLS/PIN, uloge, brojači)");
     }
     process.exit(1);
   }
-  console.log("\n✓ Šema OK");
 }
 
 main().catch((e) => {
-  console.error("✗", e.message);
+  console.error(e);
   process.exit(1);
 });

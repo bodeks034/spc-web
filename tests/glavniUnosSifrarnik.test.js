@@ -234,7 +234,7 @@ describe("sifrarnikStatusEvent", () => {
     obavestiPromenuStatusaSifrarnika({ izvor: "test", idDeo: "X" });
     expect(dispatched).toHaveLength(1);
     expect(dispatched[0].type).toBe(SIFRARNIK_STATUS_EVENT);
-    expect(dispatched[0].detail).toEqual({ izvor: "test", idDeo: "X" });
+    expect(dispatched[0].detail).toEqual({ izvor: "test", idDeo: "X", idDeovi: ["X"] });
     vi.unstubAllGlobals();
   });
 });

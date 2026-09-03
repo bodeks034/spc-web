@@ -178,7 +178,7 @@ export default function GageRRPanel({ C, addToast, korisnik }) {
     }
   };
 
-  const izvozExcel = (studijaOverride) => {
+  const izvozExcel = async (studijaOverride) => {
     const data = studijaOverride || payloadStudija();
     if (!data.rezultat?.ok && !data.rezultat_xbar) {
       addToast("Nema rezultata za export", "greska");
@@ -187,7 +187,7 @@ export default function GageRRPanel({ C, addToast, korisnik }) {
     try {
       const wb = exportGageRRExcel(data);
       const safe = (naziv || "GageRR").replace(/[^\w\-]+/g, "_").slice(0, 40);
-      downloadWorkbook(wb, `MSA_GageRR_${safe}_${dISO()}.xlsx`);
+      await downloadWorkbook(wb, `MSA_GageRR_${safe}_${dISO()}.xlsx`);
       addToast("✓ Excel preuzet", "uspeh");
     } catch (e) {
       addToast(e.message, "greska");

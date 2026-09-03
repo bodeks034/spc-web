@@ -26,6 +26,7 @@ export default defineConfig({
             { name: 'vendor-qrcode', test: nm('(?:html5-qrcode|qrcode)') },
             { name: 'vendor-supabase', test: nm('@supabase') },
             { name: 'vendor-pdf', test: nm('(?:jspdf|html2canvas)') },
+            { name: 'vendor-barkod', test: nm('bwip-js') },
           ],
         },
       },
@@ -35,6 +36,12 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.js'],
     setupFiles: ['tests/vitest.setup.js'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/lib/**'],
+      reportsDirectory: 'coverage',
+    },
   },
   // Opciona jača obfuskacija (npm i -D vite-plugin-javascript-obfuscator):
   // plugins: [react(), obfuscator({ apply: 'build' })],

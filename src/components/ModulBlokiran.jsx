@@ -1,5 +1,19 @@
+import useAppStore from "../lib/appStore.js";
+
+const FALLBACK_C = {
+  bg: "#181A20",
+  panel: "#23262F",
+  tekst: "#E6E8EC",
+  zuta: "#F0B90B",
+  sivi: "#777E90",
+  plava: "#2D9CDB",
+  onAkcent: "#fff",
+};
+
 /** Modul nije u licenci. */
-export default function ModulBlokiran({ nazivModula, C, onNazad }) {
+export default function ModulBlokiran({ nazivModula, C: CProp, onNazad }) {
+  const storeC = useAppStore((s) => s.temaC);
+  const C = CProp || storeC || FALLBACK_C;
   return (
     <div style={{
       minHeight: "100dvh",
