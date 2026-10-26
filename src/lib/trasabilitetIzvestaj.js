@@ -188,17 +188,19 @@ export function sagrupisiLanacProizvodnje({ merenja = [], kpi = [], log = [], mo
     });
   }
   for (const k of kpi) {
+    const komad = k.sesija_id || k.radni_nalog || null;
+    const serija = String(k.serija || "").trim();
     dogadjaji.push({
       ts: k.created_at || k.datum,
       tip: "KPI",
       rn: k.radni_nalog || "—",
-      lot: k.serija || "—",
-      operacija: "KPI unos",
+      lot: komad || "—",
+      operacija: serija ? `KPI unos · serija ${serija}` : "KPI unos",
       alat: "—",
       operater: k.kontrolor || "—",
       detalj: `škart ${k.skart_kom || 0} · dorada ${k.dorada_kom || 0}`,
       sesija: k.sesija_id || null,
-      vin: k.serija || null,
+      vin: komad,
     });
   }
   for (const l of log) {
@@ -290,7 +292,21 @@ export function filtrirajLanacPoKomadu(lanac, vinLot) {
   );
 }
 
-export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, datumDo, vinLot }) {
+function primeniSmenu(q, smena) {
+  if (smena == null || smena === "") return q;
+  const n = Number(smena);
+  if (!Number.isFinite(n)) return q;
+  return q.eq("smena", n);
+}
+
+/** created_at je timestamptz; datum Od/Do su kalendarski dani. */
+function primeniOpsegCreatedAt(q, datumOd, datumDo) {
+  if (datumOd) q = q.gte("created_at", `${datumOd}T00:00:00`);
+  if (datumDo) q = q.lte("created_at", `${datumDo}T23:59:59.999`);
+  return q;
+}
+
+export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, datumDo, vinLot, smena } = {}) {
   const id = String(idDeo || "").trim().toUpperCase();
   if (!id) return { merenja: [], kpi: [], log: [], momenti: [], alarmi: [], ncr: [], greska: "Unesite ID dela" };
 
@@ -301,6 +317,7 @@ export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, d
     .eq("id_deo", id)
     .order("created_at", { ascending: true });
   if (sesijaId) qMer = qMer.eq("sesija_id", sesijaId);
+  qMer = primeniSmenu(qMer, smena);
   if (datumOd) qMer = qMer.gte("datum", datumOd);
   if (datumDo) qMer = qMer.lte("datum", datumDo);
   const merOr = orIlikeFilter(vinQ, ["sesija_id", "radni_nalog"]);
@@ -312,6 +329,7 @@ export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, d
     .order("created_at", { ascending: false })
     .limit(30);
   if (sesijaId) qKpi = qKpi.eq("sesija_id", sesijaId);
+  qKpi = primeniSmenu(qKpi, smena);
   if (datumOd) qKpi = qKpi.gte("datum", datumOd);
   if (datumDo) qKpi = qKpi.lte("datum", datumDo);
   const kpiOr = orIlikeFilter(vinQ, ["serija", "sesija_id", "radni_nalog"]);
@@ -323,6 +341,7 @@ export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, d
     .order("created_at", { ascending: false })
     .limit(50);
   if (sesijaId) qLog = qLog.eq("sesija_id", sesijaId);
+  qLog = primeniSmenu(qLog, smena);
   if (datumOd) qLog = qLog.gte("datum", datumOd);
   if (datumDo) qLog = qLog.lte("datum", datumDo);
   const logOr = orIlikeFilter(vinQ, ["sesija_id", "radni_nalog"]);
@@ -333,6 +352,7 @@ export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, d
     .eq("id_deo", id)
     .order("created_at", { ascending: false })
     .limit(80);
+  qMom = primeniSmenu(qMom, smena);
   if (datumOd) qMom = qMom.gte("datum", datumOd);
   if (datumDo) qMom = qMom.lte("datum", datumDo);
   if (vinQ) qMom = qMom.ilike("vin", `%${vinQ}%`);
@@ -345,10 +365,12 @@ export async function ucitajTrasabilitet(supabase, { idDeo, sesijaId, datumOd, d
   if (datumDo) qAlarm = qAlarm.lte("datum", datumDo);
 
   let qNcr = supabase.from("ncr_capa")
-    .select("broj_ncr,status,opis,uzrok,radni_nalog,vin,created_at,rok")
+    .select("broj_ncr,status,opis,uzrok,radni_nalog,vin,smena,created_at,rok")
     .eq("id_deo", id)
     .order("created_at", { ascending: false })
     .limit(20);
+  qNcr = primeniSmenu(qNcr, smena);
+  qNcr = primeniOpsegCreatedAt(qNcr, datumOd, datumDo);
   if (vinQ) qNcr = qNcr.ilike("vin", `%${vinQ}%`);
 
   const [merRes, kpiRes, logRes, momRes, alarmRes, ncrRes] = await Promise.all([

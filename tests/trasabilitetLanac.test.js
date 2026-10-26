@@ -38,6 +38,35 @@ describe("sagrupisiLanacProizvodnje", () => {
   });
 });
 
+describe("KPI serija nije poseban komad", () => {
+  it("vezuje KPI uz sesiju merenja, a seriju ostavlja u operaciji", () => {
+    const lanac = sagrupisiLanacProizvodnje({
+      merenja: [{
+        created_at: "2026-07-19T17:55:00Z",
+        radni_nalog: "RN-2026-5502A-A",
+        sesija_id: "SPC-VAR-20260719-jvmmo46g",
+        pozicija: "D1",
+        vrednost_raw: "10",
+        status: "OK",
+      }],
+      kpi: [{
+        created_at: "2026-07-19T17:56:00Z",
+        radni_nalog: "RN-2026-5502A-A",
+        sesija_id: "SPC-VAR-20260719-jvmmo46g",
+        serija: "D1",
+        skart_kom: 0,
+        dorada_kom: 0,
+      }],
+    });
+    const grupe = grupisiLanacPoKomadu(lanac);
+    expect(grupe).toHaveLength(1);
+    expect(grupe[0].vin).toBe("SPC-VAR-20260719-jvmmo46g");
+    expect(grupe[0].dogadjaji.map((d) => d.tip)).toEqual(["Merenje", "KPI"]);
+    expect(lanac[1].operacija).toBe("KPI unos · serija D1");
+    expect(lanac[1].vin).not.toBe("D1");
+  });
+});
+
 describe("grupisiLanacPoKomadu", () => {
   it("grupiše događaje po VIN/lot", () => {
     const lanac = sagrupisiLanacProizvodnje({

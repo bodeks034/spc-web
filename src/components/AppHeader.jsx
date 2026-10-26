@@ -13,11 +13,18 @@ const SKRACENA_ULOGA = {
   operator: "OPR",
 };
 
-/** Naslov posle SPC na podstranicama — pun na tabletu, skraćen na uskom telefonu */
-function naslovPodstrana(ekran) {
-  if (ekran.tablet) return "KONTROLA KVALITETA";
-  if (ekran.w >= 400) return "KONTROLA KVALITETA";
-  if (ekran.w >= 340) return "K.KVAL.";
+/**
+ * Podnaslov pored logotipa. Na uskom redu (←, tabovi, odjava) pun tekst
+ * se seče na „KONTRO…“, pa se skraćuje ili sakriva.
+ */
+function naslovKvaliteta(w, podstrana) {
+  if (podstrana) {
+    if (w >= 1100) return "KONTROLA KVALITETA";
+    if (w >= 760) return "K.KVAL.";
+    return null;
+  }
+  if (w >= 720) return "KONTROLA KVALITETA";
+  if (w >= 480) return "K.KVAL.";
   return null;
 }
 
@@ -51,7 +58,7 @@ export default function AppHeader({
   const kompakt = ekran.mob || ekran.tablet;
   const padX = podstrana ? 10 : kompakt ? 12 : 20;
   const gap = podstrana ? 4 : kompakt ? 5 : 8;
-  const podNaslov = podstrana ? naslovPodstrana(ekran) : "KONTROLA KVALITETA";
+  const podNaslov = naslovKvaliteta(ekran.w, podstrana);
 
   const btnNazad = onNazad ? (
     <button type="button" onClick={onNazad} style={{
@@ -67,12 +74,15 @@ export default function AppHeader({
       {podNaslov && (
         <>
           <span style={{ color: C.border, flexShrink: 0 }}>|</span>
-          <span style={{
-            color: C.sivi,
-            fontSize: podstrana ? (ekran.tablet ? 10 : 9) : kompakt ? 9 : 10,
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            minWidth: 0,
-          }}>
+          <span
+            title={podNaslov === "KONTROLA KVALITETA" ? undefined : "KONTROLA KVALITETA"}
+            style={{
+              color: C.sivi,
+              fontSize: podstrana ? (ekran.tablet ? 10 : 9) : kompakt ? 9 : 10,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
             {podNaslov}
           </span>
         </>

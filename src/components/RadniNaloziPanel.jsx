@@ -6,7 +6,7 @@ import {
   ERP_CSV_KOLONE,
 } from "../lib/radniNaloziUvoz.js";
 import { pogonIzRn } from "../lib/pogonSop.js";
-import { formatErpUvozVreme } from "../lib/erpUvozLog.js";
+import { formatErpUvozVreme, fajlErpZaPrikaz } from "../lib/erpUvozLog.js";
 import { stampajEkran, preuzmiEkranPdf } from "../lib/listaEkranIzvoz.js";
 import { stampajRadniNalozi, preuzmiRadniNaloziPdf } from "../lib/radniNaloziPdf.js";
 import ListaIzvozDugmad from "./ListaIzvozDugmad.jsx";
@@ -215,7 +215,7 @@ export default function RadniNaloziPanel({ C, addToast, sviDelovi }) {
                 {poslednjiUvoz.upsertovano ?? 0} naloga
                 {" · "}
                 {poslednjiUvoz.uspeh ? "OK" : "GREŠKA"}
-                {poslednjiUvoz.fajl ? ` · ${poslednjiUvoz.fajl}` : ""}
+                {fajlErpZaPrikaz(poslednjiUvoz.fajl) ? ` · ${fajlErpZaPrikaz(poslednjiUvoz.fajl)}` : ""}
               </>
             ) : (
               <>Automatski uvoz: nema zapisa (pokreni cron ili migraciju 38)</>

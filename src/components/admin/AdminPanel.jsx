@@ -421,8 +421,8 @@ function AdminPanel({ korisnik, licenca, onNazad, C, uGravnojFormi = false, onOt
                       fontFamily:"inherit",opacity:aktivan?1:0.5}}>
                     <option value="operator">Operator</option>
                     <option value="kontrolor">Kontrolor</option>
-                    <option value="kvalitet">Kvalitet</option>
-                    <option value="sef">Šef</option>
+                    <option value="kvalitet">Inženjer kvaliteta</option>
+                    <option value="sef">Šef / menadžment</option>
                     <option value="admin">Admin</option>
                   </select>
                   {korisnik.uloga==="admin" && r.email && (

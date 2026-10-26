@@ -18,3 +18,5 @@ playwright-report/
 erp-drop/processed/
 erp-drop/outgoing/
 moment-drop/
+.vercel
+.env*

@@ -5,6 +5,8 @@ import {
   calcPPM,
   kvalitetIzPrveLoga,
   vanKontrolnihGranica,
+  granicePProcenat,
+  graniceNp,
 } from "../src/lib/spcStats.js";
 
 describe("calcDPMO", () => {
@@ -30,6 +32,29 @@ describe("kvalitetIzPrveLoga", () => {
     const r = kvalitetIzPrveLoga({ ok: 95, nok: 5, n: 100 });
     expect(r.fpy).toBe(95);
     expect(r.dpmo).toBe(50000);
+  });
+});
+
+describe("granice p i np karte", () => {
+  it("ne pušta UCL p-karte preko 100%", () => {
+    const g = granicePProcenat(0.5, 2);
+    expect(g.cl).toBe(50);
+    expect(g.ucl).toBe(100);
+    expect(g.lcl).toBe(0);
+  });
+
+  it("ostavlja UCL ispod 100% kad je sigma mala", () => {
+    const g = granicePProcenat(0.02, 200);
+    expect(g.ucl).toBeLessThan(100);
+    expect(g.ucl).toBeGreaterThan(g.cl);
+    expect(g.lcl).toBeGreaterThanOrEqual(0);
+  });
+
+  it("ne pušta UCL np-karte preko veličine podgrupe", () => {
+    const g = graniceNp(0.5, 2);
+    expect(g.ucl).toBeLessThanOrEqual(2);
+    expect(g.lcl).toBeGreaterThanOrEqual(0);
+    expect(g.cl).toBe(1);
   });
 });
 

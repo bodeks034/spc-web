@@ -80,7 +80,7 @@ function UputstvoPanel({ C, otvoreno, onToggle }) {
         <div style={{ padding: "0 14px 14px", fontSize: 12, color: C.tekst, lineHeight: 1.65 }}>
           <p style={{ margin: "0 0 12px", color: C.sivi }}>
             Atributivne kontrole — broj NOK po klasama.
-            Putanja: <strong>Atributivne → Analitika → Kvalitet → ISO 2859</strong>.
+            Putanja: <strong>Atributivne → Kvalitet → ISO 2859</strong>.
           </p>
           <ol style={{ margin: "0 0 12px", paddingLeft: 20 }}>
             {UPUTSTVO_KORACI.map((k) => (

@@ -5,6 +5,18 @@ import { prefill8dIzEskalacije } from "../lib/eskalacijeHelper.js";
 import SpcAsistent8dDugme from "./spc/SpcAsistent8dDugme.jsx";
 import { mozeInteligencijaProcesa } from "../lib/uloge.js";
 
+const NAZIV_MODULA = {
+  capa: "eskalacije",
+  oba: "oba modula",
+  merljive: "merljive",
+  atributivne: "atributivne",
+};
+
+function nazivModula(modul) {
+  const k = String(modul || "").trim();
+  return NAZIV_MODULA[k] || k;
+}
+
 function KarticaStanja({ naslov, stanje, razlog, vrednost, bojaVrednosti, C }) {
   const boja = bojaVrednosti || (stanje != null ? bojaStanja(stanje, C) : C.tekst);
   return (
@@ -21,11 +33,16 @@ function KarticaStanja({ naslov, stanje, razlog, vrednost, bojaVrednosti, C }) {
   );
 }
 
+function procenatZaPrikaz(v) {
+  const n = Number(v);
+  return v != null && v !== "" && Number.isFinite(n) ? `${n}%` : "—";
+}
+
 function PredikcijaRed({ naslov, pred, jedinica, C }) {
   if (!pred) {
     return (
       <div style={{ fontSize: 9, color: C.border, padding: "4px 0" }}>
-        {naslov}: premalo dana za predikciju (min. 3)
+        {naslov}: nema podataka u periodu
       </div>
     );
   }
@@ -262,8 +279,10 @@ export default function StanjePredikcijaPanel({
             bojaVrednosti={C.narandzasta}
             razlog={
               izv.sumarno.faze?.length > 1
-                ? izv.sumarno.faze.map(f => `${f.naziv} ${f.fpy}%`).join(" × ")
-                : `FPY atr ${izv.sumarno.fpyAttr}% · mer ${izv.sumarno.fpyMer}%`
+                ? izv.sumarno.faze.map(f => `${f.naziv} ${procenatZaPrikaz(f.fpy)}`).join(" × ")
+                : izv.sumarno.rtyPogon == null && izv.sumarno.fpyAttr == null && izv.sumarno.fpyMer == null
+                  ? "Nema merenja u periodu"
+                  : `FPY atr ${procenatZaPrikaz(izv.sumarno.fpyAttr)} · mer ${procenatZaPrikaz(izv.sumarno.fpyMer)}`
             }
             C={C}
           />
@@ -311,7 +330,7 @@ export default function StanjePredikcijaPanel({
                         }}>
                           {m.prioritet.toUpperCase()}
                         </span>
-                        <span style={{ color: C.sivi, fontSize: 8 }}>{m.modul}</span>
+                        <span style={{ color: C.sivi, fontSize: 8 }}>{nazivModula(m.modul)}</span>
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {mozeEskalacija && m.prioritet !== "info" && (

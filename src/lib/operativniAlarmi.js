@@ -11,6 +11,21 @@ export const ALARM_PRAGOVI = {
 
 const OTVORENE_ESK = new Set(["otvoren", "u_toku", "aktivan", "open"]);
 
+function sazmiIdDeo(redovi, max = 4) {
+  const jedinstveni = [];
+  const seen = new Set();
+  for (const e of redovi || []) {
+    const id = String(e?.id_deo || "").trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    jedinstveni.push(id);
+  }
+  if (!jedinstveni.length) return "";
+  const prikaz = jedinstveni.slice(0, max);
+  const ostalo = jedinstveni.length - prikaz.length;
+  return ostalo > 0 ? `${prikaz.join(", ")} i još ${ostalo}` : prikaz.join(", ");
+}
+
 export function evaluirajAlarme({
   attr = {},
   merljive = {},
@@ -42,7 +57,7 @@ export function evaluirajAlarme({
       id: "eskalacije_otvorene",
       nivo: "srednji",
       naslov: `${otv.length} otvorenih eskalacija`,
-      opis: otv.slice(0, 3).map(e => `${e.id_deo || "—"}: ${(e.opis || "").slice(0, 40)}`).join(" · "),
+      opis: sazmiIdDeo(otv),
     });
   }
 
@@ -53,7 +68,7 @@ export function evaluirajAlarme({
       id: "eskalacije_stare",
       nivo: "visok",
       naslov: `${stari.length} eskalacija bez odgovora > ${ALARM_PRAGOVI.eskalacijaStariSati}h`,
-      opis: stari.map(e => e.id_deo || "?").join(", "),
+      opis: sazmiIdDeo(stari),
     });
   }
 

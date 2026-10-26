@@ -10,6 +10,7 @@ import {
   prefill8dIzNcr,
   NCR_STATUS_EXCEL,
   labelStatusa,
+  linijaAlarmaZaNcr,
 } from "./ncrObrazacPolja.js";
 
 export const OTVORENI_NCR = new Set(["open", "containment", "disposition", "osmd_progress", "verification"]);
@@ -277,7 +278,7 @@ export async function kreirajNcrIzAlarma(supabase, alarm, { kreiraoId = null } =
     izvor: "spc_alarm",
     spc_alarm_id: alarm.id,
     eskalacija_id: alarm.eskalacija_id || null,
-    linija: alarm.linija || null,
+    linija: linijaAlarmaZaNcr(alarm) || null,
     pogon: alarm.pogon || alarm.pogon_kod || "",
     karakteristika: alarm.pozicija || null,
     metoda_detekcije: "SPC alarm",

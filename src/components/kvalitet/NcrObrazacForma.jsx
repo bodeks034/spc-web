@@ -11,7 +11,8 @@ function Polje({ keyName, label, opts = {}, form, setForm, greske, C, INP }) {
   if (!keyName) return <div />;
   const obavezno = opts.obavezno;
   const err = greske[keyName];
-  const lblStyle = { fontSize: 10, color: err ? C.crvena : C.sivi, display: "block" };
+  const lblStyle = { fontSize: 10, color: err ? C.crvena : C.sivi, display: "block", minWidth: 0 };
+  const punTekst = String(form[keyName] ?? "").trim();
   const bg = obavezno ? `${C.zuta || "#fef3c7"}33` : "transparent";
   const borderColor = err ? C.crvena : C.border;
 
@@ -21,6 +22,7 @@ function Polje({ keyName, label, opts = {}, form, setForm, greske, C, INP }) {
         {label}{obavezno ? " *" : ""}
         <textarea
           data-testid={`ncr-f-${keyName}`}
+          title={punTekst || undefined}
           style={{
             ...INP,
             minHeight: keyName === "opis" ? 120 : 52,
@@ -135,6 +137,7 @@ function Polje({ keyName, label, opts = {}, form, setForm, greske, C, INP }) {
         data-testid={keyName === "id_deo" ? "ncr-id-deo" : keyName === "opis" ? "ncr-opis" : `ncr-f-${keyName}`}
         readOnly={readOnly}
         list={keyName === "id_deo" ? "ncr-dela" : keyName === "pogon" ? "ncr-pogoni" : undefined}
+        title={punTekst || undefined}
         style={{ ...INP, background: readOnly ? `${C.sivi}11` : bg, borderColor, opacity: readOnly ? 0.85 : 1 }}
         value={form[keyName] ?? ""}
         onChange={(e) => {
@@ -160,6 +163,7 @@ export default function NcrObrazacForma({
     fontSize: 11,
     padding: "5px 7px",
     width: "100%",
+    minWidth: 0,
     boxSizing: "border-box",
   };
 
@@ -226,7 +230,7 @@ export default function NcrObrazacForma({
           border: `1px solid ${C.border}`,
           borderRadius: 6,
           marginBottom: 10,
-          overflow: "hidden",
+          overflow: "visible",
           opacity: rezimLinija && !["A", "B", "C", "D"].includes(sek.id) ? 0.72 : 1,
         }}>
           <div style={{
@@ -246,7 +250,7 @@ export default function NcrObrazacForma({
             {sek.redovi.map((red, ri) => (
               <div key={ri} style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
                 gap: 8,
                 marginBottom: ri < sek.redovi.length - 1 ? 8 : 0,
               }}>

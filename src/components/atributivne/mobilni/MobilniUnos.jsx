@@ -212,7 +212,7 @@ function MobilniUnos({
         value={idDeo}
         {...idBarkodPolje}
         onFocus={onFocusTastatura}
-        placeholder="5501-A"
+        placeholder="npr. 5502-A"
         list={predloziDelova.length ? "atr-dela-linija" : undefined}
         autoFocus={autoFocus}
         style={{
@@ -313,7 +313,7 @@ function MobilniUnos({
               value={idDeo}
               {...idBarkodPolje}
               onFocus={onFocusTastatura}
-              placeholder="npr. 5501-A"
+              placeholder="npr. 5502-A"
               list={predloziDelova.length ? "atr-dela-linija" : undefined}
               autoFocus
               style={{
@@ -346,7 +346,7 @@ function MobilniUnos({
           {...ATRIBUTI_TASTATURE_SIFRA}
           onChange={e => setRadniNalog?.(e.target.value.toUpperCase())}
           onFocus={onFocusTastatura}
-          placeholder="RN-2026-NM001-B"
+          placeholder="npr. RN-2026-001"
           style={{
             ...INP,
             fontSize: linijaMode ? 16 : 14,
@@ -447,7 +447,7 @@ function MobilniUnos({
       {deoInfo && prikaziCrtezMob && panelZonaCrtez}
 
       {upoz && (
-        <div style={{ color: C.crvena, fontSize: unosIdKompakt ? 11 : 12, padding: unosIdKompakt ? "8px 10px" : "10px 12px",
+        <div data-testid="atr-id-upozorenje" style={{ color: C.crvena, fontSize: unosIdKompakt ? 11 : 12, padding: unosIdKompakt ? "8px 10px" : "10px 12px",
           background: C.nok, borderRadius: 8, lineHeight: 1.5 }}>{upoz}</div>
       )}
       <UnosCiljBanner idDeo={idDeo} listaP={listaP} C={C}/>
@@ -555,9 +555,11 @@ function MobilniUnos({
       <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
         <button onClick={()=>setKorak(korakPoka)} style={{background:"none",border:"none",
           color:C.sivi,fontSize:14,cursor:"pointer",padding:0}}>← Nazad</button>
-        <span style={{color:C.sivi,fontSize:11,letterSpacing:1}}>
-          KORAK {korakUnos} / {ukupnoKoraka}
-        </span>
+        {!linijaMode && (
+          <span style={{color:C.sivi,fontSize:11,letterSpacing:1}}>
+            KORAK {korakUnos} / {ukupnoKoraka}
+          </span>
+        )}
         <span style={{color:C.zelena,fontWeight:700,fontSize:13}}>{idDeo}</span>
       </div>
 

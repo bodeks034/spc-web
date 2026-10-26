@@ -1,7 +1,32 @@
 import { describe, it, expect } from "vitest";
 import { daniDoStudije, statusMsaKalendara } from "../src/lib/msaKalendar.js";
+import { brojKalibracijaPoStatusu } from "../src/lib/msaMerilaPdf.js";
 
 const C = { sivi: "#888", crvena: "#f00", zuta: "#ff0", zelena: "#0f0" };
+
+function isoDana(pomeraj) {
+  const d = new Date();
+  d.setDate(d.getDate() + pomeraj);
+  return d.toISOString().split("T")[0];
+}
+
+describe("kalibracija merila", () => {
+  it("broji poslednju kalibraciju, ne stari istekli red", () => {
+    const merila = [{
+      id: 1,
+      kalibracije: [
+        { datum_kal: isoDana(-800), sledeca_kal: isoDana(-400) },
+        { datum_kal: isoDana(-30), sledeca_kal: isoDana(400) },
+      ],
+    }, {
+      id: 2,
+      kalibracije: [
+        { datum_kal: isoDana(-10), sledeca_kal: isoDana(-1) },
+      ],
+    }];
+    expect(brojKalibracijaPoStatusu(merila)).toEqual({ isteklo: 1, uskoro: 0 });
+  });
+});
 
 describe("msaKalendar", () => {
   it("daniDoStudije za budući datum", () => {

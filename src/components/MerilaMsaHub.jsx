@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { procitajMerilaMsaPodtab } from "../lib/workflowAkcije.js";
+import { brojKalibracijaPoStatusu } from "../lib/msaMerilaPdf.js";
 import KalibracijaMerilaPanel from "./KalibracijaMerilaPanel.jsx";
 import GageRRPanel from "./GageRRPanel.jsx";
 import MsaKalendarPanel from "./MsaKalendarPanel.jsx";
@@ -18,20 +19,12 @@ export default function MerilaMsaHub({ C, addToast, korisnik }) {
   useEffect(() => {
     (async () => {
       const [mer, gage, msa] = await Promise.all([
-        supabase.from("merila").select("id, kalibracije(sledeca_kal)").eq("aktivno", true),
+        supabase.from("merila").select("id, kalibracije(datum_kal,sledeca_kal)").eq("aktivno", true),
         supabase.from("gage_rr_studije").select("id", { count: "exact", head: true }),
         supabase.from("msa_kalendar").select("sledeca_studija"),
       ]);
       const lista = mer.data || [];
-      let isteklo = 0; let uskoro = 0;
-      lista.forEach((m) => {
-        const kal = m.kalibracije?.sort?.((a, b) => new Date(b.datum_kal) - new Date(a.datum_kal))?.[0]
-          || m.kalibracije?.[0];
-        if (!kal?.sledeca_kal) return;
-        const d = Math.ceil((new Date(kal.sledeca_kal) - new Date()) / 86400000);
-        if (d < 0) isteklo += 1;
-        else if (d < 30) uskoro += 1;
-      });
+      const { isteklo, uskoro } = brojKalibracijaPoStatusu(lista);
       const msaUskoro = (msa.data || []).filter((r) => {
         if (!r.sledeca_studija) return false;
         const d = Math.ceil((new Date(r.sledeca_studija) - new Date()) / 86400000);

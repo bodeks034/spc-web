@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabaseClient.js";
 import {
   groupSpcRows, buildParetoFromLog, predloziGrupisanjeSpc,
   calcDPMO, calcPPM, calcDPMODefekti, calcRTY, sigmaIzDPMO, kvalitetIzPrve,
+  granicePProcenat, graniceNp,
 } from "../../../lib/spcStats.js";
 import { kreirajAlarmWesternElectric } from "../../../lib/spcAlarmWorkflow.js";
 import { LAB_FPY_TAB, LAB_FPY_PCT, LAB_FPY_KRATKO } from "../../../lib/rtyFpy.js";
@@ -206,26 +207,31 @@ export default function SpcKarteAtributivne({ sviDelovi, C, addToast, korisnik, 
     {
       id:"p", naziv:"p-Karta", opis:"Proporcija neispravnih · varijabilno n",
       boja:C.plava, sufiks:"%",
-      podaci: grupe.map(g=>({
-        datum:g.datum, label:g.label,
-        val:+(g.n>0?(g.nok/g.n)*100:0).toFixed(3),
-        cl: +(pBar*100).toFixed(3),
-        ucl:+((pBar+3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1)))*100).toFixed(3),
-        lcl:+(Math.max(0,pBar-3*Math.sqrt(pBar*(1-pBar)/Math.max(g.n,1)))*100).toFixed(3),
-        n:g.n, nok:g.nok,
-      })),
+      podaci: grupe.map((g) => {
+        const gcl = granicePProcenat(pBar, g.n);
+        return {
+          datum: g.datum, label: g.label,
+          val: +(g.n > 0 ? (g.nok / g.n) * 100 : 0).toFixed(3),
+          cl: gcl.cl,
+          ucl: gcl.ucl,
+          lcl: gcl.lcl,
+          n: g.n, nok: g.nok,
+        };
+      }),
     },
     {
       id:"np", naziv:"np-Karta", opis:"Broj neispravnih · konstantno n",
       boja:"#22d3ee", sufiks:"",
-      podaci: grupe.map(g=>({
+      podaci: grupe.map(g=>{
+        const gnp = graniceNp(pBar, nBar);
+        return {
         datum:g.datum, label:g.label,
         val:+g.nok.toFixed(0),
-        cl: +(pBar*nBar).toFixed(2),
-        ucl:+(pBar*nBar+3*Math.sqrt(pBar*(1-pBar)*nBar)).toFixed(2),
-        lcl:+(Math.max(0,pBar*nBar-3*Math.sqrt(pBar*(1-pBar)*nBar))).toFixed(2),
+        cl: gnp.cl,
+        ucl: gnp.ucl,
+        lcl: gnp.lcl,
         n:g.n, nok:g.nok,
-      })),
+      }; }),
     },
     {
       id:"c", naziv:"C-Karta", opis:"Ukupan broj grešaka · konstantno n",
@@ -1078,7 +1084,7 @@ export default function SpcKarteAtributivne({ sviDelovi, C, addToast, korisnik, 
             <OCKriva C={C}/>
           )}
           {tip==="stabilnost_spc"&&(
-            <StabilnostProcesa sviDelovi={sviDelovi} C={C} addToast={addToast}/>
+            <StabilnostProcesa sviDelovi={sviDelovi} C={C} addToast={addToast} defaultIdDeo={idDeo} />
           )}
         </>
         </div>

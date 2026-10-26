@@ -105,6 +105,51 @@ export function vanKontrolnihGranica(val, ucl, lcl, eps = SPC_EPS) {
   return val > ucl + eps || val < lcl - eps;
 }
 
+function ogranicenP(pBar) {
+  const p = Number(pBar);
+  if (!Number.isFinite(p)) return 0;
+  return Math.min(1, Math.max(0, p));
+}
+
+function velicinaPodgrupe(n) {
+  const nn = Number(n);
+  if (!Number.isFinite(nn) || nn < 1) return 1;
+  return nn;
+}
+
+/** p-karta u proporciji 0–1. UCL ne prelazi 100%, LCL ne ide ispod 0. */
+export function granicePProporcija(pBar, n) {
+  const p = ogranicenP(pBar);
+  const nn = velicinaPodgrupe(n);
+  const sigma = Math.sqrt((p * (1 - p)) / nn);
+  return {
+    cl: p,
+    ucl: Math.min(1, p + 3 * sigma),
+    lcl: Math.max(0, p - 3 * sigma),
+  };
+}
+
+/** Iste granice u procentima, za prikaz na karti. */
+export function granicePProcenat(pBar, n, dec = 3) {
+  const g = granicePProporcija(pBar, n);
+  const f = (v) => +(v * 100).toFixed(dec);
+  return { cl: f(g.cl), ucl: f(g.ucl), lcl: f(g.lcl) };
+}
+
+/** np-karta: broj neispravnih. UCL ne prelazi veličinu podgrupe. */
+export function graniceNp(pBar, n, dec = 2) {
+  const p = ogranicenP(pBar);
+  const nn = velicinaPodgrupe(n);
+  const cl = p * nn;
+  const sigma = Math.sqrt(p * (1 - p) * nn);
+  const f = (v) => +v.toFixed(dec);
+  return {
+    cl: f(cl),
+    ucl: f(Math.min(nn, cl + 3 * sigma)),
+    lcl: f(Math.max(0, cl - 3 * sigma)),
+  };
+}
+
 /** Western Electric pravila 2–5 (obrazac). Pravilo 1 — van UCL/LCL — u chartDataWithWesternElectric. */
 export function westernElectricObrazac(niz, cl, ucl, lcl) {
   const sigma = (ucl - cl) / 3;

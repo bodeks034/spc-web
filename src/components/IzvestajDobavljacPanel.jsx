@@ -4,8 +4,8 @@ import { fetchIzvestajDobavljacPodaci } from "../lib/izvestajDobavljacData.js";
 import { preuzmiIzvestajDobavljacPdf, stampajIzvestajDobavljac } from "../lib/izvestajDobavljacPdf.js";
 import {
   OPIS_FORMULE_KVALITETA,
-  izracunajUkupnuOcenu,
   opisKlaseDobavljaca,
+  ukupnaOcenaIzUnosa,
 } from "../lib/ocenaDobavljaca.js";
 import { sacuvajOcenuDobavljaca } from "../lib/ocenaDobavljacaApi.js";
 import { jeKvalitetIliVise, jeAdmin } from "../lib/uloge.js";
@@ -230,37 +230,35 @@ function Pregled({ podaci, C, addToast, korisnik, onOcenaSnimljena }) {
 function OcenaDobavljacaKartica({ podaci, C, addToast, korisnik, onOcenaSnimljena }) {
   const predlog = podaci.predlogOcene || {};
   const mozeUnos = jeKvalitetIliVise(korisnik?.uloga) || jeAdmin(korisnik?.uloga);
-  const [isporuka, setIsporuka] = useState(String(predlog.isporuka ?? 100));
-  const [dokumentacija, setDokumentacija] = useState(String(predlog.dokumentacija ?? 100));
-  const [reakcija, setReakcija] = useState(String(predlog.reakcija ?? 100));
+  const [isporuka, setIsporuka] = useState(predlog.isporuka == null ? "" : String(predlog.isporuka));
+  const [dokumentacija, setDokumentacija] = useState(predlog.dokumentacija == null ? "" : String(predlog.dokumentacija));
+  const [reakcija, setReakcija] = useState(predlog.reakcija == null ? "" : String(predlog.reakcija));
   const [izvor, setIzvor] = useState("rucno");
   const [obrazlozenje, setObrazlozenje] = useState("");
   const [odobreno, setOdobreno] = useState(false);
   const [snima, setSnima] = useState(false);
 
   useEffect(() => {
-    setIsporuka(String(predlog.isporuka ?? 100));
-    setDokumentacija(String(predlog.dokumentacija ?? 100));
-    setReakcija(String(predlog.reakcija ?? 100));
+    setIsporuka(predlog.isporuka == null ? "" : String(predlog.isporuka));
+    setDokumentacija(predlog.dokumentacija == null ? "" : String(predlog.dokumentacija));
+    setReakcija(predlog.reakcija == null ? "" : String(predlog.reakcija));
     setObrazlozenje("");
     setOdobreno(false);
   }, [podaci.dobavljac?.sifra_dobavljaca, podaci.period, predlog.isporuka, predlog.dokumentacija, predlog.reakcija]);
 
   const live = useMemo(() => {
     if (predlog.kvalitet == null) return null;
-    try {
-      return {
-        kvalitet: predlog.kvalitet,
-        ...izracunajUkupnuOcenu({
-          kvalitet: predlog.kvalitet,
-          isporuka,
-          dokumentacija,
-          reakcija,
-        }),
-      };
-    } catch {
-      return null;
-    }
+    const zbir = ukupnaOcenaIzUnosa({
+      kvalitet: predlog.kvalitet,
+      isporuka,
+      dokumentacija,
+      reakcija,
+    });
+    return {
+      kvalitet: predlog.kvalitet,
+      ukupno: zbir?.ukupno ?? null,
+      klasa: zbir?.klasa ?? null,
+    };
   }, [predlog.kvalitet, isporuka, dokumentacija, reakcija]);
 
   const snimi = async () => {
@@ -339,23 +337,26 @@ function OcenaDobavljacaKartica({ podaci, C, addToast, korisnik, onOcenaSnimljen
                 title={opisKlaseDobavljaca(live?.klasa)}
               />
             </div>
-            <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10 }} title={opisKlaseDobavljaca(live?.klasa)}>
-              {opisKlaseDobavljaca(live?.klasa)} · A 90–100 · B 75–89 · C 60–74 · D &lt; 60
+            <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10 }} title={live?.klasa ? opisKlaseDobavljaca(live.klasa) : undefined}>
+              {live?.klasa
+                ? `${opisKlaseDobavljaca(live.klasa)} · `
+                : "Ukupno i klasa čekaju isporuku, dokumentaciju i reakciju. "}
+              A 90–100 · B 75–89 · C 60–74 · D &lt; 60
             </div>
 
             {mozeUnos ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8 }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <span style={{ color: C.sivi, fontSize: 9 }} title="OTIF / rok i potpunost isporuke">ISPORUKA (0–100)</span>
-                  <input type="number" min="0" max="100" step="0.1" value={isporuka} onChange={(e) => setIsporuka(e.target.value)} style={INP} />
+                  <input type="number" min="0" max="100" step="0.1" value={isporuka} placeholder="nije uneto" onChange={(e) => setIsporuka(e.target.value)} style={INP} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <span style={{ color: C.sivi, fontSize: 9 }} title="Sertifikati, prijemnica, sledljivost">DOKUMENTACIJA (0–100)</span>
-                  <input type="number" min="0" max="100" step="0.1" value={dokumentacija} onChange={(e) => setDokumentacija(e.target.value)} style={INP} />
+                  <input type="number" min="0" max="100" step="0.1" value={dokumentacija} placeholder="nije uneto" onChange={(e) => setDokumentacija(e.target.value)} style={INP} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <span style={{ color: C.sivi, fontSize: 9 }} title="Vreme odgovora i zatvaranja reklamacije / 8D">REAKCIJA (0–100)</span>
-                  <input type="number" min="0" max="100" step="0.1" value={reakcija} onChange={(e) => setReakcija(e.target.value)} style={INP} />
+                  <input type="number" min="0" max="100" step="0.1" value={reakcija} placeholder="nije uneto" onChange={(e) => setReakcija(e.target.value)} style={INP} />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <span style={{ color: C.sivi, fontSize: 9 }} title="Odakle dolaze skorovi isporuke, dokumentacije i reakcije">IZVOR OSTALIH OCENA</span>
@@ -381,7 +382,7 @@ function OcenaDobavljacaKartica({ podaci, C, addToast, korisnik, onOcenaSnimljen
                 <div style={{ display: "flex", alignItems: "end" }}>
                   <button
                     type="button"
-                    disabled={snima || !live}
+                    disabled={snima || live?.ukupno == null}
                     onClick={snimi}
                     title="Čuva snapshot ocene u istoriju. Ne blokira dobavljača."
                     style={{

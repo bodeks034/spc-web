@@ -338,7 +338,7 @@ export default function LicencaStatusPanel({ licenca, C, kompakt = false, samoSt
 
           Slojevi: server {licenca.slojevi.server ? "✓" : "—"}
 
-          {licenca.slojevi.fajl ? ` · fajl ${licenca.slojevi.fajl}` : ""}
+          {licenca.slojevi.fajl === true ? " · fajl ✓" : licenca.slojevi.fajl === "preskoceno" ? " · fajl preskočeno" : licenca.slojevi.fajl ? ` · fajl ${licenca.slojevi.fajl}` : ""}
 
         </div>
 

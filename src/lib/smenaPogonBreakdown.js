@@ -119,16 +119,25 @@ export async function fetchSmenaStatPoPogonima(supabase, {
   return { datum: d, smena: sm, redovi, mapa };
 }
 
+/** Broj aktivnih naloga i kad je lista skraćena (limit upita). */
+export function brojAktivnihNaloga(nalozi) {
+  const n = Number(nalozi?.ukupno);
+  if (Number.isFinite(n)) return n;
+  return nalozi?.length || 0;
+}
+
 export async function fetchAktivniRadniNalozi(supabase, { pogonKod = null, limit = 40 } = {}) {
   let q = supabase.from("radni_nalozi")
-    .select("id_deo,pogon_kod,broj_naloga,kolicina,status")
+    .select("id_deo,pogon_kod,broj_naloga,kolicina,status", { count: "exact" })
     .eq("status", "aktivan")
     .order("pogon_kod")
     .limit(limit);
   q = primeniPogonFilter(q, pogonKod);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) return [];
-  return data || [];
+  const rows = data || [];
+  rows.ukupno = Number.isFinite(count) ? count : rows.length;
+  return rows;
 }
 
 /** Tekstualni blok za email digest. */

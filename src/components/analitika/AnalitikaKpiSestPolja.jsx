@@ -1,6 +1,17 @@
 import { AnalitikaMetrika } from "./AnalitikaMetrika.jsx";
 import { deltaTrenda } from "./Sparkline.jsx";
 
+function fpyPrikaz(fpy, rty, imaUzorka) {
+  if (!imaUzorka) return "—";
+  const n = Number(fpy ?? rty);
+  return Number.isFinite(n) ? `${n}%` : "—";
+}
+
+function dpmoPrikaz(dpmo, imaUzorka) {
+  if (!imaUzorka || dpmo == null || !Number.isFinite(Number(dpmo))) return "DPMO —";
+  return `DPMO ${Number(dpmo).toLocaleString()}`;
+}
+
 /** Šest KPI polja u jednom redu — puna širina roditelja (kao ostatak forme). */
 export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }) {
   if (!podaci) return null;
@@ -10,10 +21,12 @@ export default function AnalitikaKpiSestPolja({ C, podaci, modul, onNavigacija }
 
   const trendAttr = podaci.trend || [];
   const trendMer = podaci.trendMer || [];
+  const imaAttr = Number(podaci.attr?.ukN) > 0;
+  const imaMer = Number(podaci.merljive?.merenja) > 0;
 
   const kartice = [
-    { id: "atr", label: "FPY ATR", value: `${podaci.attr.fpy ?? podaci.attr.rty}%`, boja: C.plava, sub: `DPMO ${podaci.attr.dpmo.toLocaleString()}`, trend: trendAttr, delta: deltaTrenda(trendAttr) },
-    { id: "mer", label: "FPY MER", value: `${podaci.merljive.fpy ?? podaci.merljive.rty}%`, boja: C.zelena, sub: `${podaci.merljive.merenja} mer.`, trend: trendMer, delta: deltaTrenda(trendMer) },
+    { id: "atr", label: "FPY ATR", value: fpyPrikaz(podaci.attr.fpy, podaci.attr.rty, imaAttr), boja: C.plava, sub: dpmoPrikaz(podaci.attr.dpmo, imaAttr), trend: trendAttr, delta: deltaTrenda(trendAttr) },
+    { id: "mer", label: "FPY MER", value: fpyPrikaz(podaci.merljive.fpy, podaci.merljive.rty, imaMer), boja: C.zelena, sub: `${podaci.merljive.merenja} mer.`, trend: trendMer, delta: deltaTrenda(trendMer) },
     { id: "rty", label: "RTY", value: podaci.rtyPogon != null ? `${podaci.rtyPogon}%` : "—", boja: C.narandzasta, sub: podaci.fazeKvaliteta?.length > 1 ? "pogon" : "ukupno" },
     { id: "skart", label: "ŠKART", value: String(skart), boja: skart > 0 ? C.crvena : C.tekst, sub: dorada > 0 ? `Dor. ${dorada}` : (podaci.kpi?.imaKpi ? `${podaci.kpi.kpiBroj} KPI` : "—") },
     { id: "esk", label: "ESK", value: podaci.eskalacije.otvorene, boja: C.zuta, sub: podaci.eskalacije.auto > 0 ? `${podaci.eskalacije.auto} auto` : "otv." },

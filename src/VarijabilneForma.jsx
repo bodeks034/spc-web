@@ -21,7 +21,7 @@ import {
   brojMerenjaZaSeriju, metaSerije, koloneZaGrupu, koloneFaiZaDeo, faiPotrebanZaDeo,
   brojPotrebnihZaKolonu, kolonePetStranica,
   jeMerljivaKarakteristika,
-  idSpremanZaUcitavanje, porukaNepoznatIdDeo, listaIdDeoIzKarakteristika,
+  idSpremanZaUcitavanje, porukaNepoznatIdDeo, porukaNemaMerljiveZaId, nazivDelaBezSifre, listaIdDeoIzKarakteristika,
 } from "./lib/varijabilneUtils.js";
 import { propagirajMetaKarakteristika } from "./lib/definicijaKarakteristika.js";
 import { dodeliSerijeMerenja } from "./lib/karakteristikaMerljive.js";
@@ -281,6 +281,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     qaEnabled: mozeQaOdobrenja,
     faiEnabled: mozePregledFaiOdobrenja(korisnik?.uloga),
     ncrEnabled: mozeNcrCapa(korisnik?.uloga),
+    idDeo: filterDeo,
     grupe: analitikaGrupe,
   });
   const prikazTabovi = jeLinija ? TABOVI : analitikaTabovi;
@@ -1169,7 +1170,6 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   }, [tab, jeLinija]);
 
   const punPristupTabovima = (mozeAdmin || jeKvalitetIliVise(korisnik?.uloga)) && !jeLinija;
-  const linijaTaboviVidljivi = jeLinija && TABOVI.length > 1;
 
   useEffect(() => {
     if (!idDeo?.trim() && !radniNalog?.trim()) {
@@ -1243,14 +1243,15 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
   }, []);
 
   const ucitajDeo = useCallback(async (sID, { radniNalogEksplicitni, pogonEksplicitni } = {}) => {
-    const seq = ++ucitajDeoSeq.current;
     const id = String(sID || "").trim().toUpperCase();
     if (!id || !idSpremanZaUcitavanje(id)) return;
     if (ucitava) {
       pendingUcitajId.current = id;
       return;
     }
-    if (ucitajDeoAktivni.current === id) return;
+    const istiUToku = ucitajDeoAktivni.current === id;
+    if (istiUToku && !pogonEksplicitni && !radniNalogEksplicitni) return;
+    const seq = ++ucitajDeoSeq.current;
     ucitajDeoAktivni.current = id;
     setUcitavaDeo(true);
     const resetPosleGreske = () => {
@@ -1299,10 +1300,40 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     const imaKarZaDeo = (karLista || []).some(
       (k) => String(k.id_deo || "").toUpperCase() === id,
     );
+    const razresiNazivDela = async (...predlozi) => {
+      const { data, error } = await supabase
+        .from("delovi")
+        .select("naziv_dela")
+        .eq("id_deo", id)
+        .limit(1)
+        .maybeSingle();
+      if (seq !== ucitajDeoSeq.current) return "";
+      if (!error) {
+        const izSifrarnika = nazivDelaBezSifre(data?.naziv_dela, id);
+        if (izSifrarnika) return izSifrarnika;
+      }
+      for (const predlog of predlozi) {
+        const n = nazivDelaBezSifre(predlog, id);
+        if (n) return n;
+      }
+      for (const k of karLista || []) {
+        if (String(k.id_deo || "").toUpperCase() !== id) continue;
+        const n = nazivDelaBezSifre(k.naziv_dela, id);
+        if (n) return n;
+      }
+      for (const row of Object.values(sopLokal[id] || {})) {
+        const n = nazivDelaBezSifre(row?.naziv_dela, id);
+        if (n) return n;
+      }
+      return "";
+    };
+
     if (!imaKarZaDeo && !sopLokal[id]) {
-      prikaziGresku(
-        "Tabela karakteristike_merljive je prazna — Admin → uvezi SPC_merljive.xlsx, pa Ctrl+F5.",
-      );
+      prikaziGresku(porukaNemaMerljiveZaId(
+        karLista,
+        id,
+        (karLista || []).length > 0 || Object.keys(sopLokal || {}).length > 0,
+      ));
       return;
     }
     let pogon = String(pogonEksplicitni || "").trim().toUpperCase()
@@ -1331,7 +1362,9 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           setGrupaAB("");
           resetKolone(5);
           const biloSop = Object.values(sopLokal[id] || {})[0];
-          setNazivDela(biloSop?.naziv_dela || id);
+          const naziv = await razresiNazivDela(biloSop?.naziv_dela);
+          if (seq !== ucitajDeoSeq.current) return;
+          setNazivDela(naziv);
           setPoruka(
             `Izaberi pogon za ${id} (${kandidati.map((p) => labelPogona(p)).join(", ")}). `
             + "A = Ulazna kontrola, B = Preseraj, …",
@@ -1358,7 +1391,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         sop = {
           id_deo: id,
           pogon_kod: pogon,
-          naziv_dela: prvi.naziv_dela || id,
+          naziv_dela: nazivDelaBezSifre(prvi.naziv_dela, id),
           radni_nalog: prvi.radni_nalog || radniNalogIzDeoPogona(id, pogon),
           slika: prvi.slika || null,
           masina: null,
@@ -1376,7 +1409,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
         sop = {
           id_deo: id,
           pogon_kod: pogon,
-          naziv_dela: biloKoji?.naziv_dela || id,
+          naziv_dela: nazivDelaBezSifre(biloKoji?.naziv_dela, id),
           radni_nalog: rn,
           slika: biloKoji?.slika || null,
           masina: biloKoji?.masina || null,
@@ -1417,7 +1450,10 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
     }
     poslednjaGreskaIdRef.current = "";
     setPoruka("");
-    setNazivDela(sop.naziv_dela || "");
+    const naziv = await razresiNazivDela(sop.naziv_dela);
+    if (seq !== ucitajDeoSeq.current) return;
+    sop.naziv_dela = naziv;
+    setNazivDela(naziv);
     setKontrolor(sop.kontrolor_ime || korisnik?.ime || "");
     setLinija(sop.linija || "");
     setMasina(sop.masina || "");
@@ -2790,6 +2826,18 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
                       {tab === "moment" ? "←" : "MOM"}
                     </LinijaHeaderChip>
                   )}
+                  {jeLinija && koristiMobLinija && mozeTabMerljive("fai", korisnik?.uloga, rezimRada) && (
+                    <LinijaHeaderChip
+                      C={C}
+                      boja={C.zuta}
+                      aktivan={tab === "fai"}
+                      onClick={() => setTab(tab === "fai" ? "unos" : "fai")}
+                      title="FAI"
+                      stil={{ padding: "1px 5px" }}
+                    >
+                      {tab === "fai" ? "←" : "FAI"}
+                    </LinijaHeaderChip>
+                  )}
                   {jeLinija && koristiMobLinija && mozeTabMerljive("log", korisnik?.uloga, rezimRada) && (
                     <LinijaHeaderChip
                       C={C}
@@ -2893,7 +2941,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
             />
           )}
         />
-        {(punPristupTabovima || !jeLinija || linijaTaboviVidljivi || mozePregledFai) && prikazTabovi?.length > 1 && (
+        {(punPristupTabovima || !jeLinija || !ekran.linijaUredjaj) && prikazTabovi?.length > 1 && (
         jeLinija ? (
         <LinijaTabTraka
           C={C}
@@ -3010,6 +3058,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           C={C}
           addToast={addToast}
           sviDelovi={deloviLista}
+          idDeoFilter={filterDeo || ""}
           prefill={osmdPrefill}
           onPrefillUsed={() => setOsmdPrefill(null)}
           onOtvoriPfmeaCp={(prefill) => {
@@ -3066,6 +3115,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
           C={C}
           addToast={addToast}
           sviDelovi={deloviLista}
+          idDeoIzFiltera={filterDeo}
           onOtvori8D={(e) => {
             setOsmdPrefill(prefill8dIzEskalacije(e));
             setTab("8d");
@@ -3083,6 +3133,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
             C={C}
             addToast={addToast}
             sviDelovi={deloviLista}
+            idDeoIzFiltera={filterDeo}
             prefill={ncrPrefill}
             onPrefillUsed={() => setNcrPrefill(null)}
             onOtvori8D={(e) => {
@@ -3265,7 +3316,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
 
       {tab === "stabilnost" && (
         <LazyTab C={C} label="Učitavam stabilnost…">
-          <StabilnostMerljive C={C} addToast={addToast} sviDelovi={deloviLista} />
+          <StabilnostMerljive C={C} addToast={addToast} sviDelovi={deloviLista} defaultIdDeo={filterDeo} />
         </LazyTab>
       )}
 
@@ -3521,7 +3572,7 @@ function VarijabilneFormaInner({ korisnik, onOdjava, onNazad, C, onToggleTema, t
                 overflowY: "auto",
                 width: "100%",
               }}>
-                {idDeo && !idSpremanZaUcitavanje(idDeo) && (
+                {(trebaIzborPogona || (idDeo && !idSpremanZaUcitavanje(idDeo))) && (
                   <span style={{ color: C.sivi, fontSize: 13 }}>
                     {trebaIzborPogona
                       ? "Izaberite pogon u levom panelu (A–H)"

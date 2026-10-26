@@ -1,5 +1,13 @@
 /** Brending po firmi — env u .env / .env.production (vidi deploy/env.production.example). */
 
+/** Šabloni iz .env.example — nisu pravi naziv firme. */
+const SABLON_FIRME = /^(ime fabrike|fabrika xy|vaša firma|vasa firma)(\s+d\.o\.o\.)?$/i;
+
+function ocistiSablonFirme(v) {
+  const t = String(v || "").trim();
+  return SABLON_FIRME.test(t) ? "" : t;
+}
+
 function viteEnv(key, fallback = "") {
   const vite = typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : null;
   let v = vite?.[key];
@@ -32,11 +40,11 @@ export function getBrending() {
   return {
     nazivAplikacije: viteEnv("VITE_NAZIV_APLIKACIJE", "TRI-CORE QC"),
     slogan: viteEnv("VITE_SLOGAN", "Tri modula. Jedan sistem kvaliteta.").trim(),
-    nazivFirme: viteEnv("VITE_NAZIV_FIRME").trim(),
+    nazivFirme: ocistiSablonFirme(viteEnv("VITE_NAZIV_FIRME")),
     logoUrl,
     logoIconUrl,
     logoSymbolUrl,
-    razvojNaziv: viteEnv("VITE_RAZVOJ_NAZIV").trim(),
+    razvojNaziv: ocistiSablonFirme(viteEnv("VITE_RAZVOJ_NAZIV")),
     razvojAutor: viteEnv("VITE_RAZVOJ_AUTOR", "Dejan Bogdanovic").trim(),
     razvojEmail: email,
     razvojTel: tel,

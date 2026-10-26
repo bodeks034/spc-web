@@ -1,18 +1,21 @@
 import { primeniBaselineNaPodatke } from "./spcBaseline.js";
+import { granicePProcenat } from "./spcStats.js";
 
 /** Ista priprema podataka kao u SPCKarte (App.jsx). */
 export function buildPKartaPodaci(grupe, pBar) {
-  const p = pBar ?? 0;
-  return (grupe || []).map((g) => ({
-    datum: g.datum,
-    label: g.label,
-    val: +(g.n > 0 ? (g.nok / g.n) * 100 : 0).toFixed(3),
-    cl: +(p * 100).toFixed(3),
-    ucl: +((p + 3 * Math.sqrt(p * (1 - p) / Math.max(g.n, 1))) * 100).toFixed(3),
-    lcl: +(Math.max(0, p - 3 * Math.sqrt(p * (1 - p) / Math.max(g.n, 1))) * 100).toFixed(3),
-    n: g.n,
-    nok: g.nok,
-  }));
+  return (grupe || []).map((g) => {
+    const gcl = granicePProcenat(pBar ?? 0, g.n);
+    return {
+      datum: g.datum,
+      label: g.label,
+      val: +(g.n > 0 ? (g.nok / g.n) * 100 : 0).toFixed(3),
+      cl: gcl.cl,
+      ucl: gcl.ucl,
+      lcl: gcl.lcl,
+      n: g.n,
+      nok: g.nok,
+    };
+  });
 }
 
 export function buildCKartaPodaci(rawData, cBar) {

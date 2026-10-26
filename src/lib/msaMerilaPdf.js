@@ -33,6 +33,19 @@ export function statusMerilaKalibracije(m, danaUpoz = DANA_UPOZORENJE) {
   return { label: `OK ${dani}d`, nivo: "ok", dani, kal };
 }
 
+/** Broj isteklih i skorih kalibracija — uvek poslednji zapis po datumu, kao lista merila. */
+export function brojKalibracijaPoStatusu(merila, danaUpoz = DANA_UPOZORENJE) {
+  let isteklo = 0;
+  let uskoro = 0;
+  for (const m of merila || []) {
+    const dani = statusMerilaKalibracije(m, danaUpoz).dani;
+    if (dani == null) continue;
+    if (dani < 0) isteklo += 1;
+    else if (dani < danaUpoz) uskoro += 1;
+  }
+  return { isteklo, uskoro };
+}
+
 export function filtrirajMerila(merila, filter = "sva") {
   return (merila || []).filter((m) => {
     const s = statusMerilaKalibracije(m);

@@ -115,8 +115,8 @@ export async function ucitajFaiCekaju(supabase, { datum, smena, pogonKod, idDeo 
   let q = supabase.from("fai_unosi")
     .select("*, kreirao:kreirao_id(ime), odobrio:odobrio_id(ime)")
     .eq("status", "ceka")
-    .eq("datum", datum || dISO())
     .order("created_at", { ascending: false });
+  if (datum) q = q.eq("datum", datum);
   if (smena != null && smena !== "") q = q.eq("smena", Number(smena) || 1);
   const pg = String(pogonKod || "").trim().toUpperCase();
   if (pg) q = q.eq("pogon_kod", pg);

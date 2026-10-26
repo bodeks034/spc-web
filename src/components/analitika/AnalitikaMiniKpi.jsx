@@ -1,6 +1,12 @@
 import { useAnalitikaFilter } from "../../lib/AnalitikaFilterContext.jsx";
 import { useDashboardPodaci } from "../../lib/useDashboardPodaci.js";
 
+function fpyPrikaz(fpy, rty, imaUzorka) {
+  if (!imaUzorka) return "—";
+  const n = Number(fpy ?? rty);
+  return Number.isFinite(n) ? `${n}%` : "—";
+}
+
 function Chip({ label, value, boja, C, onClick, title }) {
   const klik = typeof onClick === "function";
   const Tag = klik ? "button" : "div";
@@ -67,7 +73,7 @@ export default function AnalitikaMiniKpi({ C, modul, onNavigacija, kompakt }) {
           {modul !== "merljive" && (
             <Chip
               label="FPY ATR"
-              value={`${podaci.attr.fpy ?? podaci.attr.rty}%`}
+              value={fpyPrikaz(podaci.attr.fpy, podaci.attr.rty, Number(podaci.attr?.ukN) > 0)}
               boja={C.plava}
               C={C}
               onClick={nav({ tab: "karte" })}
@@ -77,7 +83,7 @@ export default function AnalitikaMiniKpi({ C, modul, onNavigacija, kompakt }) {
           {modul !== "atributivne" && (
             <Chip
               label="FPY MER"
-              value={`${podaci.merljive.fpy ?? podaci.merljive.rty}%`}
+              value={fpyPrikaz(podaci.merljive.fpy, podaci.merljive.rty, Number(podaci.merljive?.merenja) > 0)}
               boja={C.zelena}
               C={C}
               onClick={nav({ tab: "karte" })}

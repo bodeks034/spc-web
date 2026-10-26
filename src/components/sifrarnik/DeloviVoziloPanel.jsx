@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchTipoviVozila, fetchDelovi, upsertDeo } from "../../lib/sifrarnikApi.js";
+import { etiketaLinije } from "../../lib/linijaProizvoda.js";
 import { FormGrid } from "./LinijePanel.jsx";
 import { inpStyle } from "./sifrarnikPanelStyle.js";
 
@@ -75,7 +76,7 @@ export default function DeloviVoziloPanel({ C, addToast, voziloKod, onVoziloChan
         <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span style={{ color: C.sivi, fontSize: 9 }}>TIP VOZILA</span>
           <select value={voziloKod} onChange={(e) => onVoziloChange?.(e.target.value)} style={{ ...INP, minWidth: 140, cursor: "pointer" }}>
-            {tipovi.map((t) => <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>)}
+            {tipovi.map((t) => <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>)}
           </select>
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 160 }}>

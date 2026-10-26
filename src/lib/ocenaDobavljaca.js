@@ -90,17 +90,30 @@ export function izracunajUkupnuOcenu({
   return { ukupno, klasa: klasaDobavljaca(ukupno) };
 }
 
+function skorJeUnet(v) {
+  if (v == null || String(v).trim() === "") return false;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 && n <= 100;
+}
+
+export function ukupnaOcenaIzUnosa({ kvalitet, isporuka, dokumentacija, reakcija }) {
+  if (![kvalitet, isporuka, dokumentacija, reakcija].every(skorJeUnet)) return null;
+  return izracunajUkupnuOcenu({ kvalitet, isporuka, dokumentacija, reakcija });
+}
+
 export function napraviPredlogOcene(stat, ostalo = {}) {
   const kvalitet = izracunajKvalitetSkor(stat);
-  if (kvalitet == null) return { kvalitet: null, ukupno: null, klasa: null };
-  const isporuka = Number(ostalo.isporuka ?? 100);
-  const dokumentacija = Number(ostalo.dokumentacija ?? 100);
-  const reakcija = Number(ostalo.reakcija ?? 100);
+  if (kvalitet == null) return { kvalitet: null, ukupno: null, klasa: null, isporuka: null, dokumentacija: null, reakcija: null };
+  const isporuka = skorJeUnet(ostalo.isporuka) ? Number(ostalo.isporuka) : null;
+  const dokumentacija = skorJeUnet(ostalo.dokumentacija) ? Number(ostalo.dokumentacija) : null;
+  const reakcija = skorJeUnet(ostalo.reakcija) ? Number(ostalo.reakcija) : null;
+  const zbir = ukupnaOcenaIzUnosa({ kvalitet, isporuka, dokumentacija, reakcija });
   return {
     kvalitet,
     isporuka,
     dokumentacija,
     reakcija,
-    ...izracunajUkupnuOcenu({ kvalitet, isporuka, dokumentacija, reakcija }),
+    ukupno: zbir?.ukupno ?? null,
+    klasa: zbir?.klasa ?? null,
   };
 }

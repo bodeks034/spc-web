@@ -5,6 +5,7 @@ import {
   fetchKpiUnos,
   fetchKpiFilterOpcijeZaDeo,
   filtrirajKpiStavke,
+  izaberiKpiStavku,
   datumIsoUSr,
   snimiIliAzurirajKpiUnos,
   porukaKpiGreske,
@@ -94,18 +95,12 @@ export default function KpiDoradaHub({
         if (cancelled) return;
         ucitaneOpcijeZa.current = kljucOpcija;
         setFilterOpcije(opcije);
-        if (opcije.stavke.length) {
-          const pocIso = parsirajDatum(pocetniDatum || datum);
-          const pocRn = String(pocetniRadniNalog || "").trim().toUpperCase();
-          const pocSm = String(pocetnaSmena || smena || "1");
-          const hit = opcije.stavke.find((s) =>
-            s.datum === pocIso
-            && String(s.smena) === pocSm
-            && (!pocRn || (s.radni_nalog || "") === pocRn),
-          ) || opcije.stavke.find((s) => !pocRn || (s.radni_nalog || "") === pocRn)
-            || opcije.stavke[0];
-          primeniStavku(hit);
-        }
+        const hit = izaberiKpiStavku(opcije.stavke, {
+          datumIso: parsirajDatum(pocetniDatum || datum),
+          smena: pocetnaSmena || smena || "1",
+          radniNalog: pocetniRadniNalog || "",
+        });
+        if (hit) primeniStavku(hit);
       } catch {
         if (!cancelled) setFilterOpcije(PRAZNE_OPCIJE);
       } finally {
@@ -120,23 +115,38 @@ export default function KpiDoradaHub({
 
   const imaOpcije = filterOpcije.stavke.length > 0;
 
+  const rnOpcije = useMemo(() => {
+    const set = new Set(filterOpcije.radniNalozi);
+    const trenutni = String(radniNalog || "").trim().toUpperCase();
+    if (trenutni) set.add(trenutni);
+    return [...set].sort();
+  }, [filterOpcije.radniNalozi, radniNalog]);
+
   const stavkePoRn = useMemo(() => {
     if (!imaOpcije) return [];
     if (!radniNalog) return filterOpcije.stavke;
     return filtrirajKpiStavke(filterOpcije.stavke, { radniNalog });
   }, [filterOpcije.stavke, imaOpcije, radniNalog]);
 
-  const datumiOpcije = useMemo(() => (
-    [...new Set(stavkePoRn.map((s) => s.datum))].sort((a, b) => b.localeCompare(a))
-  ), [stavkePoRn]);
+  const datumiOpcije = useMemo(() => {
+    const set = new Set(stavkePoRn.map((s) => s.datum).filter(Boolean));
+    const trenutni = parsirajDatum(datum);
+    if (trenutni) set.add(trenutni);
+    return [...set].sort((a, b) => b.localeCompare(a));
+  }, [stavkePoRn, datum]);
 
   const smeneOpcije = useMemo(() => {
     const datumIso = parsirajDatum(datum);
     const list = filtrirajKpiStavke(stavkePoRn, { datumIso });
     const izBaze = [...new Set(list.map((s) => String(s.smena)).filter(Boolean))]
       .sort((a, b) => Number(a) - Number(b));
-    return izBaze.length ? izBaze : ["1", "2", "3"];
-  }, [stavkePoRn, datum]);
+    const baza = izBaze.length ? izBaze : ["1", "2", "3"];
+    const trenutna = String(smena || "");
+    if (trenutna && !baza.includes(trenutna)) {
+      return [...baza, trenutna].sort((a, b) => Number(a) - Number(b));
+    }
+    return baza;
+  }, [stavkePoRn, datum, smena]);
 
   const promeniRadniNalog = (v) => {
     const rn = String(v || "").trim().toUpperCase();
@@ -338,7 +348,7 @@ export default function KpiDoradaHub({
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ color: C.sivi, fontSize: 9 }}>
-              Radni nalog {imaOpcije ? `(${filterOpcije.radniNalozi.length || "bez RN"})` : "(opciono)"}
+              Radni nalog {imaOpcije ? `(${rnOpcije.length || "bez RN"})` : "(opciono)"}
             </span>
             {imaOpcije ? (
               <select
@@ -347,12 +357,12 @@ export default function KpiDoradaHub({
                 onChange={(e) => promeniRadniNalog(e.target.value)}
                 disabled={opcijeLoading}
               >
-                {filterOpcije.radniNalozi.length === 0 ? (
+                {rnOpcije.length === 0 ? (
                   <option value="">— bez RN —</option>
                 ) : (
                   <>
                     <option value="">— izaberi RN —</option>
-                    {filterOpcije.radniNalozi.map((rn) => (
+                    {rnOpcije.map((rn) => (
                       <option key={rn} value={rn}>{rn}</option>
                     ))}
                   </>

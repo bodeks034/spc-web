@@ -383,10 +383,11 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
 
   const pendingStat = useMemo(() => pendingFromLista(listaP), [listaP]);
   const smenaKpi = useMemo(() => {
-    if (kpiDb && kpiSerija?.ukupno_kom) return saberiKpiVrednosti(kpiDb, kpiSerija);
-    if (kpiSerija?.ukupno_kom) return kpiSerija;
+    const izListe = listaP.length > 0 && Number(kpiSerija?.ukupno_kom) > 0;
+    if (kpiDb && izListe) return saberiKpiVrednosti(kpiDb, kpiSerija);
+    if (izListe) return kpiSerija;
     return kpiDb;
-  }, [kpiDb, kpiSerija]);
+  }, [kpiDb, kpiSerija, listaP.length]);
 
   const smenaStat = useMemo(
     () => mergeSmenaStat(dbSmena, pendingStat, smenaKpi),
@@ -395,6 +396,9 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
   const smenaOK = smenaStat.ok;
   const smenaNOK = smenaStat.nok;
   const smenaTotal = smenaStat.merenja;
+  const imaMerenjaSmene = smenaTotal > 0;
+  const fpySmeneTekst = imaMerenjaSmene ? `${Number(smenaStat.rty).toFixed(1)}%` : "—";
+  const dpmoSmeneTekst = imaMerenjaSmene ? Number(smenaStat.dpmo).toLocaleString() : "—";
   const [lotAql, setLotAql] = useState(() => ucitajAqlLotVelicina());
   const [lotAqlIzvor, setLotAqlIzvor] = useState("rucno");
   const promeniLotAql = useCallback((n) => {
@@ -861,11 +865,14 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             if(mx&&mx[1]>=2) setUpoz(`⚠ ČESTO: ${mx[0]} (${mx[1]}x)`); else setUpoz("");
           } else setUpoz("");
         });
-    }else if (prethodniIdAtr.current.toUpperCase() !== idNorm) {
-      setDeoInfo(null);setUpoz("");setPogonKod("");setPorukaPogon("");
-      prethodniIdAtr.current="";
+    } else if (!loadInit && prethodniIdAtr.current.toUpperCase() !== idNorm) {
+      setDeoInfo(null);
+      setUpoz(`ID ${idNorm} nije u šifrarniku.`);
+      setPogonKod("");
+      setPorukaPogon("");
+      prethodniIdAtr.current = "";
     }
-  },[idDeo,sviDelovi,atributivniPogoni,naloziZaPogon,korisnik?.uloga,rezimRada,ucitajRnZaDeo,pogonKod]);  
+  },[idDeo,sviDelovi,atributivniPogoni,naloziZaPogon,korisnik?.uloga,rezimRada,ucitajRnZaDeo,pogonKod,loadInit]);  
 
   const dodajGresku=()=>{
     if(!deoInfo){setModal({poruka:"ID dela nije pronađen!",tip:"greska"});return;}
@@ -1194,6 +1201,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
     enabled: !jeLinija,
     qaEnabled: mozeQaOdobrenja,
     ncrEnabled: mozeNcrCapa(korisnik?.uloga),
+    idDeo: filterDeo,
     grupe: analitikaGrupe,
   });
   const prikazTabovi = jeLinija ? TABOVI : analitikaTabovi;
@@ -1624,7 +1632,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                   data-testid="atr-id-deo"
                   value={idDeo}
                   {...idBarkodPolje}
-                  placeholder="5501-A"
+                  placeholder="npr. 5502-A"
                   title="Ručni unos, USB čitač (fokus u polje) ili veb kamera"
                   style={{
                     ...INP,
@@ -1644,7 +1652,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
                   value={radniNalog}
                   {...ATRIBUTI_TASTATURE_SIFRA}
                   onChange={e => setRadniNalog(e.target.value.toUpperCase())}
-                  placeholder="RN-2026-NM001-B"
+                  placeholder="npr. RN-2026-001"
                   title={[
                     nalogInfo?.kupac && `Kupac: ${nalogInfo.kupac}`,
                     nalogInfo?.rok_isporuke && `Rok: ${nalogInfo.rok_isporuke}`,
@@ -1794,10 +1802,10 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             <IdUnosEmptyState
               C={C}
               H={H}
-              opis="Skenirajte barkod ili unesite šifru u levi panel (npr. 5501-A), zatim Enter. Posle učitavanja sledi POKA-YOKE provera, pa OK/NOK unos."
+              opis="Skenirajte barkod ili unesite šifru u levi panel (npr. 5502-A), zatim Enter. Posle učitavanja sledi POKA-YOKE provera, pa OK/NOK unos."
               upozorenjePogon={trebaIzborPogona
                 ? "Za ovaj deo prvo izaberite pogon (A–H) u levom panelu."
-                : null}
+                : (upoz?.startsWith("ID ") ? upoz : null)}
             />
           )}
 
@@ -2025,10 +2033,10 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
               </div>
               <div style={{marginTop:7,textAlign:"center",fontSize:11,borderTop:`1px solid ${C.border}`,paddingTop:7}}>
                 <span style={{color:C.zuta,fontWeight:700}}>
-                  {LAB_FPY_KRATKO}: {smenaStat.rty > 0 ? smenaStat.rty.toFixed(1) : "—"}%
+                  {LAB_FPY_KRATKO}: {fpySmeneTekst}
                 </span>
                 <span style={{color:C.sivi,fontSize:9,marginLeft:10}}>
-                  DPMO: {smenaStat.dpmo > 0 ? smenaStat.dpmo.toLocaleString() : "—"}
+                  DPMO: {dpmoSmeneTekst}
                 </span>
               </div>
               <div style={{color:C.sivi,fontSize:8,marginTop:4,textAlign:"center"}}>iz baze · {dISO()} · S{smena}</div>
@@ -2182,8 +2190,8 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           </div>
         <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-start"}}>
           {[["MERENJA",smenaTotal,C.plava],["OK",smenaOK,C.zelena],["NOK",smenaNOK,C.crvena],
-            [LAB_FPY_PCT,smenaStat.rty > 0 ? smenaStat.rty.toFixed(1)+"%" : "-",C.zuta],
-            ["DPMO",smenaStat.dpmo > 0 ? smenaStat.dpmo.toLocaleString() : "-",C.ljubicasta],
+            [LAB_FPY_PCT, fpySmeneTekst, C.zuta],
+            ["DPMO", dpmoSmeneTekst, C.ljubicasta],
           ].map(([l,v,b])=>(
             <div key={l} style={{background:C.panel,border:`1px solid ${b}30`,borderRadius:10,
               padding:"18px 22px",minWidth:130,textAlign:"center"}}>
@@ -2235,7 +2243,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       )}
 
       {tab==="karte" && (ekran.mob
-        ? <MobilneKarte sviDelovi={sviDelovi} C={C} addToast={addToast}/>
+        ? <MobilneKarte sviDelovi={sviDelovi} C={C} addToast={addToast} spoljniFilter={spcFilterAnalitika}/>
         : <SpcKarteAtributivne sviDelovi={sviDelovi} C={C} addToast={addToast} korisnik={korisnik}
             spoljniFilter={spcFilterAnalitika}
             pocetniTip={spcTipNav}
@@ -2280,6 +2288,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
       {tab==="eskalacije" && (
         <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <EskalacijePanel korisnik={korisnik} C={C}
+            idDeoIzFiltera={filterDeo}
             addToast={addToast} sviDelovi={sviDelovi}
             onOtvori8D={(e) => {
               setOsmdPrefill(prefill8dIzEskalacije(e));
@@ -2294,6 +2303,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
             C={C}
             addToast={addToast}
             sviDelovi={sviDelovi}
+            idDeoIzFiltera={filterDeo}
             prefill={ncrPrefill}
             onPrefillUsed={() => setNcrPrefill(null)}
             onOtvori8D={(e) => {
@@ -2312,6 +2322,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
         <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <OsmDIzvestaj korisnik={korisnik} C={C}
         addToast={addToast} sviDelovi={sviDelovi}
+        idDeoFilter={filterDeo || ""}
         prefill={osmdPrefill} onPrefillUsed={()=>setOsmdPrefill(null)}
         onOtvoriPfmeaCp={(prefill) => {
           setPfmeaCpPrefillIz8d(prefill);
@@ -2442,7 +2453,7 @@ function GlavnaFormaInner({ korisnik, onOdjava, onNazad, C, setC, rezimRada = "a
           <OCKriva C={C}/>
         </div>
       )}
-      {tab==="stabilnost"  && <StabilnostProcesa sviDelovi={sviDelovi} C={C} addToast={addToast}/>}
+      {tab==="stabilnost"  && <StabilnostProcesa sviDelovi={sviDelovi} C={C} addToast={addToast} defaultIdDeo={filterDeo} />}
       {tab==="msa" && (
         <div style={{
           flex: 1,

@@ -8,19 +8,29 @@ import { resetujKešPredloga } from "../../lib/predloziIzBaze.js";
 import { prefillPfmeaCpIz8d } from "../../lib/osmdPfmeaCpBridge.js";
 import { ucitajPfmeaCpPaketZa8d } from "../../lib/osmdPfmeaCpPaket.js";
 import { exportKvalitetPaketZip } from "../../lib/kvalitetPaket.js";
-import { osigurajBrojevePaketa8d } from "../../lib/osmdBrojevi.js";
+import { osigurajBrojevePaketa8d, oznaka8d } from "../../lib/osmdBrojevi.js";
+import { opis8dZaListu } from "../../lib/osmdStruktura.js";
 
-export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed, onOtvoriPfmeaCp }) {
+export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill, onPrefillUsed, onOtvoriPfmeaCp, idDeoFilter = "" }) {
   const [izvestaji, setIzvestaji] = useState([]);
   const [aktivni,   setAktivni]   = useState(null);
   const [loading,   setLoading]   = useState(true);
+  const idFilter = String(idDeoFilter || "").trim().toUpperCase();
 
-  useEffect(()=>{
-    supabase.from("osmd_izvestaji")
+  useEffect(() => {
+    let zivo = true;
+    setLoading(true);
+    let q = supabase.from("osmd_izvestaji")
       .select("*,kreirao:radnici!osmd_izvestaji_kreirao_id_fkey(ime)")
-      .order("created_at",{ascending:false})
-      .then(({data})=>{ setIzvestaji(data||[]); setLoading(false); });
-  },[]);
+      .order("created_at", { ascending: false });
+    if (idFilter.length >= 3) q = q.eq("id_deo", idFilter);
+    q.then(({ data }) => {
+      if (!zivo) return;
+      setIzvestaji(data || []);
+      setLoading(false);
+    });
+    return () => { zivo = false; };
+  }, [idFilter]);
 
   useEffect(() => {
     if (!prefill) return;
@@ -163,7 +173,7 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
       {loading?<div style={{color:C.sivi,fontSize:12,padding:20}}>Učitavanje...</div>
        :!izvestaji.length?(
         <div style={{color:C.border,fontSize:12,textAlign:"center",padding:40}}>
-          Nema izveštaja
+          {idFilter.length >= 3 ? `Nema 8D izveštaja za ${idFilter}.` : "Nema izveštaja"}
         </div>
       ):izvestaji.map(i=>(
         <div key={i.id} onClick={()=>setAktivni(i)}
@@ -174,8 +184,11 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,gap:8,flexWrap:"wrap"}}>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
               <span style={{color:C.tekst,fontWeight:700,fontSize:13}}>
-                {i.broj_8d || i.id_deo || "8D"}
+                {oznaka8d(i.broj_8d, i.id) || "8D"}
               </span>
+              {i.id_deo && (
+                <span style={{ color: C.sivi, fontSize: 10 }}>· {i.id_deo}</span>
+              )}
               {i.broj_reklamacije && (
                 <span style={{color:C.sivi,fontSize:10}}>· {i.broj_reklamacije}</span>
               )}
@@ -196,7 +209,12 @@ export default function OsmDIzvestaj({ korisnik, C, addToast, sviDelovi, prefill
               </button>
             </div>
           </div>
-          <div style={{color:C.sivi,fontSize:11}}>{i.d2_opis_problema?.substring(0,80)||"—"}</div>
+          <div
+            title={opis8dZaListu(i.d2_opis_problema) || undefined}
+            style={{ color: C.sivi, fontSize: 11, lineHeight: 1.4, overflowWrap: "anywhere" }}
+          >
+            {opis8dZaListu(i.d2_opis_problema) || "—"}
+          </div>
           <div style={{color:C.border,fontSize:10,marginTop:4}}>
             {i.kreirao?.ime} · {new Date(i.created_at).toLocaleDateString("sr-RS")}
           </div>

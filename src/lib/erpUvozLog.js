@@ -24,6 +24,16 @@ export async function upisiErpUvozLog(supabase, payload) {
   return { ok: true, id: data?.id, created_at: data?.created_at };
 }
 
+/** Jedan fajl ostaje; paket ERP-a na ekranu naloga pokazuje samo radni_nalozi.csv ili broj fajlova. */
+export function fajlErpZaPrikaz(fajl) {
+  const delovi = String(fajl || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!delovi.length) return "";
+  if (delovi.length === 1) return delovi[0];
+  const nalozi = delovi.find((f) => /radni_nalozi/i.test(f));
+  if (nalozi) return nalozi;
+  return `${delovi.length} fajlova`;
+}
+
 export function formatErpUvozVreme(iso) {
   if (!iso) return "—";
   try {

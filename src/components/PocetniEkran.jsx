@@ -210,11 +210,11 @@ export default function PocetniEkran({
       onMouseEnter={(e) => { if (m.dostupan) e.currentTarget.style.borderColor = m.boja; }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = m.dostupan ? m.boja + "50" : C.border; }}
     >
-      <div style={{
+      <div aria-hidden="true" style={{
         position: "absolute", top: -20, right: -20,
         fontSize: 80, opacity: 0.05, lineHeight: 1,
       }}>{m.ikon}</div>
-      <div style={{
+      <div aria-hidden="true" style={{
         color: m.boja, fontSize: ekran.mob ? 28 : 36,
         fontWeight: 700, marginBottom: 12, letterSpacing: -1,
       }}>{m.ikon}</div>

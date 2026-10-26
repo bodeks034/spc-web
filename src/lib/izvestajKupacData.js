@@ -14,6 +14,8 @@ import {
   statAtributivneRedovi,
   agregirajAtributivnePoKljuču,
 } from "./atributivneAgregacija.js";
+import { OTVORENI_NCR as OTVORENI_NCR_WORKFLOW } from "./ncrCapa.js";
+import { OTVORENI_8D } from "./osmdBrojevi.js";
 
 const KONTROLNI_LOG_SELECT = [
   "datum", "id_deo", "naziv_dela", "ok_kolicina", "nok_kolicina", "ukupno_merenja",
@@ -28,9 +30,11 @@ const MERENJA_SELECT = [
 const PAGE_SIZE = 1000;
 const MAX_REDova = 50000;
 
-const OTVORENI_NCR = ["otvoren", "analiza", "akcija", "verifikacija"];
-const OTVORENI_8D = ["u_toku", "otvoren", "ceka", "u_izradi"];
-
+/** Engleski tok iz registra i starije srpske oznake. */
+export const STATUSI_OTVORENOG_NCR = [
+  ...OTVORENI_NCR_WORKFLOW,
+  "otvoren", "analiza", "akcija", "verifikacija",
+];
 function datumOdPerioda(period) {
   const od = new Date();
   od.setDate(od.getDate() - Number(period));
@@ -151,7 +155,7 @@ async function ucitajNcr(supabase, idDeoList) {
     const { data } = await supabase.from("ncr_capa")
       .select("broj_ncr,id_deo,status,prioritet,opis,rok,created_at")
       .in("id_deo", idDeoList)
-      .in("status", OTVORENI_NCR)
+      .in("status", STATUSI_OTVORENOG_NCR)
       .order("created_at", { ascending: false })
       .limit(25);
     return data || [];

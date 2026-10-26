@@ -13,7 +13,7 @@ import {
 import { WE_MIN_PODGRUPA_OBRAZAC, calcPPM } from "./lib/spcStats.js";
 import { kreirajAlarmWesternElectric } from "./lib/spcAlarmWorkflow.js";
 import { downloadWorkbook, exportMerenjaVarijabilnaExcel } from "./lib/excelSync.js";
-import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi } from "./lib/varijabilneUtils.js";
+import { graniceKarakteristike, formatVrednostKarte, decStepenUDms, isStepen, jedinicaSpcOsi, nazivDelaBezSifre } from "./lib/varijabilneUtils.js";
 import { uniqueDeloviIzSop } from "./lib/pogonSop.js";
 import { useEkran } from "./lib/useEkran.js";
 import {
@@ -226,11 +226,20 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
 
   useEffect(() => {
     (async () => {
-      const [dRes, kRes] = await Promise.all([
+      const [dRes, kRes, masterRes] = await Promise.all([
         supabase.from("sop_deo_varijabilni").select("id_deo,pogon_kod,naziv_dela,broj_merenja").order("id_deo"),
         supabase.from("karakteristike_merljive").select("id_deo,pozicija,lsl,usl,nominala,jedinica").order("pozicija"),
+        supabase.from("delovi").select("id_deo,naziv_dela"),
       ]);
-      setDelovi(uniqueDeloviIzSop(dRes.data || []));
+      const masterNaziv = new Map(
+        (masterRes.data || []).map((d) => [String(d.id_deo || "").trim().toUpperCase(), d.naziv_dela]),
+      );
+      setDelovi(uniqueDeloviIzSop(dRes.data || []).map((d) => ({
+        ...d,
+        naziv_dela: nazivDelaBezSifre(masterNaziv.get(String(d.id_deo || "").trim().toUpperCase()), d.id_deo)
+          || nazivDelaBezSifre(d.naziv_dela, d.id_deo)
+          || "",
+      })));
       setKarakteristike(kRes.data || []);
     })();
   }, []);
@@ -681,7 +690,7 @@ export default function MerljiveSpcKarte({ C, addToast, korisnik, spoljniFilter,
         liveMerenja={rawData}
         liveKarakteristike={karakteristike}
         liveNPodgrupa={nPodgrupa}
-        liveKpiPeriod={kpiPeriod}
+        liveKpiPeriod={datumOd || datumDo ? kpiPeriod : null}
         pozicijaOverride={pozicija}
         nazivDelaOverride={deoInfo?.naziv_dela}
         onNavigacija={onNavigacijaKarte ? (d) => {

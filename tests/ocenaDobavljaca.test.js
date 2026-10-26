@@ -45,14 +45,28 @@ describe("ocena dobavljača", () => {
     expect(klasaDobavljaca(59.9)).toBe("D");
   });
 
-  it("pravi predlog sa podrazumevanim ostalim skorovima 100", () => {
+  it("ne računa ukupno dok isporuka, dokumentacija i reakcija nisu unete", () => {
+    const p = napraviPredlogOcene({
+      kontrolisano: 30,
+      prijema: 3,
+      ppm: 500000,
+      odbijeno: 1,
+      uslovno: 0,
+    });
+    expect(p.kvalitet).toBe(0);
+    expect(p.isporuka).toBeNull();
+    expect(p.ukupno).toBeNull();
+    expect(p.klasa).toBeNull();
+  });
+
+  it("računa ukupno kad su ostali skorovi uneti", () => {
     const p = napraviPredlogOcene({
       kontrolisano: 200,
       prijema: 4,
       ppm: 0,
       odbijeno: 0,
       uslovno: 0,
-    });
+    }, { isporuka: 100, dokumentacija: 100, reakcija: 100 });
     expect(p.kvalitet).toBe(100);
     expect(p.ukupno).toBe(100);
     expect(p.klasa).toBe("A");

@@ -132,10 +132,14 @@ export default function SpcKontrolnaGraf({
   const maxVal = vals.length ? Math.max(...vals, ucl ?? 0, cl ?? 0) : 1;
   const minVal = vals.length ? Math.min(...vals, lcl ?? 0, cl ?? 0) : 0;
   const yPad = maxVal === minVal ? Math.max(Math.abs(maxVal) * 0.15, 0.01) : (maxVal - minVal) * 0.08;
-  const yDom = yDomain || [
-    Number.isFinite(minVal) ? minVal - yPad : "auto",
-    Number.isFinite(maxVal) ? maxVal + yPad : "auto",
-  ];
+  let yLo = Number.isFinite(minVal) ? minVal - yPad : "auto";
+  let yHi = Number.isFinite(maxVal) ? maxVal + yPad : "auto";
+  if (sufiks === "%") {
+    if (typeof yLo === "number") yLo = Math.max(0, yLo);
+    if (typeof yHi === "number") yHi = Math.min(100, yHi);
+    if (typeof yLo === "number" && typeof yHi === "number" && yHi <= yLo) yHi = Math.min(100, yLo + 1);
+  }
+  const yDom = yDomain || [yLo, yHi];
   const sigma = Number.isFinite(ucl) && Number.isFinite(cl) ? (ucl - cl) / 3 : 0;
   const prikaziSpec = Number.isFinite(lsl) || Number.isFinite(usl);
   const xInterval = Math.max(0, Math.floor(podaci.length / 10) - 1);

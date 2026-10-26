@@ -9,6 +9,16 @@ import { BarkodSkenirajPolje } from "./BarkodKameraSken.jsx";
 const storageKey = (modul) => `spc_prijem_kontekst_${modul || "unos"}`;
 const minKey = (modul) => `spc_prijem_baner_min_${modul || "unos"}`;
 
+/** Upozorenje na traci prijema: drugi deo, ili isti deo van ulazne kontrole. */
+export function prijemBanerUpozorenje({ idDeo, idDeoPrijema, pogonKod } = {}) {
+  const unos = String(idDeo || "").trim().toUpperCase();
+  const prijem = String(idDeoPrijema || "").trim().toUpperCase();
+  const pogon = String(pogonKod || "").trim().toUpperCase();
+  if (unos && prijem && unos !== prijem) return "id";
+  if (unos && prijem && unos === prijem && pogon && pogon !== "A") return "pogon";
+  return null;
+}
+
 export function ucitajPrijemKontekst(modul) {
   try {
     return JSON.parse(sessionStorage.getItem(storageKey(modul)) || "null");
@@ -88,9 +98,14 @@ export default function PrijemMerenjeKontekst({
     () => new Map(dobavljaci.map((d) => [d.sifra_dobavljaca, d.naziv_dobavljaca])),
     [dobavljaci],
   );
-  const idSePoklapa = !idDeo || !kontekst?.id_deo
-    || String(idDeo).trim().toUpperCase() === String(kontekst.id_deo).trim().toUpperCase();
-  const ulaznaKontrola = String(pogonKod || "").toUpperCase() === "A";
+  const nazivDobavljaca = kontekst?.naziv_dobavljaca
+    || dobavljacMapa.get(kontekst?.sifra_dobavljaca)
+    || "—";
+  const upozorenje = prijemBanerUpozorenje({
+    idDeo,
+    idDeoPrijema: kontekst?.id_deo,
+    pogonKod,
+  });
 
   const skeniraj = (raw) => {
     const sifra = sifraIzBarkoda(raw);
@@ -196,19 +211,19 @@ export default function PrijemMerenjeKontekst({
         color: C.tekst,
       }}>
         <strong style={{ color: C.plava }}>PRIJEM #{kontekst.id}</strong>
-        <span title="Dobavljač">{kontekst.sifra_dobavljaca} · {kontekst.naziv_dobavljaca || "—"}</span>
+        <span title="Dobavljač">{kontekst.sifra_dobavljaca} · {nazivDobavljaca}</span>
         <span title="Broj lota">Lot: {kontekst.broj_lota || "—"}</span>
         <span title="Dokument / prijemnica">Dok: {kontekst.broj_dokumenta || "—"}</span>
         <span title="Primljena količina se ne menja iz merenja">Primljeno: {kontekst.primljeno}</span>
         <span style={{ color: C.sivi }} title="OK/NOK i kontrolisano se popunjavaju iz snimljenih merenja">
           auto OK/NOK
         </span>
-        {!idSePoklapa && (
+        {upozorenje === "id" && (
           <strong style={{ color: C.crvena }} title="Merenja drugog dela neće biti vezana za ovaj prijem">
             ⚠ ID dela nije {kontekst.id_deo}
           </strong>
         )}
-        {idSePoklapa && !ulaznaKontrola && (
+        {upozorenje === "pogon" && (
           <strong style={{ color: C.narandzasta || C.zuta }}
             title="Merenja se vezuju za prijem samo na Ulaznoj kontroli (pogon A)">
             ⚠ Prebaci pogon na A

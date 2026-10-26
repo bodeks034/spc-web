@@ -16,8 +16,8 @@ export function useSpcFilterSync(spoljniFilter, {
 
     // Vrati ponašanje pre auto-sync perioda: prazni datumi = sva merenja u bazi
     if (!datumiInicijalizovani.current && spoljniFilter.aktivan && !spoljniFilter.primeniPeriod) {
-      setDatumOd("");
-      setDatumDo("");
+      setDatumOd?.("");
+      setDatumDo?.("");
       datumiInicijalizovani.current = true;
     }
 
@@ -31,14 +31,14 @@ export function useSpcFilterSync(spoljniFilter, {
     if (setPozicija && spoljniFilter.pozicija !== undefined) {
       setPozicija(spoljniFilter.pozicija || "");
     }
-    if (spoljniFilter.smena !== undefined && spoljniFilter.smena !== "") {
+    if (setSmena && spoljniFilter.smena !== undefined && spoljniFilter.smena !== "") {
       setSmena(spoljniFilter.smena);
     }
     if (spoljniFilter.primeniPeriod) {
-      if (spoljniFilter.datumOd !== undefined) {
+      if (setDatumOd && spoljniFilter.datumOd !== undefined) {
         setDatumOd(spoljniFilter.datumOd || "");
       }
-      if (spoljniFilter.datumDo !== undefined) {
+      if (setDatumDo && spoljniFilter.datumDo !== undefined) {
         setDatumDo(spoljniFilter.datumDo || "");
       }
     }

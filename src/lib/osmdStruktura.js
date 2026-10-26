@@ -61,6 +61,12 @@ export function parseD2(raw) {
   return { ...praznoD2(), inicijalni: t };
 }
 
+/** Tekst za listu: običan opis ili inicijalni/šta iz strukturiranog D2. */
+export function opis8dZaListu(raw) {
+  const d2 = parseD2(raw);
+  return [d2.inicijalni, d2.sta].map((s) => String(s || "").trim()).filter(Boolean).join(" — ");
+}
+
 export function serializeD2(obj) {
   const o = { _fmt: 3 };
   for (const k of D2_KLJUCEVI) o[k] = String(obj?.[k] ?? "").trim();

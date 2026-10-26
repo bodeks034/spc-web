@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient.js";
 import { fetchSefSmenaPregled, bojaFpyKpi } from "../lib/sefSmenaDashboard.js";
 import { fetchSmenaPogonaPregled } from "../lib/smenaPogonaPregled.js";
 import { NCR_CAPA_TOOLTIP } from "../lib/analitikaOpisi.js";
+import { statusNcrZaPrikaz } from "../lib/ncrObrazacPolja.js";
 import SchemaAlarmBanner from "./SchemaAlarmBanner.jsx";
 
 
@@ -491,7 +492,7 @@ export default function SefSmenaDashboard({
 
             >
 
-              {n.broj_ncr} · {n.id_deo} · [{n.status}]
+              {n.broj_ncr} · {n.id_deo} · [{statusNcrZaPrikaz(n.status)}]
 
             </button>
 

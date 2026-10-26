@@ -3,7 +3,7 @@
  * status ZATVOREN/OTVOREN, alarm 8D (ponavljanje + Pokrenut 8D?), hyperlink.
  */
 import XLSX from "xlsx-js-style";
-import { REGISTAR_KOLONE, OBRAZAC_SEKCIJE, ncrIzBaze, labelStatusa } from "./ncrObrazacPolja.js";
+import { REGISTAR_KOLONE, OBRAZAC_SEKCIJE, ncrIzBaze, statusNcrZaPrikaz } from "./ncrObrazacPolja.js";
 import { stilizujSheetHeader, EXCEL_HEADER_PLAVA } from "./excelStil.js";
 import { putanjaNcrObrazacExcel } from "./kvalitetFolderStruktura.js";
 
@@ -192,9 +192,7 @@ function primeniObrazacStilove(ws) {
 }
 
 export function labelStatusaExcel(status) {
-  if (status === "closed") return "ZATVOREN";
-  if (status === "open") return "OTVOREN";
-  return labelStatusa(status);
+  return statusNcrZaPrikaz(status);
 }
 
 export function jeNcr8dAlarmRed(forma) {

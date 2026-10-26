@@ -5,12 +5,13 @@ import {
   groupSpcRows,
   sigmaIzDPMO,
   chartDataWithWesternElectric,
+  granicePProporcija,
 } from "./spcStats.js";
 import { statAtributivneRedovi } from "./atributivneAgregacija.js";
-import { datumOdIzPerioda } from "./analitikaFilterUtils.js";
+import { datumOdIzPerioda, datumDoDanas } from "./analitikaFilterUtils.js";
 import { brojMerenjaIzSop } from "./pogonSop.js";
 import { fetchKpiUnos, agregirajKpiUnos } from "./kpiUnos.js";
-import { graniceKarakteristike } from "./varijabilneUtils.js";
+import { graniceKarakteristike, nazivDelaBezSifre } from "./varijabilneUtils.js";
 import {
   calcCpCpk,
   izracunajIMRKarte,
@@ -85,8 +86,9 @@ function brojVanKontroleP(grupe) {
 
   const podaci = grupe.map((g) => {
     const p = g.n > 0 ? g.nok / g.n : 0;
-    const ucl = pBar + 3 * Math.sqrt((pBar * (1 - pBar)) / Math.max(g.n, 1));
-    const lcl = Math.max(0, pBar - 3 * Math.sqrt((pBar * (1 - pBar)) / Math.max(g.n, 1)));
+    const gcl = granicePProporcija(pBar, g.n);
+    const ucl = gcl.ucl;
+    const lcl = gcl.lcl;
     return {
       val: +(p * 100).toFixed(3),
       cl: +(pBar * 100).toFixed(3),
@@ -147,7 +149,7 @@ function fokusPozicijaMer(karakteristike, sva, poNok, nPodgrupa) {
     if (kar && !kandidati.some((k) => pozicijaSePoklapa(k.pozicija, p))) kandidati.push(kar);
   });
 
-  let najbolji = kandidati[0] || null;
+  let najbolji = null;
   let minCpk = Infinity;
   for (const kar of kandidati) {
     const ms = sva.filter((m) => pozicijaSePoklapa(m.pozicija, kar.pozicija));
@@ -189,10 +191,9 @@ export function buildSpcSnapshotMerljive({
   if (!deo) return null;
 
   const kars = (karakteristike || []).filter((k) => k.id_deo === deo);
-  const sva = merenja || [];
-  const uPeriodu = filtrirajPeriod(sva, period);
-  const poNok = paretoNokPoPoziciji(uPeriodu, 3);
-  const poNokSve = paretoNokPoPoziciji(sva, 3);
+  const sva = filtrirajPeriod(merenja || [], period);
+  const poNok = paretoNokPoPoziciji(sva, 3);
+  const kpiUUzorku = sva.length > 0 ? kpiPeriod : null;
 
   const poz = String(pozicija || "").trim();
   let karFokus;
@@ -201,7 +202,7 @@ export function buildSpcSnapshotMerljive({
     karFokus = nadjiKarakteristikuPoPoziciji(kars, deo, poz);
     msFokus = filtrirajMerenjaPoPoziciji(sva, poz);
   } else {
-    karFokus = fokusPozicijaMer(kars, sva, poNokSve, nPodgrupa);
+    karFokus = fokusPozicijaMer(kars, sva, poNok, nPodgrupa);
     msFokus = karFokus ? filtrirajMerenjaPoPoziciji(sva, karFokus.pozicija) : [];
   }
 
@@ -221,9 +222,10 @@ export function buildSpcSnapshotMerljive({
 
   const agregat = agregatKvaliteta(
     poz ? msFokus : sva,
-    !poz && kpiPeriod?.ukupno_kom > 0 ? kpiPeriod : null,
+    !poz && kpiUUzorku?.ukupno_kom > 0 ? kpiUUzorku : null,
   );
-  const sigma = sigmaProcesa(
+  const nemaUzorka = sva.length === 0 && !(kpiUUzorku?.ukupno_kom > 0);
+  const sigma = nemaUzorka ? null : sigmaProcesa(
     kap,
     kap.imr?.sigmaHat || kap.spc?.sigmaHat || 0,
     agregat.dpmo ?? 0,
@@ -244,7 +246,7 @@ export function buildSpcSnapshotMerljive({
     cp: kap.cp ?? null,
     cpk: kap.cpk ?? null,
     sigma,
-    dpmo: agregat.dpmo,
+    dpmo: nemaUzorka ? null : agregat.dpmo,
     ppm: agregat.n > 0 ? calcPPM(agregat.nok, agregat.n) : null,
     p: agregat.p,
     rty: agregat.rty,
@@ -270,11 +272,12 @@ export async function fetchSpcSnapshotMerljive(supabase, {
   if (!deo) return null;
 
   const od = datumOd || (period ? datumOdIzPerioda(period) : undefined);
+  const dDo = datumDo || (period ? datumDoDanas() : undefined);
   const merenja = await fetchMerenjaVarijabilna(supabase, {
     idDeo: deo,
     select: "datum,smena,status,id_deo,pozicija,vrednost_raw,vrednost_dec,created_at",
     datumOd: od,
-    datumDo,
+    datumDo: dDo,
     smena,
     pozicija,
   });
@@ -284,21 +287,24 @@ export async function fetchSpcSnapshotMerljive(supabase, {
     .select("id_deo,pozicija,lsl,usl,nominala,jedinica")
     .eq("id_deo", deo);
 
-  const { data: sopRows } = await supabase
-    .from("sop_deo_varijabilni")
-    .select("id_deo,naziv_dela,broj_merenja")
-    .eq("id_deo", deo);
+  const [{ data: sopRows }, { data: deoRow }] = await Promise.all([
+    supabase.from("sop_deo_varijabilni").select("id_deo,naziv_dela,broj_merenja").eq("id_deo", deo),
+    supabase.from("delovi").select("naziv_dela").eq("id_deo", deo).maybeSingle(),
+  ]);
 
   const nPodgrupa = brojMerenjaIzSop(sopRows || [], deo);
   const sop = sopRows?.[0];
+  const nazivDela = nazivDelaBezSifre(deoRow?.naziv_dela, deo)
+    || nazivDelaBezSifre(sop?.naziv_dela, deo)
+    || "";
 
   let kpiPeriod = null;
   try {
     const kpiRows = await fetchKpiUnos(supabase, {
       modul: "merljive",
       idDeo: deo,
-      datumOd: datumOd || undefined,
-      datumDo: datumDo || undefined,
+      datumOd: od,
+      datumDo: dDo,
       smena: smena !== "" && smena != null ? Number(smena) : undefined,
       limit: 500,
     });
@@ -314,9 +320,34 @@ export async function fetchSpcSnapshotMerljive(supabase, {
     nPodgrupa,
     kpiPeriod,
     idDeo: deo,
-    nazivDela: sop?.naziv_dela || "",
+    nazivDela,
     period,
   });
+}
+
+/** p, DPMO i status samo iz unosa u izabranom periodu. Karta ispod zadržava celu istoriju. */
+export function snapshotAtributivneIzLoga(log, period = "7") {
+  const uPeriodu = filtrirajPeriod(log || [], period);
+  const stat = statAtributivneRedovi(uPeriodu);
+  const grupe = groupSpcRows(uPeriodu, "dan");
+  const { van: vanKontrole, spark: sparkP } = brojVanKontroleP(grupe);
+  const dpmo = stat.n > 0 ? calcDPMO(stat.nok, stat.n) : null;
+  const ppm = stat.n > 0 ? calcPPM(stat.nok, stat.n) : null;
+  const sigma = dpmo != null ? sigmaIzDPMO(dpmo) : null;
+
+  return {
+    status: statusSpcAtr({ dpmo: dpmo ?? 0, vanKontrole, n: stat.n }),
+    p: stat.n > 0 ? +((stat.nok / stat.n) * 100).toFixed(2) : null,
+    dpmo,
+    ppm,
+    sigma,
+    vanKontrole,
+    grupe: grupe.length,
+    unosaUk: uPeriodu.length,
+    pareto: buildParetoFromLog(uPeriodu, 3),
+    sparkP,
+    period,
+  };
 }
 
 /** SPC snapshot za atributivne — p, DPMO, Pareto grešaka, sigma. */
@@ -333,44 +364,17 @@ export async function fetchSpcSnapshotAtributivne(supabase, { idDeo, smena, peri
   const { data: log, error: logErr } = await qLog;
   if (logErr) throw logErr;
 
-  const sva = log || [];
-  const uPeriodu = filtrirajPeriod(sva, period);
-  const stat = statAtributivneRedovi(uPeriodu);
-  const grupeSve = groupSpcRows(sva, "dan");
-  const { van: vanKontrole, spark: sparkP } = brojVanKontroleP(grupeSve);
-
-  const dpmo = stat.n > 0 ? calcDPMO(stat.nok, stat.n) : null;
-  const ppm = stat.n > 0 ? calcPPM(stat.nok, stat.n) : null;
-  const sigma = dpmo != null ? sigmaIzDPMO(dpmo) : null;
-  const pareto = buildParetoFromLog(uPeriodu, 3);
-
   const { data: deoRow } = await supabase
     .from("delovi")
     .select("naziv_dela")
     .eq("id_deo", deo)
     .maybeSingle();
 
-  const status = statusSpcAtr({
-    dpmo: dpmo ?? 0,
-    vanKontrole,
-    n: stat.n,
-  });
-
   return {
     modul: "atributivne",
     idDeo: deo,
     nazivDela: deoRow?.naziv_dela || "",
-    status,
-    p: stat.n > 0 ? +((stat.nok / stat.n) * 100).toFixed(2) : null,
-    dpmo,
-    ppm,
-    sigma,
-    vanKontrole,
-    grupe: grupeSve.length,
-    unosaUk: sva.length,
-    pareto,
-    sparkP,
-    period,
+    ...snapshotAtributivneIzLoga(log || [], period),
   };
 }
 

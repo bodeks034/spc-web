@@ -88,3 +88,27 @@ export function jePunIdDeo(id) {
 }
 
 
+
+/**
+
+ * Pun ID (npr. 5502-A) poredi se samo sa id_deo.
+
+ * Kraći upit ostaje podstring i po ostalim kolonama (RN, naziv…).
+
+ */
+
+export function odgovaraFilteruIdDeo(idDeo, filter, ostalaPolja = []) {
+
+  const q = String(filter ?? "").trim();
+
+  if (!q) return true;
+
+  if (jePunIdDeo(q)) return idDeoPoklapaSe(idDeo, q);
+
+  const n = q.toLowerCase();
+
+  return [idDeo, ...ostalaPolja].some((s) => String(s ?? "").toLowerCase().includes(n));
+
+}
+
+

@@ -37,7 +37,7 @@ import {
   granicaZaSnimanje,
   granicaZaPrikaz,
 } from "../../lib/glavniUnosGranice.js";
-import { jePunIdDeo, normalizujIdDeo } from "../../lib/idDeoUtil.js";
+import { jePunIdDeo, normalizujIdDeo, odgovaraFilteruIdDeo } from "../../lib/idDeoUtil.js";
 import { idDeoviIzKonteksta } from "../../lib/sifrarnikRadniTok.js";
 import {
   brojDimenzijaZaDeo,
@@ -454,12 +454,11 @@ export default function GlavniUnosPanel({ C, addToast, korisnik, onNavigate, nav
     }
   };
 
-  const prikaz = redovi.filter((r) => {
-    if (!filter.trim()) return true;
-    const q = filter.toLowerCase();
-    return [r.id_deo, r.radni_nalog, r.kupac, r.karakteristika, r.naziv_dela]
-      .some((s) => String(s || "").toLowerCase().includes(q));
-  });
+  const prikaz = redovi.filter((r) => odgovaraFilteruIdDeo(
+    r.id_deo,
+    filter,
+    [r.radni_nalog, r.kupac, r.karakteristika, r.naziv_dela],
+  ));
 
   const sacuvajSheet = async ({ propagirajPosle = true, forsiraConcurrent = false } = {}) => {
     if (propagirajPosle && !potvrdiPrePropagacije()) return;

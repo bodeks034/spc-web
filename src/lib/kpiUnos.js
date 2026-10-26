@@ -398,16 +398,21 @@ export function datumIsoUSr(iso) {
 /** Jedinstvene stavke RN + datum + smena iz sirovih redova. */
 export function izgradiKpiFilterOpcije(rawRows = []) {
   const stavke = [];
-  const seen = new Set();
+  const seen = new Map();
   for (const r of rawRows) {
     const rn = String(r.radni_nalog || r.broj_naloga || "").trim().toUpperCase() || null;
     const datum = String(r.datum || "").trim();
     const sm = r.smena != null && r.smena !== "" ? String(r.smena) : null;
     if (!datum) continue;
     const key = `${rn || ""}|${datum}|${sm || ""}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    stavke.push({ radni_nalog: rn, datum, smena: sm });
+    const postojeca = seen.get(key);
+    if (postojeca) {
+      if (r.imaKpi) postojeca.imaKpi = true;
+      continue;
+    }
+    const stavka = { radni_nalog: rn, datum, smena: sm, imaKpi: !!r.imaKpi };
+    seen.set(key, stavka);
+    stavke.push(stavka);
   }
   stavke.sort((a, b) => {
     const dc = b.datum.localeCompare(a.datum);
@@ -430,6 +435,23 @@ export function filtrirajKpiStavke(stavke, { radniNalog, datumIso, smena } = {})
   if (datumIso) list = list.filter((s) => s.datum === datumIso);
   if (smena != null && smena !== "") list = list.filter((s) => String(s.smena) === String(smena));
   return list;
+}
+
+/**
+ * Automatski izbor samo ako serija stvarno ima red u kpi_unos.
+ * Inače ostaje tekući datum i smena — log ili RN bez KPI unosa se ne nameće.
+ */
+export function izaberiKpiStavku(stavke, { datumIso, smena, radniNalog } = {}) {
+  const saKpi = (stavke || []).filter((s) => s.imaKpi);
+  if (!saKpi.length) return null;
+  const pocRn = String(radniNalog || "").trim().toUpperCase();
+  const pocSm = smena != null && smena !== "" ? String(smena) : "";
+  return saKpi.find((s) =>
+    s.datum === datumIso
+    && (!pocSm || String(s.smena) === pocSm)
+    && (!pocRn || (s.radni_nalog || "") === pocRn),
+  ) || saKpi.find((s) => !pocRn || (s.radni_nalog || "") === pocRn)
+    || saKpi[0];
 }
 
 /**
@@ -481,10 +503,11 @@ export async function fetchKpiFilterOpcijeZaDeo(supabase, { modul, idDeo }) {
 
   const rezultati = await Promise.all(upiti);
   const sirovo = [];
-  for (const r of rezultati) {
-    if (r.error) continue;
-    for (const row of r.data || []) sirovo.push(row);
-  }
+  rezultati.forEach((r, i) => {
+    if (r.error) return;
+    const izKpi = i === 0;
+    for (const row of r.data || []) sirovo.push(izKpi ? { ...row, imaKpi: true } : row);
+  });
   return izgradiKpiFilterOpcije(sirovo);
 }
 

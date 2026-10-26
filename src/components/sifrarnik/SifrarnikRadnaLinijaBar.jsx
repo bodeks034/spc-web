@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { grupisiLinije } from "../../lib/linijaProizvoda.js";
+import { etiketaLinije, grupisiLinije, nazivLinijeZaPrikaz } from "../../lib/linijaProizvoda.js";
 
 /**
  * Radni režim — fokus na jednoj liniji (VOZ/PRO ili legacy).
@@ -67,21 +67,21 @@ export default function SifrarnikRadnaLinijaBar({
           {vozila.length > 0 && (
             <optgroup label="Vozila (VOZ)">
               {vozila.map((t) => (
-                <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+                <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
               ))}
             </optgroup>
           )}
           {proizvodi.length > 0 && (
             <optgroup label="Proizvodi (PRO)">
               {proizvodi.map((t) => (
-                <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+                <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
               ))}
             </optgroup>
           )}
           {ostalo.length > 0 && (
             <optgroup label="Ostale linije">
               {ostalo.map((t) => (
-                <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+                <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
               ))}
             </optgroup>
           )}
@@ -92,7 +92,7 @@ export default function SifrarnikRadnaLinijaBar({
         <>
           <span style={{ color: C.sivi, fontSize: 9, lineHeight: 1.35, flex: "1 1 160px" }}>
             Fokus: Glavni unos i Brzi start za <strong style={{ color: C.tekst }}>{radnaLinija}</strong>
-            {naziv ? ` (${naziv.replace(/^Privremeni /, "")})` : ""}
+            {nazivLinijeZaPrikaz(radnaLinija, naziv) ? ` (${nazivLinijeZaPrikaz(radnaLinija, naziv)})` : ""}
           </span>
           <button
             type="button"

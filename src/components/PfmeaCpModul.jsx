@@ -26,6 +26,7 @@ import {
   localDuplirajDokument,
 } from "../lib/pfmeaCpLocal.js";
 import { resetujKešPredloga } from "../lib/predloziIzBaze.js";
+import { oznaka8d } from "../lib/osmdBrojevi.js";
 import { preuzmiPfmeaCpExcel } from "../lib/pfmeaCpExcelExport.js";
 import { exportPfmeaCpPdf, stampajPfmeaCp } from "../lib/pfmeaCpPdf.js";
 import { OsmdScrollOkvir } from "./OsmdEditor.jsx";
@@ -42,6 +43,7 @@ import {
   prefillPfmeaCpIz8d,
   izvuciOsmdIdIzNapomene,
   izvuciBroj8dIzNapomene,
+  napomenaPfmeaZaPrikaz,
 } from "../lib/osmdPfmeaCpBridge.js";
 
 const PODTABOVI = [
@@ -770,6 +772,15 @@ export default function PfmeaCpModul({
     );
   };
 
+  const idFilter = String(idDeoFilter || "").trim().toUpperCase();
+  const dokumentiZaPrikaz = useMemo(() => {
+    if (idFilter.length < 3) return dokumenti;
+    return dokumenti.filter((d) => String(d.id_deo || "").trim().toUpperCase() === idFilter);
+  }, [dokumenti, idFilter]);
+  const opcijeDok = doc && !dokumentiZaPrikaz.some((d) => String(d.id) === String(doc.id))
+    ? [{ id: doc.id, naziv: doc.naziv || "PFMEA / CP", id_deo: doc.idDeo || "" }, ...dokumentiZaPrikaz]
+    : dokumentiZaPrikaz;
+
   if (loading && !doc && !prefillIz8d) {
     return <div style={{ padding: 24, color: C.sivi }}>Učitavanje…</div>;
   }
@@ -801,11 +812,13 @@ export default function PfmeaCpModul({
           )}
         </div>
         <PfmeaSkaleOblacici C={C} kompakt naslov="PFMEA SKALE (S · O · D · RPN)" />
-        {!dokumenti.length ? (
+        {!dokumentiZaPrikaz.length ? (
           <div style={{ color: C.border, fontSize: 12, textAlign: "center", padding: 40 }}>
-            Nema sačuvanih PFMEA/CP izveštaja
+            {idFilter.length >= 3
+              ? `Nema PFMEA/CP izveštaja za ${idFilter}.`
+              : "Nema sačuvanih PFMEA/CP izveštaja"}
           </div>
-        ) : dokumenti.map((d) => (
+        ) : dokumentiZaPrikaz.map((d) => (
           <div
             key={d.id}
             onClick={() => ucitajDoc(d.id)}
@@ -833,7 +846,7 @@ export default function PfmeaCpModul({
                     background: `${C.zelena}20`, color: C.zelena, fontSize: 9,
                     padding: "2px 8px", borderRadius: 10,
                   }}>
-                    8D {d.broj_8d || `#${d.osmd_izvestaj_id}`}
+                    {oznaka8d(d.broj_8d, d.osmd_izvestaj_id)}
                   </span>
                 )}
               </div>
@@ -853,8 +866,8 @@ export default function PfmeaCpModul({
                 </button>
               </div>
             </div>
-            <div style={{ color: C.sivi, fontSize: 11 }}>
-              {d.napomena?.substring(0, 80) || "—"}
+            <div title={napomenaPfmeaZaPrikaz(d.napomena) || undefined} style={{ color: C.sivi, fontSize: 11, lineHeight: 1.4, overflowWrap: "anywhere" }}>
+              {napomenaPfmeaZaPrikaz(d.napomena) || "—"}
             </div>
           </div>
         ))}
@@ -896,7 +909,7 @@ export default function PfmeaCpModul({
             {PFMEA_TOOLTIP} · Popunite formu → <strong>Dodaj/Ažuriraj stavku</strong> → <strong>Sačuvaj dokument</strong>.
             Pri otvaranju dokumenta forma se puni prvom sačuvanom stavkom.
             {imaVezu8d && (
-              <span style={{ color: C.zelena }}> · Povezan sa 8D {veza8d.broj8d || `#${veza8d.osmdId}`}</span>
+              <span style={{ color: C.zelena }}> · Povezan sa {oznaka8d(veza8d.broj8d, veza8d.osmdId)}</span>
             )}
           </div>
         </div>
@@ -968,7 +981,7 @@ export default function PfmeaCpModul({
           onChange={(e) => ucitajDoc(storageMode === "supabase" ? Number(e.target.value) : e.target.value)}
           style={{ ...INP, minWidth: 160 }}
         >
-          {dokumenti.map((d) => (
+          {opcijeDok.map((d) => (
             <option key={d.id} value={d.id}>{d.naziv}</option>
           ))}
         </select>

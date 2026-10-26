@@ -1,4 +1,4 @@
-import { chartDataWithWesternElectric, WE_MIN_PODGRUPA_OBRAZAC, groupSpcRows } from "./spcStats.js";
+import { chartDataWithWesternElectric, WE_MIN_PODGRUPA_OBRAZAC, groupSpcRows, granicePProcenat, graniceNp } from "./spcStats.js";
 import {
   podgrupeMerenja,
   izracunajXbarRKarte,
@@ -146,21 +146,20 @@ export function izracunajGraniceAtributivne(rawData, tipKarte, grupisanje = "dan
   const nBar = grupe.length > 0 ? ukN / grupe.length : 1;
 
   if (tip === "p") {
-    const sigma = Math.sqrt(pBar * (1 - pBar) / Math.max(nBar, 1));
+    const g = granicePProcenat(pBar, nBar, 6);
     return {
-      cl: +((pBar) * 100).toFixed(6),
-      ucl: +((pBar + 3 * sigma) * 100).toFixed(6),
-      lcl: +(Math.max(0, pBar - 3 * sigma) * 100).toFixed(6),
+      cl: g.cl,
+      ucl: g.ucl,
+      lcl: g.lcl,
       meta: `${grupe.length} podgrupa · n̄=${Math.round(nBar)}`,
     };
   }
   if (tip === "np") {
-    const sigma = Math.sqrt(pBar * (1 - pBar) * nBar);
-    const cl = pBar * nBar;
+    const g = graniceNp(pBar, nBar, 6);
     return {
-      cl: +cl.toFixed(6),
-      ucl: +(cl + 3 * sigma).toFixed(6),
-      lcl: +(Math.max(0, cl - 3 * sigma)).toFixed(6),
+      cl: g.cl,
+      ucl: g.ucl,
+      lcl: g.lcl,
       meta: `n̄=${Math.round(nBar)}`,
     };
   }

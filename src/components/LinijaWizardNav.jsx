@@ -78,7 +78,7 @@ export const KORACI_ATRIB_LINIJA = [
   { id: "check", label: "CHECK LISTA" },
   { id: "id", label: "ID DELA" },
   { id: "poka", label: "POKA-YOKE" },
-  { id: "unos", label: "UNOS MERENJA" },
+  { id: "unos", label: "UNOS OK/NOK" },
   { id: "lista", label: "LISTA / SNIMI" },
 ];
 
@@ -86,7 +86,7 @@ export const KORACI_ATRIB_KONTROLOR = [
   { id: "check", label: "CHECK LISTA" },
   { id: "id", label: "ID DELA" },
   { id: "poka", label: "POKA-YOKE" },
-  { id: "unos", label: "UNOS MERENJA" },
+  { id: "unos", label: "UNOS OK/NOK" },
   { id: "snimi", label: "SNIMI" },
 ];
 

@@ -124,7 +124,7 @@ export function podrazumevaniKpiIzListeP(listaP) {
     if (s.status === "OK") ok += q;
     else nok += q;
   });
-  const uk = ok + nok || 1;
+  const uk = ok + nok;
   return {
     ukupno_kom: uk,
     ispravno_iz_prve: ok,

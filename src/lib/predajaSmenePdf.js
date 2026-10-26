@@ -7,7 +7,8 @@ import { daniDoStudije } from "./msaKalendar.js";
 import { primeniLinijaFilter, primeniPogonFilter, ucitajLinijeZaDigest } from "./digestLinija.js";
 import { fetchPrioritetSmene } from "./kontekstualniVodic.js";
 import { ucitajFaiCekaju } from "./faiWorkflow.js";
-import { fetchSmenaStatPoPogonima, fetchAktivniRadniNalozi } from "./smenaPogonBreakdown.js";
+import { fetchSmenaStatPoPogonima, fetchAktivniRadniNalozi, brojAktivnihNaloga } from "./smenaPogonBreakdown.js";
+import { OTVORENI_8D } from "./osmdBrojevi.js";
 import { formatPogonOznaka } from "./pogonOznaka.js";
 
 export { primeniLinijaFilter, ucitajLinijeZaDigest };
@@ -146,7 +147,7 @@ function pdfPoPogonima(pdf, y, poPogon = []) {
 
 function pdfRadniNalozi(pdf, y, nalozi = []) {
   if (!nalozi?.length) return y;
-  y = pdfSekcija(pdf, y, `AKTIVNI RADNI NALOZI (${nalozi.length})`);
+  y = pdfSekcija(pdf, y, `AKTIVNI RADNI NALOZI (${brojAktivnihNaloga(nalozi)})`);
   return pdfLista(pdf, y, nalozi.slice(0, 25), (n) => (
     `${formatPogonOznaka(n.pogon_kod)} · ${n.broj_naloga || "—"} · ${n.id_deo}${n.kolicina ? ` · ${n.kolicina} kom` : ""}`
   ), { prazno: "Nema aktivnih naloga" });
@@ -390,7 +391,7 @@ async function fetchPredajaPodataka(supabase, { datum, smena, modul, linija = nu
   try {
     const { data: d8 } = await supabase.from("osmd_izvestaji")
       .select("id,id_deo,status,d2_opis_problema,created_at")
-      .in("status", ["u_toku", "otvoren", "ceka"])
+      .in("status", OTVORENI_8D)
       .order("created_at", { ascending: false })
       .limit(10);
     out.osmd = d8 || [];

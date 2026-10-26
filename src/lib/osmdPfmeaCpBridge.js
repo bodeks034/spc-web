@@ -6,6 +6,7 @@
 import {
   parseD4, parseD6, parseLista, parseGrupaLista, parseD2,
 } from "./osmdStruktura.js";
+import { oznaka8d } from "./osmdBrojevi.js";
 import {
   pfmeaPrazanRed,
   cpPrazanRed,
@@ -169,7 +170,7 @@ function cpRedIz8d(osmd, ctx, refSummary = {}) {
     mod_greske_pfmea: prviNePrazan(defekt, refSummary.karakteristika),
     odgovorni: prviNePrazan(refSummary.odgovornost),
     pfmea_referenca: brojPfmea || broj8d,
-    zapis_forma: brojCp || (broj8d ? `8D ${broj8d}` : (osmd.id ? `8D #${osmd.id}` : "")),
+    zapis_forma: brojCp || oznaka8d(broj8d, osmd.id),
   };
 }
 
@@ -234,7 +235,7 @@ export function prefillPfmeaCpIz8d(osmd) {
     filterDefekt: defekt,
     naziv,
     revizija: "A",
-    napomena: `Preneto iz 8D${broj8d ? ` ${broj8d}` : osmd.id ? ` #${osmd.id}` : ""} · ${new Date().toLocaleDateString("sr-RS")}`,
+    napomena: `Preneto iz ${oznaka8d(broj8d, osmd.id) || "8D"} · ${new Date().toLocaleDateString("sr-RS")}`,
     pfmea: { redovi: pfmeaRedovi },
     controlPlan: { redovi: cpRedovi },
     rpnSummary: izracunajRpnSummary(pfmeaRedovi),
@@ -308,6 +309,11 @@ export function izvuciOsmdIdIzNapomene(napomena) {
 }
 
 export function izvuciBroj8dIzNapomene(napomena) {
-  const m = String(napomena || "").match(/Preneto iz 8D\s+([^\s·#]+)/);
+  const m = String(napomena || "").match(/Preneto iz (?:8D\s+)?(8D[^\s·#]+|\d+)/i);
   return m ? trim(m[1]) : "";
+}
+
+/** Stari zapis „8D 8D-…” prikaži jednom. */
+export function napomenaPfmeaZaPrikaz(s) {
+  return String(s || "").replace(/\b8D\s+(?=8D\b)/gi, "");
 }

@@ -214,7 +214,7 @@ export default function AnalitikaSpcSnapshot({
               <div style={{ color: C.sivi, fontSize: 10, marginBottom: 10 }}>
                 {snap.pozicijaIzabrana ? "Karakteristika" : "Cp/Cpk dimenzija"}:{" "}
                 <strong style={{ color: C.tekst }}>{snap.pozicija}</strong>
-                {!snap.pozicijaIzabrana && " (automatski — najniži Cpk)"}
+                {!snap.pozicijaIzabrana && snap.cpk != null && " (automatski — najniži Cpk)"}
               </div>
             )}
 
@@ -293,8 +293,8 @@ export default function AnalitikaSpcSnapshot({
                   />
                   <Metrika
                     label="X̄/R"
-                    value={snap.vanKontrole > 0 ? `${snap.vanKontrole} ⚠` : "OK"}
-                    boja={snap.vanKontrole > 0 ? C.crvena : C.zelena}
+                    value={(snap.merenjaUk || 0) === 0 ? "—" : snap.vanKontrole > 0 ? `${snap.vanKontrole} ⚠` : "OK"}
+                    boja={(snap.merenjaUk || 0) === 0 ? C.sivi : snap.vanKontrole > 0 ? C.crvena : C.zelena}
                     C={C}
                     spcVece
                     onClick={nav({ tab: "karte", spcTip: "xbar" })}
@@ -315,8 +315,8 @@ export default function AnalitikaSpcSnapshot({
                   />
                   <Metrika
                     label="p status"
-                    value={snap.vanKontrole > 0 ? `${snap.vanKontrole} ⚠` : "OK"}
-                    boja={snap.vanKontrole > 0 ? C.crvena : C.zelena}
+                    value={(snap.unosaUk || 0) === 0 ? "—" : snap.vanKontrole > 0 ? `${snap.vanKontrole} ⚠` : "OK"}
+                    boja={(snap.unosaUk || 0) === 0 ? C.sivi : snap.vanKontrole > 0 ? C.crvena : C.zelena}
                     C={C}
                     spcVece
                     onClick={nav({ tab: "karte", spcTip: "p" })}
@@ -327,7 +327,7 @@ export default function AnalitikaSpcSnapshot({
               <Metrika
                 label="DPMO"
                 value={snap.dpmo != null ? snap.dpmo.toLocaleString() : "—"}
-                boja={snap.dpmo > 6210 ? C.crvena : snap.dpmo > 233 ? C.zuta : C.zelena}
+                boja={snap.dpmo == null ? C.sivi : snap.dpmo > 6210 ? C.crvena : snap.dpmo > 233 ? C.zuta : C.zelena}
                 C={C}
                 spcVece
                 onClick={nav({ tab: "karte", spcTip: modul === "merljive" ? "rty" : "rty" })}
@@ -344,7 +344,7 @@ export default function AnalitikaSpcSnapshot({
               <Metrika
                 label="Sigma"
                 value={snap.sigma != null ? `${snap.sigma}σ` : "—"}
-                boja={snap.sigma >= 4 ? C.zelena : snap.sigma >= 3 ? C.zuta : C.crvena}
+                boja={snap.sigma == null ? C.sivi : snap.sigma >= 4 ? C.zelena : snap.sigma >= 3 ? C.zuta : C.crvena}
                 C={C}
                 spcVece
                 onClick={nav({ tab: "karte", spcTip: "sigma" })}

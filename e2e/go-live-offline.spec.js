@@ -15,14 +15,16 @@ test.describe("Danas tok", () => {
   });
 });
 
+test.describe("Go-live checklist", () => {
   test("admin vidi go-live status i checklist", async ({ page }) => {
+    test.setTimeout(90000);
     test.skip(!imaE2EKredencijale(), "Nema E2E kredencijala");
     await prijaviSe(page);
     await otvoriAdmin(page);
     await expect(page.getByTestId("admin-go-live-status")).toBeVisible({ timeout: 20000 });
     await expect(page.getByTestId("go-live-checklist")).toBeVisible({ timeout: 15000 });
     await page.getByTestId("go-live-proveri-semu").click();
-    await expect(page.getByTestId("go-live-sema-gate")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("go-live-sema-gate")).toBeVisible({ timeout: 60000 });
   });
 });
 

@@ -41,6 +41,7 @@ const GO_LIVE_BLOK = [
   "95_obrisi_deo_eskalacije_fk.sql",
   "96_storage_crtezi.sql",
   "97_error_log.sql",
+  "98_licenca_anon_grant.sql",
 ];
 
 const PILOT_BLOK = [

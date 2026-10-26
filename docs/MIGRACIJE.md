@@ -60,6 +60,7 @@ Pokreni u **SQL Editoru** redom. Posle svake veće izmene: `NOTIFY pgrst, 'reloa
 | 95 | `95_obrisi_deo_eskalacije_fk.sql` | Brisanje dela: `spc_alarmi.eskalacija_id` ON DELETE SET NULL + bezbedan redosled kaskade |
 | 96 | `96_storage_crtezi.sql` | Storage bucket `spc-crtezi` + RLS (upload crteža atributivne/merljive) |
 | 97 | `97_error_log.sql` | Crash log (`error_log`) — insert za ulogovane, čitanje samo admin |
+| 98 | `98_licenca_anon_grant.sql` | GRANT `proveri_licencu` za `anon` (login gate pre prijave) |
 | 60 | `60_fix_legacy_schema_gaps.sql` | Popravka PFMEA kolona + `klasa` (ako starija baza) |
 | 61 | `61_auto_telemetrija.sql` | Telemetrija cron jobova + audit auto-akcija (`auto_run_log`, `auto_akcije_log`) |
 

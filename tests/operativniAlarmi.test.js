@@ -31,6 +31,34 @@ describe("evaluirajAlarme", () => {
     expect(alarmi.some((a) => a.id === "msa_kasni")).toBe(true);
   });
 
+  it("stare eskalacije sabija u jedinstvene ID delova", () => {
+    const staro = new Date(Date.now() - 48 * 3600000).toISOString();
+    const red = (id) => ({ id_deo: id, status: "otvoren", created_at: staro });
+    const { alarmi } = evaluirajAlarme({
+      eskalacije: [
+        red("5502-A"), red("5502-A"), red("HAM-001"),
+        red("NM-001"), red("NTV-001"), red("MRAP-001"),
+      ],
+    });
+    const stari = alarmi.find((a) => a.id === "eskalacije_stare");
+    expect(stari.opis).toBe("5502-A, HAM-001, NM-001, NTV-001 i još 1");
+    expect(stari.naslov).toBe("6 eskalacija bez odgovora > 24h");
+  });
+
+  it("otvorene eskalacije nabrajaju delove, ne odsečene opise", () => {
+    const sada = new Date().toISOString();
+    const { alarmi } = evaluirajAlarme({
+      eskalacije: [
+        { id_deo: "5502-A", status: "otvoren", created_at: sada, opis: "AUTO-NOK-VAR: Debljina lima · serija 1" },
+        { id_deo: "5502-A", status: "otvoren", created_at: sada, opis: "duplikat" },
+        { id_deo: "HAM-001", status: "otvoren", created_at: sada, opis: "3 NOK uzastopna na poz. FUNKCIONALNE ZONE" },
+      ],
+    });
+    const otv = alarmi.find((a) => a.id === "eskalacije_otvorene");
+    expect(otv.opis).toBe("5502-A, HAM-001");
+    expect(otv.naslov).toBe("3 otvorenih eskalacija");
+  });
+
   it("info alarm za MSA uskoro", () => {
     const uskoro = new Date();
     uskoro.setDate(uskoro.getDate() + 14);

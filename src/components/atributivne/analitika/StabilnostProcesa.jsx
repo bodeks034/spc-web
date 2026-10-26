@@ -3,8 +3,12 @@ import { supabase } from "../../../lib/supabaseClient.js";
 import { statAtributivneRedovi, agregirajAtributivnePoKljuču } from "../../../lib/atributivneAgregacija.js";
 import { SpcStabilnostGraf } from "../../SpcAnalitikaGrafovi.jsx";
 
-export default function StabilnostProcesa({ sviDelovi, C, addToast }) {
-  const [idDeo,   setIdDeo]   = useState("");
+export default function StabilnostProcesa({ sviDelovi, C, addToast, defaultIdDeo = "" }) {
+  const [idDeo,   setIdDeo]   = useState(defaultIdDeo);
+
+  useEffect(() => {
+    setIdDeo(defaultIdDeo || "");
+  }, [defaultIdDeo]);
   const [podaci,  setPodaci]  = useState(null);
   const [loading, setLoading] = useState(false);
 

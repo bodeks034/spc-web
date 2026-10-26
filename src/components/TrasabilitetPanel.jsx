@@ -224,6 +224,8 @@ export default function TrasabilitetPanel({ C, addToast, modul = "merljive", poc
 
       datumDo: datumDo || null,
 
+      smena: smenaFilter || null,
+
     });
 
     setLoading(false);

@@ -82,8 +82,8 @@ function spojiDnevniTrend(attrTrend, merTrend) {
     .sort((a, b) => String(a.datum).localeCompare(String(b.datum)))
     .map(d => ({
       ...d,
-      rty: calcRTY(d.ok, d.n),
-      p: calcP(d.nok, d.n),
+      rty: Number(d.n) > 0 ? calcRTY(d.ok, d.n) : null,
+      p: Number(d.n) > 0 ? calcP(d.nok, d.n) : null,
     }));
 }
 
@@ -113,8 +113,8 @@ function trendRtyPogona(trendAttr, trendMer) {
         ok,
         nok,
         n,
-        rty: rty ?? 0,
-        p: n > 0 ? calcP(nok, n) : 0,
+        rty: n > 0 ? (rty ?? null) : null,
+        p: n > 0 ? calcP(nok, n) : null,
         fpyAttr: attr?.fpy ?? attr?.rty,
         fpyMer: mer?.fpy ?? mer?.rty,
       };
@@ -143,10 +143,18 @@ function oceniStanjeModula({ rty, p, predikcijaP, minMerenja = 10, doradaStopa =
   return { stanje: STANJE.U_KONTROLI, razlog: `${metrika} ${rtyN}% · NOK ${p}%` };
 }
 
+/** Broj uključujući 0. Prazan uzorak ostaje null, ne 0%. */
+function brojAkoImaUzorka(vrednost, imaUzorka) {
+  if (!imaUzorka) return null;
+  const n = Number(vrednost);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Kad nema 3+ dana trenda — prikaži trenutni snimak (bez ekstrapolacije). */
 function predikcijaSaRezervom(trend, polje, trenutnaVrednost, koraci = 3) {
   const izTrenda = predikcijaTrenda(trend, polje, koraci);
   if (izTrenda) return izTrenda;
+  if (trenutnaVrednost == null || trenutnaVrednost === "") return null;
   const t = Number(trenutnaVrednost);
   if (!Number.isFinite(t)) return null;
   return {
@@ -211,13 +219,15 @@ export function analizirajProces({
   const trendRty = trendRtyPogona(trendAttr, trendMer);
   const ukupnoTrend = trendRty.length ? trendRty : spojiDnevniTrend(trendAttr, trendMer);
 
-  const attrP = attr.ukN > 0 ? calcP(attr.ukNOK, attr.ukN) : 0;
-  const merP = merljive.merenja > 0 ? calcP(merljive.nok, merljive.merenja) : 0;
-  const attrFpy = Number(attr.fpy ?? attr.rty) || 0;
-  const merFpy = Number(merljive.fpy ?? merljive.rty) || 0;
+  const imaAttr = Number(attr.ukN) > 0;
+  const imaMer = Number(merljive.merenja) > 0;
+  const attrP = imaAttr ? calcP(attr.ukNOK, attr.ukN) : null;
+  const merP = imaMer ? calcP(merljive.nok, merljive.merenja) : null;
+  const attrFpy = brojAkoImaUzorka(attr.fpy ?? attr.rty, imaAttr);
+  const merFpy = brojAkoImaUzorka(merljive.fpy ?? merljive.rty, imaMer);
   const ukupnoN = (attr.ukN || 0) + (merljive.merenja || 0);
   const ukupnoNok = (attr.ukNOK || 0) + (merljive.nok || 0);
-  const ukupnoP = ukupnoN > 0 ? calcP(ukupnoNok, ukupnoN) : 0;
+  const ukupnoP = ukupnoN > 0 ? calcP(ukupnoNok, ukupnoN) : null;
   const ukupnoRty = rtyPogon != null
     ? rtyPogon
     : calcRTYIzFaza(attrFpy, merFpy);

@@ -20,7 +20,7 @@ import {
   nokPoPozicijiDashboard,
   sigmaProcesa,
 } from "../../lib/varijabilneSpcStats.js";
-import { graniceKarakteristike } from "../../lib/varijabilneUtils.js";
+import { graniceKarakteristike, nazivDelaBezSifre } from "../../lib/varijabilneUtils.js";
 import { useEkran } from "../../lib/useEkran.js";
 import AnalitikaSpcSnapshot from "../analitika/AnalitikaSpcSnapshot.jsx";
 import SpcDashboardMerljive from "./SpcDashboardMerljive.jsx";
@@ -69,7 +69,7 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
     setLoading(true);
     try {
       const od = datumOdIzPerioda(period);
-      const [merenja, sopRes] = await Promise.all([
+      const [merenja, sopRes, deoRes] = await Promise.all([
         fetchMerenjaVarijabilna(supabase, {
           idDeo,
           select: "*",
@@ -78,10 +78,12 @@ export default function MerljiveAnalitikaDashboard({ C, addToast, onNavigacija, 
           pozicija: pozicija || undefined,
         }),
         supabase.from("sop_deo_varijabilni").select("id_deo,naziv_dela,broj_merenja").eq("id_deo", idDeo),
+        supabase.from("delovi").select("naziv_dela").eq("id_deo", idDeo).maybeSingle(),
       ]);
       setRawData(merenja);
       const delovi = uniqueDeloviIzSop(sopRes.data || []);
-      setNazivDela(delovi.find((d) => d.id_deo === idDeo)?.naziv_dela || sopRes.data?.[0]?.naziv_dela || "");
+      const sopNaziv = delovi.find((d) => d.id_deo === idDeo)?.naziv_dela || sopRes.data?.[0]?.naziv_dela || "";
+      setNazivDela(nazivDelaBezSifre(deoRes.data?.naziv_dela, idDeo) || nazivDelaBezSifre(sopNaziv, idDeo) || "");
       setNPodgrupa(brojMerenjaIzSop(sopRes.data || [], idDeo));
     } catch (e) {
       addToast?.(e.message, "greska");

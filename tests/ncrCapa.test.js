@@ -5,7 +5,10 @@ import {
   prefill8dIzNcr,
   NCR_STATUS_REDO,
 } from "../src/lib/ncrCapa.js";
-import { prefillNcrIzUnosaLinije, ncrPoljeOptsLinija, NCR_STATUS_LINija, NCR_SEKCIJE_LINija } from "../src/lib/ncrObrazacPolja.js";
+import {
+  prefillNcrIzUnosaLinije, ncrPoljeOptsLinija, NCR_STATUS_LINija, NCR_SEKCIJE_LINija,
+  statusNcrZaPrikaz, linijaAlarmaZaNcr, linijaNcrZaPrikaz, nazivNcrZaPrikaz,
+} from "../src/lib/ncrObrazacPolja.js";
 
 describe("validirajNcrPayload", () => {
   it("zahteva id_deo, opis i pogon", () => {
@@ -114,6 +117,31 @@ describe("prefillNcrIzUnosaLinije", () => {
     expect(f.prioritet).toBe("visok");
     expect(f.metoda_detekcije).toContain("Atributivna");
     expect(f.status).toBe(NCR_STATUS_LINija);
+  });
+});
+
+describe("prikaz NCR statusa, linije i naziva", () => {
+  const linije = [{ linija: "Preseraj" }, { linija: "Karoserija" }];
+  const deo = { id_deo: "5502-A", naziv_dela: "Osovina prednja", linija: { linija: "Preseraj" } };
+
+  it("prevodi open i containment kao registar", () => {
+    expect(statusNcrZaPrikaz("open")).toBe("OTVOREN");
+    expect(statusNcrZaPrikaz("containment")).toBe("CONTAINMENT");
+    expect(statusNcrZaPrikaz("closed")).toBe("ZATVOREN");
+  });
+
+  it("ne upisuje poziciju ni modul kao liniju alarma", () => {
+    expect(linijaAlarmaZaNcr({ linija: "Debljina lima", pozicija: "Debljina lima" })).toBe("");
+    expect(linijaAlarmaZaNcr({ linija: "Atributivne", pozicija: "ostalo" })).toBe("");
+    expect(linijaAlarmaZaNcr({ linija: "Preseraj", pozicija: "D1" })).toBe("Preseraj");
+  });
+
+  it("naziv i liniju uzima iz šifrarnika kad zapis nema pravu liniju", () => {
+    const ncr = { id_deo: "5502-A", naziv_dela: "", linija: "Debljina lima", karakteristika: "" };
+    expect(nazivNcrZaPrikaz(ncr, deo)).toBe("Osovina prednja");
+    expect(linijaNcrZaPrikaz(ncr, deo, linije)).toBe("Preseraj");
+    expect(linijaNcrZaPrikaz({ linija: "Atributivne" }, deo, linije)).toBe("Preseraj");
+    expect(linijaNcrZaPrikaz({ linija: "Preseraj" }, deo, linije)).toBe("Preseraj");
   });
 });
 

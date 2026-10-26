@@ -49,3 +49,13 @@ export function kratakNazivPogona(kod, { mikro = false } = {}) {
 export function jeValidanPogon(kod) {
   return !!nazivPogona(kod);
 }
+
+/**
+ * Oznaka pogona upisana u bazu (kolona), ne samo A–H.
+ * Sufiks naloga i dalje sme samo A–H — to radi pogonIzRn.
+ */
+export function jeEksplicitniPogon(kod) {
+  const k = String(kod || "").trim().toUpperCase();
+  if (!k || k.length > 12) return false;
+  return /^[A-Z0-9][A-Z0-9_-]*$/.test(k);
+}

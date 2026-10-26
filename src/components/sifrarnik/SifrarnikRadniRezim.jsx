@@ -6,7 +6,7 @@ import {
   STATUS_DEO_LABEL,
 } from "../../lib/sifrarnikOdrzavanje.js";
 import { SIFRARNIK_STATUS_EVENT } from "../../lib/sifrarnikStatusEvent.js";
-import { grupisiLinije, jeLinijaProizvod, jeLinijaVozila } from "../../lib/linijaProizvoda.js";
+import { etiketaLinije, grupisiLinije, jeLinijaProizvod, jeLinijaVozila, nazivLinijeZaPrikaz } from "../../lib/linijaProizvoda.js";
 import { GLAVNI_UNOS_SHEET_TIP } from "../../lib/glavniUnosSheetTip.js";
 import {
   RADNI_FILTERI,
@@ -158,7 +158,7 @@ export default function SifrarnikRadniRezim({
       type="button"
       data-testid={`radni-rezim-tile-${t.kod}`}
       onClick={() => onPromeniLiniju?.(t.kod)}
-      title={`${t.kod} — ${t.naziv}`}
+      title={etiketaLinije(t.kod, t.naziv)}
       style={{
         background: C.panel,
         border: `1px solid ${boja}55`,
@@ -171,13 +171,15 @@ export default function SifrarnikRadniRezim({
       }}
     >
       <span style={{ color: boja, fontWeight: 700 }}>{t.kod}</span>
-      <span style={{
-        display: "block", color: C.sivi, fontSize: 10, marginTop: 2,
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120,
-      }}
-      >
-        {String(t.naziv || "").replace(/^Privremeni /, "")}
-      </span>
+      {nazivLinijeZaPrikaz(t.kod, t.naziv) ? (
+        <span style={{
+          display: "block", color: C.sivi, fontSize: 10, marginTop: 2,
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120,
+        }}
+        >
+          {nazivLinijeZaPrikaz(t.kod, t.naziv)}
+        </span>
+      ) : null}
     </button>
   );
 
@@ -404,29 +406,29 @@ export default function SifrarnikRadniRezim({
             {vozila.length > 0 && (
               <optgroup label="Vozila (VOZ)">
                 {vozila.map((t) => (
-                  <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+                  <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
                 ))}
               </optgroup>
             )}
             {proizvodi.length > 0 && (
               <optgroup label="Proizvodi (PRO)">
                 {proizvodi.map((t) => (
-                  <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+                  <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
                 ))}
               </optgroup>
             )}
             {ostalo.length > 0 && (
               <optgroup label="Ostale linije">
                 {ostalo.map((t) => (
-                  <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+                  <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
                 ))}
               </optgroup>
             )}
           </select>
         </label>
-        {radnaLinija && nazivLinije && (
+        {radnaLinija && nazivLinijeZaPrikaz(radnaLinija, nazivLinije) && (
           <span style={{ color: C.sivi, fontSize: 9, flex: "1 1 140px" }}>
-            {nazivLinije.replace(/^Privremeni /, "")}
+            {nazivLinijeZaPrikaz(radnaLinija, nazivLinije)}
           </span>
         )}
         <button

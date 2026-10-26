@@ -1,4 +1,7 @@
-import { REGISTAR_KOLONE, vrednostRegistra, labelStatusa, ncrIzBaze } from "../../lib/ncrObrazacPolja.js";
+import {
+  REGISTAR_KOLONE, vrednostRegistra, statusNcrZaPrikaz, ncrIzBaze,
+  nadjiDeoZaNcr, linijaNcrZaPrikaz, nazivNcrZaPrikaz,
+} from "../../lib/ncrObrazacPolja.js";
 import { jeNcr8dAlarmRed } from "../../lib/ncrRegistarExcelStil.js";
 
 const bojaStatus = (s) => {
@@ -18,7 +21,7 @@ const bojaOzb = (o) => {
 };
 
 export default function NcrRegistarTabela({
-  lista, C, loading, selektovanId, onIzaberi, onOtvoriObrazac, rokProsao,
+  lista, C, loading, selektovanId, onIzaberi, onOtvoriObrazac, rokProsao, delovi = [], linije = [],
 }) {
   if (loading) {
     return <div style={{ padding: 16, color: C.sivi, fontSize: 11 }}>Učitavam registar…</div>;
@@ -95,9 +98,12 @@ export default function NcrRegistarTabela({
                     bg = "#ff4444";
                     color = "#fff";
                   }
-                  const vred = k.key === "status"
-                    ? (n.status === "closed" ? "ZATVOREN" : n.status === "open" ? "OTVOREN" : labelStatusa(n.status))
-                    : vrednostRegistra(n, k.key);
+                  const deo = nadjiDeoZaNcr(delovi, n.id_deo);
+                  let vred;
+                  if (k.key === "status") vred = statusNcrZaPrikaz(n.status);
+                  else if (k.key === "naziv_dela") vred = nazivNcrZaPrikaz(n, deo) || "—";
+                  else if (k.key === "linija") vred = linijaNcrZaPrikaz(n, deo, linije) || "—";
+                  else vred = vrednostRegistra(n, k.key);
                   return (
                     <td
                       key={k.key}
@@ -118,7 +124,7 @@ export default function NcrRegistarTabela({
                       cursor: k.key === "link_obrazac" && n.broj_ncr ? "pointer" : undefined,
                       textDecoration: k.key === "link_obrazac" && n.broj_ncr ? "underline" : undefined,
                     }}
-                      title={k.key === "link_obrazac" ? "Otvori obrazac u aplikaciji" : (k.key === "status" ? labelStatusa(n.status) : vred)}>
+                      title={k.key === "link_obrazac" ? "Otvori obrazac u aplikaciji" : vred}>
                       {k.key === "link_obrazac" && n.broj_ncr ? "Otvori obrazac" : vred}
                     </td>
                   );

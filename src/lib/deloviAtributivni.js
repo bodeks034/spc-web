@@ -71,26 +71,40 @@ export function podeliDeloviUvoz(mappedRows) {
   };
 }
 
+function nazivZaPrikaz(naziv, idDeo) {
+  const n = String(naziv ?? "").trim();
+  if (!n) return "";
+  const id = String(idDeo ?? "").trim().toUpperCase();
+  if (id && n.toUpperCase() === id) return "";
+  return n;
+}
+
+function istiId(a, b) {
+  if (a == null || a === "" || b == null || b === "") return false;
+  return String(a) === String(b);
+}
+
 /** Spoji master delovi + pogon red za prikaz u unosu. */
 export function spojiDeoIPogon(master, pogonRed) {
   if (!master && !pogonRed) return null;
+  const idDeo = master?.id_deo || pogonRed?.id_deo;
+  const razlicitaLinija = pogonRed?.linija_id != null && pogonRed.linija_id !== ""
+    && !istiId(pogonRed.linija_id, master?.linija_id);
+  const razlicitaMasina = pogonRed?.masina_id != null && pogonRed.masina_id !== ""
+    && !istiId(pogonRed.masina_id, master?.masina_id);
   return {
     ...(master || {}),
     ...(pogonRed || {}),
-    id_deo: master?.id_deo || pogonRed?.id_deo,
+    id_deo: idDeo,
     pogon_kod: pogonRed?.pogon_kod || "",
     radni_nalog: pogonRed?.radni_nalog || null,
-    naziv_dela: pogonRed?.naziv_dela || master?.naziv_dela,
+    naziv_dela: nazivZaPrikaz(master?.naziv_dela, idDeo) || nazivZaPrikaz(pogonRed?.naziv_dela, idDeo),
     karakteristika: pogonRed?.karakteristika || master?.karakteristika,
     kom_za_kontrolu: pogonRed?.kom_za_kontrolu ?? master?.kom_za_kontrolu,
     linija_id: pogonRed?.linija_id ?? master?.linija_id,
     masina_id: pogonRed?.masina_id ?? master?.masina_id,
-    linija: pogonRed?.linija_id != null && pogonRed.linija_id !== master?.linija_id
-      ? null
-      : master?.linija,
-    masina: pogonRed?.masina_id != null && pogonRed.masina_id !== master?.masina_id
-      ? null
-      : master?.masina,
+    linija: razlicitaLinija ? null : master?.linija,
+    masina: razlicitaMasina ? null : master?.masina,
     slika_naziv: master?.slika_naziv,
     tip_kontrole: master?.tip_kontrole,
     vozilo_katalog_id: master?.vozilo_katalog_id,

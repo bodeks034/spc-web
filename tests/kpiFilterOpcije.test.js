@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   izgradiKpiFilterOpcije,
   filtrirajKpiStavke,
+  izaberiKpiStavku,
   datumIsoUSr,
 } from "../src/lib/kpiUnos.js";
 
@@ -31,6 +32,28 @@ describe("filtrirajKpiStavke", () => {
     const f = filtrirajKpiStavke(stavke, { radniNalog: "RN1", datumIso: "2026-07-08" });
     expect(f).toHaveLength(1);
     expect(f[0].smena).toBe("2");
+  });
+});
+
+describe("izaberiKpiStavku", () => {
+  it("ne bira seriju koja postoji samo u logu ili radnom nalogu", () => {
+    const { stavke } = izgradiKpiFilterOpcije([
+      { radni_nalog: "RN-2024-002", datum: "2024-01-15", smena: 2 },
+    ]);
+    expect(izaberiKpiStavku(stavke, { datumIso: "2026-10-26", smena: "1" })).toBeNull();
+  });
+
+  it("bira KPI unos za današnji datum, inače najnoviji KPI", () => {
+    const { stavke } = izgradiKpiFilterOpcije([
+      { radni_nalog: "RN-2024-002", datum: "2024-01-15", smena: 2 },
+      { radni_nalog: "RN-2024-002", datum: "2024-01-15", smena: 2, imaKpi: true },
+      { radni_nalog: "RN-NOVI", datum: "2026-10-26", smena: 1, imaKpi: true },
+    ]);
+    const danas = izaberiKpiStavku(stavke, { datumIso: "2026-10-26", smena: "1" });
+    expect(danas.radni_nalog).toBe("RN-NOVI");
+    const stari = izaberiKpiStavku(stavke, { datumIso: "2026-01-01", smena: "1" });
+    expect(stari.radni_nalog).toBe("RN-NOVI");
+    expect(stavke.find((s) => s.datum === "2024-01-15").imaKpi).toBe(true);
   });
 });
 

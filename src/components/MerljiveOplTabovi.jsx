@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { SpcTrendLinijaGraf } from "./SpcAnalitikaGrafovi.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { fetchSmenaStatMerljive, generisiIzvestajSmeneMerljive } from "../lib/merljiveSmenaStat.js";
+import { OTVORENI_8D } from "../lib/osmdBrojevi.js";
 import { HeatmapMerljivePanel } from "./MerljiveAnalitika.jsx";
 import { LAB_FPY_PCT, LAB_FPY_CILJ } from "../lib/rtyFpy.js";
 import IzvestajKupacPanel from "./IzvestajKupacPanel.jsx";
@@ -32,17 +33,22 @@ export function IzvestajSmeneMerljive({ C, korisnik, smena, addToast, idDeo }) {
       setStat(s);
       let alarmi = 0;
       let osmd = 0;
+      const deo = String(idDeo || "").trim();
       try {
-        const { count: alC } = await supabase.from("spc_alarmi")
+        let qAl = supabase.from("spc_alarmi")
           .select("id", { count: "exact", head: true })
           .eq("datum", datum)
           .in("status", ["otvoren", "potvrden", "karantin"]);
+        if (deo) qAl = qAl.eq("id_deo", deo);
+        const { count: alC } = await qAl;
         alarmi = alC || 0;
       } catch { /* */ }
       try {
-        const { count: d8C } = await supabase.from("osmd_izvestaji")
+        let q8 = supabase.from("osmd_izvestaji")
           .select("id", { count: "exact", head: true })
-          .in("status", ["u_toku", "otvoren", "ceka"]);
+          .in("status", OTVORENI_8D);
+        if (deo) q8 = q8.eq("id_deo", deo);
+        const { count: d8C } = await q8;
         osmd = d8C || 0;
       } catch { /* */ }
       setExtra({ alarmi, osmd });
@@ -340,7 +346,7 @@ export function StabilnostMerljive({ sviDelovi, C, addToast, defaultIdDeo = "" }
   const [idDeo, setIdDeo] = useState(defaultIdDeo);
 
   useEffect(() => {
-    if (defaultIdDeo) setIdDeo(defaultIdDeo);
+    setIdDeo(defaultIdDeo || "");
   }, [defaultIdDeo]);
   const [podaci, setPodaci] = useState(null);
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import { fetchNcrVeze, labelIzvorNcr } from "../../lib/ncrWorkflowVeza.js";
+import { oznaka8d } from "../../lib/osmdBrojevi.js";
 
 /** Povezivanje NCR sa alarmom, 8D, eskalacijom, PfMEA i auto-akcijom. */
 export default function NcrWorkflowVeza({
@@ -99,7 +100,7 @@ export default function NcrWorkflowVeza({
           "ncr-link-eskalacija",
         )}
         {veze?.osmd && onOtvori8D && linkBtn(
-          `8D ${veze.osmd.broj_8d || `#${veze.osmd.id}`}`,
+          oznaka8d(veze.osmd.broj_8d, veze.osmd.id),
           () => onOtvori8D({ broj_8d: veze.osmd.broj_8d, id_deo: veze.osmd.id_deo, ncr_id: ncr.id }),
           "ncr-link-8d",
         )}

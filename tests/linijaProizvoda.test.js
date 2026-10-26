@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  etiketaLinije,
   grupisiLinije,
   jeLinijaProizvod,
   jeLinijaVozila,
+  nazivLinijeZaPrikaz,
   predlogSheetaZaLiniju,
 } from "../src/lib/linijaProizvoda.js";
 
@@ -24,6 +26,13 @@ describe("linijaProizvoda", () => {
     expect(g.vozila.map((x) => x.kod)).toEqual(["VOZ-01"]);
     expect(g.proizvodi.map((x) => x.kod)).toEqual(["PRO-02"]);
     expect(g.ostalo.map((x) => x.kod)).toEqual(["MRAP"]);
+  });
+
+  it("ne ponavlja kod kao naziv i skida Privremeni", () => {
+    expect(nazivLinijeZaPrikaz("VOZ-01", "VOZ-01")).toBe("");
+    expect(etiketaLinije("VOZ-01", "VOZ-01")).toBe("VOZ-01");
+    expect(nazivLinijeZaPrikaz("VOZ-02", "Privremeni Vozilo 2")).toBe("Vozilo 2");
+    expect(etiketaLinije("VOZ-02", "Privremeni Vozilo 2")).toBe("VOZ-02 — Vozilo 2");
   });
 
   it("predlaže sheet nazive iz koda linije", () => {

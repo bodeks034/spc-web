@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { fetchSefSmenaPregled, bojaFpyKpi } from "../lib/sefSmenaDashboard.js";
 import { objasniAutoUzrokNcr } from "../lib/ncrWorkflowVeza.js";
+import { statusNcrZaPrikaz } from "../lib/ncrObrazacPolja.js";
 import { NCR_CAPA_TOOLTIP, PFMEA_TOOLTIP } from "../lib/analitikaOpisi.js";
 import SmenaPogonaPanel from "./SmenaPogonaPanel.jsx";
 
@@ -214,8 +215,16 @@ export default function DnevniPregledPanel({
                   type="button"
                   data-testid={`dnevni-ncr-${n.broj_ncr}`}
                   onClick={() => {
-                    if (onOtvoriTab) otvoriTab("ncr", "atributivne");
-                    else onOtvoriNcr?.({ id_deo: n.id_deo, opis: n.opis, ncr_id: n.id });
+                    if (onOtvoriNcr) {
+                      onOtvoriNcr({
+                        _otvoriDetaljId: n.id,
+                        ncr_id: n.id,
+                        id_deo: n.id_deo,
+                        opis: n.opis,
+                      });
+                      return;
+                    }
+                    otvoriTab("ncr", "atributivne");
                   }}
                   style={{
                     background: "none", border: "none", padding: 0, cursor: "pointer",
@@ -224,9 +233,9 @@ export default function DnevniPregledPanel({
                 >
                   {n.broj_ncr}
                 </button>
-                {" "}{n.id_deo} · {n.status}
+                {" "}{n.id_deo} · {statusNcrZaPrikaz(n.status)}
                 {auto && (
-                  <span style={{ color: C.zuta }}> · {auto.naslov}: {auto.razlog?.slice(0, 60)}</span>
+                  <span style={{ color: C.zuta }} title={auto.razlog || undefined}> · {auto.naslov}: {auto.razlog}</span>
                 )}
               </div>
             );

@@ -19,4 +19,13 @@ describe("atributivneUnosHelper", () => {
     );
     expect(loc).toEqual({ linija: "L1", masina: "M2" });
   });
+
+  it("lokacijaDela čita kolonu linija i poredi id kao string", () => {
+    const loc = lokacijaDela(
+      { linija_id: "1", masina_id: 2, linija: { linija: "Iz join-a" } },
+      [{ id: 1, linija: "Preseraj" }],
+      [{ id: "2", naziv: "Strug" }],
+    );
+    expect(loc).toEqual({ linija: "Preseraj", masina: "Strug" });
+  });
 });

@@ -5,7 +5,7 @@ export default function IdUnosEmptyState({
   C,
   H = 1,
   naslov = "Unesite ID dela",
-  opis = "Skenirajte barkod ili unesite šifru u levi panel (npr. 5501-A), zatim Enter.",
+  opis = "Skenirajte barkod ili unesite šifru u levi panel (npr. 5502-A), zatim Enter.",
   upozorenjePogon = null,
 }) {
   return (

@@ -1,8 +1,10 @@
+import { supabase } from "./supabaseClient.js";
 import {
   fetchDobavljaci,
   fetchMaterijaliDobavljaca,
   fetchPrijemneKontrole,
 } from "./dobavljaciApi.js";
+import { nazivDelaBezSifre } from "./varijabilneUtils.js";
 import { napraviPredlogOcene } from "./ocenaDobavljaca.js";
 import { fetchOceneDobavljaca } from "./ocenaDobavljacaApi.js";
 
@@ -59,7 +61,7 @@ export function agregirajDobavljacDefekte(redovi = []) {
     .sort((a, b) => b.kolicina - a.kolicina);
 }
 
-export function agregirajDobavljacMaterijale(redovi = [], master = []) {
+export function agregirajDobavljacMaterijale(redovi = [], master = [], naziviDelova = {}) {
   const bySifra = new Map(master.map((m) => [m.sifra_materijala, {
     sifra_materijala: m.sifra_materijala,
     naziv_materijala: m.naziv_materijala,
@@ -69,11 +71,16 @@ export function agregirajDobavljacMaterijale(redovi = [], master = []) {
   }]));
   for (const r of redovi) {
     const sifra = r.sifra_materijala || r.id_deo || "BEZ-ŠIFRE";
+    const id = String(r.id_deo || "").trim().toUpperCase();
+    const nazivDela = (id && naziviDelova[id]) || "";
     const a = bySifra.get(sifra) || {
       sifra_materijala: sifra,
-      naziv_materijala: r.id_deo ? "Deo / komponenta" : "Nije navedeno",
+      naziv_materijala: nazivDela || (r.id_deo ? r.id_deo : "Nije navedeno"),
       kontrolisano: 0, ok: 0, nok: 0,
     };
+    if (nazivDela && (!a.naziv_materijala || a.naziv_materijala === a.sifra_materijala || a.naziv_materijala === r.id_deo)) {
+      a.naziv_materijala = nazivDela;
+    }
     a.kontrolisano += broj(r.kontrolisano);
     a.ok += broj(r.ok_kolicina);
     a.nok += broj(r.nok_kolicina);
@@ -83,6 +90,24 @@ export function agregirajDobavljacMaterijale(redovi = [], master = []) {
     ...m,
     okStopa: m.kontrolisano > 0 ? +(m.ok / m.kontrolisano * 100).toFixed(2) : "—",
   }));
+}
+
+async function naziviDelovaZaPrijem(kontrole) {
+  const ids = [...new Set((kontrole || []).map((r) => String(r.id_deo || "").trim()).filter(Boolean))];
+  if (!ids.length) return {};
+  try {
+    const { data, error } = await supabase.from("delovi").select("id_deo,naziv_dela").in("id_deo", ids);
+    if (error) return {};
+    const out = {};
+    for (const d of data || []) {
+      const id = String(d.id_deo || "").trim().toUpperCase();
+      const naziv = nazivDelaBezSifre(d.naziv_dela, id);
+      if (id && naziv) out[id] = naziv;
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }
 
 export async function fetchIzvestajDobavljacPodaci({ sifraDobavljaca, period = "30" } = {}) {
@@ -100,6 +125,7 @@ export async function fetchIzvestajDobavljacPodaci({ sifraDobavljaca, period = "
     || { sifra_dobavljaca: sifraDobavljaca, naziv_dobavljaca: sifraDobavljaca };
   const masterMaterijali = sviMaterijali.filter((m) => m.sifra_dobavljaca === sifraDobavljaca);
   const stat = izracunajDobavljacStat(kontrole);
+  const naziviDelova = await naziviDelovaZaPrijem(kontrole);
   let istorijaOcena = [];
   try {
     istorijaOcena = await fetchOceneDobavljaca(sifraDobavljaca);
@@ -118,7 +144,7 @@ export async function fetchIzvestajDobavljacPodaci({ sifraDobavljaca, period = "
     stat,
     trend: agregirajDobavljacTrend(kontrole),
     defekti: agregirajDobavljacDefekte(kontrole),
-    materijali: agregirajDobavljacMaterijale(kontrole, masterMaterijali),
+    materijali: agregirajDobavljacMaterijale(kontrole, masterMaterijali, naziviDelova),
     predlogOcene: napraviPredlogOcene(stat),
     istorijaOcena,
   };

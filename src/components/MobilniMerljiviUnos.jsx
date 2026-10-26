@@ -147,9 +147,14 @@ export default function MobilniMerljiviUnos({
 
   if (linijaKorak === 1) {
     const mozeDalje = idUcitano && grupaAB && !ucitava;
+    const cekaPogon = trebaIzborPogona && !idUcitano;
+    const greskaUcitavanja = !!(
+      idDeo && idSpremanZaUcitavanje(String(idDeo)) && !idUcitano && poruka && !cekaPogon
+    );
+    const idIzgledaGreska = idDeo.length > 2 && !idUcitano && !cekaPogon;
     return omot(
       <>
-        {poruka && (
+        {poruka && !cekaPogon && !greskaUcitavanja && (
           <div style={{
             background: poruka.includes("uspešno") || poruka.includes("sačuvana") ? C.ok : C.nok,
             border: `1px solid ${C.border}`,
@@ -188,8 +193,8 @@ export default function MobilniMerljiviUnos({
               letterSpacing: 4,
               textAlign: "center",
               padding: "22px 14px",
-              borderColor: idUcitano ? C.zelena : idDeo.length > 2 ? C.crvena : C.border,
-              background: idUcitano ? C.ok : idDeo.length > 2 ? C.nok : C.input,
+              borderColor: idUcitano ? C.zelena : idIzgledaGreska ? C.crvena : C.border,
+              background: idUcitano ? C.ok : idIzgledaGreska ? C.nok : C.input,
             }}
           />
         </IdDeoBarkodRed>
@@ -303,7 +308,7 @@ export default function MobilniMerljiviUnos({
           </div>
         )}
 
-        {idDeo && idSpremanZaUcitavanje(String(idDeo)) && !idUcitano && poruka && (
+        {greskaUcitavanja && (
           <div style={{
             background: `${C.crvena}12`,
             border: `2px solid ${C.crvena}`,

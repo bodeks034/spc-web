@@ -1,3 +1,6 @@
+/** Otvoren 8D: stari kodovi i trenutni tok (u_izradi). Završen ne ulazi. */
+export const OTVORENI_8D = ["u_toku", "otvoren", "ceka", "u_izradi"];
+
 /** Automatsko dodeljivanje brojeva 8D / PFMEA / Control Plan (isti redni broj po delu). */
 
 export function prefiksDeoIzIdDeo(idDeo) {
@@ -29,6 +32,14 @@ export function brojeviPaketaIzRednog(prefiks, seq) {
 }
 
 /** Iz postojećeg broja 8D — dopuni PFMEA i CP. */
+/** „8D-NM-002” ostaje kako jeste; gol broj dobija prefiks. */
+export function oznaka8d(broj, id) {
+  const b = String(broj || "").trim();
+  if (b) return /^8D\b/i.test(b) ? b : `8D ${b}`;
+  if (id != null && String(id).trim()) return `8D #${id}`;
+  return "";
+}
+
 export function brojeviPaketaIzBroj8d(broj8d) {
   const m = String(broj8d || "").trim().match(/^8D-([A-Z0-9]+)-(\d+)$/i);
   if (!m) return null;

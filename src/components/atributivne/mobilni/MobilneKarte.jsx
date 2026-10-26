@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts";
 import { supabase } from "../../../lib/supabaseClient.js";
 import { jeKontrolaCelogVozila, predlogAtributivnihKarti, jeVodicSakriven, sakrijVodic } from "../../../lib/spcPredlogKarti.js";
-import { predloziGrupisanjeSpc, groupSpcRows, chartDataWithWesternElectric } from "../../../lib/spcStats.js";
+import { predloziGrupisanjeSpc, groupSpcRows, chartDataWithWesternElectric, granicePProporcija } from "../../../lib/spcStats.js";
 import SpcVodicPredlog, { tabJePreporucen } from "../../SpcVodicPredlog.jsx";
+import { useSpcFilterSync } from "../../../hooks/useSpcFilterSync.jsx";
 
-function MobilneKarte({ sviDelovi, C, addToast }) {
+function MobilneKarte({ sviDelovi, C, addToast, spoljniFilter = null }) {
   const [tip,setTip]         = useState("p");
   const [idDeo,setIdDeo]     = useState("");
   const [loading,setLoading] = useState(false);
@@ -13,6 +14,8 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
   const [rawLog,setRawLog] = useState([]);
   const [pD,setPD] = useState([]); const [cD,setCD]=useState([]); const [uD,setUD]=useState([]);
   const prevIdDeoRef = useRef("");
+
+  useSpcFilterSync(spoljniFilter, { setIdDeo });
 
   const deoIzabran = useMemo(() => sviDelovi.find(d => d.id_deo === idDeo), [sviDelovi, idDeo]);
   const predlog = useMemo(
@@ -67,16 +70,18 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
       const cBar = sg.length > 0 ? sg.reduce((s, g) => s + g.c, 0) / sg.length : 0;
       const uBar = ukN > 0 ? sg.reduce((s, g) => s + g.c, 0) / ukN : 0;
 
-      setPD(sg.map(g => ({
+      setPD(sg.map(g => {
+        const gcl = granicePProporcija(pBar, g.n);
+        return {
         datum: g.datum,
         label: g.label || g.datum?.substring(5) || "",
         p: g.n > 0 ? g.nok / g.n : 0,
         p_bar: pBar,
         nok_total: g.nok,
         n_total: g.n,
-        ucl: pBar + 3 * Math.sqrt(pBar * (1 - pBar) / Math.max(g.n, 1)),
-        lcl: Math.max(0, pBar - 3 * Math.sqrt(pBar * (1 - pBar) / Math.max(g.n, 1))),
-      })));
+        ucl: gcl.ucl,
+        lcl: gcl.lcl,
+      }; }));
       const cgr = {};
       data.forEach(r => {
         const k = `${r.datum}|${r.greska_naziv || ""}`;
@@ -212,6 +217,7 @@ function MobilneKarte({ sviDelovi, C, addToast }) {
                   angle={-45} textAnchor="end" height={40}
                   interval={Math.max(0,Math.floor(cd.length/6)-1)}/>
                 <YAxis tick={{fill:C.sivi,fontSize:9}} tickLine={false} axisLine={false}
+                  domain={akt.sufiks==="%" ? [0, 100] : ["auto", "auto"]}
                   tickFormatter={v=>v+akt.sufiks} width={38}/>
                 <Tooltip
                   contentStyle={{background:C.panel,border:`1px solid ${C.border}`,

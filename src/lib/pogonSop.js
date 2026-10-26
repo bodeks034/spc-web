@@ -1,4 +1,4 @@
-import { jeValidanPogon, nazivPogona } from "./pogonKodovi.js";
+import { jeEksplicitniPogon, jeValidanPogon, nazivPogona } from "./pogonKodovi.js";
 import { pogonKodKarakteristike, propagirajMetaKarakteristika } from "./definicijaKarakteristika.js";
 import { spojiDeoIPogon } from "./deloviAtributivni.js";
 import { jeMerljivaKarakteristika } from "./varijabilneUtils.js";
@@ -34,7 +34,7 @@ export function sopZaPogon(sopMap, idDeo, pogonKod) {
 export function pogoniZaDeo(sopMap, idDeo) {
   const id = String(idDeo || "").trim().toUpperCase();
   const keys = Object.keys(sopMap?.[id] || {}).sort();
-  return keys.filter(jeValidanPogon);
+  return keys.filter((k) => jeValidanPogon(k) || jeEksplicitniPogon(k));
 }
 
 /** Aktivni redovi delovi za id_deo. */
@@ -51,7 +51,7 @@ export function pogoniZaDeoAtributivne(atributivniPogonRows, idDeo) {
   const pogoni = (atributivniPogonRows || [])
     .filter((r) => String(r.id_deo || "").toUpperCase() === id && r.aktivan !== false)
     .map((r) => String(r.pogon_kod || "").trim().toUpperCase())
-    .filter((p) => p && jeValidanPogon(p));
+    .filter((p) => p && (jeValidanPogon(p) || jeEksplicitniPogon(p)));
   return [...new Set(pogoni)].sort();
 }
 
@@ -120,14 +120,16 @@ export function pogoniZaDeoSvi(sopMap, rnRows, idDeo, karakteristike) {
   for (const r of rnRows || []) {
     if (String(r.id_deo || "").toUpperCase() !== id) continue;
     const brojRn = String(r.broj_naloga || r.radni_nalog || "").trim().toUpperCase();
-    const p = String(r.pogon_kod || "").trim().toUpperCase()
-      || pogonIzRn(brojRn);
-    if (p && jeValidanPogon(p)) merged.add(p);
+    const pk = String(r.pogon_kod || "").trim().toUpperCase();
+    const p = (pk && (jeValidanPogon(pk) || jeEksplicitniPogon(pk)))
+      ? pk
+      : pogonIzRn(brojRn);
+    if (p && (jeValidanPogon(p) || jeEksplicitniPogon(p))) merged.add(p);
   }
   for (const r of propagirajMetaKarakteristika(karakteristike || [])) {
     if (String(r.id_deo || "").toUpperCase() !== id) continue;
     const p = pogonKodKarakteristike(r, { multiPogon: true });
-    if (p && jeValidanPogon(p)) merged.add(p);
+    if (p && (jeValidanPogon(p) || jeEksplicitniPogon(p))) merged.add(p);
   }
   return [...merged].sort();
 }
@@ -170,7 +172,7 @@ export function brojMerenjaIzSop(sopRows, idDeo, pogonKod) {
 export function pogonKodIzRnReda(row) {
   if (!row) return null;
   const pk = String(row.pogon_kod || "").trim().toUpperCase();
-  if (pk && jeValidanPogon(pk)) return pk;
+  if (pk && (jeValidanPogon(pk) || jeEksplicitniPogon(pk))) return pk;
   const brojRn = String(row.broj_naloga || row.radni_nalog || "").trim().toUpperCase();
   return pogonIzRn(brojRn);
 }

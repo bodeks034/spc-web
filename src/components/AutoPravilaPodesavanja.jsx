@@ -8,6 +8,7 @@ const LABELI = {
   [AUTO_PRAVILO_KLJUCEVI.nok3]: "3× NOK uzastopna (eskalacija + NCR)",
   [AUTO_PRAVILO_KLJUCEVI.spc_ncr]: "SPC alarm → NCR draft",
   [AUTO_PRAVILO_KLJUCEVI.ncr_zatvori]: "Zatvaranje NCR → eskalacije/SPC",
+  [AUTO_PRAVILO_KLJUCEVI.ncr_linija]: "NCR prijava sa linije (Modul 1)",
   [AUTO_PRAVILO_KLJUCEVI.ncr_8d_draft]: "NCR bez 8D → auto draft (cron)",
   [AUTO_PRAVILO_KLJUCEVI.podsetnici]: "Dnevni podsetnici (email/Teams)",
   [AUTO_PRAVILO_KLJUCEVI.digest]: "Smenski digest email",

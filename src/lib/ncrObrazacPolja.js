@@ -132,6 +132,73 @@ export function labelStatusa(status) {
   return NCR_STATUS_EXCEL.find(([v]) => v === status)?.[1] || status || "OPEN";
 }
 
+/** Isti natpis kao u registru: OPEN → OTVOREN, CLOSED → ZATVOREN. */
+export function statusNcrZaPrikaz(status) {
+  if (status === "closed") return "ZATVOREN";
+  if (status === "open") return "OTVOREN";
+  return labelStatusa(status);
+}
+
+const LAZNA_LINIJA_NCR = /^(atributivne|merljive|linija|spc)$/i;
+
+export function nadjiDeoZaNcr(delovi, idDeo) {
+  const id = String(idDeo || "").trim().toUpperCase();
+  if (!id) return null;
+  return (delovi || []).find((d) => String(d?.id_deo || "").trim().toUpperCase() === id) || null;
+}
+
+function nazivLinijeDela(deo) {
+  if (!deo) return "";
+  const l = deo.linija;
+  if (l && typeof l === "object") return String(l.linija || l.naziv || "").trim();
+  return String(l || "").trim();
+}
+
+/** Pozicija ili modul („Debljina lima”, „Atributivne”) nisu linija. */
+export function linijaJeLazna(linija, karakteristika) {
+  const raw = String(linija || "").trim();
+  const kar = String(karakteristika || "").trim();
+  if (!raw) return true;
+  if (kar && raw === kar) return true;
+  return LAZNA_LINIJA_NCR.test(raw);
+}
+
+export function linijaAlarmaZaNcr(alarm) {
+  if (linijaJeLazna(alarm?.linija, alarm?.pozicija)) return "";
+  return String(alarm.linija).trim();
+}
+
+function poznateLinije(linije) {
+  const out = new Set();
+  for (const l of linije || []) {
+    const ime = String(l?.linija || l?.naziv || (typeof l === "string" ? l : "")).trim();
+    if (ime) out.add(ime);
+  }
+  return out;
+}
+
+/** Ako tekst nije linija iz šifrarnika, prikaži liniju dela. */
+export function linijaNcrZaPrikaz(ncr, deo, linije = []) {
+  const raw = String(ncr?.linija || "").trim();
+  const izDela = nazivLinijeDela(deo);
+  const poznate = poznateLinije(linije);
+  const uSifrarniku = raw && poznate.has(raw);
+  if (uSifrarniku) return raw;
+  if (raw && !linijaJeLazna(raw, ncr?.karakteristika) && poznate.size === 0) return raw;
+  if (izDela) return izDela;
+  if (raw && poznate.size > 0) return "";
+  return raw;
+}
+
+export function nazivNcrZaPrikaz(ncr, deo) {
+  const id = String(ncr?.id_deo || "").trim().toUpperCase();
+  const raw = String(ncr?.naziv_dela || "").trim();
+  if (raw && raw.toUpperCase() !== id) return raw;
+  const izDela = String(deo?.naziv_dela || "").trim();
+  if (izDela && izDela.toUpperCase() !== id) return izDela;
+  return "";
+}
+
 export function danasIso() {
   return new Date().toISOString().slice(0, 10);
 }

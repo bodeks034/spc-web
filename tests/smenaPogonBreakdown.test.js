@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { spojiStatModula, formatPoPogonimaTekst } from "../src/lib/smenaPogonBreakdown.js";
+import { spojiStatModula, formatPoPogonimaTekst, brojAktivnihNaloga } from "../src/lib/smenaPogonBreakdown.js";
 
 describe("spojiStatModula", () => {
   it("kombinuje atributivne i merljive po pogonu", () => {
@@ -9,6 +9,15 @@ describe("spojiStatModula", () => {
     );
     expect(uk.n).toBe(100);
     expect(uk.fpy).toBe(95);
+  });
+});
+
+describe("brojAktivnihNaloga", () => {
+  it("uzima tačan zbir i kad je lista skraćena", () => {
+    const lista = [{ broj_naloga: "RN-1" }, { broj_naloga: "RN-2" }];
+    lista.ukupno = 41;
+    expect(brojAktivnihNaloga(lista)).toBe(41);
+    expect(brojAktivnihNaloga([])).toBe(0);
   });
 });
 

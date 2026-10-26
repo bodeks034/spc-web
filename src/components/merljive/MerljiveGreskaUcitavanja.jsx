@@ -7,6 +7,7 @@ export default function MerljiveGreskaUcitavanja({
 }) {
   if (!idDeo || !idSpremanZaUcitavanje(idDeo) || ucitava) return null;
   const ucitavaSada = ucitavaDeo || nalogUcitava;
+  if (trebaIzborPogona && !greskaDb) return null;
   const imaGresku = !!(poruka || greskaDb);
   const praznaBaza = karakteristikeBroj === 0;
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../../lib/supabaseClient.js";
 import {
   fetchNcrCapaLista,
@@ -58,12 +58,16 @@ const bojaStatus = (s, C) => {
 
 export default function NcrCapaPanel({
   korisnik, C, addToast, sviDelovi = [], onOtvori8D, onOtvoriTab, onOtvoriPfmeaCp,
-  prefill = null, onPrefillUsed,
+  prefill = null, onPrefillUsed, idDeoIzFiltera = "",
 }) {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("otvoreni");
   const [filterDeo, setFilterDeo] = useState("");
+  const [deloviMaster, setDeloviMaster] = useState([]);
+  const [linijeSifrarnik, setLinijeSifrarnik] = useState([]);
+  const idIzHedera = String(idDeoIzFiltera || "").trim().toUpperCase();
+  const idZaListu = idIzHedera || String(filterDeo || "").trim().toUpperCase();
   const [filterPogon, setFilterPogon] = useState("");
   const [filterPrioritet, setFilterPrioritet] = useState("");
   const [pogoni, setPogoni] = useState([]);
@@ -91,6 +95,14 @@ export default function NcrCapaPanel({
   }, []);
 
   useEffect(() => { osveziPogoni(); }, [osveziPogoni]);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from("linije").select("linija").then(({ data }) => {
+      if (!cancelled) setLinijeSifrarnik(data || []);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!podrzavaFsAccess()) return;
@@ -138,7 +150,9 @@ export default function NcrCapaPanel({
   useEffect(() => {
     if (!prefill) return;
     if (prefill._otvoriDetaljId) {
-      const n = lista.find((r) => r.id === prefill._otvoriDetaljId);
+      if (loading) return;
+      const trazeni = String(prefill._otvoriDetaljId);
+      const n = lista.find((r) => String(r.id) === trazeni);
       if (n) {
         setForma(ncrIzBaze(n));
         setTab("obrazac");
@@ -150,14 +164,14 @@ export default function NcrCapaPanel({
     setGreske({});
     setTab("obrazac");
     onPrefillUsed?.();
-  }, [prefill, lista]); // eslint-disable-line
+  }, [prefill, lista, loading]); // eslint-disable-line
 
   const ucitaj = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchNcrCapaLista(supabase, {
         status: filter === "sve" ? null : filter === "closed" ? "closed" : filter,
-        idDeo: filterDeo || null,
+        idDeo: idZaListu || null,
         pogon: filterPogon || null,
         prioritet: filterPrioritet || null,
         smena: filterSmena || null,
@@ -169,9 +183,40 @@ export default function NcrCapaPanel({
     } finally {
       setLoading(false);
     }
-  }, [filter, filterDeo, filterPogon, filterPrioritet, filterSmena, samoRokProsao, addToast]);
+  }, [filter, idZaListu, filterPogon, filterPrioritet, filterSmena, samoRokProsao, addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
+
+  const idsDelova = useMemo(() => (
+    [...new Set(lista.map((n) => String(n.id_deo || "").trim().toUpperCase()).filter(Boolean))].sort().join(",")
+  ), [lista]);
+
+  useEffect(() => {
+    const ids = idsDelova ? idsDelova.split(",") : [];
+    if (!ids.length) {
+      setDeloviMaster([]);
+      return undefined;
+    }
+    let cancelled = false;
+    supabase.from("delovi")
+      .select("id_deo,naziv_dela,linija:linije(linija)")
+      .in("id_deo", ids)
+      .then(({ data }) => { if (!cancelled) setDeloviMaster(data || []); });
+    return () => { cancelled = true; };
+  }, [idsDelova]);
+
+  const deloviZaPrikaz = useMemo(() => {
+    const poId = new Map();
+    for (const d of sviDelovi || []) {
+      const id = String(d?.id_deo || "").trim().toUpperCase();
+      if (id) poId.set(id, d);
+    }
+    for (const d of deloviMaster) {
+      const id = String(d?.id_deo || "").trim().toUpperCase();
+      if (id) poId.set(id, { ...poId.get(id), ...d });
+    }
+    return [...poId.values()];
+  }, [sviDelovi, deloviMaster]);
 
   useEffect(() => {
     if (!forma?.id) return;
@@ -278,8 +323,8 @@ export default function NcrCapaPanel({
     setTab("obrazac");
   };
 
-  const exportOptsNaslov = filterDeo ? `NCR Registar — ${filterDeo}` : "NCR Registar";
-  const exportOpts = { naslov: exportOptsNaslov, filter, filterDeo, filterPrioritet };
+  const exportOptsNaslov = idZaListu ? `NCR Registar — ${idZaListu}` : "NCR Registar";
+  const exportOpts = { naslov: exportOptsNaslov, filter, filterDeo: idZaListu, filterPrioritet };
 
   const stampajEkranFn = async () => {
     if (!lista.length) { addToast?.("Nema NCR zapisa za štampu", "greska"); return; }
@@ -511,7 +556,10 @@ export default function NcrCapaPanel({
             marginBottom: 12,
             flexShrink: 0,
           }}>
-            <input style={INP} value={filterDeo} onChange={(e) => setFilterDeo(e.target.value.toUpperCase())}
+            <input style={INP} value={idZaListu}
+              onChange={(e) => { if (!idIzHedera) setFilterDeo(e.target.value.toUpperCase()); }}
+              readOnly={!!idIzHedera}
+              title={idIzHedera ? "Deo je izabran u filteru zaglavlja" : undefined}
               placeholder="ID deo filter" list="ncr-dela-filter" />
             <select
               data-testid="ncr-filter-pogon"
@@ -541,6 +589,8 @@ export default function NcrCapaPanel({
           <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             <NcrRegistarTabela
               lista={lista}
+              delovi={deloviZaPrikaz}
+              linije={linijeSifrarnik}
               C={C}
               loading={loading}
               selektovanId={forma?.id}

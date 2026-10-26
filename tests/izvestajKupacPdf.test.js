@@ -4,6 +4,7 @@ import {
   trendKvalitetaAtrPoDanu,
   uporediCiljeve,
   izracunajSpcSazetak,
+  STATUSI_OTVORENOG_NCR,
 } from "../src/lib/izvestajKupacData.js";
 
 describe("izvestajKupacPdf", () => {
@@ -69,6 +70,13 @@ describe("izvestajKupacData", () => {
     const ciljevi = { A1: { rty_cilj: 95, dpmo_cilj: 50000 } };
     const u = uporediCiljeve(poDeo, ciljevi);
     expect(u[0].status).toBe("ISPUNJENO");
+  });
+
+  it("otvoreni NCR uključuje status open iz registra", () => {
+    expect(STATUSI_OTVORENOG_NCR).toEqual(expect.arrayContaining([
+      "open", "containment", "disposition", "otvoren",
+    ]));
+    expect(STATUSI_OTVORENOG_NCR).not.toContain("closed");
   });
 
   it("SPC sažetak — prazan bez merenja", () => {

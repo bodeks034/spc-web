@@ -18,6 +18,7 @@ export default function useAnalitikaBadges({
   qaEnabled = false,
   faiEnabled = false,
   ncrEnabled = false,
+  idDeo = "",
   grupe = [],
 }) {
   const { ukupno: qaUkupno, badgePoTabu: qaBadge } = useOdobrenjaQaBrojaci({
@@ -46,11 +47,11 @@ export default function useAnalitikaBadges({
       return;
     }
     try {
-      setNcrBroj(await brojOtvorenihNcr(supabase));
+      setNcrBroj(await brojOtvorenihNcr(supabase, { idDeo: idDeo || null }));
     } catch {
       setNcrBroj(0);
     }
-  }, [enabled, ncrEnabled]);
+  }, [enabled, ncrEnabled, idDeo]);
 
   useEffect(() => { osveziFai(); }, [osveziFai]);
   useEffect(() => { osveziNcr(); }, [osveziNcr]);

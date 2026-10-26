@@ -785,6 +785,28 @@ export function porukaNepoznatIdDeo(karakteristike, idDeo) {
   return msg;
 }
 
+/** Naziv koji nije prazan i nije ista šifra kao ID dela. */
+export function nazivDelaBezSifre(naziv, idDeo) {
+  const n = String(naziv ?? "").trim();
+  const id = String(idDeo ?? "").trim().toUpperCase();
+  if (!n || (id && n.toUpperCase() === id)) return "";
+  return n;
+}
+
+/**
+ * Prazna tabela samo kad uopšte nema redova.
+ * Inače je u pitanju ovaj ID, ne ceo šifrarnik.
+ */
+export function porukaNemaMerljiveZaId(karakteristike, idDeo, imaDrugeZapise = false) {
+  const imaRedove = !!imaDrugeZapise || (karakteristike || []).some(
+    (k) => String(k?.id_deo || "").trim(),
+  );
+  if (!imaRedove) {
+    return "Tabela karakteristike_merljive je prazna — Admin → uvezi SPC_merljive.xlsx, pa Ctrl+F5.";
+  }
+  return porukaNepoznatIdDeo(karakteristike, idDeo);
+}
+
 /** Da li je ID dovoljno potpun za učitavanje (ne okidati učitavanje na „NT-“). */
 export { normalizujIdDeo, idSpremanZaUcitavanje } from "./idDeoUtil.js";
 

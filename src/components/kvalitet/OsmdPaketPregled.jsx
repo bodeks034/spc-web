@@ -6,6 +6,7 @@ import {
 } from "../../lib/osmdPfmeaCpPaket.js";
 import { izracunajRpnSummary } from "../../lib/pfmeaControlPlan.js";
 import { statusNaziv8d } from "../../lib/osmdIzvestajPdf.js";
+import { oznaka8d } from "../../lib/osmdBrojevi.js";
 
 function Kpi({ label, vrednost, C, boja }) {
   return (
@@ -84,7 +85,7 @@ export default function OsmdPaketPregled({
             PREGLED PAKETA KVALITETA
           </div>
           <div style={{ color: C.sivi, fontSize: 10, marginTop: 4 }}>
-            8D {broj8d || `#${osmdId}`} · deo {idDeo || "—"}
+            {oznaka8d(broj8d, osmdId) || "8D"} · deo {idDeo || "—"}
             {loading ? " · učitavanje PFMEA/CP…" : ""}
           </div>
         </div>

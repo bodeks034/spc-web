@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GLAVNI_UNOS_SHEET_TIP, filtrirajSheetovePoTipu } from "../../lib/glavniUnosSheetTip.js";
 import {
+  etiketaLinije,
   grupisiLinije,
   jeLinijaProizvod,
   jeLinijaVozila,
@@ -147,21 +148,21 @@ export default function NoviDeoWizard({
         {vozila.length > 0 && (
           <optgroup label="Vozila (VOZ-XX)">
             {vozila.map((t) => (
-              <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+              <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
             ))}
           </optgroup>
         )}
         {proizvodi.length > 0 && (
           <optgroup label="Proizvodi (PRO-XX)">
             {proizvodi.map((t) => (
-              <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+              <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
             ))}
           </optgroup>
         )}
         {ostalo.length > 0 && (
           <optgroup label="Ostale linije">
             {ostalo.map((t) => (
-              <option key={t.kod} value={t.kod}>{t.kod} — {t.naziv}</option>
+              <option key={t.kod} value={t.kod}>{etiketaLinije(t.kod, t.naziv)}</option>
             ))}
           </optgroup>
         )}

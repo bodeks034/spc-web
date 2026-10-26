@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { fetchSmenaPogonaPregled, dIsoSmena, imaSadrzajPredajeSmene } from "../lib/smenaPogonaPregled.js";
+import { brojAktivnihNaloga } from "../lib/smenaPogonBreakdown.js";
 import { bojaFpyKpi } from "../lib/sefSmenaDashboard.js";
 import { generisiPredajaSmenePdfPogon, generisiPredajaSmenePdf } from "../lib/predajaSmenePdf.js";
 import { LAB_FPY_PCT } from "../lib/rtyFpy.js";
@@ -330,12 +331,12 @@ export default function SmenaPogonaPanel({
               borderRadius: 8,
               lineHeight: 1.5,
             }}>
-              {pod?.radniNalozi?.length > 0 && (
+              {brojAktivnihNaloga(pod?.radniNalozi) > 0 && (
                 <div>
-                  Aktivni RN: <strong style={{ color: C.tekst }}>{pod.radniNalozi.length}</strong>
+                  Aktivni RN: <strong style={{ color: C.tekst }}>{brojAktivnihNaloga(pod.radniNalozi)}</strong>
                   {" · "}
                   {pod.radniNalozi.slice(0, 4).map((n) => n.broj_naloga).join(", ")}
-                  {pod.radniNalozi.length > 4 ? "…" : ""}
+                  {brojAktivnihNaloga(pod.radniNalozi) > 4 ? "…" : ""}
                 </div>
               )}
               {offlineInfo?.total > 0 && (

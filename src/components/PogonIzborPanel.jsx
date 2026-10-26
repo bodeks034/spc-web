@@ -183,6 +183,7 @@ export default function PogonIzborPanel({
               }}>
                 {k}
               </span>
+              {kratko && kratko !== k && (
               <span style={{
                 fontWeight: 500,
                 fontSize: stil.naziv,
@@ -196,6 +197,7 @@ export default function PogonIzborPanel({
               }}>
                 {kratko}
               </span>
+              )}
             </button>
           );
         })}

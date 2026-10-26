@@ -7,7 +7,7 @@ import { stampajEkran, preuzmiEkranPdf } from "../../lib/listaEkranIzvoz.js";
 import { stampajEskalacije, preuzmiEskalacijePdf } from "../../lib/eskalacijePdf.js";
 import ListaIzvozDugmad from "../ListaIzvozDugmad.jsx";
 
-export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOtvori8D }) {
+export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOtvori8D, idDeoIzFiltera = "" }) {
   const [eskalacije, setEskalacije] = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [forma,      setForma]      = useState(null); // null | 'nova' | {id}
@@ -18,11 +18,14 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
   const [busyForma, setBusyForma] = useState(false);
   const izvozRef = useRef(null);
 
+  const idIzHedera = normalizujIdDeo(idDeoIzFiltera);
+  const aktivniId = idIzHedera || idDeoFilter;
+
   useEffect(() => {
     const nav = procitajNavigacijuEskalacije();
-    if (nav?.idDeo) setIdDeoFilter(normalizujIdDeo(nav.idDeo));
+    if (!idIzHedera && nav?.idDeo) setIdDeoFilter(normalizujIdDeo(nav.idDeo));
     if (nav?.statusFilter) setFilter(nav.statusFilter);
-  }, []);
+  }, [idIzHedera]);
 
   useEffect(()=>{
     Promise.all([
@@ -66,16 +69,17 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
     }
   };
 
+  const uIzabranomDelu = (e) => !aktivniId || normalizujIdDeo(e.id_deo) === aktivniId;
+
   const filtrirane = eskalacije.filter((e) => {
     if (filter !== "sve" && e.status !== filter) return false;
-    if (idDeoFilter && normalizujIdDeo(e.id_deo) !== idDeoFilter) return false;
-    return true;
+    return uIzabranomDelu(e);
   });
 
   const exportOpts = {
     filter,
-    idDeo: idDeoFilter,
-    naslov: idDeoFilter ? `Eskalacije — ${idDeoFilter}` : "Eskalacije",
+    idDeo: aktivniId,
+    naslov: aktivniId ? `Eskalacije — ${aktivniId}` : "Eskalacije",
   };
 
   const stampajEkranFn = async () => {
@@ -151,14 +155,14 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8,flexShrink:0}}>
         <div style={{color:C.tekst,fontSize:14,fontWeight:700,letterSpacing:1}}>
           ESKALACIJE
-          {idDeoFilter && (
+          {aktivniId && (
             <span style={{ color: C.plava, fontSize: 10, marginLeft: 8, fontWeight: 600 }}>
-              · {idDeoFilter}
+              · {aktivniId}
             </span>
           )}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {idDeoFilter && (
+          {!idIzHedera && idDeoFilter && (
             <button type="button" onClick={() => setIdDeoFilter("")}
               style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8,
                 color: C.sivi, fontSize: 10, padding: "6px 10px", cursor: "pointer" }}>
@@ -193,7 +197,7 @@ export default function EskalacijePanel({ korisnik, C, addToast, sviDelovi, onOt
             padding:"6px 14px",cursor:"pointer"}}>
             {l}
             {v!=="sve"&&<span style={{marginLeft:4,color:filter===v?"rgba(255,255,255,0.7)":C.border}}>
-              ({eskalacije.filter(e=>e.status===v).length})
+              ({eskalacije.filter((e) => e.status === v && uIzabranomDelu(e)).length})
             </span>}
           </button>
         ))}

@@ -71,4 +71,14 @@ describe("izveštaj dobavljača", () => {
       okStopa: 98.67,
     });
   });
+
+  it("za prijem dela uzima naziv iz šifrarnika", () => {
+    const materijali = agregirajDobavljacMaterijale([
+      { id_deo: "5502-A", kontrolisano: 5, ok_kolicina: 5, nok_kolicina: 0 },
+    ], [], { "5502-A": "Osovina prednja" });
+    expect(materijali[0]).toMatchObject({
+      sifra_materijala: "5502-A",
+      naziv_materijala: "Osovina prednja",
+    });
+  });
 });

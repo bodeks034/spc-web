@@ -47,6 +47,21 @@ export function oznakaLinije(kod) {
   return "Linija";
 }
 
+/** Naziv bez prefiksa „Privremeni”. Prazno ako je isto što i kod. */
+export function nazivLinijeZaPrikaz(kod, naziv) {
+  const ime = String(naziv || "").trim().replace(/^Privremeni\s+/i, "");
+  const k = normalizujKodLinije(kod);
+  if (!ime || normalizujKodLinije(ime) === k) return "";
+  return ime;
+}
+
+/** VOZ-01 kad nema posebnog imena; inače „VOZ-02 — Vozilo 2”. */
+export function etiketaLinije(kod, naziv) {
+  const k = normalizujKodLinije(kod) || String(kod || "").trim();
+  const ime = nazivLinijeZaPrikaz(k, naziv);
+  return ime ? `${k} — ${ime}` : k;
+}
+
 /** Legacy linije (MRAP, NTV…) — nisu VOZ/PRO starter model. */
 export function jeLegacyLinija(kod) {
   const k = normalizujKodLinije(kod);

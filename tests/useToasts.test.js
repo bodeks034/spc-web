@@ -31,7 +31,8 @@ describe("useToasts logika", () => {
   });
 
   it("podrazumevani tip treba biti info", () => {
-    const tip = undefined || "info";
-    expect(tip).toBe("info");
+    const napravi = (tekst, tip = "info") => ({ tekst, tip });
+    expect(napravi("poruka").tip).toBe("info");
+    expect(napravi("poruka", "greska").tip).toBe("greska");
   });
 });

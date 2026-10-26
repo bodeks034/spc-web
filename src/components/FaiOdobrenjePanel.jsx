@@ -8,10 +8,6 @@ import { stampajFai, preuzmiFaiPdf } from "../lib/faiPdf.js";
 import ListaIzvozDugmad from "./ListaIzvozDugmad.jsx";
 import { mozeOdobritiFai } from "../lib/uloge.js";
 
-function dISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
 function MerenjaTabela({ merenja, C }) {
   if (!merenja?.length) {
     return <div style={{ color: C.sivi, fontSize: 11 }}>Nema merenja u zapisu.</div>;
@@ -112,7 +108,7 @@ function FaiKartica({
  * Lista FAI zapisa na čekanju + odobrenje (tab ili ugrađeno na unosu).
  */
 export default function FaiOdobrenjePanel({
-  C, korisnik, smena, pogonKod, idDeoFilter, faiId, addToast, kompakt = false, onOdobreno,
+  C, korisnik, faiId, addToast, kompakt = false, onOdobreno,
 }) {
   const [lista, setLista] = useState([]);
   const [jedan, setJedan] = useState(null);
@@ -130,12 +126,7 @@ export default function FaiOdobrenjePanel({
         setJedan(rec?.status === "ceka" ? rec : null);
         setLista([]);
       } else {
-        const rows = await ucitajFaiCekaju(supabase, {
-          datum: dISO(),
-          smena,
-          pogonKod,
-          idDeo: idDeoFilter,
-        });
+        const rows = await ucitajFaiCekaju(supabase, {});
         setLista(rows);
         setJedan(null);
       }
@@ -146,7 +137,7 @@ export default function FaiOdobrenjePanel({
     } finally {
       setLoading(false);
     }
-  }, [faiId, smena, pogonKod, idDeoFilter, addToast]);
+  }, [faiId, addToast]);
 
   useEffect(() => { ucitaj(); }, [ucitaj]);
 
@@ -247,7 +238,7 @@ export default function FaiOdobrenjePanel({
           padding: 12,
           background: C.panel, borderRadius: 8, border: `1px solid ${C.border}`,
         }}>
-          {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja za danas."}
+          {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja."}
         </div>
       );
     }
@@ -317,7 +308,7 @@ export default function FaiOdobrenjePanel({
             padding: 32,
             background: C.panel, borderRadius: 8, border: `1px solid ${C.border}`,
           }}>
-            {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja za danas."}
+            {faiId ? "Nema FAI zapisa na čekanju za ovaj deo." : "Nema FAI na čekanju odobrenja."}
           </div>
         ) : prikaz.map((rec) => (
           <FaiKartica

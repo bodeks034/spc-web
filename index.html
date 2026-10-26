@@ -50,6 +50,14 @@
       outline: 2px solid #3b82f6;
       outline-offset: 2px;
     }
+    /* Placeholder ne sme da izgleda kao već uneta vrednost */
+    input::placeholder,
+    textarea::placeholder {
+      color: #7d8da3;
+      opacity: 1;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.85; }
